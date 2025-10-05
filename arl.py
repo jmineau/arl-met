@@ -2,12 +2,18 @@ from pathlib import Path
 import os
 import string
 from typing import Dict, Any, List, Optional, Tuple
+
+import pandas as pd
+import pyproj
 import numpy as np
+import xarray as xr
 
 
 # TODO
-# - Build index of headers to be able to seek to specific variable/level/time/forecast
-# - Add methods to read specific variables/levels/times
+# - CRS
+# - height calculation
+# - CF compliance
+# - VariableCatalog
 
 
 # ARL meteorological variable definitions
@@ -80,12 +86,226 @@ def restore_year(yr: str | int):
     return 2000 + yr if (yr < 40) else 1900 + yr
 
 
+def unpack(data: bytes | bytearray, nx: int, ny: int,
+           precision: float, exponent: int, initial_value: float,
+           checksum: int | None = None) -> np.ndarray:
+    """
+    Unpacks a differentially packed byte array into a 2D numpy array.
+
+    This function is a vectorized Python translation of the HYSPLIT 
+    FORTRAN PAKINP subroutine. It uses a differential unpacking scheme
+    where each value is derived from the previous one. The implementation
+    is optimized with numpy for high performance.
+
+    Parameters
+    ----------
+    data : bytes or bytearray
+        Packed input data as a 1D array of bytes.
+    nx : int
+        The number of columns in the full data grid.
+    ny : int
+        The number of rows in the full data grid.
+    precision : float
+        Precision of the packed data. Values with an absolute value smaller
+        than this will be set to zero.
+    exponent : int
+        The packing scaling exponent.
+    initial_value : float
+        The initial real value at the grid position (0,0).
+    checksum : int, optional
+        If provided, a checksum is calculated over `data` and compared
+        against this value. A `ValueError` is raised on mismatch.
+        If None (default), the check is skipped.
+
+    Returns
+    -------
+    np.ndarray
+        The unpacked 2D numpy array of shape (ny, nx) and dtype float32.
+
+    Raises
+    ------
+    ValueError
+        If a `checksum` is provided and the calculated checksum does not match.
+    """
+    # --- Vectorized Unpacking ---
+
+    # Calculate the scaling exponent
+    scexp = 1.0 / (2.0**(7 - exponent))
+
+    # Convert byte array to a 2D numpy grid and calculate the differential values
+    grid = np.frombuffer(data, dtype=np.uint8).reshape((ny, nx)).astype(np.float32)
+    diffs = (grid - 127) * scexp
+
+    # The first column is a cumulative sum of its own diffs, starting with initial_value.
+    # We create an array with initial_value followed by the first column's diffs.
+    first_col_vals = np.concatenate(([initial_value], diffs[:, 0]))
+    # The cumulative sum gives the unpacked values for the entire first column.
+    unpacked_col0 = np.cumsum(first_col_vals)[1:]
+
+    # Replace the first column of diffs with these now-unpacked starting values.
+    diffs[:, 0] = unpacked_col0
+
+    # The rest of the grid can now be unpacked by a cumulative sum across the rows (axis=1).
+    # Each row starts with its correct, fully unpacked value in the first column.
+    unpacked_grid = np.cumsum(diffs, axis=1)
+
+    # Apply the precision check to the final grid.
+    unpacked_grid[np.abs(unpacked_grid) < precision] = 0.0
+
+    # --- Optional: Calculate checksum and verify if checksum is provided ---
+    if checksum is not None:
+        # Calculate the rotating checksum over the entire input array
+        calculated_checksum = 0
+        for k in range(nx * ny):
+            calculated_checksum += data[k]
+            # This logic mimics the FORTRAN: "sum carries over the eighth bit add one"
+            # It's a form of 1's complement checksum addition.
+            if calculated_checksum >= 256:
+                calculated_checksum -= 255
+        
+        if calculated_checksum != checksum:
+            raise ValueError(f"Checksum mismatch: calculated {calculated_checksum}, expected {checksum}")
+            
+    return unpacked_grid
+
+
+class CRS:
+    """
+    ARL Coordinate Reference System (CRS)
+
+    Represents the coordinate reference system and projection parameters for ARL meteorological data.
+
+    Parameters
+    ----------
+    pole_lat : float
+        Pole latitude position of the grid projection. Most projections will be defined 
+        at +90 or -90 depending upon the hemisphere. For lat-lon grids: latitude of the 
+        grid point with the maximum grid point value.
+    pole_lon : float  
+        Pole longitude position of the grid projection. The longitude 180 degrees from 
+        which the projection is cut. For lat-lon grids: longitude of the grid point with 
+        the maximum grid point value.
+    ref_lat : float
+        Reference latitude at which the grid spacing is defined. For lat-lon grids: 
+        grid spacing in degrees latitude.
+    ref_lon : float
+        Reference longitude at which the grid spacing is defined. For lat-lon grids:
+        grid spacing in degrees longitude.
+    grid_size : float
+        Grid spacing in km at the reference position. For lat-lon grids: value of zero 
+        signals that the grid is a lat-lon grid.
+    orientation : float
+        Grid orientation or the angle at the reference point made by the y-axis and the 
+        local direction of north. For lat-lon grids: value always = 0.
+    cone_angle : float
+        Angle between the axis and the surface of the cone. For regular projections it 
+        equals the latitude at which the grid is tangent to the earth's surface. Polar 
+        stereographic: ±90, Mercator: 0, Lambert Conformal: between limits, Oblique 
+        stereographic: 90. For lat-lon grids: value always = 0.
+    sync_x : float
+        Grid x-coordinate used to equate a position on the grid with a position on earth
+        (paired with sync_y, sync_lat, sync_lon).
+    sync_y : float  
+        Grid y-coordinate used to equate a position on the grid with a position on earth
+        (paired with sync_x, sync_lat, sync_lon).
+    sync_lat : float
+        Earth latitude corresponding to the grid position (sync_x, sync_y). For lat-lon 
+        grids: latitude of the (0,0) grid point position.
+    sync_lon : float
+        Earth longitude corresponding to the grid position (sync_x, sync_y). For lat-lon 
+        grids: longitude of the (0,0) grid point position.
+    """
+
+    def __init__(self, pole_lat: float, pole_lon: float,
+                 ref_lat: float, ref_lon: float,
+                 grid_size: float, orientation: float,
+                 cone_angle: float,
+                 sync_x: float, sync_y: float,
+                 sync_lat: float, sync_lon: float):
+        self.pole_lat = pole_lat
+        self.pole_lon = pole_lon
+        self.ref_lat = ref_lat
+        self.ref_lon = ref_lon
+        self.grid_size = grid_size
+        self.orientation = orientation
+        self.cone_angle = cone_angle
+        self.sync_x = sync_x
+        self.sync_y = sync_y
+        self.sync_lat = sync_lat
+        self.sync_lon = sync_lon
+
+        self._crs = self._build_crs()
+
+    @property
+    def is_latlon(self) -> bool:
+        return self.grid_size == 0.0
+
+    def _build_crs(self):
+        if self.is_latlon:
+            # Lat/Lon grid
+            return pyproj.CRS.from_epsg(4326)  # WGS84
+
+        # Determine projection type based on cone_angle and pole_lat
+        if abs(self.cone_angle) == 90.0:  # Stereographic
+            if abs(self.pole_lat) == 90.0:  # Polar Stereographic
+                proj_str = (f"+proj=stere +lat_0={self.pole_lat} +lon_0={self.pole_lon} "
+                            f"+lat_ts={self.ref_lat} +x_0=0 +y_0=0 +ellps=WGS84")
+            else:  # Oblique Stereographic
+                proj_str = (f"+proj=sterea +lat_0={self.pole_lat} +lon_0={self.pole_lon} "
+                            f"+lat_ts={self.ref_lat} +x_0=0 +y_0=0 +ellps=WGS84")
+        elif self.cone_angle == 0.0:  # Mercator
+            proj_str = (f"+proj=merc +lat_ts={self.ref_lat} +lon_0={self.ref_lon} "
+                        f"+x_0=0 +y_0=0 +ellps=WGS84")
+        else:  # Lambert Conformal Conic
+            proj_str = (f"+proj=lcc +lat_0={self.ref_lat} +lon_0={self.ref_lon} "
+                        f"+lat_1={self.cone_angle} +x_0=0 +y_0=0 +ellps=WGS84")
+
+        return pyproj.CRS.from_proj4(proj_str)
+
+    def to_pyproj(self) -> pyproj.CRS:
+        return self._crs
+
+    def to_wkt(self) -> str:
+        return self._crs.to_wkt()
+
+    def calculate_coordinates(self, nx: int, ny: int
+                              ):
+        if self.is_latlon:
+            lat_0 = self.sync_lat
+            lon_0 = self.sync_lon
+            lat_1 = self.pole_lat
+            lon_1 = self.pole_lon
+            dlat = self.ref_lat
+            dlon = self.ref_lon
+            lats = lat_0 + np.arange(ny) * dlat
+            lons = lon_0 + np.arange(nx) * dlon
+            return {'lon': lons, 'lat': lats}
+
+        # Create a transformer from the projection to lat/lon
+        transformer = pyproj.Transformer.from_crs(self._crs, "EPSG:4326")
+
+        # Calculate the coordinates in the original projection
+        x_coords = self.sync_x + np.arange(nx) * self.grid_size * 1000  # convert km to m
+        y_coords = self.sync_y + np.arange(ny) * self.grid_size * 1000  # convert km to m
+
+        # Transform the coordinates to lat/lon
+        yy, xx = np.meshgrid(y_coords, x_coords, indexing='ij')
+        lats, lons = transformer.transform(xx, yy)
+
+        return {'x': x_coords, 'y': y_coords,
+                'lon': (('y', 'x'), lons),
+                'lat': (('y', 'x'), lats)}
+
+
 class Header:
-    'First 50 bytes of each record in ARL file'
+    'First 50 bytes of each record'
+
+    N_BYTES = 50
+
     def __init__(self, year: int, month: int, day: int, hour: int,
                  forecast: int | None, level: int, grid: tuple[int, int],
                  variable: str, exponent: int,
-                 precision: float, value_1_1: float):
+                 precision: float, initial_value: float):
         self.year = year
         self.month = month
         self.day = day
@@ -96,15 +316,15 @@ class Header:
         self.variable = variable
         self.exponent = exponent
         self.precision = precision
-        self.value_1_1 = value_1_1
+        self.initial_value = initial_value
 
     @classmethod
     def from_bytes(cls, data: bytes) -> 'Header':
         """
         Parse header from raw bytes.
         """
-        if len(data) != 50:
-            raise ValueError(f"Header must be exactly 50 bytes, got {len(data)}")
+        if len(data) != cls.N_BYTES:
+            raise ValueError(f"{cls.__name__} must be exactly {cls.N_BYTES} bytes, got {len(data)}")
 
         header = data.decode('ascii', errors='ignore')
 
@@ -119,7 +339,7 @@ class Header:
             'variable': (14, 18, str),
             'exponent': (18, 22, int),
             'precision': (22, 36, float),
-            'value_1_1': (36, 50, float),
+            'initial_value': (36, 50, float),
         }
 
         parsed = {}
@@ -133,16 +353,41 @@ class Header:
             parsed['forecast'] = None
 
         # Parse grid as tuple of strings
+        # If the character is a letter, it indicates thousands
+        # If the character is a digit, it indicates the Grid Number (00-99)
+        # However I don't think the grid number is relevant for unpacking
+        # In these case, no additional grid points will be addded to nx or ny
         parsed['grid'] = (letter_to_thousands(parsed['grid'][0]),
                           letter_to_thousands(parsed['grid'][1]))
 
         return cls(**parsed)
 
+    @property
+    def time(self) -> pd.Timestamp:
+        return pd.Timestamp(year=self.year, month=self.month,
+                            day=self.day, hour=self.hour)
+
     def __repr__(self):
         return (f"Header(year={self.year}, month={self.month}, day={self.day}, "
                 f"hour={self.hour}, forecast={self.forecast}, level={self.level}, "
                 f"grid={self.grid}, variable='{self.variable}', exponent={self.exponent}, "
-                f"precision={self.precision}, value_1_1={self.value_1_1})")
+                f"precision={self.precision}, initial_value={self.initial_value})")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'year': self.year,
+            'month': self.month,
+            'day': self.day,
+            'hour': self.hour,
+            'forecast': self.forecast,
+            'level': self.level,
+            'grid_x': self.grid[0],
+            'grid_y': self.grid[1],
+            'variable': self.variable,
+            'exponent': self.exponent,
+            'precision': self.precision,
+            'initial_value': self.initial_value
+        }
 
 
 class IndexRecordFixed:
@@ -154,8 +399,8 @@ class IndexRecordFixed:
     N_BYTES = 108
 
     def __init__(self, source: str, forecast_hour: int, minutes: int,
-                 pole_lat: float, pole_lon: float, tangent_lat: float,
-                 tangent_lon: float, grid_size: float, orientation: float,
+                 pole_lat: float, pole_lon: float, ref_lat: float,
+                 ref_lon: float, grid_size: float, orientation: float,
                  cone_angle: float, sync_x: float, sync_y: float,
                  sync_lat: float, sync_lon: float,
                  nx: int, ny: int, nz: int, vertical_coord: int,
@@ -165,8 +410,8 @@ class IndexRecordFixed:
         self.minutes = minutes
         self.pole_lat = pole_lat
         self.pole_lon = pole_lon
-        self.tangent_lat = tangent_lat
-        self.tangent_lon = tangent_lon
+        self.ref_lat = ref_lat
+        self.ref_lon = ref_lon
         self.grid_size = grid_size
         self.orientation = orientation
         self.cone_angle = cone_angle
@@ -244,12 +489,16 @@ class IndexRecordFixed:
     def __repr__(self):
         return (f"IndexRecordFixed(source='{self.source}', forecast_hour={self.forecast_hour}, "
                 f"minutes={self.minutes}, pole_lat={self.pole_lat}, pole_lon={self.pole_lon}, "
-                f"tangent_lat={self.tangent_lat}, tangent_lon={self.tangent_lon}, "
+                f"ref_lat={self.ref_lat}, ref_lon={self.ref_lon}, "
                 f"grid_size={self.grid_size}, orientation={self.orientation}, "
                 f"cone_angle={self.cone_angle}, sync_x={self.sync_x}, sync_y={self.sync_y}, "
                 f"sync_lat={self.sync_lat}, sync_lon={self.sync_lon}, nx={self.nx}, "
                 f"ny={self.ny}, nz={self.nz}, vertical_coord={self.vertical_coord}, "
                 f"index_length={self.index_length})")
+
+
+class VariableCatalog:
+    pass
 
 
 class IndexRecordExtended:
@@ -309,58 +558,152 @@ class IndexRecordExtended:
 class IndexRecord:
     """
     Represents a complete ARL index record that precedes data records for each time period.
-    Combines the fixed header portion with the variable levels portion.
+    Combines the fixed portion with the variable levels portion.
     """
 
-    def __init__(self, fixed: IndexRecordFixed, extended: IndexRecordExtended):
-        self._fixed = fixed
-        self._extended = extended
+    def __init__(self,
+                 source: str, forecast_hour: int, minutes: int,
+                 pole_lat: float, pole_lon: float, ref_lat: float,
+                 ref_lon: float, grid_size: float, orientation: float,
+                 cone_angle: float, sync_x: float, sync_y: float,
+                 sync_lat: float, sync_lon: float,
+                 nx: int, ny: int, nz: int, vertical_coord: int,
+                 index_length: int, levels: List[Dict[str, Any]]):
+        self.source = source
+        self.forecast_hour = forecast_hour
+        self.minutes = minutes
+        self.pole_lat = pole_lat
+        self.pole_lon = pole_lon
+        self.ref_lat = ref_lat
+        self.ref_lon = ref_lon
+        self.grid_size = grid_size
+        self.orientation = orientation
+        self.cone_angle = cone_angle
+        self.sync_x = sync_x
+        self.sync_y = sync_y
+        self.sync_lat = sync_lat
+        self.sync_lon = sync_lon
+        self.nx = nx
+        self.ny = ny
+        self.nz = nz
+        self.vertical_coord = vertical_coord
+        self.index_length = index_length
+        self.levels = levels
 
-        self.source = fixed.source
-        self.forecast_hour = fixed.forecast_hour
-        self.minutes = fixed.minutes
-        self.pole_lat = fixed.pole_lat
-        self.pole_lon = fixed.pole_lon
-        self.tangent_lat = fixed.tangent_lat
-        self.tangent_lon = fixed.tangent_lon
-        self.grid_size = fixed.grid_size
-        self.orientation = fixed.orientation
-        self.cone_angle = fixed.cone_angle
-        self.sync_x = fixed.sync_x
-        self.sync_y = fixed.sync_y
-        self.sync_lat = fixed.sync_lat
-        self.sync_lon = fixed.sync_lon
-        self.nx = fixed.nx
-        self.ny = fixed.ny
-        self.nz = fixed.nz
-        self.vertical_coord = fixed.vertical_coord
-        self.index_length = fixed.index_length
-        self.levels = extended.levels
+    @classmethod
+    def from_parts(cls, fixed: IndexRecordFixed, extended: IndexRecordExtended) -> 'IndexRecord':
+        return cls(
+            source=fixed.source,
+            forecast_hour=fixed.forecast_hour,
+            minutes=fixed.minutes,
+            pole_lat=fixed.pole_lat,
+            pole_lon=fixed.pole_lon,
+            ref_lat=fixed.ref_lat,
+            ref_lon=fixed.ref_lon,
+            grid_size=fixed.grid_size,
+            orientation=fixed.orientation,
+            cone_angle=fixed.cone_angle,
+            sync_x=fixed.sync_x,
+            sync_y=fixed.sync_y,
+            sync_lat=fixed.sync_lat,
+            sync_lon=fixed.sync_lon,
+            nx=fixed.nx,
+            ny=fixed.ny,
+            nz=fixed.nz,
+            vertical_coord=fixed.vertical_coord,
+            index_length=fixed.index_length,
+            levels=extended.levels
+        )
 
     def __repr__(self):
         return (f"IndexRecord(source='{self.source}', forecast_hour={self.forecast_hour}, "
                 f"minutes={self.minutes}, pole_lat={self.pole_lat}, pole_lon={self.pole_lon}, "
-                f"tangent_lat={self.tangent_lat}, tangent_lon={self.tangent_lon}, "
+                f"ref_lat={self.ref_lat}, ref_lon={self.ref_lon}, "
                 f"grid_size={self.grid_size}, orientation={self.orientation}, "
                 f"cone_angle={self.cone_angle}, sync_x={self.sync_x}, sync_y={self.sync_y}, "
                 f"sync_lat={self.sync_lat}, sync_lon={self.sync_lon}, nx={self.nx}, "
                 f"ny={self.ny}, nz={self.nz}, vertical_coord={self.vertical_coord}, "
                 f"index_length={self.index_length}, levels={repr(self.levels)})")
-    
+
     @property
-    def num_records
+    def crs(self) -> CRS:
+        return CRS(
+            pole_lat=self.pole_lat,
+            pole_lon=self.pole_lon,
+            ref_lat=self.ref_lat,
+            ref_lon=self.ref_lon,
+            grid_size=self.grid_size,
+            orientation=self.orientation,
+            cone_angle=self.cone_angle,
+            sync_x=self.sync_x,
+            sync_y=self.sync_y,
+            sync_lat=self.sync_lat,
+            sync_lon=self.sync_lon
+        )
 
 
-class Record:
-    def __init__(self, header, data):
+class DataRecord:
+    """
+    Represents a data record containing packed meteorological data.
+    """
+
+    def __init__(self, index_record: IndexRecord, header: Header, data: bytes):
+        self.index_record = index_record
         self.header = header
         self.data = data
 
+    def __repr__(self):
+        return (f"DataRecord(index_record={repr(self.index_record)}, "
+                f"header={repr(self.header)}, data_length={len(self.data)})")
 
-class PackedData:
+    @property
+    def time(self) -> pd.Timestamp:
+        return self.header.time + pd.Timedelta(minutes=self.index_record.minutes)
+
+    def unpack(self) -> xr.DataArray:
+        """
+        Unpack the data record into a 2D xarray DataArray.
+        """
+        nx = self.index_record.nx + self.header.grid[0]
+        ny = self.index_record.ny + self.header.grid[1]
+
+        unpacked = unpack(data=self.data, nx=nx, ny=ny,
+                          precision=self.header.precision,
+                          exponent=self.header.exponent,
+                          initial_value=self.header.initial_value)
+
+        crs = self.index_record.crs
+        if crs.is_latlon:
+            dims = ('lat', 'lon')
+        else:
+            dims = ('y', 'x')
+        coords = crs.calculate_coordinates(nx=nx, ny=ny)
+
+        da = xr.DataArray(data=unpacked, dims=dims, coords=coords,
+                          name=self.header.variable)
+
+        # Expand dimensions for time, forecast, level, grid
+        da = da.expand_dims({
+            'time': [self.time],
+            'forecast': [self.header.forecast],
+            'level': [self.header.level],
+            # 'grid': None  # TODO how to identify grid?
+        })
+
+        # Calculate height
+        # da = da.assign_coords({
+        #     'height': ('level', )
+        # })
+
+        # TODO: add CF attributes
+
+        return da
+
+
+class ARLMet:
     """
-    ARL (Air Resources Laboratory) packed meteorological data file reader.
-    
+    ARL (Air Resources Laboratory) packed meteorological data.
+
     Extracts metadata from meteorological data file headers and provides
     methods to work with ARL format files.
     """
@@ -375,173 +718,73 @@ class PackedData:
         with self.path.open('rb') as f:
             data = f.read()
 
-        # Build the index header and record
+        records = []
+
+        index_record = None
+        nxy = 0
+
+        # Build the index
         cursor = 0
-        self.header = Header.from_bytes(data[cursor:cursor + 50])
-        cursor += 50
-        end_fixed = cursor + IndexRecordFixed.N_BYTES
-        fixed = IndexRecordFixed.from_bytes(data[cursor:end_fixed])
-        extended = IndexRecordExtended.from_bytes(data[end_fixed:cursor + fixed.index_length],
-                                                  nz=fixed.nz)
-        cursor += fixed.index_length
-        self.index_record = IndexRecord(fixed, extended)
+        while cursor < len(data):
+            # Read the next header
+            header = Header.from_bytes(data[cursor:cursor + Header.N_BYTES])
+            cursor += Header.N_BYTES
 
-        # Calculate grid size
-        self.nx = self.index_record.nx + self.header.grid[0]
-        self.ny = self.index_record.ny + self.header.grid[1]
-        nxy = self.nx * self.ny
+            if header.variable == 'INDX':
+                # Parse the index record to get grid dimensions
+                end_fixed = cursor + IndexRecordFixed.N_BYTES
+                fixed = IndexRecordFixed.from_bytes(data[cursor:end_fixed])
+                end_index = cursor + fixed.index_length
+                extended = IndexRecordExtended.from_bytes(data[end_fixed:end_index],
+                                                          nz=fixed.nz)
+                index_record = IndexRecord.from_parts(fixed=fixed, extended=extended)
+                cursor += fixed.index_length
 
-        # Calculate record size
-        self.record_length = 50 + nxy  # 50-byte header + nxy data points
-        
-
-        # Build index
-        self.index = self._build_index()
-    
-    def _build_index(self):
-        """
-        Build a lookup index of variables by level and name.
-        
-        Returns
-        ------- 
-        """
-        # Calculate the size per time step
-        self.time_step_length =  self.record_length * self.index_record.nz * self.index_record.num_records
-
-        index = {}
-        position = 0
-        for lvl in self.index_record.levels:
-            level_num = lvl['level']
-            index[level_num] = {}
-            for var_name, checksum in lvl['vars']:
-                index[level_num][var_name] = position * self.record_length
-        return index
-
-
-def unpack_data(cpack, nx, ny, nexp, var1):
-    """
-    Unpacks the ARL packed data format into a 2D numpy array.
-
-    Args:
-        cpack (bytes): The byte array of packed data (nx * ny).
-        nx (int): Grid dimension in the x-direction.
-        ny (int): Grid dimension in the y-direction.
-        nexp (int): Scaling exponent.
-        var1 (float): The starting value for the first grid point.
-
-    Returns:
-        numpy.ndarray: A 2D array with the unpacked data.
-    """
-    rdata = np.zeros((ny, nx), dtype=np.float64)
-    
-    # The scale factor is used to convert the packed integer back to a float.
-    # It's derived from the scaling exponent (NEXP) in the record header.
-    scale = 2.0**(7 - nexp)
-    vold = var1
-    indx = 0
-    
-    # print("\n--- Unpacked Data Samples ---")
-    
-    # The data is stored as a difference from the previous value.
-    # We iterate through each grid point to reconstruct the absolute value.
-    for j in range(ny):
-        for i in range(nx):
-            # The unpacking formula:
-            # 1. Get the byte value (0-255).
-            # 2. Subtract 127 to center the deviation around 0.
-            # 3. Divide by the scale factor.
-            # 4. Add to the previous value (vold) to get the true value.
-            if indx < len(cpack):
-                rdata[j, i] = (cpack[indx] - 127.0) / scale + vold
+                # Calculate grid size
+                nx = index_record.nx + header.grid[0]
+                ny = index_record.ny + header.grid[1]
+                nxy = nx * ny
+                cursor += (nxy - fixed.index_length)  # Skip any extra bytes in index record
             else:
-                # Handle cases where packed data is shorter than expected
-                print(f"Warning: Packed data is short. Stopping at index {indx}", file=sys.stderr)
-                return rdata
+                record = DataRecord(index_record=index_record, header=header,
+                                    data=data[cursor:cursor + nxy])
 
-            vold = rdata[j, i]
-            indx += 1
-            
-            # Print samples from the corners of the grid for verification,
-            # matching the diagnostic output of the original Fortran code.
-            # Fortran is 1-based, Python is 0-based, so we add 1 for display.
-            # if i < 2 and j < 2:
-                # print(f"Row: {j+1:5d}, Col: {i+1:5d}, Byte: {cpack[indx-1]:5d}, Value: {rdata[j,i]:12.4E}")
-            # if i >= (nx - 2) and j >= (ny - 2):
-                # print(f"Row: {j+1:5d}, Col: {i+1:5d}, Byte: {cpack[indx-1]:5d}, Value: {rdata[j,i]:12.4E}")
+                records.append({
+                    'grid': None,  # TODO how to identify grid?
+                    'time': record.time,
+                    'forecast': header.forecast,
+                    'level': header.level,
+                    'variable': header.variable,
+                    'record': record,
+                    })
+                cursor += nxy  # Move cursor past packed data
 
-        # At the end of each row, the "previous value" is reset to the value
-        # from the first cell of that same row.
-        vold = rdata[j, 0]
-        
-    # print("---------------------------\n")
-    return rdata
+        index = pd.DataFrame(records)
+        # index_keys = ['grid', 'time', 'forecast', 'level', 'variable']  # TODO grid
+        index_keys = ['time', 'forecast', 'level', 'variable']
+        self._index = index.set_index(index_keys)['record']
 
+    @property
+    def records(self) -> List[DataRecord]:
+        return self._index.tolist()
 
-if __name__ == "__main__":
-    # THIS WORKS, but is just a demo of reading the file
-    with open(file_path, 'rb') as f:
-        # --- Step 1: Read the Index Record to get grid dimensions ---
-        # The first record has a fixed length of 158 bytes
-        index_record_bytes = f.read(158)
-        if len(index_record_bytes) < 158:
-            print("Error: File is too small to be a valid ARL file.")
+    def load(self, **kwargs) -> xr.Dataset | xr.DataArray:
+        """
+        Load data into an xarray Dataset.
 
-        label_bytes = index_record_bytes[0:50]
-        header_bytes = index_record_bytes[50:158] # Only reads first 108 of header
+        Accepts xarray sel-style indexing to select specific times, variables, levels, forecasts, or grids.
 
-        # Decode and parse the standard label
-        label_str = label_bytes.decode('ascii', errors='ignore')
-        iyr = int(label_str[0:2])
-        imo = int(label_str[2:4])
-        ida = int(label_str[4:6])
-        ihr = int(label_str[6:8])
-        kvar = label_str[14:18]
-        
-        print(f"Opened file date    : {iyr:5d}{imo:5d}{ida:5d}{ihr:5d}")
+        Parameters
+        ----------
+        **kwargs : dict
+        """
+        index = self._index.to_xarray()
+        records = index.sel(**kwargs).values.flatten().tolist()
+        arrays = [r.unpack() for r in records
+                  if isinstance(r, DataRecord)]
 
-        if kvar != 'INDX':
-            print("Error: This does not appear to be a valid ARL file.")
-            print("The first record is not an 'INDX' record.")
+        if len(arrays) == 1:
+            return arrays[0]
 
-        # Decode and parse the extended header to get grid info
-        header_str = header_bytes.decode('ascii', errors='ignore')
-        nx = int(header_str[93:96]) + 1000
-        ny = int(header_str[96:99]) + 1000
-        lenh = int(header_str[104:108])
-
-        nxy = nx * ny
-        # Each subsequent data record has a 50-byte label + packed data
-        record_len = nxy + 50
-        
-        print(f"Grid size and lrec  : {nx} {ny} {nxy} {record_len}")
-        print(f"Header record size  : {lenh:5d}")
-        
-        # --- Step 2: Loop through all data records in the file ---
-        krec = 1
-        while True:
-            # Seek to the beginning of the next record
-            offset = (krec - 1) * record_len
-            f.seek(offset)
-            
-            record_bytes = f.read(record_len)
-            if len(record_bytes) < record_len:
-                print("\nEnd of file reached.")
-                break
-
-            data_label_bytes = record_bytes[0:50]
-            cpack = record_bytes[50:]
-            
-            # Decode and parse the data record's label
-            data_label_str = data_label_bytes.decode('ascii', errors='ignore').strip()
-            kvar = data_label_str[14:18]
-            nexp = int(data_label_str[18:22].strip())
-            # Precision and Var1 are stored in scientific notation
-            prec = float(data_label_str[22:36].strip())
-            var1 = float(data_label_str[36:50].strip())
-
-            print(f"Record {krec}: {Header.from_bytes(data_label_bytes)}")
-
-            if kvar != 'INDX':
-                unpack_data(cpack, nx, ny, nexp, var1)
-                
-            krec += 1
+        ds = xr.merge(arrays)
+        return ds.sel(**kwargs)
