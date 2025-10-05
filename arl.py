@@ -86,6 +86,23 @@ def restore_year(yr: str | int):
     return 2000 + yr if (yr < 40) else 1900 + yr
 
 
+def wrap_longitude(lons: np.ndarray) -> np.ndarray:
+    """
+    Wrap longitude values to -180 to 180 degree range.
+    
+    Parameters
+    ----------
+    lons : np.ndarray
+        Longitude values in degrees
+        
+    Returns
+    -------
+    np.ndarray
+        Longitude values wrapped to [-180, 180] range
+    """
+    return ((lons + 180) % 360) - 180
+
+
 def unpack(data: bytes | bytearray, nx: int, ny: int,
            precision: float, exponent: int, initial_value: float,
            checksum: int | None = None) -> np.ndarray:
@@ -204,10 +221,12 @@ class CRS:
         stereographic: 90. For lat-lon grids: value always = 0.
     sync_x : float
         Grid x-coordinate used to equate a position on the grid with a position on earth
-        (paired with sync_y, sync_lat, sync_lon).
+        (paired with sync_y, sync_lat, sync_lon). Units are in grid units
+        (dimensionless grid indices).
     sync_y : float  
         Grid y-coordinate used to equate a position on the grid with a position on earth
-        (paired with sync_x, sync_lat, sync_lon).
+        (paired with sync_x, sync_lat, sync_lon). Units are in grid units
+        (dimensionless grid indices).
     sync_lat : float
         Earth latitude corresponding to the grid position (sync_x, sync_y). For lat-lon 
         grids: latitude of the (0,0) grid point position.
@@ -245,22 +264,35 @@ class CRS:
             # Lat/Lon grid
             return pyproj.CRS.from_epsg(4326)  # WGS84
 
+        # Earth radius used by HYSPLIT (matches REARTH in the Fortran code)
+        R = 6371200  # meters (6371.2 km)
+
         # Determine projection type based on cone_angle and pole_lat
         if abs(self.cone_angle) == 90.0:  # Stereographic
             if abs(self.pole_lat) == 90.0:  # Polar Stereographic
                 proj_str = (f"+proj=stere +lat_0={self.pole_lat} +lon_0={self.pole_lon} "
-                            f"+lat_ts={self.ref_lat} +x_0=0 +y_0=0 +ellps=WGS84")
+                            f"+lat_ts={self.ref_lat}")
             else:  # Oblique Stereographic
                 proj_str = (f"+proj=sterea +lat_0={self.pole_lat} +lon_0={self.pole_lon} "
-                            f"+lat_ts={self.ref_lat} +x_0=0 +y_0=0 +ellps=WGS84")
+                            f"+lat_ts={self.ref_lat}")
         elif self.cone_angle == 0.0:  # Mercator
-            proj_str = (f"+proj=merc +lat_ts={self.ref_lat} +lon_0={self.ref_lon} "
-                        f"+x_0=0 +y_0=0 +ellps=WGS84")
+            proj_str = f"+proj=merc +lat_ts={self.ref_lat} +lon_0={self.ref_lon}"
         else:  # Lambert Conformal Conic
             proj_str = (f"+proj=lcc +lat_0={self.ref_lat} +lon_0={self.ref_lon} "
-                        f"+lat_1={self.cone_angle} +x_0=0 +y_0=0 +ellps=WGS84")
+                        f"+lat_1={self.cone_angle}")
 
-        return pyproj.CRS.from_proj4(proj_str)
+        proj_str += f" +ellps=WGS84 +R={R} +units=m"  # common parameters
+
+        # Calculate false easting/northing
+        temp_crs = pyproj.CRS.from_proj4(proj_str)
+        transformer = pyproj.Transformer.from_proj('EPSG:4326', temp_crs, always_xy=True)
+        proj_x, proj_y = transformer.transform(self.sync_lon, self.sync_lat)
+        false_easting = (self.sync_x - 1) - proj_x
+        false_northing = (self.sync_y - 1) - proj_y
+
+        # Create final CRS with false easting/northing
+        final_proj = proj_str + f" +x_0={false_easting} +y_0={false_northing}"
+        return pyproj.CRS.from_proj4(final_proj)
 
     def to_pyproj(self) -> pyproj.CRS:
         return self._crs
@@ -279,22 +311,71 @@ class CRS:
             dlon = self.ref_lon
             lats = lat_0 + np.arange(ny) * dlat
             lons = lon_0 + np.arange(nx) * dlon
+            lons = wrap_longitude(lons)
             return {'lon': lons, 'lat': lats}
 
         # Create a transformer from the projection to lat/lon
         transformer = pyproj.Transformer.from_crs(self._crs, "EPSG:4326")
 
         # Calculate the coordinates in the original projection
-        x_coords = self.sync_x + np.arange(nx) * self.grid_size * 1000  # convert km to m
-        y_coords = self.sync_y + np.arange(ny) * self.grid_size * 1000  # convert km to m
+        x_coords = (self.sync_x - 1) + np.arange(nx) * self.grid_size * 1000  # convert km to m
+        y_coords = (self.sync_y - 1) + np.arange(ny) * self.grid_size * 1000  # convert km to m
 
         # Transform the coordinates to lat/lon
         yy, xx = np.meshgrid(y_coords, x_coords, indexing='ij')
         lats, lons = transformer.transform(xx, yy)
+        lons = wrap_longitude(lons)
 
         return {'x': x_coords, 'y': y_coords,
                 'lon': (('y', 'x'), lons),
                 'lat': (('y', 'x'), lats)}
+
+
+class VerticalAxis:
+    """
+    Represents the vertical axis of the ARL data.
+
+    Parameters
+    ----------
+    vertical_coord : int
+        Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain, 4=hybrid).
+    levels : List[float]
+        List of vertical levels corresponding to the vertical coordinate system.
+    """
+
+    def __init__(self, vertical_coord: int, levels: List[float]):
+        self.vertical_coord = vertical_coord
+        self.levels = levels
+
+    @property
+    def coord_type(self) -> str:
+        return VERTICAL_COORDS.get(self.vertical_coord, 'unknown')
+
+    def calculate_heights(self, surface_pressure: Optional[np.ndarray] = None
+                          ) -> Optional[np.ndarray]:
+        """
+        Calculate heights in meters for each vertical level.
+
+        For pressure coordinates, heights are calculated using the barometric formula.
+        For sigma and terrain coordinates, surface pressure is required.
+
+        Parameters
+        ----------
+        surface_pressure : Optional[np.ndarray]
+            2D array of surface pressure in hPa. Required for sigma and terrain coordinates.
+        
+        Returns
+        -------
+        Optional[np.ndarray]
+            1D array of heights in meters for each vertical level, or None if heights cannot
+            be calculated.
+        """
+        if self.coord_type == 'sigma':
+            # fraction
+            
+            pass
+
+        return None
 
 
 class Header:
@@ -485,7 +566,7 @@ class IndexRecordFixed:
             proj_values['sync_lon'], nx, ny, nz,
             vertical_coord, index_length
         )
-    
+
     def __repr__(self):
         return (f"IndexRecordFixed(source='{self.source}', forecast_hour={self.forecast_hour}, "
                 f"minutes={self.minutes}, pole_lat={self.pole_lat}, pole_lon={self.pole_lon}, "
@@ -495,6 +576,22 @@ class IndexRecordFixed:
                 f"sync_lat={self.sync_lat}, sync_lon={self.sync_lon}, nx={self.nx}, "
                 f"ny={self.ny}, nz={self.nz}, vertical_coord={self.vertical_coord}, "
                 f"index_length={self.index_length})")
+
+    @property
+    def crs(self) -> CRS:
+        return CRS(
+            pole_lat=self.pole_lat,
+            pole_lon=self.pole_lon,
+            ref_lat=self.ref_lat,
+            ref_lon=self.ref_lon,
+            grid_size=self.grid_size,
+            orientation=self.orientation,
+            cone_angle=self.cone_angle,
+            sync_x=self.sync_x,
+            sync_y=self.sync_y,
+            sync_lat=self.sync_lat,
+            sync_lon=self.sync_lon
+        )
 
 
 class VariableCatalog:
@@ -563,26 +660,13 @@ class IndexRecord:
 
     def __init__(self,
                  source: str, forecast_hour: int, minutes: int,
-                 pole_lat: float, pole_lon: float, ref_lat: float,
-                 ref_lon: float, grid_size: float, orientation: float,
-                 cone_angle: float, sync_x: float, sync_y: float,
-                 sync_lat: float, sync_lon: float,
-                 nx: int, ny: int, nz: int, vertical_coord: int,
-                 index_length: int, levels: List[Dict[str, Any]]):
+                 crs: CRS, nx: int, ny: int, nz: int,
+                 vertical_coord: int, index_length: int,
+                 levels: List[Dict[str, Any]]):
         self.source = source
         self.forecast_hour = forecast_hour
         self.minutes = minutes
-        self.pole_lat = pole_lat
-        self.pole_lon = pole_lon
-        self.ref_lat = ref_lat
-        self.ref_lon = ref_lon
-        self.grid_size = grid_size
-        self.orientation = orientation
-        self.cone_angle = cone_angle
-        self.sync_x = sync_x
-        self.sync_y = sync_y
-        self.sync_lat = sync_lat
-        self.sync_lon = sync_lon
+        self.crs = crs
         self.nx = nx
         self.ny = ny
         self.nz = nz
@@ -596,17 +680,7 @@ class IndexRecord:
             source=fixed.source,
             forecast_hour=fixed.forecast_hour,
             minutes=fixed.minutes,
-            pole_lat=fixed.pole_lat,
-            pole_lon=fixed.pole_lon,
-            ref_lat=fixed.ref_lat,
-            ref_lon=fixed.ref_lon,
-            grid_size=fixed.grid_size,
-            orientation=fixed.orientation,
-            cone_angle=fixed.cone_angle,
-            sync_x=fixed.sync_x,
-            sync_y=fixed.sync_y,
-            sync_lat=fixed.sync_lat,
-            sync_lon=fixed.sync_lon,
+            crs=fixed.crs,
             nx=fixed.nx,
             ny=fixed.ny,
             nz=fixed.nz,
@@ -616,30 +690,12 @@ class IndexRecord:
         )
 
     def __repr__(self):
-        return (f"IndexRecord(source='{self.source}', forecast_hour={self.forecast_hour}, "
-                f"minutes={self.minutes}, pole_lat={self.pole_lat}, pole_lon={self.pole_lon}, "
-                f"ref_lat={self.ref_lat}, ref_lon={self.ref_lon}, "
-                f"grid_size={self.grid_size}, orientation={self.orientation}, "
-                f"cone_angle={self.cone_angle}, sync_x={self.sync_x}, sync_y={self.sync_y}, "
-                f"sync_lat={self.sync_lat}, sync_lon={self.sync_lon}, nx={self.nx}, "
-                f"ny={self.ny}, nz={self.nz}, vertical_coord={self.vertical_coord}, "
+        return (f"IndexRecord(source='{self.source}', "
+                f"forecast_hour={self.forecast_hour}, "
+                f"minutes={self.minutes}, crs={repr(self.crs)}, "
+                f"nx={self.nx}, ny={self.ny}, nz={self.nz}, "
+                f"vertical_coord={self.vertical_coord}, "
                 f"index_length={self.index_length}, levels={repr(self.levels)})")
-
-    @property
-    def crs(self) -> CRS:
-        return CRS(
-            pole_lat=self.pole_lat,
-            pole_lon=self.pole_lon,
-            ref_lat=self.ref_lat,
-            ref_lon=self.ref_lon,
-            grid_size=self.grid_size,
-            orientation=self.orientation,
-            cone_angle=self.cone_angle,
-            sync_x=self.sync_x,
-            sync_y=self.sync_y,
-            sync_lat=self.sync_lat,
-            sync_lon=self.sync_lon
-        )
 
 
 class DataRecord:
@@ -681,6 +737,9 @@ class DataRecord:
 
         da = xr.DataArray(data=unpacked, dims=dims, coords=coords,
                           name=self.header.variable)
+
+        # Sort on dims
+        da = da.sortby(list(dims))
 
         # Expand dimensions for time, forecast, level, grid
         da = da.expand_dims({
@@ -784,7 +843,7 @@ class ARLMet:
                   if isinstance(r, DataRecord)]
 
         if len(arrays) == 1:
-            return arrays[0]
+            return arrays[0].sel(**kwargs)
 
         ds = xr.merge(arrays)
         return ds.sel(**kwargs)
