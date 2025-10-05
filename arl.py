@@ -805,6 +805,8 @@ class ARLMet:
                 nxy = nx * ny
                 cursor += (nxy - fixed.index_length)  # Skip any extra bytes in index record
             else:
+                if index_record is None:
+                    raise ValueError("Data record found before index record")
                 record = DataRecord(index_record=index_record, header=header,
                                     data=data[cursor:cursor + nxy])
 
@@ -837,13 +839,21 @@ class ARLMet:
         ----------
         **kwargs : dict
         """
+        # Select records matching criteria
         index = self._index.to_xarray()
         records = index.sel(**kwargs).values.flatten().tolist()
+
+        # Unpack each record to DataArray
         arrays = [r.unpack() for r in records
-                  if isinstance(r, DataRecord)]
+                  if isinstance(r, DataRecord)]  # drop nans from xarray
+
+        # variable is a dim of index, not data
+        kwargs.pop('variable', None)
 
         if len(arrays) == 1:
+            # Only one variable, return DataArray
             return arrays[0].sel(**kwargs)
 
+        # Multiple variables, return Dataset
         ds = xr.merge(arrays)
         return ds.sel(**kwargs)
