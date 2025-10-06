@@ -121,12 +121,10 @@ class ARLMet:
                 fixed_end = cursor + IndexRecord.N_BYTES_FIXED
                 fixed = IndexRecord.parse_fixed(data=data[cursor:fixed_end])
                 index_end = cursor + fixed["index_length"]
-                catalog = IndexRecord.parse_extended(
+                levels = IndexRecord.parse_extended(
                     data=data[fixed_end:index_end], nz=fixed["nz"]
                 )
-                index_record = IndexRecord(
-                    header=header, **fixed, levels=catalog.levels
-                )
+                index_record = IndexRecord(header=header, **fixed, levels=levels)
 
                 # Calculate grid size
                 nxy = index_record.grid.nx * index_record.grid.ny

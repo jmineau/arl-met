@@ -269,7 +269,7 @@ class Grid:
         # Calculate what the projected coordinates of the sync point should be
         base_crs = pyproj.CRS.from_dict(proj.params)
         transformer = pyproj.Transformer.from_proj(
-            "EPSG:4326", base_crs, always_xy=True
+            proj_from="EPSG:4326", proj_to=base_crs, always_xy=True
         )
         sync_proj_x, sync_proj_y = transformer.transform(proj.sync_lon, proj.sync_lat)
 
@@ -302,7 +302,7 @@ class Grid:
         params.update({"x_0": self.origin[0], "y_0": self.origin[1]})
         return pyproj.CRS.from_dict(params)
 
-    def _calculate_coords(self):
+    def _calculate_coords(self) -> dict[str, Any]:
         """
         Calculate grid coordinates in both projected and geographic systems.
 
@@ -345,6 +345,32 @@ class Grid:
         }
 
 
+@dataclass
+class LevelInfo:
+    """
+    Information about a single vertical level.
+
+    Parameters
+    ----------
+    index : int
+        Level index.
+    height : float
+        Height in units of the vertical coordinate system.
+    variables : List[str]
+        List of variable names at this level.
+    checksums : Dict[str, int]
+        Mapping of variable name to checksum.
+    reserved : Dict[str, str]
+        Mapping of variable name to reserved string.
+    """
+
+    index: int
+    height: float
+    variables: List[str]
+    checksums: Dict[str, int]
+    reserved: Dict[str, str]
+
+
 class VerticalAxis:
     """
     Represents the vertical axis of the ARL data.
@@ -353,18 +379,26 @@ class VerticalAxis:
     ----------
     vertical_flag : int
         Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain, 4=hybrid).
-    levels : List[float]
+    levels : List[LevelInfo]
         List of vertical levels corresponding to the vertical coordinate system.
     """
 
     FLAGS = {
-        1: "sigma",  # (fraction)
-        2: "pressure",  # (mb)
-        3: "terrain",  # (fraction)
-        4: "hybrid",  # (mb: offset.fraction)
+        1: "sigma",  # fraction
+        2: "pressure",  # mb
+        3: "terrain",  # fraction
+        4: "hybrid",  # mb: offset.fraction
     }
 
-    def __init__(self, vertical_flag: int, levels: List[float]):
+    SURFACE_HEIGHT: float = 0.0  # m
+    SURFACE_PRESSURE: float = 1013.25  # mb
+    Z_TOP: float = 20000.0  # m
+    # meters per hPa by 100 hPa intervals (100 to 900)
+    Z_PHI1: Tuple = (17.98, 14.73, 13.09, 11.98, 11.15, 10.52, 10.04, 9.75, 9.88)
+    # meters per hPa by 10 hPa intervals (10 to 90)
+    Z_PHI2: Tuple = (31.37, 27.02, 24.59, 22.92, 21.65, 20.66, 19.83, 19.13, 18.51)
+
+    def __init__(self, vertical_flag: int, levels: List[LevelInfo]):
         """
         Initialize the vertical axis.
 
@@ -378,6 +412,8 @@ class VerticalAxis:
         self.flag = vertical_flag
         self.levels = levels
 
+        self.heights = self._calculate_coords()
+
     @property
     def coord_type(self) -> str:
         """
@@ -390,26 +426,49 @@ class VerticalAxis:
         """
         return VerticalAxis.FLAGS.get(self.flag, "unknown")
 
-    def calculate_heights(self) -> np.ndarray | None:
+    def _calculate_coords(self, reserved, sfcp, sfct) -> np.ndarray:
         """
-        Calculate heights in meters for each vertical level.
+        Calculate height coordinates based on the vertical coordinate system.
+
+        Parameters
+        ----------
+        reserved : float
+            Reserved value from the index record.
+        sfcp : float
+            Surface pressure in mb. PRSS variable at the surface level.
+        sfct : float
+            Surface height in m. SHGT variable at the surface level.
         """
+        heights = np.array([level.height for level in self.levels])
+
         if self.coord_type == "sigma":
             # fraction
-            pass
+            offset = reserved
+            plevel = offset + (sfcp - offset) * heights
         elif self.coord_type == "pressure":
             # mb
-            pass
+            plevel = heights
         elif self.coord_type == "terrain":
             # fraction
-            pass
+            z_top = max(max(heights), self.Z_TOP)
+            factor = 1 - sfct / z_top
+            plevel = factor * heights
+            zlevel = heights
+            # TODO update WWND units
         elif self.coord_type == "hybrid":
             # mb offset.fraction
-            pass
+            offset = heights.astype(int)
+            fraction = heights - offset
+            plevel = sfcp * fraction + offset
         else:
             raise ValueError(f"Unknown vertical coordinate type")
 
-        return None
+        if self.coord_type != "terrain":
+            # Calculate approximate heights
+            if plevel >= 100:
+                pass
+
+        return plevel
 
 
 class Grid3D(Grid):
@@ -446,7 +505,7 @@ class Grid3D(Grid):
         super().__init__(proj=proj, nx=nx, ny=ny)
         self.vertical_axis = vertical_axis
 
-        # self.coords['level'] = self.vertical_axis.levels
+        # self.coords['height'] = self.vertical_axis.heights
 
     @property
     def dims(self) -> tuple:
@@ -459,4 +518,5 @@ class Grid3D(Grid):
             Dimension names for the horizontal grid (vertical dimension not yet implemented).
         """
         xy_dims = super().dims
+        # return (xy_dims[0], xy_dims[1], 'level')
         return xy_dims  # TODO: add vertical dimension

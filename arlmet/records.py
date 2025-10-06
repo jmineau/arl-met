@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from arlmet.grid import Grid3D, Projection, VerticalAxis
+from arlmet.grid import Grid3D, Projection, VerticalAxis, LevelInfo
 
 
 # ARL meteorological variable definitions
@@ -302,44 +302,6 @@ class Header:
 
 
 @dataclass
-class LevelInfo:
-    """Information about a single vertical level."""
-
-    index: int
-    height: float  # in units of the vertical coordinate system
-    variables: Dict[
-        str, Tuple[int, Any]
-    ]  # variable name -> (checksum, reserved) mapping
-
-    @property
-    def variable_names(self) -> List[str]:
-        """Get list of variable names at this level."""
-        return list(self.variables.keys())
-
-
-class VariableCatalog:
-    """
-    Catalog:
-      levels: `nz`
-      surface variables: `var1`, `var2`, `var3`
-      upper air variables: `var1`, `var2`, `var3`, ... `varn`
-      heights: `h1`, `h2`, `h3`, ... `hn`
-    """
-
-    def __init__(self, levels: List[Dict[str, Any]]):
-        """
-        Initialize the variable catalog.
-
-        Parameters
-        ----------
-        levels : List[Dict[str, Any]]
-            List of dictionaries containing level information, including
-            level index, height, and variables at that level.
-        """
-        self.levels = levels
-
-
-@dataclass
 class IndexRecord:
     """
     Represents a complete ARL index record that precedes data records for each time period.
@@ -442,7 +404,7 @@ class IndexRecord:
     nz: int
     vertical_flag: int
     index_length: int
-    levels: List[Dict[str, Any]]
+    levels: List[LevelInfo]
 
     grid: Grid3D = field(init=False, repr=False)
 
@@ -521,44 +483,63 @@ class IndexRecord:
         return fields
 
     @staticmethod
-    def parse_extended(data: bytes, nz: int) -> VariableCatalog:
+    def parse_extended(data: bytes, nz: int) -> List[LevelInfo]:
         """
-        Parse the variable-length levels portion from raw bytes.
+        Parse the variable-length portion of an index record
+        containing level information.
 
         Parameters
         ----------
-            data: Raw bytes containing variable information
-            nz: Number of vertical levels
+        data : bytes
+            Raw bytes containing the extended portion of the index record.
+        nz : int
+            Number of vertical levels (from the fixed portion).
 
-        Returns:
-            VariableCatalog instance
+        Returns
+        -------
+        List[LevelInfo]
+            List of LevelInfo objects for each vertical level.
         """
-        variables = data.decode("ascii", errors="ignore")
+        extended = data.decode("ascii", errors="ignore")
+
+        lvls = []
 
         # Loop through levels to extract variable info
-        lvls = []
         cursor = 0
-        for i in range(1, (nz + 1)):  # 1-based indexing
+        for i in range(nz):
             height = float(
-                variables[cursor : cursor + 6].strip()
-            )  # in units of vertical coordinate
-            num_vars = int(variables[cursor + 6 : cursor + 8].strip())
+                extended[cursor : cursor + 6].strip()
+            )  # in units of vertical flag
+
             vars = []
+            checksums = {}
+            reserved = {}
+
+            num_vars = int(extended[cursor + 6 : cursor + 8].strip())
             # Loop through variables for this level
             for j in range(num_vars):
                 start = cursor + 8 + j * 8
                 end = start + 8
-                name = variables[start : start + 4].strip()
-                checksum = int(variables[start + 4 : start + 7].strip())
-                reserved = variables[start + 7 : end].strip()  # usually blank
-                vars.append((name, checksum, reserved))
 
-            lvls.append({"level": i, "height": height, "vars": vars})
+                name = extended[start : start + 4].strip()
+                vars.append(name)
+                checksums[name] = int(extended[start + 4 : start + 7].strip())
+                reserved[name] = extended[start + 7 : end].strip()  # usually blank
+
+            lvls.append(
+                LevelInfo(
+                    index=i,
+                    height=height,
+                    variables=vars,
+                    checksums=checksums,
+                    reserved=reserved,
+                )
+            )
 
             # Move cursor to next level
             cursor += 8 + num_vars * 8
 
-        return VariableCatalog(levels=lvls)
+        return lvls
 
     @property
     def time(self) -> pd.Timestamp:
@@ -600,11 +581,18 @@ class IndexRecord:
         ny = self.ny + self.header.grid[1]
 
         vertical_axis = VerticalAxis(
-            vertical_flag=self.vertical_flag,
-            levels=[lvl["height"] for lvl in self.levels],
+            vertical_flag=self.vertical_flag, levels=self.levels
         )
 
         return Grid3D(proj=proj, nx=nx, ny=ny, vertical_axis=vertical_axis)
+
+    @property
+    def surface_vars(self) -> List[str]:
+        pass
+
+    @property
+    def upper_vars(self) -> List[str]:
+        pass
 
 
 class DataRecord:
