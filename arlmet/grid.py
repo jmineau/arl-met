@@ -1,3 +1,12 @@
+"""
+Grid and projection definitions for ARL meteorological data.
+
+This module provides classes for representing ARL grid projections and
+coordinate systems, including horizontal grids, vertical axes, and 3D grids.
+Supports various map projections (lat-lon, polar stereographic, Lambert conformal, Mercator)
+used in ARL meteorological files.
+"""
+
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Dict, List, Tuple
 
@@ -100,6 +109,7 @@ class Projection:
     }
 
     def __post_init__(self):
+        """Initialize projection parameters after dataclass initialization."""
         if self.orientation != 0.0:
             raise NotImplementedError(
                 "Rotated grids with non-zero orientation are not supported."
@@ -109,9 +119,25 @@ class Projection:
 
     @property
     def is_latlon(self) -> bool:
+        """
+        Check if this is a lat-lon grid.
+
+        Returns
+        -------
+        bool
+            True if grid_size is 0 (indicating a lat-lon grid), False otherwise.
+        """
         return self.grid_size == 0.0
 
     def _get_params(self) -> Dict[str, Any]:
+        """
+        Get pyproj projection parameters based on grid configuration.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary of pyproj parameters for the projection.
+        """
         params = self.PARAMS.copy()
 
         if self.is_latlon:  # Lat/Lon grid
@@ -194,22 +220,46 @@ class Grid:
     coords: Dict[str, Any] = field(init=False, repr=False)
 
     def __post_init__(self):
+        """Initialize grid coordinates and CRS after dataclass initialization."""
         self.origin = self._calculate_origin()
         self.crs = self._calculate_crs()
         self.coords = self._calculate_coords()
 
     @property
     def is_latlon(self) -> bool:
+        """
+        Check if this grid uses a lat-lon projection.
+
+        Returns
+        -------
+        bool
+            True if the projection is lat-lon, False otherwise.
+        """
         return self.proj.is_latlon
 
     @property
     def dims(self) -> tuple:
+        """
+        Get the dimension names for this grid.
+
+        Returns
+        -------
+        tuple
+            ("lat", "lon") for lat-lon grids, ("y", "x") for projected grids.
+        """
         if self.is_latlon:
             return ("lat", "lon")
         return ("y", "x")
 
     def _calculate_origin(self) -> Tuple[float, float]:
-        "Calculate the origin (lower-left corner) in the base CRS"
+        """
+        Calculate the origin (lower-left corner) in the base CRS.
+
+        Returns
+        -------
+        Tuple[float, float]
+            Origin coordinates (x, y) or (lon, lat) for lat-lon grids.
+        """
         proj = self.proj
 
         if self.is_latlon:
@@ -234,6 +284,14 @@ class Grid:
         return origin_x, origin_y
 
     def _calculate_crs(self) -> pyproj.CRS:
+        """
+        Calculate the coordinate reference system for this grid.
+
+        Returns
+        -------
+        pyproj.CRS
+            Coordinate reference system with false easting/northing applied.
+        """
         params = self.proj.params.copy()
 
         if self.is_latlon:
@@ -245,6 +303,16 @@ class Grid:
         return pyproj.CRS.from_dict(params)
 
     def _calculate_coords(self):
+        """
+        Calculate grid coordinates in both projected and geographic systems.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary containing coordinate arrays:
+            - For lat-lon grids: "lon" and "lat" 1D arrays
+            - For projected grids: "x", "y" 1D arrays and "lon", "lat" 2D arrays
+        """
         proj = self.proj
 
         if self.is_latlon:
@@ -297,11 +365,29 @@ class VerticalAxis:
     }
 
     def __init__(self, vertical_flag: int, levels: List[float]):
+        """
+        Initialize the vertical axis.
+
+        Parameters
+        ----------
+        vertical_flag : int
+            Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain, 4=hybrid).
+        levels : List[float]
+            List of vertical levels corresponding to the vertical coordinate system.
+        """
         self.flag = vertical_flag
         self.levels = levels
 
     @property
     def coord_type(self) -> str:
+        """
+        Get the vertical coordinate system type name.
+
+        Returns
+        -------
+        str
+            Name of the vertical coordinate type (e.g., "sigma", "pressure", "terrain", "hybrid").
+        """
         return VerticalAxis.FLAGS.get(self.flag, "unknown")
 
     def calculate_heights(self) -> np.ndarray | None:
@@ -343,6 +429,20 @@ class Grid3D(Grid):
     """
 
     def __init__(self, proj: Projection, nx: int, ny: int, vertical_axis: VerticalAxis):
+        """
+        Initialize a 3D grid.
+
+        Parameters
+        ----------
+        proj : Projection
+            The grid projection information.
+        nx : int
+            Number of grid points in the x-direction (columns).
+        ny : int
+            Number of grid points in the y-direction (rows).
+        vertical_axis : VerticalAxis
+            Vertical axis information including coordinate type and levels.
+        """
         super().__init__(proj=proj, nx=nx, ny=ny)
         self.vertical_axis = vertical_axis
 
@@ -350,5 +450,13 @@ class Grid3D(Grid):
 
     @property
     def dims(self) -> tuple:
+        """
+        Get the dimension names for this 3D grid.
+
+        Returns
+        -------
+        tuple
+            Dimension names for the horizontal grid (vertical dimension not yet implemented).
+        """
         xy_dims = super().dims
         return xy_dims  # TODO: add vertical dimension

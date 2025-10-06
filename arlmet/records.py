@@ -1,3 +1,11 @@
+"""
+ARL record parsing and data unpacking.
+
+This module provides classes and functions for parsing ARL file records,
+including index records, data records, headers, and the differential unpacking
+algorithm. It handles the binary format used in ARL meteorological files.
+"""
+
 from dataclasses import dataclass, field
 from typing import ClassVar, Dict, Any, List, Tuple
 import string
@@ -64,6 +72,20 @@ def letter_to_thousands(char: str) -> int:
 
 
 def restore_year(yr: str | int):
+    """
+    Convert 2-digit year to 4-digit year.
+
+    Parameters
+    ----------
+    yr : str or int
+        Year value (2-digit or 4-digit).
+
+    Returns
+    -------
+    int
+        4-digit year. Years < 40 are mapped to 2000+yr, otherwise 1900+yr.
+        Already 4-digit years (>= 1900) are returned unchanged.
+    """
     yr = int(yr)
     if yr >= 1900:
         return yr
@@ -226,11 +248,27 @@ class Header:
 
     @property
     def time(self) -> pd.Timestamp:
+        """
+        Get the timestamp for this record.
+
+        Returns
+        -------
+        pd.Timestamp
+            Timestamp constructed from year, month, day, and hour fields.
+        """
         return pd.Timestamp(
             year=self.year, month=self.month, day=self.day, hour=self.hour
         )
 
     def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert header to dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary representation of the header fields.
+        """
         return {
             "year": self.year,
             "month": self.month,
@@ -247,6 +285,19 @@ class Header:
         }
 
     def to_bytes(self) -> bytes:
+        """
+        Convert header to bytes (not yet implemented).
+
+        Returns
+        -------
+        bytes
+            Binary representation of the header.
+
+        Raises
+        ------
+        NotImplementedError
+            This functionality is not yet implemented.
+        """
         raise NotImplementedError
 
 
@@ -276,6 +327,15 @@ class VariableCatalog:
     """
 
     def __init__(self, levels: List[Dict[str, Any]]):
+        """
+        Initialize the variable catalog.
+
+        Parameters
+        ----------
+        levels : List[Dict[str, Any]]
+            List of dictionaries containing level information, including
+            level index, height, and variables at that level.
+        """
         self.levels = levels
 
 
@@ -389,6 +449,7 @@ class IndexRecord:
     N_BYTES_FIXED: ClassVar[int] = 108
 
     def __post_init__(self):
+        """Build the 3D grid after dataclass initialization."""
         self.grid = self._build_grid()
 
     @staticmethod
@@ -501,9 +562,25 @@ class IndexRecord:
 
     @property
     def time(self) -> pd.Timestamp:
+        """
+        Get the valid time for this index record.
+
+        Returns
+        -------
+        pd.Timestamp
+            Valid time calculated from header time plus minutes offset.
+        """
         return self.header.time + pd.Timedelta(minutes=self.minutes)
 
     def _build_grid(self) -> Grid3D:
+        """
+        Construct the 3D grid from projection and dimension information.
+
+        Returns
+        -------
+        Grid3D
+            3D grid object with horizontal and vertical dimensions.
+        """
         proj = Projection(
             pole_lat=self.pole_lat,
             pole_lon=self.pole_lon,
@@ -536,11 +613,31 @@ class DataRecord:
     """
 
     def __init__(self, index_record: IndexRecord, header: Header, data: bytes):
+        """
+        Initialize a data record.
+
+        Parameters
+        ----------
+        index_record : IndexRecord
+            The index record associated with this data.
+        header : Header
+            The header for this data record.
+        data : bytes
+            The packed binary data.
+        """
         self.index_record = index_record
         self.header = header
         self.data = data
 
     def __repr__(self):
+        """
+        Return string representation of the data record.
+
+        Returns
+        -------
+        str
+            String representation showing index record, header, and data length.
+        """
         return (
             f"DataRecord(index_record={repr(self.index_record)}, "
             f"header={repr(self.header)}, data_length={len(self.data)})"
@@ -548,22 +645,62 @@ class DataRecord:
 
     @property
     def grid(self) -> str | None:
+        """
+        Get grid identifier (not yet implemented).
+
+        Returns
+        -------
+        str or None
+            Grid identifier, currently returns None.
+        """
         return None  # TODO how to identify grid?
 
     @property
     def time(self) -> pd.Timestamp:
+        """
+        Get the valid time for this data record.
+
+        Returns
+        -------
+        pd.Timestamp
+            Valid time from the associated index record.
+        """
         return self.index_record.time
 
     @property
     def forecast(self) -> int:
+        """
+        Get the forecast hour for this data record.
+
+        Returns
+        -------
+        int
+            Forecast hour from the header.
+        """
         return self.header.forecast
 
     @property
     def level(self) -> int:
+        """
+        Get the vertical level for this data record.
+
+        Returns
+        -------
+        int
+            Vertical level from the header.
+        """
         return self.header.level
 
     @property
     def variable(self) -> str:
+        """
+        Get the variable name for this data record.
+
+        Returns
+        -------
+        str
+            Variable name from the header.
+        """
         return self.header.variable
 
     def unpack(self) -> xr.DataArray:
