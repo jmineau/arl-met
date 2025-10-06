@@ -39,6 +39,11 @@ dev = [
     "black>=24.0.0",
     "pre-commit>=3.0.0",
 ]
+docs = [
+    "sphinx>=7.0.0",
+    "pydata-sphinx-theme>=0.15.0",
+    "sphinx-autodoc-typehints>=1.25.0",
+]
 
 [tool.black]
 line-length = 88

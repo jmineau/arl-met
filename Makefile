@@ -1,4 +1,4 @@
-.PHONY: format check install-dev help
+.PHONY: format check install-dev help docs
 
 help:  ## Show this help message
 	@echo 'Usage: make [target]'
@@ -18,3 +18,7 @@ check:  ## Check code formatting with black
 
 pre-commit:  ## Run pre-commit hooks on all files
 	pre-commit run --all-files
+
+docs:  ## Build documentation
+	cd docs && $(MAKE) html
+
