@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arl-met"
-version = "0.1.0"
+version = "2025.10.6"
 description = "Python package for reading and analyzing NOAA ARL meteorological files"
 readme = "README.md"
 requires-python = ">=3.9"
