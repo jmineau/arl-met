@@ -15,6 +15,17 @@ pip install git+https://github.com/jmineau/arl-met.git
 
 For development, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Documentation
+
+Full documentation is available in the `docs/` directory. To build and view the documentation locally:
+
+```bash
+pip install -e ".[docs]"
+make docs
+```
+
+Then open `docs/build/html/index.html` in your web browser.
+
 ## Goals
 
 - **Interpolate at a point**: Extract meteorological data at specific geographic locations
