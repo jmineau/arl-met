@@ -38,6 +38,8 @@ include = ["arlmet*"]
 dev = [
     "black>=24.0.0",
     "pre-commit>=3.0.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
 ]
 docs = [
     "sphinx>=7.0.0",
@@ -62,3 +64,32 @@ extend-exclude = '''
   | dist
 )/
 '''
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--cov=arlmet",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+
+[tool.coverage.run]
+source = ["arlmet"]
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]

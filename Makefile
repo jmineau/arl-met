@@ -1,4 +1,4 @@
-.PHONY: format check install-dev help docs
+.PHONY: format check install-dev help docs test test-cov
 
 help:  ## Show this help message
 	@echo 'Usage: make [target]'
@@ -18,6 +18,12 @@ check:  ## Check code formatting with black
 
 pre-commit:  ## Run pre-commit hooks on all files
 	pre-commit run --all-files
+
+test:  ## Run tests with pytest
+	pytest
+
+test-cov:  ## Run tests with coverage report
+	pytest --cov=arlmet --cov-report=term-missing --cov-report=html
 
 docs:  ## Build documentation
 	cd docs && $(MAKE) html

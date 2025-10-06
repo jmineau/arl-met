@@ -41,3 +41,33 @@ pre-commit install
 ```
 
 The pre-commit hook will automatically run Black and other checks on your code before each commit.
+
+## Testing
+
+This project uses [pytest](https://docs.pytest.org/) for testing.
+
+### Run tests
+
+```bash
+make test
+# or directly with pytest
+pytest
+```
+
+### Run tests with coverage
+
+```bash
+make test-cov
+# or directly with pytest
+pytest --cov=arlmet --cov-report=term-missing --cov-report=html
+```
+
+The coverage report will be displayed in the terminal and also saved as HTML in the `htmlcov/` directory.
+
+### Writing tests
+
+- Tests are located in the `tests/` directory
+- Test files should be named `test_*.py`
+- Test functions should be named `test_*`
+- Use pytest fixtures and parametrize where appropriate
+- Aim for high test coverage of new code
