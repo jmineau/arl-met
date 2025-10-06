@@ -33,3 +33,27 @@ Repository = "https://github.com/jmineau/arl-met"
 
 [tool.setuptools.packages.find]
 include = ["arlmet*"]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.0.0",
+    "pre-commit>=3.0.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311", "py312"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
