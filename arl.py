@@ -1,7 +1,7 @@
+from dataclasses import dataclass, field
 from pathlib import Path
-import os
 import string
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Tuple, ClassVar
 
 import pandas as pd
 import pyproj
@@ -10,8 +10,7 @@ import xarray as xr
 
 
 # TODO
-# - CRS
-# - height calculation
+# - vertical axis
 # - CF compliance
 # - VariableCatalog
 
@@ -59,14 +58,6 @@ ARL_UPPER_VARIABLES = {
     'TKEN': ('turbulent kinetic energy', 'm2/s2'),
 }
 
-# Vertical coordinate system types
-VERTICAL_COORDS = {
-    1: 'sigma',  # (fraction)
-    2: 'pressure',  # (mb)
-    3: 'terrain',  # (fraction)
-    4: 'hybrid'  # (mb: offset.fraction)
-}
-
 
 def letter_to_thousands(char: str) -> int:
     """
@@ -86,7 +77,7 @@ def restore_year(yr: str | int):
     return 2000 + yr if (yr < 40) else 1900 + yr
 
 
-def wrap_longitude(lons: np.ndarray) -> np.ndarray:
+def wrap_lons(lons: np.ndarray) -> np.ndarray:
     """
     Wrap longitude values to -180 to 180 degree range.
     
@@ -186,11 +177,33 @@ def unpack(data: bytes | bytearray, nx: int, ny: int,
     return unpacked_grid
 
 
-class CRS:
+def open_dataset(filename: Path | str, **kwargs) -> xr.Dataset:
     """
-    ARL Coordinate Reference System (CRS)
+    Open an ARL meteorological data file as an xarray Dataset.
 
-    Represents the coordinate reference system and projection parameters for ARL meteorological data.
+    Parameters
+    ----------
+    filename : Path or str
+        Path to the ARL data file.
+    **kwargs
+        sel-like keyword arguments passed to `ARLMet.load()`.
+
+    Returns
+    -------
+    xr.Dataset
+        The ARL data as an xarray Dataset.
+    """
+    met = ARLMet(path=filename)
+    ds = met.load(**kwargs)
+    if isinstance(ds, xr.DataArray):
+        ds = ds.to_dataset()
+    return ds
+
+
+@dataclass
+class Projection:
+    """
+    ARL Grid Projection
 
     Parameters
     ----------
@@ -202,10 +215,10 @@ class CRS:
         Pole longitude position of the grid projection. The longitude 180 degrees from 
         which the projection is cut. For lat-lon grids: longitude of the grid point with 
         the maximum grid point value.
-    ref_lat : float
+    tangent_lat : float
         Reference latitude at which the grid spacing is defined. For lat-lon grids: 
         grid spacing in degrees latitude.
-    ref_lon : float
+    tangent_lon : float
         Reference longitude at which the grid spacing is defined. For lat-lon grids:
         grid spacing in degrees longitude.
     grid_size : float
@@ -221,110 +234,209 @@ class CRS:
         stereographic: 90. For lat-lon grids: value always = 0.
     sync_x : float
         Grid x-coordinate used to equate a position on the grid with a position on earth
-        (paired with sync_y, sync_lat, sync_lon). Units are in grid units
-        (dimensionless grid indices).
+        (paired with sync_y, sync_lat, sync_lon).
     sync_y : float  
         Grid y-coordinate used to equate a position on the grid with a position on earth
-        (paired with sync_x, sync_lat, sync_lon). Units are in grid units
-        (dimensionless grid indices).
+        (paired with sync_x, sync_lat, sync_lon).
     sync_lat : float
         Earth latitude corresponding to the grid position (sync_x, sync_y). For lat-lon 
         grids: latitude of the (0,0) grid point position.
     sync_lon : float
         Earth longitude corresponding to the grid position (sync_x, sync_y). For lat-lon 
         grids: longitude of the (0,0) grid point position.
+    reserved : float
+        Reserved for future use.
+
+    Attributes
+    ----------
+    crs : pyproj.CRS
+        The pyproj CRS object representing the base grid projection.
+        The projection is defined without false easting/northing offsets.
+    is_latlon : bool
+        True if the grid is a lat-lon grid (grid_size == 0).
     """
 
-    def __init__(self, pole_lat: float, pole_lon: float,
-                 ref_lat: float, ref_lon: float,
-                 grid_size: float, orientation: float,
-                 cone_angle: float,
-                 sync_x: float, sync_y: float,
-                 sync_lat: float, sync_lon: float):
-        self.pole_lat = pole_lat
-        self.pole_lon = pole_lon
-        self.ref_lat = ref_lat
-        self.ref_lon = ref_lon
-        self.grid_size = grid_size
-        self.orientation = orientation
-        self.cone_angle = cone_angle
-        self.sync_x = sync_x
-        self.sync_y = sync_y
-        self.sync_lat = sync_lat
-        self.sync_lon = sync_lon
+    pole_lat: float
+    pole_lon: float
+    tangent_lat: float
+    tangent_lon: float
+    grid_size: float
+    orientation: float
+    cone_angle: float
+    sync_x: float
+    sync_y: float
+    sync_lat: float
+    sync_lon: float
+    reserved: float
 
-        self._crs = self._build_crs()
+    params: Dict[str, Any] = field(init=False, repr=False)
+
+    PARAMS: ClassVar[Dict[str, Any]] = {
+        'ellps': 'WGS84',
+        'R': 6371.2 * 1e3,  # Use a fixed radius to match HYSPLIT
+        'units': 'm'
+    }
+
+    def __post_init__(self):
+        if self.orientation != 0.0:
+            raise NotImplementedError("Rotated grids with non-zero orientation are not supported.")
+
+        self.params = self._get_params()
 
     @property
     def is_latlon(self) -> bool:
         return self.grid_size == 0.0
 
-    def _build_crs(self):
-        if self.is_latlon:
-            # Lat/Lon grid
-            return pyproj.CRS.from_epsg(4326)  # WGS84
+    def _get_params(self) -> Dict[str, Any]:
+        params = self.PARAMS.copy()
 
-        # Earth radius used by HYSPLIT (matches REARTH in the Fortran code)
-        R = 6371200  # meters (6371.2 km)
-
-        # Determine projection type based on cone_angle and pole_lat
-        if abs(self.cone_angle) == 90.0:  # Stereographic
+        if self.is_latlon:  # Lat/Lon grid
+            params.pop('units')
+            params.update({
+                'proj': 'latlong',
+            })
+        elif abs(self.cone_angle) == 90.0:  # Stereographic
             if abs(self.pole_lat) == 90.0:  # Polar Stereographic
-                proj_str = (f"+proj=stere +lat_0={self.pole_lat} +lon_0={self.pole_lon} "
-                            f"+lat_ts={self.ref_lat}")
+                params.update({
+                    'proj': 'stere',
+                    'lat_0': self.pole_lat,
+                    'lon_0': self.tangent_lon,
+                    'lat_ts': self.tangent_lat
+                })
             else:  # Oblique Stereographic
-                proj_str = (f"+proj=sterea +lat_0={self.pole_lat} +lon_0={self.pole_lon} "
-                            f"+lat_ts={self.ref_lat}")
+                params.update({
+                    'proj': 'sterea',
+                    'lat_0': self.pole_lat,
+                    'lon_0': self.tangent_lon,
+                    'lat_ts': self.tangent_lat
+                })
         elif self.cone_angle == 0.0:  # Mercator
-            proj_str = f"+proj=merc +lat_ts={self.ref_lat} +lon_0={self.ref_lon}"
+            params.update({
+                'proj': 'merc',
+                'lat_ts': self.tangent_lat,
+                'lon_0': self.tangent_lon
+            })
         else:  # Lambert Conformal Conic
-            proj_str = (f"+proj=lcc +lat_0={self.ref_lat} +lon_0={self.ref_lon} "
-                        f"+lat_1={self.cone_angle}")
+            params.update({
+                'proj': 'lcc',
+                'lat_0': self.tangent_lat,
+                'lon_0': self.tangent_lon,
+                'lat_1': self.cone_angle
+            })
 
-        proj_str += f" +ellps=WGS84 +R={R} +units=m"  # common parameters
+        return params
 
-        # Calculate false easting/northing
-        temp_crs = pyproj.CRS.from_proj4(proj_str)
-        transformer = pyproj.Transformer.from_proj('EPSG:4326', temp_crs, always_xy=True)
-        proj_x, proj_y = transformer.transform(self.sync_lon, self.sync_lat)
-        false_easting = (self.sync_x - 1) - proj_x
-        false_northing = (self.sync_y - 1) - proj_y
 
-        # Create final CRS with false easting/northing
-        final_proj = proj_str + f" +x_0={false_easting} +y_0={false_northing}"
-        return pyproj.CRS.from_proj4(final_proj)
+@dataclass
+class Grid:
+    """
+    Represents the horizontal grid of the ARL data.
 
-    def to_pyproj(self) -> pyproj.CRS:
-        return self._crs
+    Parameters
+    ----------
+    proj : Projection
+        The grid projection information.
+    nx : int
+        Number of grid points in the x-direction (columns).
+    ny : int
+        Number of grid points in the y-direction (rows).
 
-    def to_wkt(self) -> str:
-        return self._crs.to_wkt()
+    Attributes
+    ----------
+    origin : Tuple[float, float]
+        Origin (lower-left corner) in the base CRS (projected coordinates).
+    crs : pyproj.CRS
+        Coordinate reference system for the grid.
+    coords : Dict[str, Any]
+        Coordinates of the grid points in the base CRS (projected coordinates).
+    """
 
-    def calculate_coordinates(self, nx: int, ny: int
-                              ):
+    proj: Projection
+    nx: int
+    ny: int
+
+    origin: Tuple[float, float] = field(init=False)
+    crs: pyproj.CRS = field(init=False)
+    coords: Dict[str, Any] = field(init=False, repr=False)
+
+    def __post_init__(self):
+        self.origin = self._calculate_origin()
+        self.crs = self._calculate_crs()
+        self.coords = self._calculate_coords()
+
+    @property
+    def is_latlon(self) -> bool:
+        return self.proj.is_latlon
+
+    @property
+    def dims(self) -> tuple:
         if self.is_latlon:
-            lat_0 = self.sync_lat
-            lon_0 = self.sync_lon
-            lat_1 = self.pole_lat
-            lon_1 = self.pole_lon
-            dlat = self.ref_lat
-            dlon = self.ref_lon
-            lats = lat_0 + np.arange(ny) * dlat
-            lons = lon_0 + np.arange(nx) * dlon
-            lons = wrap_longitude(lons)
+            return ('lat', 'lon')
+        return ('y', 'x')
+
+    def _calculate_origin(self) -> Tuple[float, float]:
+        'Calculate the origin (lower-left corner) in the base CRS'
+        proj = self.proj
+
+        if self.is_latlon:
+            # For lat-lon grids, the origin is simply the sync point
+            return proj.sync_lon, proj.sync_lat
+
+        # Calculate what the projected coordinates of the sync point should be
+        base_crs = pyproj.CRS.from_dict(proj.params)
+        transformer = pyproj.Transformer.from_proj('EPSG:4326', base_crs,
+                                                   always_xy=True)
+        sync_proj_x, sync_proj_y = transformer.transform(proj.sync_lon, proj.sync_lat)
+
+        # Convert sync grid coordinates to projected coordinates
+        # Grid coordinates are 1-based, so sync_x=1, sync_y=1 means bottom-left corner
+        sync_grid_x_m = (proj.sync_x - 1) * proj.grid_size * 1000  # convert km to m
+        sync_grid_y_m = (proj.sync_y - 1) * proj.grid_size * 1000  # convert km to m
+
+        # Calculate the origin offset to align grid coordinates with projected coordinates
+        origin_x = sync_grid_x_m - sync_proj_x
+        origin_y = sync_grid_y_m - sync_proj_y
+        return origin_x, origin_y
+
+    def _calculate_crs(self) -> pyproj.CRS:
+        params = self.proj.params.copy()
+
+        if self.is_latlon:
+            # Use specific ellps and 
+            return pyproj.CRS.from_dict(params)
+
+        # Create new pyproj CRS with false easting/northing
+        params.update({
+            'x_0': self.origin[0],
+            'y_0': self.origin[1]
+        })
+        return pyproj.CRS.from_dict(params)
+
+    def _calculate_coords(self):
+        proj = self.proj
+
+        if self.is_latlon:
+            lon_0, lat_0 = self.origin
+            dlat = proj.tangent_lat
+            dlon = proj.tangent_lon
+            lats = lat_0 + np.arange(self.ny) * dlat
+            lons = lon_0 + np.arange(self.nx) * dlon
+            lons = wrap_lons(lons)
             return {'lon': lons, 'lat': lats}
 
-        # Create a transformer from the projection to lat/lon
-        transformer = pyproj.Transformer.from_crs(self._crs, "EPSG:4326")
+        # Calculate the coordinates in the projection space
+        grid_size = proj.grid_size * 1000  # km to m
+        x_coords = np.arange(self.nx) * grid_size
+        y_coords = np.arange(self.ny) * grid_size
 
-        # Calculate the coordinates in the original projection
-        x_coords = (self.sync_x - 1) + np.arange(nx) * self.grid_size * 1000  # convert km to m
-        y_coords = (self.sync_y - 1) + np.arange(ny) * self.grid_size * 1000  # convert km to m
+        # Create a transformer from the projection to lat/lon
+        transformer = pyproj.Transformer.from_crs(self.crs, "EPSG:4326",
+                                                  always_xy=True)
 
         # Transform the coordinates to lat/lon
-        yy, xx = np.meshgrid(y_coords, x_coords, indexing='ij')
-        lats, lons = transformer.transform(xx, yy)
-        lons = wrap_longitude(lons)
+        xx, yy = np.meshgrid(x_coords, y_coords)
+        lons, lats = transformer.transform(xx, yy)
+        lons = wrap_lons(lons)
 
         return {'x': x_coords, 'y': y_coords,
                 'lon': (('y', 'x'), lons),
@@ -337,67 +449,95 @@ class VerticalAxis:
 
     Parameters
     ----------
-    vertical_coord : int
+    vertical_flag : int
         Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain, 4=hybrid).
     levels : List[float]
         List of vertical levels corresponding to the vertical coordinate system.
     """
 
-    def __init__(self, vertical_coord: int, levels: List[float]):
-        self.vertical_coord = vertical_coord
+    FLAGS = {
+        1: 'sigma',  # (fraction)
+        2: 'pressure',  # (mb)
+        3: 'terrain',  # (fraction)
+        4: 'hybrid'  # (mb: offset.fraction)
+    }
+
+    def __init__(self, vertical_flag: int, levels: List[float]):
+        self.flag = vertical_flag
         self.levels = levels
 
     @property
     def coord_type(self) -> str:
-        return VERTICAL_COORDS.get(self.vertical_coord, 'unknown')
+        return VerticalAxis.FLAGS.get(self.flag, 'unknown')
 
-    def calculate_heights(self, surface_pressure: Optional[np.ndarray] = None
-                          ) -> Optional[np.ndarray]:
+    def calculate_heights(self) -> np.ndarray | None:
         """
         Calculate heights in meters for each vertical level.
-
-        For pressure coordinates, heights are calculated using the barometric formula.
-        For sigma and terrain coordinates, surface pressure is required.
-
-        Parameters
-        ----------
-        surface_pressure : Optional[np.ndarray]
-            2D array of surface pressure in hPa. Required for sigma and terrain coordinates.
-        
-        Returns
-        -------
-        Optional[np.ndarray]
-            1D array of heights in meters for each vertical level, or None if heights cannot
-            be calculated.
         """
         if self.coord_type == 'sigma':
             # fraction
-            
             pass
+        elif self.coord_type == 'pressure':
+            # mb
+            pass
+        elif self.coord_type == 'terrain':
+            # fraction
+            pass
+        elif self.coord_type == 'hybrid':
+            # mb offset.fraction
+            pass
+        else:
+            raise ValueError(f"Unknown vertical coordinate type")
 
         return None
 
 
+class Grid3D(Grid):
+    """
+    Represents a 3D grid with horizontal and vertical dimensions.
+
+    Parameters
+    ----------
+    proj: Projection
+        The grid projection information.
+    nx : int
+        Number of grid points in the x-direction (columns).
+    ny : int
+        Number of grid points in the y-direction (rows).
+    vertical_axis : VerticalAxis
+        Vertical axis information including coordinate type and levels.
+    """
+
+    def __init__(self, proj: Projection, nx: int, ny: int,
+                 vertical_axis: VerticalAxis):
+        super().__init__(proj=proj, nx=nx, ny=ny)
+        self.vertical_axis = vertical_axis
+
+        # self.coords['level'] = self.vertical_axis.levels
+
+    @property
+    def dims(self) -> tuple:
+        xy_dims = super().dims
+        return xy_dims  # TODO: add vertical dimension
+
+
+@dataclass
 class Header:
     'First 50 bytes of each record'
 
-    N_BYTES = 50
+    year: int
+    month: int
+    day: int
+    hour: int
+    forecast: int
+    level: int
+    grid: tuple[int, int]
+    variable: str
+    exponent: int
+    precision: float
+    initial_value: float
 
-    def __init__(self, year: int, month: int, day: int, hour: int,
-                 forecast: int | None, level: int, grid: tuple[int, int],
-                 variable: str, exponent: int,
-                 precision: float, initial_value: float):
-        self.year = year
-        self.month = month
-        self.day = day
-        self.hour = hour
-        self.forecast = forecast
-        self.level = level
-        self.grid = grid
-        self.variable = variable
-        self.exponent = exponent
-        self.precision = precision
-        self.initial_value = initial_value
+    N_BYTES: ClassVar[int] = 50
 
     @classmethod
     def from_bytes(cls, data: bytes) -> 'Header':
@@ -429,10 +569,6 @@ class Header:
             field_str = header[start:end]
             parsed[name] = type_converter(field_str)
 
-        if parsed['forecast'] == -1:
-            # Forecast hour is -1 for missing data
-            parsed['forecast'] = None
-
         # Parse grid as tuple of strings
         # If the character is a letter, it indicates thousands
         # If the character is a digit, it indicates the Grid Number (00-99)
@@ -447,12 +583,6 @@ class Header:
     def time(self) -> pd.Timestamp:
         return pd.Timestamp(year=self.year, month=self.month,
                             day=self.day, hour=self.hour)
-
-    def __repr__(self):
-        return (f"Header(year={self.year}, month={self.month}, day={self.day}, "
-                f"hour={self.hour}, forecast={self.forecast}, level={self.level}, "
-                f"grid={self.grid}, variable='{self.variable}', exponent={self.exponent}, "
-                f"precision={self.precision}, initial_value={self.initial_value})")
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -470,72 +600,183 @@ class Header:
             'initial_value': self.initial_value
         }
 
+    def to_bytes(self) -> bytes:
+        raise NotImplementedError
 
-class IndexRecordFixed:
+
+@dataclass
+class LevelInfo:
+    """Information about a single vertical level."""
+    index: int
+    height: float  # in units of the vertical coordinate system
+    variables: Dict[str, Tuple[int, Any]]  # variable name -> (checksum, reserved) mapping
+
+    @property
+    def variable_names(self) -> List[str]:
+        """Get list of variable names at this level."""
+        return list(self.variables.keys())
+
+
+class VariableCatalog:
     """
-    Represents the fixed 108-byte portion of an ARL index record.
-    Contains projection and grid information.
+    Catalog:
+      levels: `nz`
+      surface variables: `var1`, `var2`, `var3`
+      upper air variables: `var1`, `var2`, `var3`, ... `varn`
+      heights: `h1`, `h2`, `h3`, ... `hn`
+    """
+    def __init__(self, levels: List[Dict[str, Any]]):
+        self.levels = levels
+
+
+@dataclass
+class IndexRecord:
+    """
+    Represents a complete ARL index record that precedes data records for each time period.
+    Combines the fixed portion with the variable levels portion.
+
+    Parameters
+    ----------
+    header : Header
+        The header information for the index record.
+    source : str
+        Source identifier (4 characters).
+    forecast_hour : int
+        Forecast hour.
+    minutes : int
+        Minutes after the hour.
+    pole_lat : float
+        Pole latitude position of the grid projection.
+        For lat-lon grids: max latitude of the grid.
+    pole_lon : float
+        Pole longitude position of the grid projection.
+        For lat-lon grids: max longitude of the grid.
+    tangent_lat : float
+        Reference latitude at which the grid spacing is defined.
+        For conical and mercator projections, this is the latitude
+        at which the grid touches the surface.
+        For lat-lon grids: grid spacing in degrees latitude.
+    tangent_lon : float
+        Reference longitude at which the grid spacing is defined.
+        For conical and mercator projections, this is the longitude
+        at which the grid touches the surface.
+        For lat-lon grids: grid spacing in degrees longitude.
+    grid_size : float
+        Grid spacing in km at the reference position.
+        For lat-lon grids: value of zero signals that the grid is a lat-lon grid.
+    orientation : float
+        Angle at the reference point made by the y-axis and the local direction of north.
+        For lat-lon grids: 0
+    cone_angle : float
+        Angle between the axis and the surface of the cone.
+        For regular projections it equals the latitude at which the grid is tangent to the earth's surface.
+        Stereographic: ±90, Mercator: 0, Lambert Conformal: 0 ~ 90
+        For lat-lon grids: 0
+    sync_x : float
+        Grid x-coordinate used to equate a position on the grid with a position on earth.
+        This is a unitless grid index (FORTRAN 1-based).
+    sync_y : float
+        Grid y-coordinate used to equate a position on the grid with a position on earth.
+        This is a unitless grid index (FORTRAN 1-based).
+    sync_lat : float
+        Earth latitude corresponding to the grid position (sync_x, sync_y).
+        For lat-lon grids: latitude of the (0,0) grid point position.
+    sync_lon : float
+        Earth longitude corresponding to the grid position (sync_x, sync_y).
+        For lat-lon grids: longitude of the (0,0) grid point position.
+    nx : int
+        Number of grid points in the x-direction (columns).
+    ny : int
+        Number of grid points in the y-direction (rows).
+    nz : int
+        Number of vertical levels.
+    vertical_flag : int
+        Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain, 4=hybrid).
+    index_length : int
+        Total length of the index record in bytes, including fixed and variable portions.
+    levels : List[Dict[str, Any]]
+        List of levels, each containing:
+            - level: Level number (1-based).
+            - height: Height of the level in units of the vertical coordinate.
+            - vars: List of variables at this level, each as a tuple:
+                (name: str, checksum: int, reserved: str)
+
+    Attributes
+    ----------
+    N_BYTES_FIXED : int
+        Number of bytes in the fixed portion of the index record (108 bytes).
+    time : pd.Timestamp
+        The valid time of the record, calculated from the header time and minutes.
+    grid : Grid3D
+        The 3D grid representation including horizontal and vertical dimensions.
     """
 
-    N_BYTES = 108
+    header: Header = field(repr=False)
+    source: str
+    forecast_hour: int
+    minutes: int
+    pole_lat: float
+    pole_lon: float
+    tangent_lat: float
+    tangent_lon: float
+    grid_size: float
+    orientation: float
+    cone_angle: float
+    sync_x: float
+    sync_y: float
+    sync_lat: float
+    sync_lon: float
+    reserved: float
+    nx: int
+    ny: int
+    nz: int
+    vertical_flag: int
+    index_length: int
+    levels: List[Dict[str, Any]]
 
-    def __init__(self, source: str, forecast_hour: int, minutes: int,
-                 pole_lat: float, pole_lon: float, ref_lat: float,
-                 ref_lon: float, grid_size: float, orientation: float,
-                 cone_angle: float, sync_x: float, sync_y: float,
-                 sync_lat: float, sync_lon: float,
-                 nx: int, ny: int, nz: int, vertical_coord: int,
-                 index_length: int):
-        self.source = source
-        self.forecast_hour = forecast_hour
-        self.minutes = minutes
-        self.pole_lat = pole_lat
-        self.pole_lon = pole_lon
-        self.ref_lat = ref_lat
-        self.ref_lon = ref_lon
-        self.grid_size = grid_size
-        self.orientation = orientation
-        self.cone_angle = cone_angle
-        self.sync_x = sync_x
-        self.sync_y = sync_y
-        self.sync_lat = sync_lat
-        self.sync_lon = sync_lon
-        self.nx = nx
-        self.ny = ny
-        self.nz = nz
-        self.vertical_coord = vertical_coord
-        self.index_length = index_length
+    grid: Grid3D = field(init=False, repr=False)
 
-    @classmethod
-    def from_bytes(cls, data: bytes) -> 'IndexRecordFixed':
+    N_BYTES_FIXED: ClassVar[int] = 108
+
+    def __post_init__(self):
+        self.grid = self._build_grid()
+
+    @staticmethod
+    def parse_fixed(data: bytes) -> dict[str, Any]:
         """
         Parse the fixed 108-byte portion of an index record from raw bytes.
-        
-        Args:
-            data: Raw bytes starting from position 50 in ARL file
-            
-        Returns:
-            IndexRecordFixed instance
+
+        Parameters
+        ----------
+        data : bytes
+            Raw bytes containing the fixed portion of the index record.
+            108 bytes expected.
+
+        Returns
+        -------
+        dict
+            Parsed fields as a dictionary.
         """
-        if len(data) < cls.N_BYTES:
-            raise ValueError(f"IndexRecordFixed requires at least {cls.N_BYTES} bytes, got {len(data)}")
+        if len(data) < IndexRecord.N_BYTES_FIXED:
+            raise ValueError(f"IndexRecord fixed portion must be at least {IndexRecord.N_BYTES_FIXED} bytes, got {len(data)}")
+
+        fields = {}
 
         # Parse the fixed portion of the index record
         # Format: (A4)(I3)(I2)(12F7)(3I3)(I2)(I4)
-        record = data[:cls.N_BYTES].decode('ascii', errors='ignore')
+        fixed = data[:IndexRecord.N_BYTES_FIXED].decode('ascii', errors='ignore')
 
-        source = record[:4].strip()
-        forecast_hour = int(record[4:7].strip())
-        minutes = int(record[7:9].strip())
+        fields['source'] = fixed[:4].strip()
+        fields['forecast_hour'] = int(fixed[4:7].strip())
+        fields['minutes'] = int(fixed[7:9].strip())
 
         # Parse 12 floating point values (each 7 characters)
-        proj_section = record[9:9 + 12 * 7]  # 12 * 7 = 84 characters
+        proj_section = fixed[9:9 + 12 * 7]  # 12 * 7 = 84 characters
         proj_names = [
-            'pole_lat', 'pole_lon', 'ref_lat', 'ref_lon',
-            'ref_grid', 'orientation', 'cone_angle', 'sync_x',
+            'pole_lat', 'pole_lon', 'tangent_lat', 'tangent_lon',
+            'grid_size', 'orientation', 'cone_angle', 'sync_x',
             'sync_y', 'sync_lat', 'sync_lon', 'reserved'
         ]
-        proj_values = {}
         for i in range(12):
             start = i * 7
             end = start + 7
@@ -543,82 +784,32 @@ class IndexRecordFixed:
             if val > 180:
                 # Adjust longitudes greater than 180 degrees
                 val = -(360 - val)
-            proj_values[proj_names[i]] = val
-        proj_values.pop('reserved')  # Remove reserved field
+            fields[proj_names[i]] = val
 
         # Parse grid dimensions (3 integers, 3 characters each)
-        grid_section = record[93:102]
-        nx = int(grid_section[0:3].strip())
-        ny = int(grid_section[3:6].strip())
-        nz = int(grid_section[6:9].strip())
+        grid_section = fixed[93:102]
+        fields['nx'] = int(grid_section[0:3].strip())
+        fields['ny'] = int(grid_section[3:6].strip())
+        fields['nz'] = int(grid_section[6:9].strip())
 
         # Parse vertical level information
-        vertical_coord = int(record[102:104].strip())
-        index_length = int(record[104:108].strip())
+        fields['vertical_flag'] = int(fixed[102:104].strip())
+        fields['index_length'] = int(fixed[104:108].strip())
 
-        return cls(
-            source, forecast_hour, minutes,
-            proj_values['pole_lat'], proj_values['pole_lon'],
-            proj_values['ref_lat'], proj_values['ref_lon'],
-            proj_values['ref_grid'], proj_values['orientation'],
-            proj_values['cone_angle'], proj_values['sync_x'],
-            proj_values['sync_y'], proj_values['sync_lat'],
-            proj_values['sync_lon'], nx, ny, nz,
-            vertical_coord, index_length
-        )
+        return fields
 
-    def __repr__(self):
-        return (f"IndexRecordFixed(source='{self.source}', forecast_hour={self.forecast_hour}, "
-                f"minutes={self.minutes}, pole_lat={self.pole_lat}, pole_lon={self.pole_lon}, "
-                f"ref_lat={self.ref_lat}, ref_lon={self.ref_lon}, "
-                f"grid_size={self.grid_size}, orientation={self.orientation}, "
-                f"cone_angle={self.cone_angle}, sync_x={self.sync_x}, sync_y={self.sync_y}, "
-                f"sync_lat={self.sync_lat}, sync_lon={self.sync_lon}, nx={self.nx}, "
-                f"ny={self.ny}, nz={self.nz}, vertical_coord={self.vertical_coord}, "
-                f"index_length={self.index_length})")
-
-    @property
-    def crs(self) -> CRS:
-        return CRS(
-            pole_lat=self.pole_lat,
-            pole_lon=self.pole_lon,
-            ref_lat=self.ref_lat,
-            ref_lon=self.ref_lon,
-            grid_size=self.grid_size,
-            orientation=self.orientation,
-            cone_angle=self.cone_angle,
-            sync_x=self.sync_x,
-            sync_y=self.sync_y,
-            sync_lat=self.sync_lat,
-            sync_lon=self.sync_lon
-        )
-
-
-class VariableCatalog:
-    pass
-
-
-class IndexRecordExtended:
-    """
-    Represents the variable-length portion of an ARL index record.
-    Contains level information with variables and checksums.
-    """
-    
-    def __init__(self, levels: List[Dict[str, Any]]):
-        self.levels = levels
-
-    @classmethod
-    def from_bytes(cls, data: bytes, nz: int) -> 'IndexRecordExtended':
+    @staticmethod
+    def parse_extended(data: bytes, nz: int) -> VariableCatalog:
         """
         Parse the variable-length levels portion from raw bytes.
-        
+
         Parameters
         ----------
             data: Raw bytes containing variable information
             nz: Number of vertical levels
-            
+
         Returns:
-            IndexRecordVariable instance
+            VariableCatalog instance
         """
         variables = data.decode('ascii', errors='ignore')
 
@@ -634,8 +825,9 @@ class IndexRecordExtended:
                 start = cursor + 8 + j*8
                 end = start + 8
                 name = variables[start:start+4].strip()
-                checksum = int(variables[start+4:end].strip())
-                vars.append((name, checksum))
+                checksum = int(variables[start+4:start+7].strip())
+                reserved = variables[start+7:end].strip()  # usually blank
+                vars.append((name, checksum, reserved))
 
             lvls.append({
                 'level': i,
@@ -646,56 +838,28 @@ class IndexRecordExtended:
             # Move cursor to next level
             cursor += 8 + num_vars * 8
 
-        return cls(lvls)
+        return VariableCatalog(levels=lvls)
 
-    def __repr__(self):
-        return f"IndexRecordExtended(levels={repr(self.levels)})"
+    @property
+    def time(self) -> pd.Timestamp:
+        return self.header.time + pd.Timedelta(minutes=self.minutes)
 
+    def _build_grid(self) -> Grid3D:
+        proj = Projection(pole_lat=self.pole_lat, pole_lon=self.pole_lon,
+                          tangent_lat=self.tangent_lat, tangent_lon=self.tangent_lon,
+                          grid_size=self.grid_size, orientation=self.orientation,
+                          cone_angle=self.cone_angle, sync_x=self.sync_x,
+                          sync_y=self.sync_y, sync_lat=self.sync_lat,
+                          sync_lon=self.sync_lon, reserved=self.reserved)
 
-class IndexRecord:
-    """
-    Represents a complete ARL index record that precedes data records for each time period.
-    Combines the fixed portion with the variable levels portion.
-    """
+        nx = self.nx + self.header.grid[0]
+        ny = self.ny + self.header.grid[1]
 
-    def __init__(self,
-                 source: str, forecast_hour: int, minutes: int,
-                 crs: CRS, nx: int, ny: int, nz: int,
-                 vertical_coord: int, index_length: int,
-                 levels: List[Dict[str, Any]]):
-        self.source = source
-        self.forecast_hour = forecast_hour
-        self.minutes = minutes
-        self.crs = crs
-        self.nx = nx
-        self.ny = ny
-        self.nz = nz
-        self.vertical_coord = vertical_coord
-        self.index_length = index_length
-        self.levels = levels
+        vertical_axis = VerticalAxis(vertical_flag=self.vertical_flag,
+                                     levels=[lvl['height'] for lvl in self.levels])
 
-    @classmethod
-    def from_parts(cls, fixed: IndexRecordFixed, extended: IndexRecordExtended) -> 'IndexRecord':
-        return cls(
-            source=fixed.source,
-            forecast_hour=fixed.forecast_hour,
-            minutes=fixed.minutes,
-            crs=fixed.crs,
-            nx=fixed.nx,
-            ny=fixed.ny,
-            nz=fixed.nz,
-            vertical_coord=fixed.vertical_coord,
-            index_length=fixed.index_length,
-            levels=extended.levels
-        )
-
-    def __repr__(self):
-        return (f"IndexRecord(source='{self.source}', "
-                f"forecast_hour={self.forecast_hour}, "
-                f"minutes={self.minutes}, crs={repr(self.crs)}, "
-                f"nx={self.nx}, ny={self.ny}, nz={self.nz}, "
-                f"vertical_coord={self.vertical_coord}, "
-                f"index_length={self.index_length}, levels={repr(self.levels)})")
+        return Grid3D(proj=proj, nx=nx, ny=ny,
+                      vertical_axis=vertical_axis)
 
 
 class DataRecord:
@@ -714,37 +878,34 @@ class DataRecord:
 
     @property
     def time(self) -> pd.Timestamp:
-        return self.header.time + pd.Timedelta(minutes=self.index_record.minutes)
+        return self.index_record.time
 
     def unpack(self) -> xr.DataArray:
         """
         Unpack the data record into a 2D xarray DataArray.
         """
-        nx = self.index_record.nx + self.header.grid[0]
-        ny = self.index_record.ny + self.header.grid[1]
+        grid = self.index_record.grid
+        nx, ny = grid.nx, grid.ny
+        dims = grid.dims
+        coords = grid.coords
 
-        unpacked = unpack(data=self.data, nx=nx, ny=ny,
+        unpacked = unpack(data=self.data,
+                          nx=nx, ny=ny,
                           precision=self.header.precision,
                           exponent=self.header.exponent,
                           initial_value=self.header.initial_value)
 
-        crs = self.index_record.crs
-        if crs.is_latlon:
-            dims = ('lat', 'lon')
-        else:
-            dims = ('y', 'x')
-        coords = crs.calculate_coordinates(nx=nx, ny=ny)
 
-        da = xr.DataArray(data=unpacked, dims=dims, coords=coords,
+        da = xr.DataArray(data=unpacked, dims=dims[:2], coords=coords,
                           name=self.header.variable)
 
         # Sort on dims
-        da = da.sortby(list(dims))
+        da = da.sortby(list(dims[:2]))
 
         # Expand dimensions for time, forecast, level, grid
         da = da.expand_dims({
             'time': [self.time],
-            'forecast': [self.header.forecast],
+            'forecast': [self.header.forecast],   # TODO add note about -1=NAN
             'level': [self.header.level],
             # 'grid': None  # TODO how to identify grid?
         })
@@ -767,7 +928,7 @@ class ARLMet:
     methods to work with ARL format files.
     """
 
-    def __init__(self, path: str):
+    def __init__(self, path: Path | str):  # TODO: move to classmethod
         self.path = Path(path)
 
         if not self.path.exists():
@@ -791,19 +952,19 @@ class ARLMet:
 
             if header.variable == 'INDX':
                 # Parse the index record to get grid dimensions
-                end_fixed = cursor + IndexRecordFixed.N_BYTES
-                fixed = IndexRecordFixed.from_bytes(data[cursor:end_fixed])
-                end_index = cursor + fixed.index_length
-                extended = IndexRecordExtended.from_bytes(data[end_fixed:end_index],
-                                                          nz=fixed.nz)
-                index_record = IndexRecord.from_parts(fixed=fixed, extended=extended)
-                cursor += fixed.index_length
+                fixed_end = cursor + IndexRecord.N_BYTES_FIXED
+                fixed = IndexRecord.parse_fixed(data=data[cursor:fixed_end])
+                index_len = fixed['index_length']
+                index_end = cursor + index_len
+                catalog = IndexRecord.parse_extended(data=data[fixed_end:index_end],
+                                                     nz=fixed['nz'])
+                index_record = IndexRecord(header=header, **fixed,
+                                           levels=catalog.levels)
+                cursor += index_len
 
                 # Calculate grid size
-                nx = index_record.nx + header.grid[0]
-                ny = index_record.ny + header.grid[1]
-                nxy = nx * ny
-                cursor += (nxy - fixed.index_length)  # Skip any extra bytes in index record
+                nxy = index_record.grid.nx * index_record.grid.ny
+                cursor += (nxy - index_len)  # Skip any extra bytes in index record
             else:
                 if index_record is None:
                     raise ValueError("Data record found before index record")
@@ -848,12 +1009,17 @@ class ARLMet:
                   if isinstance(r, DataRecord)]  # drop nans from xarray
 
         # variable is a dim of index, not data
-        kwargs.pop('variable', None)
+        variables = kwargs.pop('variable', None)
 
         if len(arrays) == 1:
-            # Only one variable, return DataArray
+            # Single record, return DataArray
             return arrays[0].sel(**kwargs)
 
-        # Multiple variables, return Dataset
+        # Multiple records, return Dataset
         ds = xr.merge(arrays)
+        if variables is not None:
+            ds = ds[variables]  # select only requested variables
         return ds.sel(**kwargs)
+
+    def __add__(self, other: 'ARLMet') -> 'ARLMet':
+        raise NotImplementedError("Merging ARLMet instances is not yet implemented.")
