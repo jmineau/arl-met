@@ -11,10 +11,10 @@ install-dev:  ## Install development dependencies
 	pre-commit install
 
 format:  ## Format code with black
-	black arlmet/
+	black arlmet/ tests/
 
 check:  ## Check code formatting with black
-	black --check --diff arlmet/
+	black --check --diff arlmet/ tests/
 
 pre-commit:  ## Run pre-commit hooks on all files
 	pre-commit run --all-files
@@ -27,4 +27,3 @@ test-cov:  ## Run tests with coverage report
 
 docs:  ## Build documentation
 	cd docs && $(MAKE) html
-

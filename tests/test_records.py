@@ -75,7 +75,7 @@ class TestUnpack:
         initial_value = 100.0
 
         result = unpack(data, nx, ny, precision, exponent, initial_value)
-        
+
         assert result.shape == (ny, nx)
         assert result.dtype == np.float32
         # All values should be the initial value since deltas are 0
@@ -91,7 +91,7 @@ class TestUnpack:
         initial_value = 0.0
 
         result = unpack(data, nx, ny, precision, exponent, initial_value)
-        
+
         # Values below precision should be zeroed
         assert result.shape == (ny, nx)
         # All values should be close to zero due to precision threshold
@@ -104,7 +104,7 @@ class TestUnpack:
         precision = 0.01
         exponent = 7
         initial_value = 50.0
-        
+
         # Calculate the rotating checksum
         # This mimics the FORTRAN logic
         calculated_checksum = 0
@@ -112,9 +112,11 @@ class TestUnpack:
             calculated_checksum += data[k]
             if calculated_checksum >= 256:
                 calculated_checksum -= 255
-        
+
         # Should not raise an error
-        result = unpack(data, nx, ny, precision, exponent, initial_value, calculated_checksum)
+        result = unpack(
+            data, nx, ny, precision, exponent, initial_value, calculated_checksum
+        )
         assert result.shape == (ny, nx)
 
     def test_unpack_checksum_invalid(self):
@@ -139,7 +141,7 @@ class TestUnpack:
         # Different exponents should produce different scaling
         result_exp5 = unpack(data, nx, ny, precision, 5, initial_value)
         result_exp7 = unpack(data, nx, ny, precision, 7, initial_value)
-        
+
         # Results should be different due to different scaling
         assert not np.allclose(result_exp5, result_exp7)
 
@@ -152,7 +154,7 @@ class TestUnpack:
         initial_value = 0.0
 
         result = unpack(data, nx, ny, precision, exponent, initial_value)
-        
+
         assert result.shape == (ny, nx)
         assert isinstance(result, np.ndarray)
         assert result.dtype == np.float32

@@ -151,7 +151,7 @@ class TestGrid:
             reserved=0.0,
         )
         grid = Grid(proj=proj, nx=360, ny=180)
-        
+
         assert grid.is_latlon is True
         assert grid.dims == ("lat", "lon")
         assert "lon" in grid.coords
@@ -176,7 +176,7 @@ class TestGrid:
             reserved=0.0,
         )
         grid = Grid(proj=proj, nx=100, ny=100)
-        
+
         assert grid.is_latlon is False
         assert grid.dims == ("y", "x")
         assert "x" in grid.coords
@@ -244,7 +244,7 @@ class TestGrid3D:
         )
         vertical_axis = VerticalAxis(vertical_flag=2, levels=[1000, 925, 850])
         grid = Grid3D(proj=proj, nx=10, ny=10, vertical_axis=vertical_axis)
-        
+
         assert grid.nx == 10
         assert grid.ny == 10
         assert grid.vertical_axis.coord_type == "pressure"
