@@ -142,7 +142,11 @@ class Projection:
                 )
         elif self.cone_angle == 0.0:  # Mercator
             params.update(
-                {"proj": "merc", "lat_ts": self.tangent_lat, "lon_0": self.tangent_lon}
+                {
+                    "proj": "merc",
+                    "lat_ts": self.tangent_lat,
+                    "lon_0": self.tangent_lon,
+                }
             )
         else:  # Lambert Conformal Conic
             params.update(

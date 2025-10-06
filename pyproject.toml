@@ -23,8 +23,8 @@ classifiers = [
 dependencies = [
     "numpy",
     "pandas",
-    "xarray",
     "pyproj",
+    "xarray",
 ]
 
 [project.urls]
