@@ -13,13 +13,7 @@ Install the package using pip:
 pip install git+https://github.com/jmineau/arl-met.git
 ```
 
-For development, clone the repository and install in editable mode:
-
-```bash
-git clone https://github.com/jmineau/arl-met.git
-cd arl-met
-pip install -e .
-```
+For development, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Goals
 

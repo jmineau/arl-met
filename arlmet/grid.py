@@ -1,4 +1,3 @@
-
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Dict, List, Tuple
 
@@ -31,41 +30,41 @@ class Projection:
     Parameters
     ----------
     pole_lat : float
-        Pole latitude position of the grid projection. Most projections will be defined 
-        at +90 or -90 depending upon the hemisphere. For lat-lon grids: latitude of the 
+        Pole latitude position of the grid projection. Most projections will be defined
+        at +90 or -90 depending upon the hemisphere. For lat-lon grids: latitude of the
         grid point with the maximum grid point value.
-    pole_lon : float  
-        Pole longitude position of the grid projection. The longitude 180 degrees from 
-        which the projection is cut. For lat-lon grids: longitude of the grid point with 
+    pole_lon : float
+        Pole longitude position of the grid projection. The longitude 180 degrees from
+        which the projection is cut. For lat-lon grids: longitude of the grid point with
         the maximum grid point value.
     tangent_lat : float
-        Reference latitude at which the grid spacing is defined. For lat-lon grids: 
+        Reference latitude at which the grid spacing is defined. For lat-lon grids:
         grid spacing in degrees latitude.
     tangent_lon : float
         Reference longitude at which the grid spacing is defined. For lat-lon grids:
         grid spacing in degrees longitude.
     grid_size : float
-        Grid spacing in km at the reference position. For lat-lon grids: value of zero 
+        Grid spacing in km at the reference position. For lat-lon grids: value of zero
         signals that the grid is a lat-lon grid.
     orientation : float
-        Grid orientation or the angle at the reference point made by the y-axis and the 
+        Grid orientation or the angle at the reference point made by the y-axis and the
         local direction of north. For lat-lon grids: value always = 0.
     cone_angle : float
-        Angle between the axis and the surface of the cone. For regular projections it 
-        equals the latitude at which the grid is tangent to the earth's surface. Polar 
-        stereographic: ±90, Mercator: 0, Lambert Conformal: between limits, Oblique 
+        Angle between the axis and the surface of the cone. For regular projections it
+        equals the latitude at which the grid is tangent to the earth's surface. Polar
+        stereographic: ±90, Mercator: 0, Lambert Conformal: between limits, Oblique
         stereographic: 90. For lat-lon grids: value always = 0.
     sync_x : float
         Grid x-coordinate used to equate a position on the grid with a position on earth
         (paired with sync_y, sync_lat, sync_lon).
-    sync_y : float  
+    sync_y : float
         Grid y-coordinate used to equate a position on the grid with a position on earth
         (paired with sync_x, sync_lat, sync_lon).
     sync_lat : float
-        Earth latitude corresponding to the grid position (sync_x, sync_y). For lat-lon 
+        Earth latitude corresponding to the grid position (sync_x, sync_y). For lat-lon
         grids: latitude of the (0,0) grid point position.
     sync_lon : float
-        Earth longitude corresponding to the grid position (sync_x, sync_y). For lat-lon 
+        Earth longitude corresponding to the grid position (sync_x, sync_y). For lat-lon
         grids: longitude of the (0,0) grid point position.
     reserved : float
         Reserved for future use.
@@ -95,14 +94,16 @@ class Projection:
     params: Dict[str, Any] = field(init=False, repr=False)
 
     PARAMS: ClassVar[Dict[str, Any]] = {
-        'ellps': 'WGS84',
-        'R': 6371.2 * 1e3,  # Use a fixed radius to match HYSPLIT
-        'units': 'm'
+        "ellps": "WGS84",
+        "R": 6371.2 * 1e3,  # Use a fixed radius to match HYSPLIT
+        "units": "m",
     }
 
     def __post_init__(self):
         if self.orientation != 0.0:
-            raise NotImplementedError("Rotated grids with non-zero orientation are not supported.")
+            raise NotImplementedError(
+                "Rotated grids with non-zero orientation are not supported."
+            )
 
         self.params = self._get_params()
 
@@ -114,38 +115,44 @@ class Projection:
         params = self.PARAMS.copy()
 
         if self.is_latlon:  # Lat/Lon grid
-            params.pop('units')
-            params.update({
-                'proj': 'latlong',
-            })
+            params.pop("units")
+            params.update(
+                {
+                    "proj": "latlong",
+                }
+            )
         elif abs(self.cone_angle) == 90.0:  # Stereographic
             if abs(self.pole_lat) == 90.0:  # Polar Stereographic
-                params.update({
-                    'proj': 'stere',
-                    'lat_0': self.pole_lat,
-                    'lon_0': self.tangent_lon,
-                    'lat_ts': self.tangent_lat
-                })
+                params.update(
+                    {
+                        "proj": "stere",
+                        "lat_0": self.pole_lat,
+                        "lon_0": self.tangent_lon,
+                        "lat_ts": self.tangent_lat,
+                    }
+                )
             else:  # Oblique Stereographic
-                params.update({
-                    'proj': 'sterea',
-                    'lat_0': self.pole_lat,
-                    'lon_0': self.tangent_lon,
-                    'lat_ts': self.tangent_lat
-                })
+                params.update(
+                    {
+                        "proj": "sterea",
+                        "lat_0": self.pole_lat,
+                        "lon_0": self.tangent_lon,
+                        "lat_ts": self.tangent_lat,
+                    }
+                )
         elif self.cone_angle == 0.0:  # Mercator
-            params.update({
-                'proj': 'merc',
-                'lat_ts': self.tangent_lat,
-                'lon_0': self.tangent_lon
-            })
+            params.update(
+                {"proj": "merc", "lat_ts": self.tangent_lat, "lon_0": self.tangent_lon}
+            )
         else:  # Lambert Conformal Conic
-            params.update({
-                'proj': 'lcc',
-                'lat_0': self.tangent_lat,
-                'lon_0': self.tangent_lon,
-                'lat_1': self.cone_angle
-            })
+            params.update(
+                {
+                    "proj": "lcc",
+                    "lat_0": self.tangent_lat,
+                    "lon_0": self.tangent_lon,
+                    "lat_1": self.cone_angle,
+                }
+            )
 
         return params
 
@@ -194,11 +201,11 @@ class Grid:
     @property
     def dims(self) -> tuple:
         if self.is_latlon:
-            return ('lat', 'lon')
-        return ('y', 'x')
+            return ("lat", "lon")
+        return ("y", "x")
 
     def _calculate_origin(self) -> Tuple[float, float]:
-        'Calculate the origin (lower-left corner) in the base CRS'
+        "Calculate the origin (lower-left corner) in the base CRS"
         proj = self.proj
 
         if self.is_latlon:
@@ -207,8 +214,9 @@ class Grid:
 
         # Calculate what the projected coordinates of the sync point should be
         base_crs = pyproj.CRS.from_dict(proj.params)
-        transformer = pyproj.Transformer.from_proj('EPSG:4326', base_crs,
-                                                   always_xy=True)
+        transformer = pyproj.Transformer.from_proj(
+            "EPSG:4326", base_crs, always_xy=True
+        )
         sync_proj_x, sync_proj_y = transformer.transform(proj.sync_lon, proj.sync_lat)
 
         # Convert sync grid coordinates to projected coordinates
@@ -225,14 +233,11 @@ class Grid:
         params = self.proj.params.copy()
 
         if self.is_latlon:
-            # Use specific ellps and 
+            # Use specific ellps and
             return pyproj.CRS.from_dict(params)
 
         # Create new pyproj CRS with false easting/northing
-        params.update({
-            'x_0': self.origin[0],
-            'y_0': self.origin[1]
-        })
+        params.update({"x_0": self.origin[0], "y_0": self.origin[1]})
         return pyproj.CRS.from_dict(params)
 
     def _calculate_coords(self):
@@ -245,7 +250,7 @@ class Grid:
             lats = lat_0 + np.arange(self.ny) * dlat
             lons = lon_0 + np.arange(self.nx) * dlon
             lons = wrap_lons(lons)
-            return {'lon': lons, 'lat': lats}
+            return {"lon": lons, "lat": lats}
 
         # Calculate the coordinates in the projection space
         grid_size = proj.grid_size * 1000  # km to m
@@ -253,17 +258,19 @@ class Grid:
         y_coords = np.arange(self.ny) * grid_size
 
         # Create a transformer from the projection to lat/lon
-        transformer = pyproj.Transformer.from_crs(self.crs, "EPSG:4326",
-                                                  always_xy=True)
+        transformer = pyproj.Transformer.from_crs(self.crs, "EPSG:4326", always_xy=True)
 
         # Transform the coordinates to lat/lon
         xx, yy = np.meshgrid(x_coords, y_coords)
         lons, lats = transformer.transform(xx, yy)
         lons = wrap_lons(lons)
 
-        return {'x': x_coords, 'y': y_coords,
-                'lon': (('y', 'x'), lons),
-                'lat': (('y', 'x'), lats)}
+        return {
+            "x": x_coords,
+            "y": y_coords,
+            "lon": (("y", "x"), lons),
+            "lat": (("y", "x"), lats),
+        }
 
 
 class VerticalAxis:
@@ -279,10 +286,10 @@ class VerticalAxis:
     """
 
     FLAGS = {
-        1: 'sigma',  # (fraction)
-        2: 'pressure',  # (mb)
-        3: 'terrain',  # (fraction)
-        4: 'hybrid'  # (mb: offset.fraction)
+        1: "sigma",  # (fraction)
+        2: "pressure",  # (mb)
+        3: "terrain",  # (fraction)
+        4: "hybrid",  # (mb: offset.fraction)
     }
 
     def __init__(self, vertical_flag: int, levels: List[float]):
@@ -291,22 +298,22 @@ class VerticalAxis:
 
     @property
     def coord_type(self) -> str:
-        return VerticalAxis.FLAGS.get(self.flag, 'unknown')
+        return VerticalAxis.FLAGS.get(self.flag, "unknown")
 
     def calculate_heights(self) -> np.ndarray | None:
         """
         Calculate heights in meters for each vertical level.
         """
-        if self.coord_type == 'sigma':
+        if self.coord_type == "sigma":
             # fraction
             pass
-        elif self.coord_type == 'pressure':
+        elif self.coord_type == "pressure":
             # mb
             pass
-        elif self.coord_type == 'terrain':
+        elif self.coord_type == "terrain":
             # fraction
             pass
-        elif self.coord_type == 'hybrid':
+        elif self.coord_type == "hybrid":
             # mb offset.fraction
             pass
         else:
@@ -331,8 +338,7 @@ class Grid3D(Grid):
         Vertical axis information including coordinate type and levels.
     """
 
-    def __init__(self, proj: Projection, nx: int, ny: int,
-                 vertical_axis: VerticalAxis):
+    def __init__(self, proj: Projection, nx: int, ny: int, vertical_axis: VerticalAxis):
         super().__init__(proj=proj, nx=nx, ny=ny)
         self.vertical_axis = vertical_axis
 
