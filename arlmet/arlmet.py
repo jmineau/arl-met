@@ -28,7 +28,7 @@ def open_dataset(filename: Path | str, **kwargs) -> xr.Dataset:
     xr.Dataset
         The ARL data as an xarray Dataset.
     """
-    met = ARLMet(path=filename)
+    met = ARLMet.from_file(filename=filename)
     ds = met.load(**kwargs)
     if isinstance(ds, xr.DataArray):
         ds = ds.to_dataset()
@@ -43,14 +43,32 @@ class ARLMet:
     methods to work with ARL format files.
     """
 
-    def __init__(self, path: Path | str):  # TODO: move to classmethod
-        self.path = Path(path)
+    # _KEYS = ["grid", "time", "forecast", "level", "variable"]
+    _KEYS = ["time", "forecast", "level", "variable"]  # FIXME how to identify grid?
 
-        if not self.path.exists():
+    def __init__(self, records: List[DataRecord]):
+
+        # Build index DataFrame
+        index = pd.DataFrame({'record': records}).dropna(ignore_index=True)
+        if index.empty:
+            raise ValueError("No valid records provided")
+
+        # Extract keys from records
+        for key in self._KEYS:
+            index[key] = index.record.apply(lambda r: getattr(r, key))
+
+        # Set multi-index
+        self.index = index.set_index(self._KEYS)["record"]
+
+    @classmethod
+    def from_file(cls, filename: Path | str) -> "ARLMet":
+        path = Path(filename)
+
+        if not path.exists():
             raise ValueError("Invalid file path")
 
         # Open the file
-        with self.path.open("rb") as f:
+        with path.open("rb") as f:
             data = f.read()
 
         records = []
@@ -69,48 +87,35 @@ class ARLMet:
                 # Parse the index record to get grid dimensions
                 fixed_end = cursor + IndexRecord.N_BYTES_FIXED
                 fixed = IndexRecord.parse_fixed(data=data[cursor:fixed_end])
-                index_len = fixed["index_length"]
-                index_end = cursor + index_len
+                index_end = cursor + fixed["index_length"]
                 catalog = IndexRecord.parse_extended(
                     data=data[fixed_end:index_end], nz=fixed["nz"]
                 )
                 index_record = IndexRecord(
                     header=header, **fixed, levels=catalog.levels
                 )
-                cursor += index_len
 
                 # Calculate grid size
                 nxy = index_record.grid.nx * index_record.grid.ny
-                cursor += nxy - index_len  # Skip any extra bytes in index record
+                cursor += nxy  # Skip any extra bytes in index record
             else:
                 if index_record is None:
                     raise ValueError("Data record found before index record")
+
+                # Build data record
                 record = DataRecord(
                     index_record=index_record,
                     header=header,
                     data=data[cursor : cursor + nxy],
                 )
-
-                records.append(
-                    {
-                        "grid": None,  # TODO how to identify grid?
-                        "time": record.time,
-                        "forecast": header.forecast,
-                        "level": header.level,
-                        "variable": header.variable,
-                        "record": record,
-                    }
-                )
+                records.append(record)
                 cursor += nxy  # Move cursor past packed data
 
-        index = pd.DataFrame(records)
-        # index_keys = ['grid', 'time', 'forecast', 'level', 'variable']  # TODO grid
-        index_keys = ["time", "forecast", "level", "variable"]
-        self._index = index.set_index(index_keys)["record"]
+        return cls(records=records)
 
     @property
     def records(self) -> List[DataRecord]:
-        return self._index.tolist()
+        return self.index.tolist()
 
     def load(self, **kwargs) -> xr.Dataset | xr.DataArray:
         """
@@ -123,7 +128,7 @@ class ARLMet:
         **kwargs : dict
         """
         # Select records matching criteria
-        index = self._index.to_xarray()
+        index = self.index.to_xarray()
         records = index.sel(**kwargs).values.flatten().tolist()
 
         # Unpack each record to DataArray

@@ -547,8 +547,24 @@ class DataRecord:
         )
 
     @property
+    def grid(self) -> str | None:
+        return None  # TODO how to identify grid?
+
+    @property
     def time(self) -> pd.Timestamp:
         return self.index_record.time
+
+    @property
+    def forecast(self) -> int:
+        return self.header.forecast
+
+    @property
+    def level(self) -> int:
+        return self.header.level
+
+    @property
+    def variable(self) -> str:
+        return self.header.variable
 
     def unpack(self) -> xr.DataArray:
         """
