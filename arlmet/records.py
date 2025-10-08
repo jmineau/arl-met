@@ -582,6 +582,42 @@ class IndexRecord:
         """
         return self.ny + self.header.grid[1]
 
+    def to_attrs(self) -> dict[str, Any]:
+        """
+        Convert index record to attributes dictionary.
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary of attributes from the index record.
+        """
+        vertical_flags = {
+            1: "sigma",
+            2: "pressure",
+            3: "terrain",
+            4: "hybrid",
+            5: "wrf",
+        }
+        attrs = {
+            "source": self.source,
+            "forecast_hour": self.forecast_hour,
+            "pole_lat": self.pole_lat,
+            "pole_lon": self.pole_lon,
+            "tangent_lat": self.tangent_lat,
+            "tangent_lon": self.tangent_lon,
+            "grid_size": self.grid_size,
+            "orientation": self.orientation,
+            "cone_angle": self.cone_angle,
+            "sync_x": self.sync_x,
+            "sync_y": self.sync_y,
+            "sync_lat": self.sync_lat,
+            "sync_lon": self.sync_lon,
+            "vertical_coordinate_system": vertical_flags.get(
+                self.vertical_flag, "unknown"
+            ),
+        }
+        return attrs
+
 
 @dataclass
 class DataRecord:
@@ -659,3 +695,27 @@ class DataRecord:
             exponent=self.header.exponent,
             initial_value=self.header.initial_value,
         )
+
+    def to_attrs(self) -> dict[str, Any]:
+        """
+        Get attributes for this variable based on known ARL variables.
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary of variable attributes including long_name and units if known.
+        """
+        var_name = self.variable
+        attrs = {}
+
+        # Check if it's a known variable
+        if var_name in ARL_SURFACE_VARIABLES:
+            long_name, units = ARL_SURFACE_VARIABLES[var_name]
+            attrs["long_name"] = long_name
+            attrs["units"] = units
+        elif var_name in ARL_UPPER_VARIABLES:
+            long_name, units = ARL_UPPER_VARIABLES[var_name]
+            attrs["long_name"] = long_name
+            attrs["units"] = units
+
+        return attrs

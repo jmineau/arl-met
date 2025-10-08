@@ -9,6 +9,7 @@ used by HYSPLIT and other atmospheric transport models.
 from pathlib import Path
 from typing import Sequence
 
+import cf_xarray as cfxr  # noqa: F401
 import pandas as pd
 import xarray as xr
 
@@ -261,16 +262,56 @@ class ARLMet:
         variables = kwargs.pop("variable", None)
 
         if len(arrays) == 1:
-            # Single record, return DataArray
-            return arrays[0].sel(**kwargs).squeeze()
+            # Single record, return DataArray with CF attributes
+            da = arrays[0].sel(**kwargs).squeeze()
+            # Use cf_xarray to add canonical attributes based on standard_name
+            return da.cf.add_canonical_attributes()
 
         # Merge into Dataset
         ds = xr.merge(arrays)
 
+        # Extract index_record for attrs
+        # Get the first index_record from the selection
+        index_record = index["index_record"].iloc[0]
+
+        # Start with global attributes from index record
+        global_attrs = index_record.to_attrs()
+
+        # Find attributes that are shared across all variables
+        if len(ds.data_vars) > 0:
+            # Get all variable attributes
+            all_var_attrs = [ds[var].attrs for var in ds.data_vars]
+
+            # Find common attributes across all variables
+            if all_var_attrs:
+                common_keys = set(all_var_attrs[0].keys())
+                for attrs in all_var_attrs[1:]:
+                    common_keys &= set(attrs.keys())
+
+                # Check if values are the same for common keys
+                shared_attrs = {}
+                for key in common_keys:
+                    values = [attrs[key] for attrs in all_var_attrs]
+                    if all(v == values[0] for v in values):
+                        shared_attrs[key] = values[0]
+
+                # Move shared attributes to dataset level and remove from variables
+                for key in shared_attrs:
+                    for var in ds.data_vars:
+                        ds[var].attrs.pop(key, None)
+
+                # Add shared attributes to global attributes
+                global_attrs.update(shared_attrs)
+
+        # Clear any attrs that xarray.merge may have added, then set our own
+        ds.attrs.clear()
+        ds.attrs.update(global_attrs)
+
+        # Use cf_xarray to add canonical attributes based on standard_name
+        ds = ds.cf.add_canonical_attributes()
+
         # Assign additional vertical coordinates
         # TODO
-
-        # Handle attrs  TODO
 
         if variables is not None:
             ds = ds[variables]  # select only requested variables
@@ -317,7 +358,15 @@ class ARLMet:
         # Sort on dims
         da = da.sortby(list(dims))
 
-        # TODO: add CF attributes
+        # Add variable attributes from the data record
+        var_attrs = record.to_attrs()
+        da.attrs.update(var_attrs)
+
+        # Add coordinate attributes
+        coord_attrs = grid.get_coord_attrs()
+        for coord_name, attrs in coord_attrs.items():
+            if coord_name in da.coords:
+                da.coords[coord_name].attrs.update(attrs)
 
         return da
 
