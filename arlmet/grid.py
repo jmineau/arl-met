@@ -363,7 +363,10 @@ class Grid:
                 lats = lat_0 + np.arange(self.ny) * dlat
                 lons = lon_0 + np.arange(self.nx) * dlon
                 lons = wrap_lons(lons)
-                return {"lon": lons, "lat": lats}
+                return {
+                    "lon": lons,
+                    "lat": lats,
+                }
 
             # Calculate the coordinates in the projection space
             grid_size = proj.grid_size * 1000  # km to m
@@ -388,6 +391,52 @@ class Grid:
             }
 
         return self._coords
+
+    def get_coord_attrs(self) -> dict[str, dict[str, Any]]:
+        """
+        Get CF-compliant attributes for coordinates.
+
+        Returns
+        -------
+        dict[str, dict[str, Any]]
+            Dictionary mapping coordinate names to their attributes.
+        """
+        attrs = {}
+
+        if self.is_latlon:
+            attrs["lon"] = {
+                "units": "degrees_east",
+                "long_name": "longitude",
+                "standard_name": "longitude",
+            }
+            attrs["lat"] = {
+                "units": "degrees_north",
+                "long_name": "latitude",
+                "standard_name": "latitude",
+            }
+        else:
+            attrs["x"] = {
+                "units": "m",
+                "long_name": "x coordinate of projection",
+                "standard_name": "projection_x_coordinate",
+            }
+            attrs["y"] = {
+                "units": "m",
+                "long_name": "y coordinate of projection",
+                "standard_name": "projection_y_coordinate",
+            }
+            attrs["lon"] = {
+                "units": "degrees_east",
+                "long_name": "longitude",
+                "standard_name": "longitude",
+            }
+            attrs["lat"] = {
+                "units": "degrees_north",
+                "long_name": "latitude",
+                "standard_name": "latitude",
+            }
+
+        return attrs
 
     def __repr__(self) -> str:
         return f"Grid(projection={self.projection}, nx={self.nx}, ny={self.ny})"
@@ -422,6 +471,49 @@ class VerticalAxis:
     @property
     def coord_system(self) -> str:
         return self.FLAGS.get(self.flag, "unknown")
+
+    def get_coord_attrs(self) -> dict[str, Any]:
+        """
+        Get CF-compliant attributes for the vertical coordinate.
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary of attributes for the level coordinate.
+        """
+        coord_system = self.coord_system
+
+        if coord_system == "sigma":
+            return {
+                "units": "1",
+                "long_name": "sigma levels",
+                "standard_name": "atmosphere_sigma_coordinate",
+                "positive": "down",
+            }
+        elif coord_system == "pressure":
+            return {
+                "units": "hPa",
+                "long_name": "pressure",
+                "standard_name": "air_pressure",
+                "positive": "down",
+            }
+        elif coord_system == "terrain":
+            return {
+                "units": "m",
+                "long_name": "height above ground",
+                "standard_name": "height",
+                "positive": "up",
+            }
+        elif coord_system == "hybrid":
+            return {
+                "units": "1",
+                "long_name": "hybrid levels",
+                "positive": "down",
+            }
+        else:
+            return {
+                "long_name": "vertical level",
+            }
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, VerticalAxis):
@@ -484,6 +576,35 @@ class Grid3D(Grid):
             Array of vertical levels.
         """
         return np.array(self.vertical_axis.levels)
+
+    def get_coord_attrs(self) -> dict[str, dict[str, Any]]:
+        """
+        Get CF-compliant attributes for all coordinates.
+
+        Returns
+        -------
+        dict[str, dict[str, Any]]
+            Dictionary mapping coordinate names to their attributes.
+        """
+        # Get horizontal coordinate attrs from parent
+        attrs = super().get_coord_attrs()
+
+        # Add vertical coordinate attrs
+        attrs["level"] = self.vertical_axis.get_coord_attrs()
+
+        # Add time attrs
+        attrs["time"] = {
+            "long_name": "time",
+            "standard_name": "time",
+        }
+
+        # Add forecast attrs
+        attrs["forecast"] = {
+            "units": "hours",
+            "long_name": "forecast hour",
+        }
+
+        return attrs
 
     def __repr__(self) -> str:
         return (
