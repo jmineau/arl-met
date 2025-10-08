@@ -222,6 +222,97 @@ class TestVerticalAxis:
         axis = VerticalAxis(flag=99, levels=levels)
         assert axis.coord_system == "unknown"
 
+    def test_get_coord_attrs_sigma(self):
+        """Test coordinate attributes for sigma levels."""
+        levels = [1.0, 0.8, 0.5]
+        axis = VerticalAxis(flag=1, levels=levels)
+        attrs = axis.get_coord_attrs()
+
+        assert isinstance(attrs, dict)
+        assert attrs["units"] == "1"
+        assert attrs["standard_name"] == "atmosphere_sigma_coordinate"
+        assert attrs["positive"] == "down"
+
+    def test_get_coord_attrs_pressure(self):
+        """Test coordinate attributes for pressure levels."""
+        levels = [1000.0, 925.0, 850.0]
+        axis = VerticalAxis(flag=2, levels=levels)
+        attrs = axis.get_coord_attrs()
+
+        assert isinstance(attrs, dict)
+        assert attrs["units"] == "hPa"
+        assert attrs["standard_name"] == "air_pressure"
+        assert attrs["positive"] == "down"
+
+    def test_get_coord_attrs_terrain(self):
+        """Test coordinate attributes for terrain following levels."""
+        levels = [0.0, 100.0, 500.0]
+        axis = VerticalAxis(flag=3, levels=levels)
+        attrs = axis.get_coord_attrs()
+
+        assert isinstance(attrs, dict)
+        assert attrs["units"] == "m"
+        assert attrs["standard_name"] == "height"
+        assert attrs["positive"] == "up"
+
+
+class TestGridCoordAttrs:
+    """Tests for Grid coordinate attributes."""
+
+    def test_latlon_grid_coord_attrs(self):
+        """Test coordinate attributes for lat-lon grids."""
+        proj = Projection(
+            pole_lat=90.0,
+            pole_lon=180.0,
+            tangent_lat=1.0,
+            tangent_lon=1.0,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=-90.0,
+            sync_lon=-180.0,
+            reserved=0.0,
+        )
+        grid = Grid(projection=proj, nx=360, ny=180)
+        attrs = grid.get_coord_attrs()
+
+        assert "lon" in attrs
+        assert "lat" in attrs
+        assert attrs["lon"]["units"] == "degrees_east"
+        assert attrs["lat"]["units"] == "degrees_north"
+        assert attrs["lon"]["standard_name"] == "longitude"
+        assert attrs["lat"]["standard_name"] == "latitude"
+
+    def test_projected_grid_coord_attrs(self):
+        """Test coordinate attributes for projected grids."""
+        proj = Projection(
+            pole_lat=90.0,
+            pole_lon=-95.0,
+            tangent_lat=45.0,
+            tangent_lon=-95.0,
+            grid_size=12.0,
+            orientation=0.0,
+            cone_angle=45.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=40.0,
+            sync_lon=-100.0,
+            reserved=0.0,
+        )
+        grid = Grid(projection=proj, nx=100, ny=100)
+        attrs = grid.get_coord_attrs()
+
+        assert "x" in attrs
+        assert "y" in attrs
+        assert "lon" in attrs
+        assert "lat" in attrs
+        assert attrs["x"]["units"] == "m"
+        assert attrs["y"]["units"] == "m"
+        assert attrs["x"]["standard_name"] == "projection_x_coordinate"
+        assert attrs["y"]["standard_name"] == "projection_y_coordinate"
+
 
 class TestGrid3D:
     """Tests for Grid3D class."""
@@ -249,3 +340,41 @@ class TestGrid3D:
         assert grid.ny == 10
         assert grid.vertical_axis.coord_system == "pressure"
         assert len(grid.vertical_axis.levels) == 3
+
+    def test_grid3d_coord_attrs(self):
+        """Test coordinate attributes for 3D grid."""
+        proj = Projection(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=1.0,
+            tangent_lon=1.0,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=0.0,
+            sync_lon=0.0,
+            reserved=0.0,
+        )
+        vertical_axis = VerticalAxis(flag=2, levels=[1000, 925, 850])
+        grid = Grid3D(projection=proj, nx=10, ny=10, vertical_axis=vertical_axis)
+
+        attrs = grid.get_coord_attrs()
+
+        assert "level" in attrs
+        assert "time" in attrs
+        assert "forecast" in attrs
+        assert "lon" in attrs
+        assert "lat" in attrs
+
+        # Check level attrs
+        assert attrs["level"]["units"] == "hPa"
+        assert attrs["level"]["standard_name"] == "air_pressure"
+
+        # Check time attrs
+        assert attrs["time"]["standard_name"] == "time"
+
+        # Check forecast attrs
+        assert attrs["forecast"]["units"] == "hours"
+

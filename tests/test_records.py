@@ -1,9 +1,17 @@
 """Tests for arlmet.records module."""
 
 import numpy as np
+import pandas as pd
 import pytest
 
-from arlmet.records import letter_to_thousands, restore_year, unpack
+from arlmet.records import (
+    Header,
+    IndexRecord,
+    DataRecord,
+    letter_to_thousands,
+    restore_year,
+    unpack,
+)
 
 
 class TestLetterToThousands:
@@ -158,3 +166,207 @@ class TestUnpack:
         assert result.shape == (ny, nx)
         assert isinstance(result, np.ndarray)
         assert result.dtype == np.float32
+
+
+class TestIndexRecordAttrs:
+    """Tests for IndexRecord.to_attrs method."""
+
+    def test_to_attrs_returns_dict(self):
+        """Test that to_attrs returns a dictionary."""
+        # Create a minimal Header
+        header = Header(
+            year=2025,
+            month=1,
+            day=1,
+            hour=0,
+            forecast=0,
+            level=0,
+            grid=(0, 0),
+            variable="INDX",
+            exponent=7,
+            precision=0.01,
+            initial_value=0.0,
+        )
+
+        # Create a minimal IndexRecord
+        index_record = IndexRecord(
+            header=header,
+            source="TEST",
+            forecast_hour=0,
+            minutes=0,
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=45.0,
+            tangent_lon=0.0,
+            grid_size=50.0,
+            orientation=0.0,
+            cone_angle=45.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=40.0,
+            sync_lon=-100.0,
+            reserved=0.0,
+            nx=10,
+            ny=10,
+            nz=1,
+            vertical_flag=2,
+            index_length=200,
+            levels=[],
+        )
+
+        attrs = index_record.to_attrs()
+
+        assert isinstance(attrs, dict)
+        assert "source" in attrs
+        assert attrs["source"] == "TEST"
+        assert "vertical_coordinate_system" in attrs
+        assert attrs["vertical_coordinate_system"] == "pressure"
+
+    def test_to_attrs_contains_expected_keys(self):
+        """Test that to_attrs includes all expected keys."""
+        header = Header(
+            year=2025,
+            month=1,
+            day=1,
+            hour=0,
+            forecast=0,
+            level=0,
+            grid=(0, 0),
+            variable="INDX",
+            exponent=7,
+            precision=0.01,
+            initial_value=0.0,
+        )
+
+        index_record = IndexRecord(
+            header=header,
+            source="TEST",
+            forecast_hour=6,
+            minutes=30,
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=45.0,
+            tangent_lon=-95.0,
+            grid_size=12.0,
+            orientation=0.0,
+            cone_angle=45.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=40.0,
+            sync_lon=-100.0,
+            reserved=0.0,
+            nx=100,
+            ny=100,
+            nz=5,
+            vertical_flag=1,
+            index_length=500,
+            levels=[],
+        )
+
+        attrs = index_record.to_attrs()
+
+        expected_keys = [
+            "source",
+            "forecast_hour",
+            "pole_lat",
+            "pole_lon",
+            "tangent_lat",
+            "tangent_lon",
+            "grid_size",
+            "orientation",
+            "cone_angle",
+            "sync_x",
+            "sync_y",
+            "sync_lat",
+            "sync_lon",
+            "vertical_coordinate_system",
+        ]
+
+        for key in expected_keys:
+            assert key in attrs
+
+        assert attrs["forecast_hour"] == 6
+        assert attrs["grid_size"] == 12.0
+        assert attrs["vertical_coordinate_system"] == "sigma"
+
+
+class TestDataRecordAttrs:
+    """Tests for DataRecord.to_attrs method."""
+
+    def test_to_attrs_known_variable(self):
+        """Test that to_attrs returns attributes for known variables."""
+        header = Header(
+            year=2025,
+            month=1,
+            day=1,
+            hour=0,
+            forecast=0,
+            level=0,
+            grid=(0, 0),
+            variable="TEMP",
+            exponent=7,
+            precision=0.01,
+            initial_value=273.15,
+        )
+
+        data = bytearray([127] * 100)
+        record = DataRecord(header=header, data=data)
+
+        attrs = record.to_attrs()
+
+        assert isinstance(attrs, dict)
+        assert "long_name" in attrs
+        assert "units" in attrs
+        assert attrs["long_name"] == "Temperature"
+        assert attrs["units"] == "K"
+
+    def test_to_attrs_unknown_variable(self):
+        """Test that to_attrs returns empty dict for unknown variables."""
+        header = Header(
+            year=2025,
+            month=1,
+            day=1,
+            hour=0,
+            forecast=0,
+            level=0,
+            grid=(0, 0),
+            variable="UNKN",
+            exponent=7,
+            precision=0.01,
+            initial_value=0.0,
+        )
+
+        data = bytearray([127] * 100)
+        record = DataRecord(header=header, data=data)
+
+        attrs = record.to_attrs()
+
+        assert isinstance(attrs, dict)
+        assert len(attrs) == 0
+
+    def test_to_attrs_surface_variable(self):
+        """Test that to_attrs works for surface variables."""
+        header = Header(
+            year=2025,
+            month=1,
+            day=1,
+            hour=0,
+            forecast=0,
+            level=0,
+            grid=(0, 0),
+            variable="T02M",
+            exponent=7,
+            precision=0.01,
+            initial_value=273.15,
+        )
+
+        data = bytearray([127] * 100)
+        record = DataRecord(header=header, data=data)
+
+        attrs = record.to_attrs()
+
+        assert "long_name" in attrs
+        assert "units" in attrs
+        assert attrs["long_name"] == "Temperature at 2 m"
+        assert attrs["units"] == "K"
+
