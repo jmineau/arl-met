@@ -377,4 +377,3 @@ class TestGrid3D:
 
         # Check forecast attrs
         assert attrs["forecast"]["units"] == "hours"
-
