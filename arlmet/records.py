@@ -7,14 +7,11 @@ algorithm. It handles the binary format used in ARL meteorological files.
 """
 
 from dataclasses import dataclass, field
-from typing import ClassVar, Dict, Any, List, Tuple
 import string
+from typing import Any, ClassVar, Sequence
 
 import numpy as np
 import pandas as pd
-import xarray as xr
-
-from arlmet.grid import Grid3D, Projection, VerticalAxis, LevelInfo
 
 
 # ARL meteorological variable definitions
@@ -260,13 +257,13 @@ class Header:
             year=self.year, month=self.month, day=self.day, hour=self.hour
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert header to dictionary.
 
         Returns
         -------
-        Dict[str, Any]
+        dict[str, Any]
             Dictionary representation of the header fields.
         """
         return {
@@ -276,8 +273,7 @@ class Header:
             "hour": self.hour,
             "forecast": self.forecast,
             "level": self.level,
-            "grid_x": self.grid[0],
-            "grid_y": self.grid[1],
+            "grid": self.grid,
             "variable": self.variable,
             "exponent": self.exponent,
             "precision": self.precision,
@@ -299,6 +295,32 @@ class Header:
             This functionality is not yet implemented.
         """
         raise NotImplementedError
+
+
+@dataclass
+class VarInfo:
+    checksum: int
+    reserved: str
+
+
+@dataclass
+class LvlInfo:
+    """
+    Information about a single vertical level.
+
+    Parameters
+    ----------
+    index : int
+        Level index.
+    height : float
+        Height in units of the vertical coordinate system.
+    variables : dict[str, VarInfo]
+        Dictionary mapping variable names to VarInfo (checksum and reserved).
+    """
+
+    index: int
+    height: float
+    variables: dict[str, VarInfo]
 
 
 @dataclass
@@ -366,12 +388,11 @@ class IndexRecord:
         Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain, 4=hybrid).
     index_length : int
         Total length of the index record in bytes, including fixed and variable portions.
-    levels : List[Dict[str, Any]]
+    levels : list[LvlInfo]
         List of levels, each containing:
-            - level: Level number (1-based).
+            - level: Level index (0 to nz-1).
             - height: Height of the level in units of the vertical coordinate.
-            - vars: List of variables at this level, each as a tuple:
-                (name: str, checksum: int, reserved: str)
+            - vars: Dictionary mapping variable names to VarInfo (checksum and reserved).
 
     Attributes
     ----------
@@ -379,8 +400,6 @@ class IndexRecord:
         Number of bytes in the fixed portion of the index record (108 bytes).
     time : pd.Timestamp
         The valid time of the record, calculated from the header time and minutes.
-    grid : Grid3D
-        The 3D grid representation including horizontal and vertical dimensions.
     """
 
     header: Header = field(repr=False)
@@ -404,15 +423,9 @@ class IndexRecord:
     nz: int
     vertical_flag: int
     index_length: int
-    levels: List[LevelInfo]
-
-    grid: Grid3D = field(init=False, repr=False)
+    levels: Sequence[LvlInfo]
 
     N_BYTES_FIXED: ClassVar[int] = 108
-
-    def __post_init__(self):
-        """Build the 3D grid after dataclass initialization."""
-        self.grid = self._build_grid()
 
     @staticmethod
     def parse_fixed(data: bytes) -> dict[str, Any]:
@@ -483,7 +496,7 @@ class IndexRecord:
         return fields
 
     @staticmethod
-    def parse_extended(data: bytes, nz: int) -> List[LevelInfo]:
+    def parse_extended(data: bytes, nz: int) -> list[LvlInfo]:
         """
         Parse the variable-length portion of an index record
         containing level information.
@@ -497,7 +510,7 @@ class IndexRecord:
 
         Returns
         -------
-        List[LevelInfo]
+        list[LevelInfo]
             List of LevelInfo objects for each vertical level.
         """
         extended = data.decode("ascii", errors="ignore")
@@ -511,9 +524,7 @@ class IndexRecord:
                 extended[cursor : cursor + 6].strip()
             )  # in units of vertical flag
 
-            vars = []
-            checksums = {}
-            reserved = {}
+            vars = {}
 
             num_vars = int(extended[cursor + 6 : cursor + 8].strip())
             # Loop through variables for this level
@@ -522,22 +533,14 @@ class IndexRecord:
                 end = start + 8
 
                 name = extended[start : start + 4].strip()
-                vars.append(name)
-                checksums[name] = int(extended[start + 4 : start + 7].strip())
-                reserved[name] = extended[start + 7 : end].strip()  # usually blank
-
-            lvls.append(
-                LevelInfo(
-                    index=i,
-                    height=height,
-                    variables=vars,
-                    checksums=checksums,
-                    reserved=reserved,
+                vars[name] = VarInfo(
+                    checksum=int(extended[start + 4 : start + 7].strip()),
+                    reserved=extended[start + 7 : end].strip(),  # usually blank
                 )
-            )
 
-            # Move cursor to next level
-            cursor += 8 + num_vars * 8
+            lvls.append(LvlInfo(index=i, height=height, variables=vars))
+
+            cursor += 8 + num_vars * 8  # Move cursor to next level
 
         return lvls
 
@@ -553,131 +556,48 @@ class IndexRecord:
         """
         return self.header.time + pd.Timedelta(minutes=self.minutes)
 
-    def _build_grid(self) -> Grid3D:
+    @property
+    def total_nx(self) -> int:
         """
-        Construct the 3D grid from projection and dimension information.
+        Total number of grid points in the x-direction,
+        including any additional thousands from the grid letters.
 
         Returns
         -------
-        Grid3D
-            3D grid object with horizontal and vertical dimensions.
+        int
+            Total number of grid points in x-direction.
         """
-        proj = Projection(
-            pole_lat=self.pole_lat,
-            pole_lon=self.pole_lon,
-            tangent_lat=self.tangent_lat,
-            tangent_lon=self.tangent_lon,
-            grid_size=self.grid_size,
-            orientation=self.orientation,
-            cone_angle=self.cone_angle,
-            sync_x=self.sync_x,
-            sync_y=self.sync_y,
-            sync_lat=self.sync_lat,
-            sync_lon=self.sync_lon,
-            reserved=self.reserved,
-        )
-
-        nx = self.nx + self.header.grid[0]
-        ny = self.ny + self.header.grid[1]
-
-        vertical_axis = VerticalAxis(
-            vertical_flag=self.vertical_flag, levels=self.levels
-        )
-
-        return Grid3D(proj=proj, nx=nx, ny=ny, vertical_axis=vertical_axis)
+        return self.nx + self.header.grid[0]
 
     @property
-    def surface_vars(self) -> List[str]:
-        pass
+    def total_ny(self) -> int:
+        """
+        Total number of grid points in the y-direction,
+        including any additional thousands from the grid letters.
 
-    @property
-    def upper_vars(self) -> List[str]:
-        pass
+        Returns
+        -------
+        int
+            Total number of grid points in y-direction.
+        """
+        return self.ny + self.header.grid[1]
 
 
+@dataclass
 class DataRecord:
     """
     Represents a data record containing packed meteorological data.
+
+    Parameters
+    ----------
+    header : Header
+        The header for this data record.
+    data : bytes
+        The packed binary data.
     """
 
-    def __init__(self, index_record: IndexRecord, header: Header, data: bytes):
-        """
-        Initialize a data record.
-
-        Parameters
-        ----------
-        index_record : IndexRecord
-            The index record associated with this data.
-        header : Header
-            The header for this data record.
-        data : bytes
-            The packed binary data.
-        """
-        self.index_record = index_record
-        self.header = header
-        self.data = data
-
-    def __repr__(self):
-        """
-        Return string representation of the data record.
-
-        Returns
-        -------
-        str
-            String representation showing index record, header, and data length.
-        """
-        return (
-            f"DataRecord(index_record={repr(self.index_record)}, "
-            f"header={repr(self.header)}, data_length={len(self.data)})"
-        )
-
-    @property
-    def grid(self) -> str | None:
-        """
-        Get grid identifier (not yet implemented).
-
-        Returns
-        -------
-        str or None
-            Grid identifier, currently returns None.
-        """
-        return None  # TODO how to identify grid?
-
-    @property
-    def time(self) -> pd.Timestamp:
-        """
-        Get the valid time for this data record.
-
-        Returns
-        -------
-        pd.Timestamp
-            Valid time from the associated index record.
-        """
-        return self.index_record.time
-
-    @property
-    def forecast(self) -> int:
-        """
-        Get the forecast hour for this data record.
-
-        Returns
-        -------
-        int
-            Forecast hour from the header.
-        """
-        return self.header.forecast
-
-    @property
-    def level(self) -> int:
-        """
-        Get the vertical level for this data record.
-
-        Returns
-        -------
-        int
-            Vertical level from the header.
-        """
-        return self.header.level
+    header: Header
+    data: bytes = field(repr=False)
 
     @property
     def variable(self) -> str:
@@ -691,16 +611,47 @@ class DataRecord:
         """
         return self.header.variable
 
-    def unpack(self) -> xr.DataArray:
+    @property
+    def level(self) -> int:
         """
-        Unpack the data record into a 2D xarray DataArray.
-        """
-        grid = self.index_record.grid
-        nx, ny = grid.nx, grid.ny
-        dims = grid.dims
-        coords = grid.coords
+        Get the vertical level for this data record.
 
-        unpacked = unpack(
+        Returns
+        -------
+        int
+            Level index from the header.
+        """
+        return self.header.level
+
+    @property
+    def forecast(self) -> int:
+        """
+        Get the forecast hour for this data record.
+
+        Returns
+        -------
+        int
+            Forecast hour from the header.
+        """
+        return self.header.forecast
+
+    def unpack(self, nx, ny) -> np.ndarray:
+        """
+        Unpack the data record into a 2D numpy array.
+
+        Parameters
+        ----------
+        nx : int
+            Number of grid points in the x-direction.
+        ny : int
+            Number of grid points in the y-direction.
+
+        Returns
+        -------
+        np.ndarray
+            Unpacked 2D numpy array of shape (ny, nx).
+        """
+        return unpack(
             data=self.data,
             nx=nx,
             ny=ny,
@@ -708,29 +659,3 @@ class DataRecord:
             exponent=self.header.exponent,
             initial_value=self.header.initial_value,
         )
-
-        da = xr.DataArray(
-            data=unpacked, dims=dims[:2], coords=coords, name=self.header.variable
-        )
-
-        # Sort on dims
-        da = da.sortby(list(dims[:2]))
-
-        # Expand dimensions for time, forecast, level, grid
-        da = da.expand_dims(
-            {
-                "time": [self.time],
-                "forecast": [self.header.forecast],  # TODO add note about -1=NAN
-                "level": [self.header.level],
-                # 'grid': None  # TODO how to identify grid?
-            }
-        )
-
-        # Calculate height
-        # da = da.assign_coords({
-        #     'height': ('level', )
-        # })
-
-        # TODO: add CF attributes
-
-        return da

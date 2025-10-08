@@ -150,7 +150,7 @@ class TestGrid:
             sync_lon=-180.0,
             reserved=0.0,
         )
-        grid = Grid(proj=proj, nx=360, ny=180)
+        grid = Grid(projection=proj, nx=360, ny=180)
 
         assert grid.is_latlon is True
         assert grid.dims == ("lat", "lon")
@@ -175,7 +175,7 @@ class TestGrid:
             sync_lon=0.0,
             reserved=0.0,
         )
-        grid = Grid(proj=proj, nx=100, ny=100)
+        grid = Grid(projection=proj, nx=100, ny=100)
 
         assert grid.is_latlon is False
         assert grid.dims == ("y", "x")
@@ -191,36 +191,36 @@ class TestVerticalAxis:
     def test_sigma_coordinate(self):
         """Test sigma vertical coordinate."""
         levels = [1.0, 0.9, 0.8, 0.7]
-        axis = VerticalAxis(vertical_flag=1, levels=levels)
-        assert axis.coord_type == "sigma"
-        assert axis.levels == levels
+        axis = VerticalAxis(flag=1, levels=levels)
+        assert axis.coord_system == "sigma"
+        assert axis.heights == levels
 
     def test_pressure_coordinate(self):
         """Test pressure vertical coordinate."""
         levels = [1000, 925, 850, 700, 500]
-        axis = VerticalAxis(vertical_flag=2, levels=levels)
-        assert axis.coord_type == "pressure"
-        assert axis.levels == levels
+        axis = VerticalAxis(flag=2, levels=levels)
+        assert axis.coord_system == "pressure"
+        assert axis.heights == levels
 
     def test_terrain_coordinate(self):
         """Test terrain vertical coordinate."""
         levels = [0.0, 0.25, 0.5, 0.75, 1.0]
-        axis = VerticalAxis(vertical_flag=3, levels=levels)
-        assert axis.coord_type == "terrain"
-        assert axis.levels == levels
+        axis = VerticalAxis(flag=3, levels=levels)
+        assert axis.coord_system == "terrain"
+        assert axis.heights == levels
 
     def test_hybrid_coordinate(self):
         """Test hybrid vertical coordinate."""
         levels = [1000.0, 925.5, 850.0]
-        axis = VerticalAxis(vertical_flag=4, levels=levels)
-        assert axis.coord_type == "hybrid"
-        assert axis.levels == levels
+        axis = VerticalAxis(flag=4, levels=levels)
+        assert axis.coord_system == "hybrid"
+        assert axis.heights == levels
 
     def test_unknown_coordinate(self):
         """Test unknown vertical coordinate."""
         levels = [1.0, 0.5]
-        axis = VerticalAxis(vertical_flag=99, levels=levels)
-        assert axis.coord_type == "unknown"
+        axis = VerticalAxis(flag=99, levels=levels)
+        assert axis.coord_system == "unknown"
 
 
 class TestGrid3D:
@@ -242,10 +242,10 @@ class TestGrid3D:
             sync_lon=0.0,
             reserved=0.0,
         )
-        vertical_axis = VerticalAxis(vertical_flag=2, levels=[1000, 925, 850])
+        vertical_axis = VerticalAxis(flag=2, levels=[1000, 925, 850])
         grid = Grid3D(proj=proj, nx=10, ny=10, vertical_axis=vertical_axis)
 
         assert grid.nx == 10
         assert grid.ny == 10
-        assert grid.vertical_axis.coord_type == "pressure"
+        assert grid.vertical_axis.coord_system == "pressure"
         assert len(grid.vertical_axis.levels) == 3

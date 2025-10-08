@@ -34,6 +34,9 @@ Repository = "https://github.com/jmineau/arl-met"
 [tool.setuptools.packages.find]
 include = ["arlmet*"]
 
+[tool.setuptools.package-data]
+arlmet = ["resources/*"]
+
 [project.optional-dependencies]
 dev = [
     "black>=24.0.0",
