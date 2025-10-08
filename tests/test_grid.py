@@ -229,7 +229,6 @@ class TestVerticalAxis:
         attrs = axis.get_coord_attrs()
 
         assert isinstance(attrs, dict)
-        assert attrs["units"] == "1"
         assert attrs["standard_name"] == "atmosphere_sigma_coordinate"
         assert attrs["positive"] == "down"
 
@@ -240,7 +239,6 @@ class TestVerticalAxis:
         attrs = axis.get_coord_attrs()
 
         assert isinstance(attrs, dict)
-        assert attrs["units"] == "hPa"
         assert attrs["standard_name"] == "air_pressure"
         assert attrs["positive"] == "down"
 
@@ -251,8 +249,8 @@ class TestVerticalAxis:
         attrs = axis.get_coord_attrs()
 
         assert isinstance(attrs, dict)
-        assert attrs["units"] == "m"
         assert attrs["standard_name"] == "height"
+        assert attrs["positive"] == "up"
         assert attrs["positive"] == "up"
 
 
@@ -280,8 +278,6 @@ class TestGridCoordAttrs:
 
         assert "lon" in attrs
         assert "lat" in attrs
-        assert attrs["lon"]["units"] == "degrees_east"
-        assert attrs["lat"]["units"] == "degrees_north"
         assert attrs["lon"]["standard_name"] == "longitude"
         assert attrs["lat"]["standard_name"] == "latitude"
 
@@ -308,8 +304,6 @@ class TestGridCoordAttrs:
         assert "y" in attrs
         assert "lon" in attrs
         assert "lat" in attrs
-        assert attrs["x"]["units"] == "m"
-        assert attrs["y"]["units"] == "m"
         assert attrs["x"]["standard_name"] == "projection_x_coordinate"
         assert attrs["y"]["standard_name"] == "projection_y_coordinate"
 
@@ -368,12 +362,38 @@ class TestGrid3D:
         assert "lon" in attrs
         assert "lat" in attrs
 
-        # Check level attrs
-        assert attrs["level"]["units"] == "hPa"
+        # Check level attrs - only standard_name is set initially
         assert attrs["level"]["standard_name"] == "air_pressure"
 
-        # Check time attrs
-        assert attrs["time"]["standard_name"] == "time"
+        # Check time attrs - no standard_name for time
+        assert attrs["time"]["long_name"] == "time"
 
         # Check forecast attrs
         assert attrs["forecast"]["units"] == "hours"
+
+    def test_cf_xarray_adds_canonical_attrs(self):
+        """Test that cf_xarray adds canonical attributes from standard_name."""
+        import xarray as xr
+        import numpy as np
+
+        # Create a simple dataset with just standard_name set
+        ds = xr.Dataset({"temp": (["level", "lat", "lon"], np.random.rand(3, 4, 5))})
+        ds = ds.assign_coords(
+            {"level": [1000, 850, 500], "lat": np.arange(4), "lon": np.arange(5)}
+        )
+
+        # Set only standard_name (like our code does)
+        ds["level"].attrs = {"standard_name": "air_pressure", "positive": "down"}
+        ds["lat"].attrs = {"standard_name": "latitude"}
+        ds["lon"].attrs = {"standard_name": "longitude"}
+
+        # Use cf_xarray to add canonical attributes
+        ds_cf = ds.cf.add_canonical_attributes()
+
+        # Verify canonical attributes were added
+        assert "units" in ds_cf["level"].attrs
+        assert ds_cf["level"].attrs["units"] == "Pa"
+        assert "units" in ds_cf["lat"].attrs
+        assert ds_cf["lat"].attrs["units"] == "degree_north"
+        assert "units" in ds_cf["lon"].attrs
+        assert ds_cf["lon"].attrs["units"] == "degree_east"

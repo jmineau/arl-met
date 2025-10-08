@@ -9,6 +9,7 @@ used by HYSPLIT and other atmospheric transport models.
 from pathlib import Path
 from typing import Sequence
 
+import cf_xarray as cfxr  # noqa: F401
 import pandas as pd
 import xarray as xr
 
@@ -261,8 +262,10 @@ class ARLMet:
         variables = kwargs.pop("variable", None)
 
         if len(arrays) == 1:
-            # Single record, return DataArray
-            return arrays[0].sel(**kwargs).squeeze()
+            # Single record, return DataArray with CF attributes
+            da = arrays[0].sel(**kwargs).squeeze()
+            # Use cf_xarray to add canonical attributes based on standard_name
+            return da.cf.add_canonical_attributes()
 
         # Merge into Dataset
         ds = xr.merge(arrays)
@@ -303,6 +306,9 @@ class ARLMet:
         # Clear any attrs that xarray.merge may have added, then set our own
         ds.attrs.clear()
         ds.attrs.update(global_attrs)
+
+        # Use cf_xarray to add canonical attributes based on standard_name
+        ds = ds.cf.add_canonical_attributes()
 
         # Assign additional vertical coordinates
         # TODO

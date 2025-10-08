@@ -400,41 +400,22 @@ class Grid:
         -------
         dict[str, dict[str, Any]]
             Dictionary mapping coordinate names to their attributes.
+
+        Notes
+        -----
+        Only sets standard_name. Use cf_xarray's add_canonical_attributes()
+        to automatically populate units and long_name from standard_name.
         """
         attrs = {}
 
         if self.is_latlon:
-            attrs["lon"] = {
-                "units": "degrees_east",
-                "long_name": "longitude",
-                "standard_name": "longitude",
-            }
-            attrs["lat"] = {
-                "units": "degrees_north",
-                "long_name": "latitude",
-                "standard_name": "latitude",
-            }
+            attrs["lon"] = {"standard_name": "longitude"}
+            attrs["lat"] = {"standard_name": "latitude"}
         else:
-            attrs["x"] = {
-                "units": "m",
-                "long_name": "x coordinate of projection",
-                "standard_name": "projection_x_coordinate",
-            }
-            attrs["y"] = {
-                "units": "m",
-                "long_name": "y coordinate of projection",
-                "standard_name": "projection_y_coordinate",
-            }
-            attrs["lon"] = {
-                "units": "degrees_east",
-                "long_name": "longitude",
-                "standard_name": "longitude",
-            }
-            attrs["lat"] = {
-                "units": "degrees_north",
-                "long_name": "latitude",
-                "standard_name": "latitude",
-            }
+            attrs["x"] = {"standard_name": "projection_x_coordinate"}
+            attrs["y"] = {"standard_name": "projection_y_coordinate"}
+            attrs["lon"] = {"standard_name": "longitude"}
+            attrs["lat"] = {"standard_name": "latitude"}
 
         return attrs
 
@@ -480,33 +461,32 @@ class VerticalAxis:
         -------
         dict[str, Any]
             Dictionary of attributes for the level coordinate.
+
+        Notes
+        -----
+        Only sets standard_name and positive. Use cf_xarray's
+        add_canonical_attributes() to automatically populate units
+        and long_name from standard_name.
         """
         coord_system = self.coord_system
 
         if coord_system == "sigma":
             return {
-                "units": "1",
-                "long_name": "sigma levels",
                 "standard_name": "atmosphere_sigma_coordinate",
                 "positive": "down",
             }
         elif coord_system == "pressure":
             return {
-                "units": "hPa",
-                "long_name": "pressure",
                 "standard_name": "air_pressure",
                 "positive": "down",
             }
         elif coord_system == "terrain":
             return {
-                "units": "m",
-                "long_name": "height above ground",
                 "standard_name": "height",
                 "positive": "up",
             }
         elif coord_system == "hybrid":
             return {
-                "units": "1",
                 "long_name": "hybrid levels",
                 "positive": "down",
             }
@@ -585,6 +565,12 @@ class Grid3D(Grid):
         -------
         dict[str, dict[str, Any]]
             Dictionary mapping coordinate names to their attributes.
+
+        Notes
+        -----
+        Only sets standard_name where applicable. Use cf_xarray's
+        add_canonical_attributes() to automatically populate units
+        and long_name from standard_name.
         """
         # Get horizontal coordinate attrs from parent
         attrs = super().get_coord_attrs()
@@ -592,13 +578,12 @@ class Grid3D(Grid):
         # Add vertical coordinate attrs
         attrs["level"] = self.vertical_axis.get_coord_attrs()
 
-        # Add time attrs
+        # Add time attrs (no CF standard for time coordinate)
         attrs["time"] = {
             "long_name": "time",
-            "standard_name": "time",
         }
 
-        # Add forecast attrs
+        # Add forecast attrs (no CF standard for forecast coordinate)
         attrs["forecast"] = {
             "units": "hours",
             "long_name": "forecast hour",

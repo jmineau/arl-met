@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
+    "cf-xarray",
     "numpy",
     "pandas",
     "pyproj",
