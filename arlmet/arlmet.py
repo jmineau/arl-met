@@ -271,7 +271,7 @@ class ARLMet:
         # Get the first index_record from the selection
         index_record = index["index_record"].iloc[0]
 
-        # Add global attributes from index record
+        # Start with global attributes from index record
         global_attrs = index_record.to_attrs()
 
         # Find attributes that are shared across all variables
@@ -292,15 +292,16 @@ class ARLMet:
                     if all(v == values[0] for v in values):
                         shared_attrs[key] = values[0]
 
-                # Move shared attributes to dataset level
+                # Move shared attributes to dataset level and remove from variables
                 for key in shared_attrs:
                     for var in ds.data_vars:
                         ds[var].attrs.pop(key, None)
 
-                # Merge shared attributes with global attributes
+                # Add shared attributes to global attributes
                 global_attrs.update(shared_attrs)
 
-        # Set dataset attributes
+        # Clear any attrs that xarray.merge may have added, then set our own
+        ds.attrs.clear()
         ds.attrs.update(global_attrs)
 
         # Assign additional vertical coordinates
