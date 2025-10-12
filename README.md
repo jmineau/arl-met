@@ -26,6 +26,17 @@ This project aims to create a Python package for reading and analyzing NOAA ARL 
     - Make attributes CF-compliant (standard names, units, axis/coordinates, and global metadata).
 - Next steps: add tests and examples for vertical coordinate handling, document the default-terrain behaviour, and expand CF attribute coverage across variables and coordinates.
 
+### Resources
+
+The follow pages provide useful information about ARL files and their structure:
+ - [HYSPLIT User Guide](https://www.arl.noaa.gov/documents/reports/hysplit_user_guide.pdf)
+ - [HYSPLIT HTML page for Meteorology](https://www.ready.noaa.gov/hysplitusersguide/S141.htm)
+ - [The READY Archive](https://www.ready.noaa.gov/archives.php)
+
+ Additionally, [here](https://www.ready.noaa.gov/gdas1.php) is an example of the packing for GDAS1 files.
+
+ Finally, a somewhat related project is [ARLreader](https://github.com/martin-rdz/ARLreader), however, it currently only works with GDAS1 files and I wanted to load data into xarray structures.
+
 ## Installation
 
 ### From Source
