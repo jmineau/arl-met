@@ -1,73 +1,112 @@
 # Contributing to arl-met
 
-Thank you for your interest in contributing to arl-met!
+Thank you for considering contributing to arl-met! We welcome contributions from the community.
 
-## Development Setup
+## Getting Started
 
-For development, clone the repository and install in editable mode:
+1. Fork the repository on GitHub
+2. Clone your fork locally:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/arl-met.git
+   cd arl-met
+   ```
+3. Create a python environment and install development dependencies:
+   ```bash
+   # Using venv:
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-```bash
-git clone https://github.com/jmineau/arl-met.git
-cd arl-met
-pip install -e ".[dev]"
-```
+   # OR using conda:
+   conda create -n myenv python=3.10 -y
+   conda activate myenv
 
-## Code Formatting
+   # Install development dependencies:
+   pip install -e ".[dev]"
+   ```
 
-This project uses [Black](https://black.readthedocs.io/) for code formatting.
+4. Install pre-commit hooks:
+   ```bash
+   pre-commit install
+   ```
 
-### Format code automatically
+## Development Workflow
 
-```bash
-make format
-# or directly with black
-black arlmet/
-```
+1. Create a new branch for your feature or bugfix:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-### Check code formatting
+2. Make your changes and ensure they follow our coding standards:
+   - Code is formatted with ruff
+   - All tests pass
+   - New features include tests
+   - Documentation is updated if needed
 
-```bash
-make check
-# or directly with black
-black --check arlmet/
-```
+3. Run quality checks:
+   ```bash
+   just quality-check
+   ```
 
-## Pre-commit Hooks
+4. Run test suite:
+   ```bash
+   just test
+   ```
 
-Install pre-commit hooks to automatically format code before commits:
+5. Run pre-commit checks:
+   ```bash
+   just pre-commit
+   ```
 
-```bash
-pre-commit install
-```
+6. Commit your changes:
+   ```bash
+   git add .
+   git commit -m "Description of your changes"
+   ```
 
-The pre-commit hook will automatically run Black and other checks on your code before each commit.
+7. Push to your fork:
+   ```bash
+   git push origin feature/your-feature-name
+   ```
 
-## Testing
+8. Open a Pull Request on GitHub
 
-This project uses [pytest](https://docs.pytest.org/) for testing.
+## Pull Request Guidelines
 
-### Run tests
+- Keep pull requests focused on a single feature or bugfix
+- Write clear, descriptive commit messages
+- Update the changelog if applicable
+- Ensure all tests pass
+- Maintain or improve test coverage
+- Update documentation as needed
 
-```bash
-make test
-# or directly with pytest
-pytest
-```
+## Reporting Bugs
 
-### Run tests with coverage
+When reporting bugs, please include:
+- Your operating system and Python version
+- Steps to reproduce the issue
+- Expected behavior
+- Actual behavior
+- Any error messages or logs
 
-```bash
-make test-cov
-# or directly with pytest
-pytest --cov=arlmet --cov-report=term-missing --cov-report=html
-```
+## Feature Requests
 
-The coverage report will be displayed in the terminal and also saved as HTML in the `htmlcov/` directory.
+We welcome feature requests! Please:
+- Check if the feature has already been requested
+- Provide a clear description of the feature
+- Explain why it would be useful
+- Consider submitting a pull request to implement it
 
-### Writing tests
+## Questions?
 
-- Tests are located in the `tests/` directory
-- Test files should be named `test_*.py`
-- Test functions should be named `test_*`
-- Use pytest fixtures and parametrize where appropriate
-- Aim for high test coverage of new code
+If you have questions, please:
+- Check existing issues and discussions
+- Open a new issue with the "question" label
+- Reach out to the maintainers
+
+## Code of Conduct
+
+Please be respectful and constructive in all interactions. We aim to maintain a welcoming and inclusive community.
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the same license as the project (MIT License).

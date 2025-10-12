@@ -3,18 +3,19 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "arl-met"
+name = "arlmet"
 version = "2025.10.0"
-description = "Python package for reading and analyzing NOAA ARL meteorological files"
+description = "Read and analyze ARL meteorological files."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "jmineau"}
+    {name = "James Mineau", email = "jameskmineau@gmail.com"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
-    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -27,72 +28,82 @@ dependencies = [
     "xarray",
 ]
 
-[project.urls]
-Homepage = "https://github.com/jmineau/arl-met"
-Repository = "https://github.com/jmineau/arl-met"
-
-[tool.setuptools.packages.find]
-include = ["arlmet*"]
-
-[tool.setuptools.package-data]
-arlmet = ["resources/*"]
-
 [project.optional-dependencies]
 dev = [
-    "black>=24.0.0",
+    "docstr-coverage>=2.0.0",
     "pre-commit>=3.0.0",
-    "pytest>=8.0.0",
-    "pytest-cov>=4.1.0",
+    "pyright>=1.1.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+    "rust-just>=1.42.4",
 ]
 docs = [
+    "pydata-sphinx-theme>=0.14.0",
     "sphinx>=7.0.0",
-    "pydata-sphinx-theme>=0.15.0",
-    "sphinx-autodoc-typehints>=1.25.0",
+    "sphinx-autodoc-typehints>=1.24.0",
 ]
 
-[tool.black]
-line-length = 88
-target-version = ["py310", "py311", "py312"]
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
-
-[tool.pytest.ini_options]
-minversion = "8.0"
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = [
-    "-v",
-    "--strict-markers",
-    "--cov=arlmet",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-]
+[project.urls]
+Homepage = "https://github.com/jmineau/arl-met"
+Documentation = "https://jmineau.github.io/arl-met/"
+Repository = "https://github.com/jmineau/arl-met"
+Issues = "https://github.com/jmineau/arl-met/issues"
 
 [tool.coverage.run]
-source = ["arlmet"]
-omit = ["*/tests/*"]
+source = ["src/arlmet"]
+omit = ["*/tests/*", "*/test_*.py"]
 
 [tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
+# Regexes for lines to exclude from consideration
+exclude_also = [
+    # Don't complain about missing debug-only code:
     "def __repr__",
+    "if self\\.debug",
+
+    # Don't complain if tests don't hit defensive assertion code:
     "raise AssertionError",
     "raise NotImplementedError",
+
+    # Don't complain if non-runnable code isn't run:
+    "if 0:",
     "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
-    "@abstractmethod",
+
+    # Don't complain about abstract methods, they aren't run:
+    "@(abc\\.)?abstractmethod",
+    ]
+
+[tool.pyright]
+include = ["src"]
+exclude = ["**/__pycache__", "**/.venv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle
+    "F",  # Pyflakes
+    "UP",  # pyupgrade
+    "B",  # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "I",  # isort
 ]
+ignore = [
+    "E501",  # line too long, handled by formatter
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["arlmet"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"arlmet" = ["py.typed", "resources/*"]

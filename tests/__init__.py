@@ -1,1 +1,1 @@
-"""Tests for the arl-met package."""
+"""Tests for arlmet."""

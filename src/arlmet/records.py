@@ -6,13 +6,13 @@ including index records, data records, headers, and the differential unpacking
 algorithm. It handles the binary format used in ARL meteorological files.
 """
 
-from dataclasses import dataclass, field
 import string
-from typing import Any, ClassVar, Sequence
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
-
 
 # ARL meteorological variable definitions
 ARL_SURFACE_VARIABLES = {

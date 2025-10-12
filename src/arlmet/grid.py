@@ -7,8 +7,9 @@ Supports various map projections (lat-lon, polar stereographic, Lambert conforma
 used in ARL meteorological files.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Sequence
+from typing import Any, ClassVar
 
 import numpy as np
 import pyproj
@@ -407,7 +408,6 @@ class Grid:
 
 @dataclass
 class VerticalAxis:
-
     flag: int
     levels: Sequence[float]
 

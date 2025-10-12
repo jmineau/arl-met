@@ -1,5 +1,16 @@
 # arl-met
-NOAA ARL meteorological files
+
+[![Tests](https://github.com/jmineau/arl-met/actions/workflows/tests.yml/badge.svg)](https://github.com/jmineau/arl-met/actions/workflows/tests.yml)
+[![Documentation](https://github.com/jmineau/arl-met/actions/workflows/docs.yml/badge.svg)](https://github.com/jmineau/arl-met/actions/workflows/docs.yml)
+[![Code Quality](https://github.com/jmineau/arl-met/actions/workflows/quality.yml/badge.svg)](https://github.com/jmineau/arl-met/actions/workflows/quality.yml)
+[![codecov](https://codecov.io/gh/jmineau/arl-met/branch/main/graph/badge.svg)](https://codecov.io/gh/jmineau/arl-met)
+[![PyPI version](https://badge.fury.io/py/arlmet.svg)](https://badge.fury.io/py/arlmet)
+[![Python Version](https://img.shields.io/pypi/pyversions/arlmet.svg)](https://pypi.org/project/arlmet/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Pyright](https://img.shields.io/badge/pyright-checked-brightgreen.svg)](https://github.com/microsoft/pyright)
+
+Read and analyze ARL meteorological files.
 
 ## 🚧 Work in Progress
 
@@ -17,28 +28,34 @@ This project aims to create a Python package for reading and analyzing NOAA ARL 
 
 ## Installation
 
-Install the package using pip:
+### From Source
 
 ```bash
-pip install git+https://github.com/jmineau/arl-met.git
+git clone https://github.com/jmineau/arl-met.git
+cd arl-met
+pip install -e .
 ```
 
-For development, see [CONTRIBUTING.md](CONTRIBUTING.md).
+## Usage
+
+```python
+import arlmet
+
+# Add usage example here
+```
 
 ## Documentation
 
-Full documentation is available in the `docs/` directory. To build and view the documentation locally:
+Full documentation is available at [https://jmineau.github.io/arl-met/](https://jmineau.github.io/arl-met/)
 
-```bash
-pip install -e ".[docs]"
-make docs
-```
+## Contributing
 
-Then open `docs/build/html/index.html` in your web browser.
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## Goals
+## License
 
-- **Interpolate at a point**: Extract meteorological data at specific geographic locations
-- **Get profiles**: Retrieve vertical atmospheric profiles
-- **Timeseries**: Extract time series data for variables of interest
-- **Maps**: Generate spatial maps of meteorological fields
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Author
+
+**James Mineau** - [jmineau](https://github.com/jmineau)

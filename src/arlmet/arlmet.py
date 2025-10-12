@@ -6,14 +6,14 @@ ARL format meteorological files. ARL files are binary packed data files
 used by HYSPLIT and other atmospheric transport models.
 """
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 import pandas as pd
 import xarray as xr
 
-from arlmet.grid import Projection, Grid, VerticalAxis, Grid3D
-from arlmet.records import Header, IndexRecord, DataRecord
+from arlmet.grid import Grid, Grid3D, Projection, VerticalAxis
+from arlmet.records import DataRecord, Header, IndexRecord
 
 # TODO
 # - vertical coords
