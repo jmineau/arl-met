@@ -310,7 +310,7 @@ class ARLMet:
         da = da.expand_dims(
             time=[index_record.time],
             forecast=[record.forecast],
-            level=[height],
+            level=[record.level],
             grid=[grid],
         )
 
