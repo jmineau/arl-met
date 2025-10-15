@@ -71,7 +71,7 @@ class ARLMet:
         index["time"] = index_record.time  # need minutes from index_record
 
         # Extract keys from records
-        for key in ["variable", "level", "forecast"]:
+        for key in ["variable", "level"]:
             index[key] = index.record.apply(lambda r: getattr(r, key))
 
         # Identify DIFF variables
@@ -114,7 +114,7 @@ class ARLMet:
         index["grid"] = grid
 
         # Set multi-index
-        self._index = index.set_index(["grid", "time", "forecast", "level", "variable"])
+        self._index = index.set_index(["time", "level", "variable"])
 
     @classmethod
     def from_file(cls, filename: Path | str) -> "ARLMet":
@@ -362,14 +362,5 @@ class ARLMet:
         ARLMet
             Merged ARLMet instance.
         """
-        # Merge ARLMet indices
-        index = pd.concat([self._index, other._index])
-
-        if any(index.duplicated()):
-            raise ValueError("Cannot merge ARLMet instances with overlapping records")
-
-        # Create new ARLMet instance
-        merged_met = ARLMet.__new__(ARLMet)  # Bypass __init__
-        merged_met._index = index.sort_index()
-
-        return merged_met
+        # Use the merge method to combine the two instances
+        return ARLMet.merge([self, other])
