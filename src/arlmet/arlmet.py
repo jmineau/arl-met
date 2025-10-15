@@ -111,7 +111,7 @@ class ARLMet:
             ny=index_record.total_ny,
             vertical_axis=v_axis,
         )
-        index["grid"] = grid
+        self.grid = grid
 
         # Set multi-index
         self._index = index.set_index(["time", "level", "variable"])
@@ -261,7 +261,7 @@ class ARLMet:
         # Load each record into a DataArray
         arrays = index.apply(
             lambda row: self._load_record(
-                grid=row["grid"],
+                grid=self.grid,
                 index_record=row["index_record"],
                 record=row["record"],
                 diff=row["diff"],
@@ -283,6 +283,7 @@ class ARLMet:
         # TODO
 
         # Handle attrs  TODO
+        ds.attrs['grid'] = self.grid
 
         if variables is not None:
             ds = ds[variables]  # select only requested variables
@@ -317,12 +318,11 @@ class ARLMet:
             data=unpacked, dims=dims[-2:], coords=coords_2d, name=record.header.variable
         )
 
-        # Expand dimensions for time, forecast, level, grid
+        # Expand dimensions for time, forecast, level
         height = index_record.levels[record.level].height
         da = da.expand_dims(
             time=[index_record.time],
             level=[record.level],
-            grid=[grid],
         )
 
         # Sort on dims
@@ -354,9 +354,15 @@ class ARLMet:
         if any(index.index.duplicated()):
             raise ValueError("Cannot merge ARLMet instances with overlapping records")
 
+        # Ensure all grids are the same
+        grids = [met.grid for met in mets]
+        if not (all(grid == grids[0] for grid in grids)):
+            raise ValueError("ARLMet instances have different grids and cannot be merged.")
+
         # Create new ARLMet instance
         merged_met = ARLMet.__new__(ARLMet)  # Bypass __init__
         merged_met._index = index
+        merged_met.grid = grids[0] # add grid attribute
 
         return merged_met
 
