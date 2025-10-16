@@ -246,7 +246,7 @@ class ARLMet:
         Parameters
         ----------
         **kwargs : dict
-            Selection criteria using xarray sel-style indexing (e.g., time, variable, level, forecast).
+            Selection criteria using xarray sel-style indexing (e.g., time, variable, level).
 
         Returns
         -------
@@ -321,7 +321,6 @@ class ARLMet:
         height = index_record.levels[record.level].height
         da = da.expand_dims(
             time=[index_record.time],
-            forecast=[record.forecast],
             level=[record.level],
             grid=[grid],
         )
@@ -330,6 +329,7 @@ class ARLMet:
         da = da.sortby(list(dims))
 
         # TODO: add CF attributes
+        da.attrs['forecast_hour'] = record.forecast
 
         return da
 
@@ -377,6 +377,6 @@ class ARLMet:
         # Check that other is an ARLMet instance
         if not isinstance(other, ARLMet):
             raise ValueError("Can only add ARLMet instances")
-        
+
         # Use the merge method to combine the two instances
         return ARLMet.merge([self, other])
