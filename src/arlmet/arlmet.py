@@ -199,6 +199,18 @@ class ARLMet:
         return met
 
     @property
+    def index(self) -> pd.DataFrame:
+        """
+        ARLMet index containing metadata and record references.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame containing metadata for all records in the dataset.
+        """
+        return self._index
+
+    @property
     def grids(self) -> list[Grid]:
         """
         Get list of all grids.
