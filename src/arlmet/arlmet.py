@@ -111,7 +111,7 @@ class ARLMet:
             ny=index_record.total_ny,
             vertical_axis=v_axis,
         )
-        self.grid = grid
+        self._grid = grid
 
         # Set multi-index
         self._index = index.set_index(["time", "level", "variable"])
@@ -211,18 +211,16 @@ class ARLMet:
         return self._index
 
     @property
-    def grids(self) -> list[Grid]:
+    def grid(self) -> Grid3D:
         """
-        Get list of all grids.
+        Get the 3D grid information.
 
         Returns
         -------
-        list[Grid]
-            List of all grids in the dataset.
+        Grid3D
+            The 3D grid associated with the ARLMet data.
         """
-        grid_pos = self._index.index.names.index("grid")
-        grids = self._index.index.levels[grid_pos]
-        return list(grids)
+        return self._grid
 
     @property
     def records(self) -> list[DataRecord]:
@@ -348,21 +346,23 @@ class ARLMet:
         ARLMet
             Merged ARLMet instance.
         """
-        indices = [met._index for met in mets]
+        grid = mets[0].grid # Reference grid
+        indices = []
+        for met in mets:
+            if not isinstance(met, ARLMet): 
+                raise ValueError("Can only merge ARLMet instances")
+            if not met.grid == grid: # Check that all grids are the same
+                raise ValueError("ARLMet instances have different grids and cannot be merged.")
+            indices.append(met.index)
         index = pd.concat(indices).sort_index()
 
         if any(index.index.duplicated()):
             raise ValueError("Cannot merge ARLMet instances with overlapping records")
 
-        # Ensure all grids are the same
-        grids = [met.grid for met in mets]
-        if not (all(grid == grids[0] for grid in grids)):
-            raise ValueError("ARLMet instances have different grids and cannot be merged.")
-
         # Create new ARLMet instance
         merged_met = ARLMet.__new__(ARLMet)  # Bypass __init__
         merged_met._index = index
-        merged_met.grid = grids[0] # add grid attribute
+        merged_met._grid = grid
 
         return merged_met
 
