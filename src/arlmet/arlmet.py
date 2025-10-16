@@ -331,8 +331,8 @@ class ARLMet:
 
         return da
 
-    @staticmethod
-    def merge(mets: Sequence["ARLMet"]) -> "ARLMet":
+    @classmethod
+    def merge(cls, mets: Sequence["ARLMet"]) -> "ARLMet":
         """
         Merge multiple ARLMet instances into a single instance.
 
@@ -349,18 +349,18 @@ class ARLMet:
         grid = mets[0].grid # Reference grid
         indices = []
         for met in mets:
-            if not isinstance(met, ARLMet): 
-                raise ValueError("Can only merge ARLMet instances")
+            if not isinstance(met, cls):
+                raise ValueError(f"Can only merge {cls.__name__} instances")
             if not met.grid == grid: # Check that all grids are the same
-                raise ValueError("ARLMet instances have different grids and cannot be merged.")
+                raise ValueError(f"{cls.__name__} instances have different grids and cannot be merged.")
             indices.append(met.index)
         index = pd.concat(indices).sort_index()
 
         if any(index.index.duplicated()):
-            raise ValueError("Cannot merge ARLMet instances with overlapping records")
+            raise ValueError(f"Cannot merge {cls.__name__} instances with overlapping records")
 
         # Create new ARLMet instance
-        merged_met = ARLMet.__new__(ARLMet)  # Bypass __init__
+        merged_met = cls.__new__(cls)  # Bypass __init__
         merged_met._index = index
         merged_met._grid = grid
 
@@ -380,9 +380,5 @@ class ARLMet:
         ARLMet
             Merged ARLMet instance.
         """
-        # Check that other is an ARLMet instance
-        if not isinstance(other, ARLMet):
-            raise ValueError("Can only add ARLMet instances")
-
         # Use the merge method to combine the two instances
-        return ARLMet.merge([self, other])
+        return self.merge([self, other])
