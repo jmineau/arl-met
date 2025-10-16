@@ -362,5 +362,9 @@ class ARLMet:
         ARLMet
             Merged ARLMet instance.
         """
+        # Check that other is an ARLMet instance
+        if not isinstance(other, ARLMet):
+            raise ValueError("Can only add ARLMet instances")
+        
         # Use the merge method to combine the two instances
         return ARLMet.merge([self, other])
