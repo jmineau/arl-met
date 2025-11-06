@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from arlmet.grid import Projection, Grid, VerticalAxis, Grid3D, wrap_lons
+from arlmet.grid import Grid, Grid3D, Projection, VerticalAxis, wrap_lons
 
 
 class TestWrapLons:

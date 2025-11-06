@@ -15,6 +15,54 @@ import numpy as np
 import pyproj
 
 
+def create_grid(
+    nx,
+    ny,
+    pole_lat,
+    pole_lon,
+    tangent_lat,
+    tangent_lon,
+    grid_size,
+    orientation,
+    cone_angle,
+    sync_x,
+    sync_y,
+    sync_lat,
+    sync_lon,
+    reserved,
+    vertical_flag: int | None = None,
+    heights: Sequence[float] | None = None,
+) -> "Grid":
+    """
+    Create an ARL Grid or Grid3D object based on provided parameters.
+    """
+    # Build projection
+    proj = Projection(
+        pole_lat=pole_lat,
+        pole_lon=pole_lon,
+        tangent_lat=tangent_lat,
+        tangent_lon=tangent_lon,
+        grid_size=grid_size,
+        orientation=orientation,
+        cone_angle=cone_angle,
+        sync_x=sync_x,
+        sync_y=sync_y,
+        sync_lat=sync_lat,
+        sync_lon=sync_lon,
+        reserved=reserved,
+    )
+
+    if vertical_flag is None or heights is None:
+        # Build horizontal grid
+        return Grid(projection=proj, nx=nx, ny=ny)
+
+    # Build vertical axis
+    v_axis = VerticalAxis(flag=vertical_flag, heights=heights)
+
+    # Build grid
+    return Grid3D(nx=nx, ny=ny, projection=proj, vertical_axis=v_axis)
+
+
 def wrap_lons(lons: np.ndarray) -> np.ndarray:
     """
     Wrap longitude values to -180 to 180 degree range.
@@ -409,7 +457,7 @@ class Grid:
 @dataclass
 class VerticalAxis:
     flag: int
-    levels: Sequence[float]
+    heights: Sequence[float]
 
     FLAGS: ClassVar[dict[int, str]] = {
         1: "sigma",  # fraction
@@ -426,10 +474,10 @@ class VerticalAxis:
     def __eq__(self, other) -> bool:
         if not isinstance(other, VerticalAxis):
             return False
-        return self.flag == other.flag and np.array_equal(self.levels, other.levels)
+        return self.flag == other.flag and np.array_equal(self.heights, other.heights)
 
     def __hash__(self) -> int:
-        return hash((self.flag, tuple(self.levels)))
+        return hash((self.flag, tuple(self.heights)))
 
 
 class Grid3D(Grid):
@@ -470,20 +518,36 @@ class Grid3D(Grid):
         if self._coords is None:
             coords = super().coords.copy()
             coords["level"] = self.levels
+            coords["height"] = self.heights
+            # TODO
+            # height_agl
+            # height_msl
             self._coords = coords
         return self._coords
 
     @property
-    def levels(self) -> np.ndarray:
+    def levels(self) -> list[int]:
         """
-        Get the vertical levels as a numpy array.
+        Get the vertical levels as a list of integers.
+
+        Returns
+        -------
+        list[int]
+            List of vertical levels.
+        """
+        return list(range(len(self.vertical_axis.heights)))
+
+    @property
+    def heights(self) -> np.ndarray:
+        """
+        Get the vertical heights as a numpy array.
 
         Returns
         -------
         np.ndarray
-            Array of vertical levels.
+            Array of vertical heights.
         """
-        return np.array(self.vertical_axis.levels)
+        return np.array(self.vertical_axis.heights)
 
     def __repr__(self) -> str:
         return (
