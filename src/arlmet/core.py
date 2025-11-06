@@ -918,14 +918,18 @@ class File(_RecordCollection):
 
             # Read data records for this index record
             position = fh.tell()  # start of data records
+            prev_dr = None
             for lvl in index.levels:
                 for var in lvl.variables:
                     checksum = lvl.variables[var].checksum
                     reserved = lvl.variables[var].reserved
                     if var.startswith("DIF"):
                         # Assign as diff record to previous data record
-                        # simple replacement (raises StopIteration if empty)
-                        prev_dr = next(reversed(rs._datarecords.values()))
+                        if prev_dr is None:
+                            raise ValueError(
+                                f"Difference record found for variable '{var}' "
+                                f"at position {position} without a preceding data record."
+                            )
                         prev_dr._create_diff(
                             position=position,
                             variable=var,
@@ -934,7 +938,7 @@ class File(_RecordCollection):
                         )
                     else:
                         # Create data record
-                        rs._create_datarecord(
+                        prev_dr = rs._create_datarecord(
                             position=position,
                             variable=var,
                             level=lvl.level,
