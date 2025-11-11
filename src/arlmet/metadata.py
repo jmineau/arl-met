@@ -6,7 +6,7 @@ from typing import Any, ClassVar
 
 import pandas as pd
 
-from arlmet.grid import Grid3D, create_grid
+from arlmet.grid import Projection, Grid
 
 
 def letter_to_thousands(char: str) -> int:
@@ -120,7 +120,7 @@ class Header:
             year=self.year, month=self.month, day=self.day, hour=self.hour
         )
 
-    def to_bytes(self) -> bytes:
+    def tobytes(self) -> bytes:
         """
         Convert header to bytes (not yet implemented).
 
@@ -464,7 +464,7 @@ class IndexRecord:
         return self.ny + self.header.grid[1]
 
     @property
-    def grid(self) -> Grid3D:
+    def grid(self) -> Grid:
         """
         Create a Grid3D object based on the index record's grid parameters.
 
@@ -473,10 +473,8 @@ class IndexRecord:
         Grid3D
             The constructed Grid3D object.
         """
-        heights = [lvl.height for lvl in self.levels]
-        grid = create_grid(
-            nx=self.total_nx,
-            ny=self.total_ny,
+        # Build projection
+        proj = Projection(
             pole_lat=self.pole_lat,
             pole_lon=self.pole_lon,
             tangent_lat=self.tangent_lat,
@@ -488,10 +486,9 @@ class IndexRecord:
             sync_y=self.sync_y,
             sync_lat=self.sync_lat,
             sync_lon=self.sync_lon,
-            reserved=self.reserved,
-            vertical_flag=self.vertical_flag,
-            heights=heights,
         )
-        if not isinstance(grid, Grid3D):
-            raise TypeError("Grid must be a Grid3D instance.")
-        return grid
+        return Grid(
+            projection=proj,
+            nx=self.total_nx,
+            ny=self.total_ny,
+        )

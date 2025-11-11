@@ -12,55 +12,8 @@ from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 import numpy as np
+import numpy.typing as npt
 import pyproj
-
-
-def create_grid(
-    nx,
-    ny,
-    pole_lat,
-    pole_lon,
-    tangent_lat,
-    tangent_lon,
-    grid_size,
-    orientation,
-    cone_angle,
-    sync_x,
-    sync_y,
-    sync_lat,
-    sync_lon,
-    reserved,
-    vertical_flag: int | None = None,
-    heights: Sequence[float] | None = None,
-) -> "Grid":
-    """
-    Create an ARL Grid or Grid3D object based on provided parameters.
-    """
-    # Build projection
-    proj = Projection(
-        pole_lat=pole_lat,
-        pole_lon=pole_lon,
-        tangent_lat=tangent_lat,
-        tangent_lon=tangent_lon,
-        grid_size=grid_size,
-        orientation=orientation,
-        cone_angle=cone_angle,
-        sync_x=sync_x,
-        sync_y=sync_y,
-        sync_lat=sync_lat,
-        sync_lon=sync_lon,
-        reserved=reserved,
-    )
-
-    if vertical_flag is None or heights is None:
-        # Build horizontal grid
-        return Grid(projection=proj, nx=nx, ny=ny)
-
-    # Build vertical axis
-    v_axis = VerticalAxis(flag=vertical_flag, heights=heights)
-
-    # Build grid
-    return Grid3D(nx=nx, ny=ny, projection=proj, vertical_axis=v_axis)
 
 
 def wrap_lons(lons: np.ndarray) -> np.ndarray:
@@ -124,8 +77,6 @@ class Projection:
     sync_lon : float
         Earth longitude corresponding to the grid position (sync_x, sync_y). For lat-lon
         grids: longitude of the (0,0) grid point position.
-    reserved : float
-        Reserved for future use.
 
     Attributes
     ----------
@@ -147,7 +98,6 @@ class Projection:
     sync_y: float
     sync_lat: float
     sync_lon: float
-    reserved: float
 
     params: dict[str, Any] = field(init=False, repr=False)
 
@@ -248,7 +198,6 @@ class Projection:
                 self.sync_y,
                 self.sync_lat,
                 self.sync_lon,
-                self.reserved,
             )
         )
 
@@ -267,13 +216,12 @@ class Projection:
             and self.sync_y == other.sync_y
             and self.sync_lat == other.sync_lat
             and self.sync_lon == other.sync_lon
-            and self.reserved == other.reserved
         )
 
 
 class Grid:
     """
-    Represents the horizontal grid of the ARL data.
+    Represents the 2D horizontal grid of the ARL data.
 
     Parameters
     ----------
@@ -286,12 +234,19 @@ class Grid:
 
     Attributes
     ----------
-    origin : tuple[float, float]
-        Origin (lower-left corner) in the base CRS (projected coordinates).
     crs : pyproj.CRS
         Coordinate reference system for the grid.
-    coords : dict[str, Any]
-        Coordinates of the grid points in the base CRS (projected coordinates).
+    dims : tuple
+        Dimension names for the grid ("lat", "lon") or ("y", "x").
+    is_latlon : bool
+        True if the grid uses a lat-lon projection.
+    origin : tuple[float, float]
+        Origin (lower-left corner) in the base CRS (projected coordinates).
+
+    Methods
+    -------
+    calculate_coords() -> dict[str, Any]
+        Calculate grid coordinates in both projected and geographic systems.
     """
 
     def __init__(self, projection: Projection, nx: int, ny: int):
@@ -301,7 +256,6 @@ class Grid:
 
         self._origin = None
         self._crs = None
-        self._coords = None
 
     @property
     def is_latlon(self) -> bool:
@@ -390,8 +344,7 @@ class Grid:
 
         return self._crs
 
-    @property
-    def coords(self) -> dict[str, Any]:
+    def calculate_coords(self) -> dict[str, Any]:
         """
         Grid coordinates in both projected and geographic systems.
 
@@ -402,41 +355,40 @@ class Grid:
             - For lat-lon grids: "lon" and "lat" 1D arrays
             - For projected grids: "x", "y" 1D arrays and "lon", "lat" 2D arrays
         """
-        if self._coords is None:
-            proj = self.projection
+        proj = self.projection
 
-            if self.is_latlon:
-                lon_0, lat_0 = self.origin
-                dlat = proj.tangent_lat
-                dlon = proj.tangent_lon
-                lats = lat_0 + np.arange(self.ny) * dlat
-                lons = lon_0 + np.arange(self.nx) * dlon
-                lons = wrap_lons(lons)
-                return {"lon": lons, "lat": lats}
-
-            # Calculate the coordinates in the projection space
-            grid_size = proj.grid_size * 1000  # km to m
-            x_coords = np.arange(self.nx) * grid_size
-            y_coords = np.arange(self.ny) * grid_size
-
-            # Create a transformer from the projection to lat/lon
-            transformer = pyproj.Transformer.from_crs(
-                self.crs, "EPSG:4326", always_xy=True
-            )
-
-            # Transform the coordinates to lat/lon
-            xx, yy = np.meshgrid(x_coords, y_coords)
-            lons, lats = transformer.transform(xx, yy)
+        if self.is_latlon:
+            lon_0, lat_0 = self.origin
+            dlat = proj.tangent_lat
+            dlon = proj.tangent_lon
+            lats = lat_0 + np.arange(self.ny) * dlat
+            lons = lon_0 + np.arange(self.nx) * dlon
             lons = wrap_lons(lons)
+            return {"lon": lons, "lat": lats}
 
-            self._coords = {
-                "x": x_coords,
-                "y": y_coords,
-                "lon": (("y", "x"), lons),
-                "lat": (("y", "x"), lats),
-            }
+        # Calculate the coordinates in the projection space
+        grid_size = proj.grid_size * 1000  # km to m
+        x_coords = np.arange(self.nx) * grid_size
+        y_coords = np.arange(self.ny) * grid_size
 
-        return self._coords
+        # Create a transformer from the projection to lat/lon
+        transformer = pyproj.Transformer.from_crs(
+            self.crs, "EPSG:4326", always_xy=True
+        )
+
+        # Transform the coordinates to lat/lon
+        xx, yy = np.meshgrid(x_coords, y_coords)
+        lons, lats = transformer.transform(xx, yy)
+        lons = wrap_lons(lons)
+
+        coords = {
+            "x": x_coords,
+            "y": y_coords,
+            "lon": (("y", "x"), lons),
+            "lat": (("y", "x"), lats),
+        }
+
+        return coords
 
     def __repr__(self) -> str:
         return f"Grid(projection={self.projection}, nx={self.nx}, ny={self.ny})"
@@ -454,12 +406,62 @@ class Grid:
         return hash((self.projection, self.nx, self.ny))
 
 
-@dataclass
-class VerticalAxis:
-    flag: int
-    heights: Sequence[float]
+class Surface:
+    # i think we need to define the surface for each index? because the surface can change over time
+    # in which case, we also would need a different 3D grid for each time
+    # which begs the question, should we even define a 3D grid at all
+    # perhaps the file has only a 2D grid,
+    # and the record set would either have a 2D grid and a surface/vertical axis
+    # or we could keep 3D grid and have the recordset build the 3D grid from the files 2D grid and its own vaxis
+    # how should a user define their own 3D grid?
+    # we could have them define their 2D grid at the file level and optionally vaxis parameters?
+    
+    def __init__(
+        self,
+        terrain: npt.ArrayLike | None = None,
+        pressure: npt.ArrayLike | None = None,
+    ):
+        """
+        Represents a surface description used by VerticalAxis.
+        """
+        self._terrain = terrain
+        self._pressure = pressure
 
-    FLAGS: ClassVar[dict[int, str]] = {
+        if self._terrain is None and self._pressure is None:
+            raise ValueError("ARL meteorology files require surface variables terrain (SHGT) and/or pressure (PRSS).")
+
+    @property
+    def terrain(self) -> npt.NDArray | None:
+        """
+        Get the terrain height data.
+
+        Returns
+        -------
+        np.ndarray | None
+            Terrain height data array or None if not available.
+        """
+        if self._terrain is not None:
+            return np.asarray(self._terrain)
+        return None
+
+    @property
+    def pressure(self) -> npt.NDArray | None:
+        """
+        Get the surface pressure data.
+
+        Returns
+        -------
+        np.ndarray | None
+            Surface pressure data array or None if not available.
+        """
+        if self._pressure is not None:
+            return np.asarray(self._pressure)
+        return None
+
+
+class VerticalAxis:
+
+    FLAGS: dict[int, str] = {
         1: "sigma",  # fraction
         2: "pressure",  # mb/hPa
         3: "terrain",  # fraction/height
@@ -467,64 +469,33 @@ class VerticalAxis:
         5: "wrf",  # WRF
     }
 
+    # meters per hPa by 100 hPa intervals (100 to 900)
+    Z_PHI1 = (17.98, 14.73, 13.09, 11.98, 11.15, 10.52, 10.04, 9.75, 9.88)
+    # meters per hPa by 10 hPa intervals (10 to 90)
+    Z_PHI2 = (31.37, 27.02, 24.59, 22.92, 21.65, 20.66, 19.83, 19.13, 18.51)
+
+
+    def __init__(self, flag: int, heights: Sequence[float], offset: float = 0.0):
+        self.flag = flag
+        self.heights = heights
+        self.offset = offset
+
     @property
     def coord_system(self) -> str:
         return self.FLAGS.get(self.flag, "unknown")
 
-    def __eq__(self, other) -> bool:
-        if not isinstance(other, VerticalAxis):
-            return False
-        return self.flag == other.flag and np.array_equal(self.heights, other.heights)
-
-    def __hash__(self) -> int:
-        return hash((self.flag, tuple(self.heights)))
-
-
-class Grid3D(Grid):
-    def __init__(
-        self, projection: Projection, nx: int, ny: int, vertical_axis: VerticalAxis
-    ):
-        super().__init__(projection, nx, ny)
-        self.vertical_axis = vertical_axis
-
-        self._coords = None  # reset coords cache
-        self._levels = None
-
     @property
     def dims(self) -> tuple:
         """
-        Get the dimension names for this 3D grid.
+        Get the dimension names for this vertical axis.
 
         Returns
         -------
         tuple
-            ("level", "lat", "lon") for lat-lon grids, ("level", "y", "x") for projected grids.
+            ("level",)
         """
-        return ("level",) + super().dims
-
-    @property
-    def coords(self) -> dict[str, Any]:
-        """
-        3D Grid coordinates including vertical levels.
-
-        Returns
-        -------
-        dict[str, Any]
-            Dictionary containing coordinate arrays:
-            - "level": 1D array of vertical levels
-            - For lat-lon grids: "lon" and "lat" 1D arrays
-            - For projected grids: "x", "y" 1D arrays and "lon", "lat" 2D arrays
-        """
-        if self._coords is None:
-            coords = super().coords.copy()
-            coords["level"] = self.levels
-            coords["height"] = self.heights
-            # TODO
-            # height_agl
-            # height_msl
-            self._coords = coords
-        return self._coords
-
+        return ("level",)
+    
     @property
     def levels(self) -> list[int]:
         """
@@ -535,32 +506,86 @@ class Grid3D(Grid):
         list[int]
             List of vertical levels.
         """
-        return list(range(len(self.vertical_axis.heights)))
+        return list(range(len(self.heights)))
 
-    @property
-    def heights(self) -> np.ndarray:
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, VerticalAxis):
+            return False
+        return self.flag == other.flag and np.array_equal(self.heights, other.heights)
+
+    def __hash__(self) -> int:
+        return hash((self.flag, tuple(self.heights)))
+    
+    def calculate_coords(self, surface: Surface) -> dict[str, Any]:
         """
-        Get the vertical heights as a numpy array.
+        Calculate vertical coordinate arrays based on the vertical axis type.
 
         Returns
         -------
-        np.ndarray
-            Array of vertical heights.
+        dict[str, Any]
+            Dictionary containing vertical coordinate arrays.
         """
-        return np.array(self.vertical_axis.heights)
+        heights = np.asarray(self.heights)
 
-    def __repr__(self) -> str:
-        return (
-            f"Grid3D(projection={self.projection}, nx={self.nx}, ny={self.ny}, "
-            f"vertical_axis={self.vertical_axis})"
-        )
+        needs_sfcp = self.coord_system in ("sigma", "hybrid")
+        if needs_sfcp and surface._pressure is None:
+            raise ValueError(
+                f"Surface pressure data is required for vertical coordinate system '{self.coord_system}'."
+            )
 
-    def __eq__(self, other) -> bool:
-        if not isinstance(other, Grid3D):
-            return False
-        # Check parent equality and vertical axis equality
-        return super().__eq__(other) and self.vertical_axis == other.vertical_axis
+        # Define desired coordinate variables
+        pres = None
+        zagl = None
+        zmsl = None
 
-    def __hash__(self) -> int:
-        # Combine the parent's hash with the vertical axis's hash
-        return hash((super().__hash__(), self.vertical_axis))
+        # Calculate coordinates based on vertical axis type
+        if self.coord_system == "sigma":
+            pres = self.offset + (surface.pressure - self.offset) * heights  # 2D
+        elif self.coord_system == "pressure":
+            pres = heights  # 1D
+        elif self.coord_system == "terrain":
+            zagl = heights  # 1D
+        elif self.coord_system == "hybrid":
+            offsets = np.floor(heights)
+            psig = heights - offsets
+            pres = surface.pressure * psig + offsets  # 2D
+        elif self.coord_system == "wrf":
+            raise NotImplementedError("WRF vertical coordinate system not implemented.")
+        else:
+            raise NotImplementedError(
+                f"Vertical coordinate system '{self.coord_system}' not implemented."
+            )
+
+        if zagl is None:
+            if pres is None:
+                raise ValueError("Either pressure or height above ground level must be calculated.")
+            zmsl = self._p_to_z(pres)
+            zagl = zmsl - surface.terrain  # 2D
+        else:
+            zmsl = zagl + surface.terrain  # 2D
+
+        coords = {
+            'height': heights,
+            'height_agl': zagl,
+            'height_msl': zmsl,
+        }
+
+        if pres is not None:
+            coords['pressure'] = pres
+
+        return coords
+
+    def _p_to_z(self, p) -> npt.NDArray:
+        delta_z = np.zeros_like(p, dtype=float)
+
+        mask1 = p >= 100.0
+        if np.any(mask1):
+            idx1 = np.clip((p[mask1] // 100).astype(int), 0, 8)
+            delta_z[mask1] = np.array(self.Z_PHI1)[idx1]
+
+        mask2 = ~mask1
+        if np.any(mask2):
+            idx2 = np.clip((p[mask2] // 10).astype(int), 0, 8)
+            delta_z[mask2] = np.array(self.Z_PHI2)[idx2]
+            
+        pass # TODO complete

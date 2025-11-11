@@ -12,7 +12,7 @@ import pandas as pd
 import xarray as xr
 from xarray.backends import CachingFileManager
 
-from arlmet.grid import Grid3D, create_grid
+from arlmet.grid import Projection, Grid, Surface, VerticalAxis
 from arlmet.metadata import Header, IndexRecord
 from arlmet.packing import calculate_checksum, pack, unpack
 
@@ -43,7 +43,6 @@ def open_dataset(filename_or_obj, drop_variables=None, squeeze=True):
         The ARL meteorology data as an xarray Dataset.
     """
     met = File(filename_or_obj)
-
     ds = met.to_xarray(drop_variables=drop_variables, squeeze=squeeze)
     return ds if isinstance(ds, xr.Dataset) else ds.to_dataset()
 
@@ -152,30 +151,25 @@ class DataRecord:
         return "w" if self.position == -1 else "r"
 
     @property
-    def source(self) -> str:
+    def bytes(self) -> bytes:
         """
-        Get the source associated with this data record.
+        Get the packed bytes for this data record.
         """
-        return self.recordset.source
-
-    @property
-    def grid(self) -> Grid3D:
-        """
-        Get the grid associated with this data record.
-        """
-        return self.recordset.grid
-
-    @property
-    def time(self) -> pd.Timestamp:
-        """
-        Get the time associated with this data record.
-        """
-        return self.recordset.time
+        if self._bytes is None:
+            if self.mode == "r":
+                fh = self.recordset.file._manager.acquire()
+                fh.seek(self.position)
+                self._bytes = fh.read(self.n_bytes)
+            else:
+                # Pack data to get bytes
+                packed = self._pack()
+                self._bytes = self.header.tobytes() + packed.tobytes()
+        return self._bytes
 
     @property
     def n_bytes(self) -> int:
         """
-        Get the number of bytes in the packed data record.
+        Get the number of bytes in the packed data record (including the header).
         """
         grid = self.grid
         return Header.N_BYTES + grid.nx * grid.ny
@@ -184,15 +178,8 @@ class DataRecord:
     def header(self) -> Header:
         if not isinstance(self._header, Header):
             if self.mode == "r":
-                if self._bytes is None:
-                    self._bytes = self._read_bytes(
-                        manager=self.recordset.file._manager,
-                        offset=self.position,
-                        n_bytes=self.n_bytes,
-                    )
-
                 # Parse header from bytes
-                header = Header.from_bytes(self._bytes[: Header.N_BYTES])
+                header = Header.from_bytes(self.bytes[: Header.N_BYTES])
 
                 if header.variable != self.variable or header.level != self.level:
                     raise ValueError(
@@ -203,7 +190,7 @@ class DataRecord:
 
                 self._header = header
             else:
-                if self._bytes is None:
+                if self.bytes is None:
                     raise ValueError(
                         "Data must be packed before accessing header in write mode."
                     )
@@ -243,6 +230,34 @@ class DataRecord:
                     )
                     self._header = header
         return self._header
+
+    @property
+    def source(self) -> str:
+        """
+        Get the source associated with this data record.
+        """
+        return self.recordset.source
+
+    @property
+    def grid(self) -> Grid:
+        """
+        Get the grid associated with this data record.
+        """
+        return self.recordset.grid
+
+    @property
+    def vertical_axis(self) -> VerticalAxis:
+        """
+        Get the vertical axis associated with this data record.
+        """
+        return self.recordset.vertical_axis
+
+    @property
+    def time(self) -> pd.Timestamp:
+        """
+        Get the time associated with this data record.
+        """
+        return self.recordset.time
 
     @property
     def forecast(self) -> int:
@@ -364,18 +379,10 @@ class DataRecord:
         # Get header (dont delay)
         header = self.header  # this will load the bytes from disk
 
-        # Read packed bytes if not already loaded
-        if self._bytes is None:
-            self._bytes = self._read_bytes(
-                manager=self.recordset.file._manager,
-                offset=self.position,
-                n_bytes=self.n_bytes,
-            )
-
         # Unpack (will be delayed if dask is available)
         ny, nx = self.shape
         unpacked = unpack(
-            packed=self._bytes[Header.N_BYTES :],
+            packed=self.bytes[Header.N_BYTES :],
             nx=nx,
             ny=ny,
             precision=header.precision,
@@ -389,12 +396,6 @@ class DataRecord:
             unpacked = unpacked + self._diff._load_from_disk(driver=driver)
 
         return unpacked
-
-    @staticmethod
-    def _read_bytes(manager, offset, n_bytes) -> bytes:
-        fh = manager.acquire()
-        fh.seek(offset)
-        return fh.read(n_bytes)
 
     @require_mode("w")
     def _pack(self) -> npt.NDArray[np.uint8]:
@@ -452,14 +453,9 @@ class DataRecord:
         """
         Convert this DataRecord to an xarray DataArray.
         """
-        # Get 3D grid info
-        dims = self.grid.dims
-        coords = self.grid.coords
-
-        # Construct DataArray
-        coords_2d = {k: v for k, v in coords.items() if k in ("x", "y", "lon", "lat")}
+        # Construct 2D DataArray
         da = xr.DataArray(
-            data=self.data, dims=dims[-2:], coords=coords_2d, name=self.variable
+            data=self.data, dims=self.grid.dims, coords=self.grid.calculate_coords(), name=self.variable
         )
 
         # Expand to 4D
@@ -467,8 +463,9 @@ class DataRecord:
         da = da.expand_dims(("time", "level"))
 
         # Get derived level coordinates
+        z_coords = self.recordset.vertical_axis.calculate_coords()
         level = self.level
-        height = coords["height"][level]
+        height = z_coords["height"][level]
         # height_agl = coords['height_agl'][level]
         # height_msl = coords['height_msl'][level]
 
@@ -495,7 +492,7 @@ class DataRecord:
         return da.squeeze() if squeeze else da
 
 
-class _RecordCollection(Mapping):
+class RecordCollection(Mapping):
     def __init__(self):
         # Initialize datarecords as an ordered dict to preserve insertion order
         # Mapping: (time, level, variable) -> DataRecord
@@ -513,7 +510,7 @@ class _RecordCollection(Mapping):
 
     @property
     @abstractmethod
-    def grid(self) -> Grid3D:
+    def grid(self) -> Grid:
         pass
 
     @property
@@ -521,6 +518,7 @@ class _RecordCollection(Mapping):
         return {
             "source": self.source,
             "grid": self.grid,  # TODO how to represent grid and create grid from attrs
+            # maybe grid should be a scalar coordinate similar to rioxarray?
         }
 
     @property
@@ -549,6 +547,8 @@ class _RecordCollection(Mapping):
                 (
                     dr.to_xarray(squeeze=False).drop_vars("forecast")
                 )  # forecast can change between variables
+                # TODO when we cant merge forecast, then we should demote forecast to attrs on each variable with the same shape as time dim
+                # This will us to go round trip from xarray <-> arlmet
                 for dr in self.records
                 if dr.variable not in drop_variables
             ]
@@ -566,7 +566,7 @@ class VariableView:
     or a 3D slice (level, y, x) from a RecordSet object.
     """
 
-    def __init__(self, source: _RecordCollection, name: str):
+    def __init__(self, source: RecordCollection, name: str):
         self.source = source
         self.name = name
 
@@ -619,7 +619,7 @@ class VariableAccessor(Mapping):
     It provides access to VariableView objects for each variable.
     """
 
-    def __init__(self, source: _RecordCollection):
+    def __init__(self, source: RecordCollection):
         self.source = source
 
     @property
@@ -642,11 +642,14 @@ class VariableAccessor(Mapping):
         return f"{self.__class__.__name__}({list(self.keys())})"
 
 
-class RecordSet(_RecordCollection):
+class RecordSet(RecordCollection):
     def __init__(self, file: "File", position: int, time: pd.Timestamp):
         self.file = file
         self.position = position
         self.time = time
+
+        self._sfc_terrain: DataRecord | None = None
+        self._sfc_pressure: DataRecord | None = None
 
         # Initialize the base class
         super().__init__()
@@ -663,11 +666,18 @@ class RecordSet(_RecordCollection):
         return self.file.source
 
     @property
-    def grid(self) -> Grid3D:
+    def grid(self) -> Grid:
         """
         Get the grid associated with this RecordSet.
         """
         return self.file.grid
+
+    @property
+    def surface(self) -> Surface:
+        """
+        Get the surface associated with this RecordSet.
+        """
+        return Surface(terrain=self._sfc_terrain, pressure=self._sfc_pressure)
 
     def _create_datarecord(
         self,
@@ -692,6 +702,13 @@ class RecordSet(_RecordCollection):
         )
         self._datarecords[(self.time, level, variable)] = dr
         self.file._datarecords[(self.time, level, variable)] = dr
+
+        # Store surface variables
+        if variable == "SHGT":
+            self._sfc_terrain = dr
+        elif variable == "PRSS":
+            self._sfc_pressure = dr
+
         return dr
 
     @require_mode("w")
@@ -738,20 +755,18 @@ class RecordSet(_RecordCollection):
         return len(self._datarecords)
 
 
-class File(_RecordCollection):
+class File(RecordCollection):
     def __init__(
         self,
         path: Path | str,
         mode: Literal["r", "w", "a"] = "r",
         source: str | None = None,
-        grid: Grid3D | None = None,
+        grid: Grid | None = None,
+        vertical_axis: VerticalAxis | None = None,
     ):
+        # File attrs
         self.path = Path(path)
         self.mode = mode
-
-        # Must be consistent throughout the file
-        self._source = source
-        self._grid = grid
 
         if self.mode not in ("r", "w"):
             raise ValueError("Mode must be 'r' (read) or 'w' (write).")
@@ -759,6 +774,11 @@ class File(_RecordCollection):
         # Open the binary file handle
         bmode = self.mode + "b"
         self._manager = CachingFileManager(open, self.path, mode=bmode)
+
+        # Must be consistent throughout the file
+        self._source: str | None = source
+        self._grid: Grid | None = grid
+        self._vaxis: VerticalAxis | None = vertical_axis
 
         # Initialize recordsets as an ordered dict to preserve time order
         # Mapping: time -> RecordSet
@@ -791,16 +811,16 @@ class File(_RecordCollection):
         self._source = value
 
     @property
-    def grid(self) -> Grid3D:
+    def grid(self) -> Grid:
         if self._grid is None:
             raise ValueError("Grid has not been set for this File.")
         return self._grid
 
     @grid.setter
     @require_mode("w")
-    def grid(self, value: Grid3D | None):
-        if not isinstance(value, Grid3D):
-            raise TypeError("grid must be a Grid3D instance.")
+    def grid(self, value: Grid):
+        if not isinstance(value, Grid):
+            raise TypeError("grid must be a Grid instance.")
         self._grid = value
 
     @property
@@ -824,17 +844,13 @@ class File(_RecordCollection):
         sync_y: float,
         sync_lat: float,
         sync_lon: float,
-        reserved: float,
-        vertical_flag: int,
-        heights: Sequence[float],
-    ) -> Grid3D:
+    ) -> Grid:
         """Factory method to create and set the grid for this File."""
         if self._grid is not None:
             raise ValueError("Grid has already been set for this File.")
 
-        grid = create_grid(
-            nx=nx,
-            ny=ny,
+        # Build projection
+        proj = Projection(
             pole_lat=pole_lat,
             pole_lon=pole_lon,
             tangent_lat=tangent_lat,
@@ -846,18 +862,16 @@ class File(_RecordCollection):
             sync_y=sync_y,
             sync_lat=sync_lat,
             sync_lon=sync_lon,
-            reserved=reserved,
-            vertical_flag=vertical_flag,
-            heights=heights,
         )
-        if not isinstance(grid, Grid3D):
-            raise TypeError("Grid must be a Grid3D instance.")
+
+        # Create grid
+        grid = Grid(projection=proj, nx=nx, ny=ny)
 
         self._grid = grid
         return grid
 
     def _create_recordset(
-        self, position, source: str | None, grid: Grid3D | None, time: pd.Timestamp
+        self, position, source: str | None, grid: Grid | None, time: pd.Timestamp
     ) -> RecordSet:
         """Internal factory method to create a new RecordSet."""
         if time in self._recordsets:
@@ -914,7 +928,7 @@ class File(_RecordCollection):
 
             # Skip to the end of the index record
             record_size = self.record_size
-            fh.seek(position + self.record_size)
+            fh.seek(position + record_size)
 
             # Read data records for this index record
             position = fh.tell()  # start of data records
@@ -923,6 +937,7 @@ class File(_RecordCollection):
                 for var in lvl.variables:
                     checksum = lvl.variables[var].checksum
                     reserved = lvl.variables[var].reserved
+
                     if var.startswith("DIF"):
                         # Assign as diff record to previous data record
                         if prev_dr is None:
@@ -938,13 +953,23 @@ class File(_RecordCollection):
                         )
                     else:
                         # Create data record
-                        prev_dr = rs._create_datarecord(
+                        dr = rs._create_datarecord(
                             position=position,
                             variable=var,
                             level=lvl.level,
                             checksum=checksum,
                             reserved=reserved,
                         )
+
+                        # Store surface variables
+                        if var == 'SHGT':
+                            rs._sfc_terrain = dr
+                        if var == 'PRSS':
+                            rs._sfc_pressure = dr
+
+                        # Keep track of previous data record for diff assignment
+                        prev_dr = dr
+
                     position += record_size  # go to next record
 
             # Move file pointer to the start of the next index record

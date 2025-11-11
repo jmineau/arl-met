@@ -10,7 +10,7 @@ __author__ = "James Mineau"
 __email__ = "jameskmineau@gmail.com"
 
 from .core import DataRecord, File, RecordSet, open_dataset
-from .grid import Grid, Grid3D, Projection, VerticalAxis
+from .grid import Grid, Projection, Surface, VerticalAxis
 from .metadata import Header, IndexRecord
 from .packing import calculate_checksum, pack, unpack
 
@@ -21,8 +21,8 @@ __all__ = [
     "open_dataset",
     "Projection",
     "Grid",
+    "Surface",
     "VerticalAxis",
-    "Grid3D",
     "Header",
     "IndexRecord",
     "calculate_checksum",

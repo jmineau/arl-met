@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from arlmet.grid import Grid, Projection
+from arlmet.grid import Grid, Projection, wrap_lons
 
 
 @dataclass
@@ -56,12 +56,19 @@ class ASCDataConfig:
 
 
 class DefaultTerrain:
-    def __init__(self, file="TERRAIN.ASC", config="ASCDATA.CFG"):
-        self.config = ASCDataConfig.from_file(config)
-        self.data = self._load(file)
+    def __init__(self, filename="TERRAIN.ASC", config="ASCDATA.CFG"):
+        self.filename = filename
+        self.config = config if isinstance(config, ASCDataConfig) else ASCDataConfig.from_file(config)
+        self._data = None
 
-    def _load(self, file):
-        terrain_file = self.config.data_dir / file
+    @property
+    def data(self) -> np.ndarray:
+        if self._data is None:
+            self._data = self._load(self.filename)
+        return self._data
+
+    def _load(self, filename):
+        terrain_file = self.config.data_dir / filename
         if not terrain_file.exists():
             raise FileNotFoundError(f"Terrain file not found: {terrain_file}")
 
