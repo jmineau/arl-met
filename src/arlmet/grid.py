@@ -372,9 +372,7 @@ class Grid:
         y_coords = np.arange(self.ny) * grid_size
 
         # Create a transformer from the projection to lat/lon
-        transformer = pyproj.Transformer.from_crs(
-            self.crs, "EPSG:4326", always_xy=True
-        )
+        transformer = pyproj.Transformer.from_crs(self.crs, "EPSG:4326", always_xy=True)
 
         # Transform the coordinates to lat/lon
         xx, yy = np.meshgrid(x_coords, y_coords)
@@ -415,7 +413,7 @@ class Surface:
     # or we could keep 3D grid and have the recordset build the 3D grid from the files 2D grid and its own vaxis
     # how should a user define their own 3D grid?
     # we could have them define their 2D grid at the file level and optionally vaxis parameters?
-    
+
     def __init__(
         self,
         terrain: npt.ArrayLike | None = None,
@@ -428,7 +426,9 @@ class Surface:
         self._pressure = pressure
 
         if self._terrain is None and self._pressure is None:
-            raise ValueError("ARL meteorology files require surface variables terrain (SHGT) and/or pressure (PRSS).")
+            raise ValueError(
+                "ARL meteorology files require surface variables terrain (SHGT) and/or pressure (PRSS)."
+            )
 
     @property
     def terrain(self) -> npt.NDArray | None:
@@ -460,7 +460,6 @@ class Surface:
 
 
 class VerticalAxis:
-
     FLAGS: dict[int, str] = {
         1: "sigma",  # fraction
         2: "pressure",  # mb/hPa
@@ -473,7 +472,6 @@ class VerticalAxis:
     Z_PHI1 = (17.98, 14.73, 13.09, 11.98, 11.15, 10.52, 10.04, 9.75, 9.88)
     # meters per hPa by 10 hPa intervals (10 to 90)
     Z_PHI2 = (31.37, 27.02, 24.59, 22.92, 21.65, 20.66, 19.83, 19.13, 18.51)
-
 
     def __init__(self, flag: int, heights: Sequence[float], offset: float = 0.0):
         self.flag = flag
@@ -495,7 +493,7 @@ class VerticalAxis:
             ("level",)
         """
         return ("level",)
-    
+
     @property
     def levels(self) -> list[int]:
         """
@@ -515,7 +513,7 @@ class VerticalAxis:
 
     def __hash__(self) -> int:
         return hash((self.flag, tuple(self.heights)))
-    
+
     def calculate_coords(self, surface: Surface) -> dict[str, Any]:
         """
         Calculate vertical coordinate arrays based on the vertical axis type.
@@ -558,20 +556,22 @@ class VerticalAxis:
 
         if zagl is None:
             if pres is None:
-                raise ValueError("Either pressure or height above ground level must be calculated.")
+                raise ValueError(
+                    "Either pressure or height above ground level must be calculated."
+                )
             zmsl = self._p_to_z(pres)
             zagl = zmsl - surface.terrain  # 2D
         else:
             zmsl = zagl + surface.terrain  # 2D
 
         coords = {
-            'height': heights,
-            'height_agl': zagl,
-            'height_msl': zmsl,
+            "height": heights,
+            "height_agl": zagl,
+            "height_msl": zmsl,
         }
 
         if pres is not None:
-            coords['pressure'] = pres
+            coords["pressure"] = pres
 
         return coords
 
@@ -587,5 +587,5 @@ class VerticalAxis:
         if np.any(mask2):
             idx2 = np.clip((p[mask2] // 10).astype(int), 0, 8)
             delta_z[mask2] = np.array(self.Z_PHI2)[idx2]
-            
-        pass # TODO complete
+
+        pass  # TODO complete

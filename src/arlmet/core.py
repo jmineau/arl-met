@@ -1,7 +1,7 @@
 import io
 from abc import abstractmethod
 from collections import OrderedDict
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Iterator, Mapping
 from functools import wraps
 from pathlib import Path
 from typing import Any, Literal
@@ -12,7 +12,7 @@ import pandas as pd
 import xarray as xr
 from xarray.backends import CachingFileManager
 
-from arlmet.grid import Projection, Grid, Surface, VerticalAxis
+from arlmet.grid import Grid, Projection, Surface, VerticalAxis
 from arlmet.metadata import Header, IndexRecord
 from arlmet.packing import calculate_checksum, pack, unpack
 
@@ -455,7 +455,10 @@ class DataRecord:
         """
         # Construct 2D DataArray
         da = xr.DataArray(
-            data=self.data, dims=self.grid.dims, coords=self.grid.calculate_coords(), name=self.variable
+            data=self.data,
+            dims=self.grid.dims,
+            coords=self.grid.calculate_coords(),
+            name=self.variable,
         )
 
         # Expand to 4D
@@ -962,9 +965,9 @@ class File(RecordCollection):
                         )
 
                         # Store surface variables
-                        if var == 'SHGT':
+                        if var == "SHGT":
                             rs._sfc_terrain = dr
-                        if var == 'PRSS':
+                        if var == "PRSS":
                             rs._sfc_pressure = dr
 
                         # Keep track of previous data record for diff assignment

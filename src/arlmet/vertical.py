@@ -58,7 +58,11 @@ class ASCDataConfig:
 class DefaultTerrain:
     def __init__(self, filename="TERRAIN.ASC", config="ASCDATA.CFG"):
         self.filename = filename
-        self.config = config if isinstance(config, ASCDataConfig) else ASCDataConfig.from_file(config)
+        self.config = (
+            config
+            if isinstance(config, ASCDataConfig)
+            else ASCDataConfig.from_file(config)
+        )
         self._data = None
 
     @property

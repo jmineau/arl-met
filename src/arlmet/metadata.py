@@ -6,7 +6,7 @@ from typing import Any, ClassVar
 
 import pandas as pd
 
-from arlmet.grid import Projection, Grid
+from arlmet.grid import Grid, Projection
 
 
 def letter_to_thousands(char: str) -> int:
