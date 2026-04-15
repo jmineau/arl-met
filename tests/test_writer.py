@@ -2,8 +2,9 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 
-from arlmet.core import File
+from arlmet.core import File, open_dataset, write_dataset
 from arlmet.grid import Grid, Projection
 from arlmet.metadata import IndexRecord
 from arlmet.packing import pack, unpack
@@ -28,8 +29,7 @@ def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
 
 
 class TestWriter:
-    def test_close_writes_index_and_data_records_roundtrip(self, tmp_path):
-        path = tmp_path / "roundtrip.arl"
+    def write_sample_file(self, path):
         grid = make_test_grid()
         vertical_axis = VerticalAxis(flag=2, levels=[0.0, 1000.0])
 
@@ -59,6 +59,28 @@ class TestWriter:
             rs1 = arl.create_recordset(time1)
             rs1.create_datarecord("PRSS", level=0, forecast=3, data=prss1)
             rs1.create_datarecord("TEMP", level=1, forecast=3, data=temp1)
+
+        return {
+            "grid": grid,
+            "vertical_axis": vertical_axis,
+            "prss0": prss0,
+            "temp0": temp0,
+            "prss1": prss1,
+            "temp1": temp1,
+            "time0": time0,
+            "time1": time1,
+        }
+
+    def test_close_writes_index_and_data_records_roundtrip(self, tmp_path):
+        path = tmp_path / "roundtrip.arl"
+        sample = self.write_sample_file(path)
+        grid = sample["grid"]
+        prss0 = sample["prss0"]
+        temp0 = sample["temp0"]
+        prss1 = sample["prss1"]
+        temp1 = sample["temp1"]
+        time0 = sample["time0"]
+        time1 = sample["time1"]
 
         with open(path, "rb") as handle:
             index0 = IndexRecord.from_position(handle, 0)
@@ -109,6 +131,66 @@ class TestWriter:
         assert temp0_rt.verify_checksum()
         assert prss1_rt.verify_checksum()
         assert temp1_rt.verify_checksum()
+
+    def test_write_dataset_roundtrip_from_open_dataset(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        sample = self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False)
+
+        assert ds.attrs["source"] == "TEST"
+        assert ds.attrs["arl_vertical_flag"] == 2
+        assert ds.attrs["arl_vertical_levels"] == [0.0, 1000.0]
+        np.testing.assert_array_equal(ds.coords["forecast"].values, [0, 3])
+
+        write_dataset(ds, written_path)
+
+        original = open_dataset(source_path, squeeze=False)
+        roundtripped = open_dataset(written_path, squeeze=False)
+
+        assert roundtripped.attrs["source"] == "TEST"
+        assert roundtripped.attrs["arl_nx"] == sample["grid"].nx
+        assert roundtripped.attrs["arl_ny"] == sample["grid"].ny
+        assert roundtripped.attrs["arl_vertical_levels"] == [0.0, 1000.0]
+        np.testing.assert_array_equal(
+            roundtripped.coords["forecast"].values, original.coords["forecast"].values
+        )
+        np.testing.assert_array_equal(
+            roundtripped.coords["level"].values, original.coords["level"].values
+        )
+
+        for name in ("PRSS", "TEMP"):
+            np.testing.assert_allclose(
+                np.asarray(roundtripped[name]),
+                np.asarray(original[name]),
+                atol=1e-6,
+            )
+
+    def test_write_dataset_uses_serialized_metadata_attrs(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False)
+        del ds.attrs["grid"]
+        del ds.attrs["vertical_axis"]
+
+        write_dataset(ds, written_path)
+
+        reopened = open_dataset(written_path, squeeze=False)
+        assert reopened.attrs["source"] == "TEST"
+        np.testing.assert_array_equal(reopened.coords["forecast"].values, [0, 3])
+
+    def test_write_dataset_requires_forecast_coordinate(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False).drop_vars("forecast")
+
+        with pytest.raises(ValueError, match="forecast"):
+            write_dataset(ds, written_path)
 
     @staticmethod
     def _pack_args(data: np.ndarray) -> tuple[bytes, int, int, float, int, float, type[np]]:

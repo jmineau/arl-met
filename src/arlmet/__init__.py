@@ -9,7 +9,7 @@ __version__ = "2025.10.1"
 __author__ = "James Mineau"
 __email__ = "jameskmineau@gmail.com"
 
-from .core import DataRecord, File, RecordSet, open_dataset
+from .core import DataRecord, File, RecordSet, open_dataset, write_dataset
 from .grid import Grid, Projection
 from .metadata import Header, IndexRecord
 from .packing import calculate_checksum, pack, unpack
@@ -20,6 +20,7 @@ __all__ = [
     "RecordSet",
     "DataRecord",
     "open_dataset",
+    "write_dataset",
     "Projection",
     "Grid",
     "Grid3D",
