@@ -69,6 +69,38 @@ def format_fortran_float(value: float) -> str:
     return f"{mantissa:10.7f}E{exponent:+03d}"
 
 
+def format_fixed_width_float(value: float, width: int) -> str:
+    """
+    Format a float into a fixed-width decimal field for index records.
+    """
+    if width < 2:
+        raise ValueError("width must be at least 2")
+
+    if value == 0.0:
+        return "." + ("0" * (width - 1))
+
+    for decimals in range(width, -1, -1):
+        text = f"{value:.{decimals}f}"
+        if text.startswith("0.") and len(text) - 1 <= width:
+            text = text[1:]
+        elif text.startswith("-0.") and len(text) - 1 <= width:
+            text = "-" + text[2:]
+
+        if len(text) <= width:
+            return text.rjust(width)
+
+    raise ValueError(f"Value {value} cannot be represented in width {width}")
+
+
+def split_grid_component(total: int) -> tuple[int, int]:
+    """
+    Split a total grid dimension into thousands and remainder components.
+    """
+    if total < 0:
+        raise ValueError("Grid dimensions must be non-negative.")
+    return (total // 1000) * 1000, total % 1000
+
+
 @dataclass
 class Header:
     "First 50 bytes of each record"
@@ -349,6 +381,79 @@ class IndexRecord:
         index = IndexRecord(header=header, **fixed, levels=levels)
 
         return index
+
+    def serialize_fixed(self, index_length: int | None = None) -> bytes:
+        """
+        Serialize the fixed 108-byte portion of the index record.
+        """
+        if index_length is None:
+            index_length = self.index_length
+
+        values = [
+            self.pole_lat,
+            self.pole_lon,
+            self.tangent_lat,
+            self.tangent_lon,
+            self.grid_size,
+            self.orientation,
+            self.cone_angle,
+            self.sync_x,
+            self.sync_y,
+            self.sync_lat,
+            self.sync_lon,
+            self.reserved,
+        ]
+        proj = "".join(format_fixed_width_float(value, 7) for value in values)
+        fixed = (
+            f"{self.source:<4}"
+            f"{self.forecast_hour:3d}"
+            f"{self.minutes:2d}"
+            f"{proj}"
+            f"{self.nx:3d}"
+            f"{self.ny:3d}"
+            f"{self.nz:3d}"
+            f"{self.vertical_flag:2d}"
+            f"{index_length:4d}"
+        )
+        if len(fixed) != self.N_BYTES_FIXED:
+            raise ValueError(
+                f"Fixed index serialization produced {len(fixed)} bytes, expected {self.N_BYTES_FIXED}."
+            )
+        return fixed.encode("ascii")
+
+    def serialize_extended(self) -> bytes:
+        """
+        Serialize the variable-length level/variable portion of the index record.
+        """
+        chunks: list[str] = []
+        for level in self.levels:
+            chunks.append(format_fixed_width_float(level.height, 6))
+            chunks.append(f"{len(level.variables):2d}")
+            for name, info in level.variables.items():
+                reserved = (info.reserved or " ")[:1]
+                chunks.append(f"{name:<4}{info.checksum:3d}{reserved}")
+        return "".join(chunks).encode("ascii")
+
+    def tobytes(self) -> bytes:
+        """
+        Serialize the exact used bytes of the index record, including its header.
+        """
+        extended = self.serialize_extended()
+        index_length = self.N_BYTES_FIXED + len(extended)
+        self.index_length = index_length
+        fixed = self.serialize_fixed(index_length=index_length)
+        return self.header.tobytes() + fixed + extended
+
+    def to_record_bytes(self, record_size: int) -> bytes:
+        """
+        Serialize the index record padded to one full ARL record.
+        """
+        raw = self.tobytes()
+        if len(raw) > record_size:
+            raise ValueError(
+                f"Index record uses {len(raw)} bytes, which exceeds record size {record_size}."
+            )
+        return raw.ljust(record_size, b" ")
 
     @staticmethod
     def parse_fixed(data: bytes) -> dict[str, Any]:

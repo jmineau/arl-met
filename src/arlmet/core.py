@@ -14,7 +14,7 @@ import xarray as xr
 from xarray.backends import CachingFileManager
 
 from arlmet.grid import Grid, Projection
-from arlmet.metadata import Header, IndexRecord
+from arlmet.metadata import Header, IndexRecord, LvlInfo, VarInfo, split_grid_component
 from arlmet.packing import calculate_checksum, pack, unpack
 from arlmet.vertical import Surface, VerticalAxis
 
@@ -100,6 +100,7 @@ class DataRecord:
         # Cached attributes
         self._header: Header | dict[str, Any] | None = None  # Record header
         self._bytes: bytes | None = None  # The packed record bytes
+        self._packed: npt.NDArray[np.uint8] | None = None  # Packed payload
         self._unpacked: npt.ArrayLike | None = None  # The unpacked data
         self._diff: DataRecord | None = None  # The difference DataRecord if applicable
         self._checksum = checksum  # The stored checksum if applicable
@@ -187,45 +188,54 @@ class DataRecord:
 
                 self._header = header
             else:
-                if self.bytes is None:
+                if not isinstance(self._header, dict):
                     raise ValueError(
-                        "Data must be packed before accessing header in write mode."
+                        "Header state must be a dictionary before constructing a writable record header."
                     )
-                else:  # Construct header from packed data
+                if self._diff is not None:
                     raise NotImplementedError(
-                        "Header construction from packed data in write mode is not implemented."
+                        "Writing difference records is not implemented."
                     )
-
-                    # Get header fields
-                    time = self.recordset.time
-                    forecast = self._header.get("forecast")
-                    exponent = self._header.get("exponent")
-                    precision = self._header.get("precision")
-                    initial_value = self._header.get("initial_value")
-                    if forecast is None:
+                header_state = self._header
+                if not {"precision", "exponent", "initial_value"} <= header_state.keys():
+                    self._pack()
+                    header_state = self._header
+                    if not isinstance(header_state, dict):
                         raise ValueError(
-                            "Forecast hour must be set to construct header in write mode."
-                        )
-                    if exponent is None or precision is None or initial_value is None:
-                        raise ValueError(
-                            "Precision, exponent, and initial value must be set to construct header in write mode."
+                            "Writable header state must remain mutable until the header is built."
                         )
 
-                    # Construct header
-                    header = Header(
-                        year=time.year,
-                        month=time.month,
-                        day=time.day,
-                        hour=time.hour,
-                        forecast=forecast,
-                        level=self.level,
-                        grid=self.grid,  # TODO this is wrong should be a tuple?
-                        variable=self.variable,
-                        exponent=exponent,
-                        precision=precision,
-                        initial_value=initial_value,
+                time = self.recordset.time
+                forecast = header_state.get("forecast")
+                exponent = header_state.get("exponent")
+                precision = header_state.get("precision")
+                initial_value = header_state.get("initial_value")
+                if forecast is None:
+                    raise ValueError(
+                        "Forecast hour must be set to construct header in write mode."
                     )
-                    self._header = header
+                if exponent is None or precision is None or initial_value is None:
+                    raise ValueError(
+                        "Precision, exponent, and initial value must be set to construct header in write mode."
+                    )
+
+                grid = (
+                    split_grid_component(self.grid.nx)[0],
+                    split_grid_component(self.grid.ny)[0],
+                )
+                self._header = Header(
+                    year=time.year,
+                    month=time.month,
+                    day=time.day,
+                    hour=time.hour,
+                    forecast=int(forecast),
+                    level=self.level,
+                    grid=grid,
+                    variable=self.variable,
+                    exponent=int(exponent),
+                    precision=float(precision),
+                    initial_value=float(initial_value),
+                )
         return self._header
 
     @property
@@ -343,7 +353,7 @@ class DataRecord:
         return self._unpacked
 
     def __array__(self, dtype=None, copy=None) -> npt.NDArray:
-        array = self[...]
+        array = np.asarray(self.data)
         if dtype and np.dtype(dtype) != array.dtype:
             return array.astype(dtype)
         if copy:
@@ -356,13 +366,33 @@ class DataRecord:
     @require_mode("w")
     def __setitem__(self, key, value) -> None:
         if self._unpacked is None:
-            if key is Ellipsis:
+            is_full_slice = key == slice(None)
+            if key is Ellipsis or is_full_slice:
                 # Setting the entire array
                 self._unpacked = np.asarray(value)
             else:
                 raise ValueError("Data must be initialized before setting slices.")
 
         self._unpacked[key] = value
+        self._invalidate_write_cache()
+
+    def _invalidate_write_cache(self) -> None:
+        """
+        Clear cached packed/header state after a writable record changes.
+        """
+        if self.mode != "w":
+            return
+
+        forecast = None
+        if isinstance(self._header, dict):
+            forecast = self._header.get("forecast")
+        elif isinstance(self._header, Header):
+            forecast = self._header.forecast
+
+        self._header = {"forecast": forecast}
+        self._packed = None
+        self._bytes = None
+        self._checksum = None
 
     @require_mode("r")
     def _load_from_disk(self, driver=None) -> npt.ArrayLike:
@@ -414,32 +444,15 @@ class DataRecord:
         """
         Flush the packed data to disk.
         """
-        raise NotImplementedError("This function is not yet implemented.")
-        # Pack data
-        packed = self._pack()
-
-        # Get file handle
+        raw = self.bytes
         fh = self.recordset.file.handle
-
-        # Write header
-        header = Header(
-            variable=self.variable,
-            level=self.level,
-            forecast=self._forecast,
-            precision=self._precision,
-            exponent=self._exponent,
-            initial_value=self._initial_value,
-        )
         if self.position == -1:
             # New record; append to end of file
             fh.seek(0, io.SEEK_END)
             self.position = fh.tell()
         else:
             fh.seek(self.position)
-        fh.write(header.to_bytes())
-
-        # Write packed data
-        fh.write(packed.tobytes())
+        fh.write(raw)
 
     def to_xarray(self, squeeze=True) -> xr.DataArray:
         """
@@ -733,17 +746,126 @@ class RecordSet(RecordCollection):
             dr[:] = data
         return dr
 
+    def _build_index_record(self) -> IndexRecord:
+        """
+        Build the index record for this time step from the writable records.
+        """
+        if not self._datarecords:
+            raise ValueError("Cannot flush an empty RecordSet.")
+        if len(self.source) > 4:
+            raise ValueError("ARL source identifiers must be 4 characters or fewer.")
+
+        vaxis = self.file.vertical_axis
+        heights = vaxis.heights.tolist()
+        if not heights:
+            raise ValueError("Vertical axis must contain at least one level.")
+
+        forecast_hours: set[int] = set()
+        level_records: dict[int, OrderedDict[str, DataRecord]] = {
+            level: OrderedDict() for level in range(len(heights))
+        }
+
+        for dr in self.records:
+            if dr.variable.startswith("DIF") or dr._diff is not None:
+                raise NotImplementedError("Writing difference records is not implemented.")
+            if len(dr.variable) > 4:
+                raise ValueError(
+                    f"Variable names must be 4 characters or fewer, got '{dr.variable}'."
+                )
+            if dr._unpacked is None:
+                raise ValueError(
+                    f"Writable DataRecord '{dr.variable}' at level {dr.level} has no data."
+                )
+            if dr.level < 0 or dr.level >= len(heights):
+                raise ValueError(
+                    f"DataRecord level {dr.level} is outside the configured vertical axis."
+                )
+
+            forecast_hours.add(dr.forecast)
+            level_records[dr.level][dr.variable] = dr
+            dr._pack()
+
+        if len(forecast_hours) != 1:
+            raise ValueError(
+                "All DataRecords in a RecordSet must share the same forecast hour."
+            )
+        forecast_hour = forecast_hours.pop()
+
+        grid_x, nx = split_grid_component(self.grid.nx)
+        grid_y, ny = split_grid_component(self.grid.ny)
+        levels = [
+            LvlInfo(
+                level=level,
+                height=float(height),
+                variables=OrderedDict(
+                    (
+                        name,
+                        VarInfo(
+                            checksum=dr.checksum,
+                            reserved=(dr._reserved or "")[:1],
+                        ),
+                    )
+                    for name, dr in level_records[level].items()
+                ),
+            )
+            for level, height in enumerate(heights)
+        ]
+
+        projection = self.grid.projection
+        header = Header(
+            year=self.time.year,
+            month=self.time.month,
+            day=self.time.day,
+            hour=self.time.hour,
+            forecast=forecast_hour,
+            level=0,
+            grid=(grid_x, grid_y),
+            variable="INDX",
+            exponent=0,
+            precision=0.0,
+            initial_value=0.0,
+        )
+        return IndexRecord(
+            header=header,
+            source=self.source,
+            forecast_hour=forecast_hour,
+            minutes=self.time.minute,
+            pole_lat=projection.pole_lat,
+            pole_lon=projection.pole_lon,
+            tangent_lat=projection.tangent_lat,
+            tangent_lon=projection.tangent_lon,
+            grid_size=projection.grid_size,
+            orientation=projection.orientation,
+            cone_angle=projection.cone_angle,
+            sync_x=projection.sync_x,
+            sync_y=projection.sync_y,
+            sync_lat=projection.sync_lat,
+            sync_lon=projection.sync_lon,
+            reserved=vaxis.offset,
+            nx=nx,
+            ny=ny,
+            nz=len(levels),
+            vertical_flag=vaxis.flag,
+            index_length=0,
+            levels=levels,
+        )
+
+    @require_mode("w")
     def _flush(self):
-        # Placeholder for flushing data to the file.
-        # Here, we would iterate through self._datarecords,
-        # pack the data if write mode, and write it.
-        # we would need to build the index record including
-        # the LvlInfo and VarInfo structures. This would
-        # also include calculating checksums for each variable.
-        # need to check for diffs when writing data records.
-        # raise error if no data to write
-        # call _flush on each DataRecord
-        raise NotImplementedError("Flushing RecordSet to disk is not yet implemented.")
+        index = self._build_index_record()
+        fh = self.file.handle
+
+        if self.position == -1:
+            fh.seek(0, io.SEEK_END)
+            self.position = fh.tell()
+        else:
+            fh.seek(self.position)
+
+        fh.write(index.to_record_bytes(self.record_size))
+
+        for level in index.levels:
+            for name in level.variables:
+                self[(level.level, name)]._flush()
 
     def __getitem__(self, key) -> DataRecord:
         if not isinstance(key, tuple) or len(key) != 2:
@@ -998,14 +1120,16 @@ class File(RecordCollection):
 
     def close(self) -> None:
         """Flushes any changes and closes the file."""
-        if self.mode == "w":
-            for rs in self._recordsets.values():
-                if rs.position == -1:
-                    rs._flush()
-
-        # Close the file manager
-        self._manager.close()
-        # TODO do i need to close mmaps?
+        try:
+            if self.mode == "w":
+                for rs in self._recordsets.values():
+                    if rs.position == -1:
+                        rs._flush()
+                self.handle.flush()
+        finally:
+            # Close the file manager
+            self._manager.close()
+            # TODO do i need to close mmaps?
 
     def __getitem__(self, key) -> RecordSet:
         if isinstance(key, str):
