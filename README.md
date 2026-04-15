@@ -39,12 +39,25 @@ The follow pages provide useful information about ARL files and their structure:
 
 ## Installation
 
-### From Source
+### Development Setup
+
+Install `uv` first if needed: <https://docs.astral.sh/uv/getting-started/installation/>
 
 ```bash
 git clone https://github.com/jmineau/arl-met.git
 cd arl-met
-pip install -e .
+uv sync
+```
+
+This project now uses `uv` for local development, dependency management, and CI.
+
+Common commands:
+
+```bash
+uv run pytest -v
+uv run ruff check src/arlmet
+uv run pyright src/arlmet
+uv run sphinx-build -M html docs docs/_build
 ```
 
 ## Usage

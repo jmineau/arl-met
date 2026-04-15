@@ -28,19 +28,17 @@ dependencies = [
     "xarray",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "dask",
     "docstr-coverage>=2.0.0",
+    "pydata-sphinx-theme>=0.14.0",
     "pre-commit>=3.0.0",
     "pyright>=1.1.0",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "ruff>=0.1.0",
     "rust-just>=1.42.4",
-]
-docs = [
-    "pydata-sphinx-theme>=0.14.0",
     "sphinx>=7.0.0",
     "sphinx-autodoc-typehints>=1.24.0",
 ]
@@ -54,6 +52,9 @@ Issues = "https://github.com/jmineau/arl-met/issues"
 [tool.coverage.run]
 source = ["src/arlmet"]
 omit = ["*/tests/*", "*/test_*.py"]
+
+[tool.uv]
+required-version = ">=0.10.4"
 
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration

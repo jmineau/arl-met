@@ -4,11 +4,21 @@
 list:
     @just --list
 
+# Sync the local uv environment with dev dependencies
+sync:
+	@echo "Syncing development environment with uv..."
+	uv sync
+
+# Refresh the uv lockfile
+lock:
+	@echo "Refreshing uv.lock..."
+	uv lock
+
 # Build HTML documentation using Sphinx
 build-docs:
 	@echo "Building HTML documentation..."
 	rm -rf docs/_build/
-	sphinx-build -M html docs docs/_build
+	uv run sphinx-build -M html docs docs/_build
 
 # Clean up build artifacts and cache files
 clean:
@@ -29,24 +39,24 @@ clean:
 # Run pre-commit hooks on all files
 pre-commit:
 	@echo "Running pre-commit on all files..."
-	pre-commit run --all-files
+	uv run pre-commit run --all-files
 
 # Run linting, type checking, and tests
 quality-check:
 	@echo "Running quality checks..."
 	@echo "Linting with ruff..."
-	ruff check src/arlmet
+	uv run ruff check src/arlmet
 	@echo "Type checking with pyright..."
-	pyright src/arlmet
+	uv run pyright src/arlmet
 	just test
 
 # Run ruff fixes and formatting
 ruff:
 	@echo "Running ruff fixes and formatting..."
-	ruff check --fix src/arlmet
-	ruff format src/arlmet
+	uv run ruff check --fix src/arlmet
+	uv run ruff format src/arlmet
 
 # Run tests with pytest
 test:
 	@echo "Running tests..."
-	pytest -v
+	uv run pytest -v
