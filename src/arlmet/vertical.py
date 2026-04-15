@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+import numpy.typing as npt
 import xarray as xr
 
 from arlmet.grid import Grid, Projection, wrap_lons
@@ -23,24 +24,20 @@ class ASCDataConfig:
 
     @classmethod
     def from_file(cls, file: str) -> "ASCDataConfig":
-        """Load ASCDataConfig from a configuration file."""
+        """Load ASC terrain configuration bundled with the package."""
         resources = importlib.resources.files("arlmet.resources")
-        with importlib.resources.as_file(resources / file) as path:
-            with open(path) as f:
-                lines = f.readlines()
+        with importlib.resources.as_file(resources / file) as path, open(path) as handle:
+            lines = handle.readlines()
 
-            if len(lines) < 6:
-                raise ValueError("Configuration file must have at least 6 lines.")
+        if len(lines) < 6:
+            raise ValueError("Configuration file must have at least 6 lines.")
 
-            ll = lines[0].split()[:2]
-            d = lines[1].split()[:2]
-            n = lines[2].split()[:2]
-            land_use = lines[3].split()[0]
-            roughness = lines[4].split()[0]
-            data_dir = lines[5].split()[0].strip("'\"")
-
-            # Get data_dir relative to config file location
-            data_dir = path.parent / data_dir
+        ll = lines[0].split()[:2]
+        d = lines[1].split()[:2]
+        n = lines[2].split()[:2]
+        land_use = lines[3].split()[0]
+        roughness = lines[4].split()[0]
+        data_dir = lines[5].split()[0].strip("'\"")
 
         return cls(
             ll_lat=float(ll[0]),
@@ -51,43 +48,40 @@ class ASCDataConfig:
             nlon=int(n[1]),
             land_use=int(land_use),
             roughness=float(roughness),
-            data_dir=data_dir,
+            data_dir=path.parent / data_dir,
         )
 
 
 class DefaultTerrain:
-    def __init__(self, filename="TERRAIN.ASC", config="ASCDATA.CFG"):
+    def __init__(self, filename: str = "TERRAIN.ASC", config: str = "ASCDATA.CFG"):
         self.filename = filename
         self.config = (
             config
             if isinstance(config, ASCDataConfig)
             else ASCDataConfig.from_file(config)
         )
-        self._data = None
+        self._data: np.ndarray | None = None
 
     @property
     def data(self) -> np.ndarray:
         if self._data is None:
-            self._data = self._load(self.filename)
+            terrain_file = self.config.data_dir / self.filename
+            if not terrain_file.exists():
+                raise FileNotFoundError(f"Terrain file not found: {terrain_file}")
+
+            data = np.genfromtxt(terrain_file, delimiter=4, dtype="f4")
+            if data.shape != (self.config.nlat, self.config.nlon):
+                raise ValueError("Terrain data shape does not match configuration.")
+            self._data = data
         return self._data
 
-    def _load(self, filename):
-        terrain_file = self.config.data_dir / filename
-        if not terrain_file.exists():
-            raise FileNotFoundError(f"Terrain file not found: {terrain_file}")
-
-        data = np.genfromtxt(terrain_file, delimiter=4, dtype="f4")
-        if data.shape != (self.config.nlat, self.config.nlon):
-            raise ValueError("Terrain data shape does not match configuration.")
-        return data
-
     @property
-    def lats(self):
+    def lats(self) -> np.ndarray:
         lats = self.config.ll_lat + np.arange(self.config.nlat) * self.config.dlat
-        return lats[::-1]  # flip to north-to-south
+        return lats[::-1]
 
     @property
-    def lons(self):
+    def lons(self) -> np.ndarray:
         lons = self.config.ll_lon + np.arange(self.config.nlon) * self.config.dlon
         return wrap_lons(lons)
 
@@ -102,324 +96,217 @@ class DefaultTerrain:
 
 
 class Surface:
-    SFCP = 1013.0  # Default surface pressure in hPa used by HYSPLIT if none provided
+    DEFAULT_PRESSURE = 1013.0
 
     def __init__(
         self,
-        level: int,
-        terrain: np.ndarray | None = None,
-        pressure: float | np.ndarray | None = None,
+        terrain: npt.ArrayLike | None = None,
+        pressure: npt.ArrayLike | None = None,
+        default_terrain: DefaultTerrain | None = None,
     ):
-        """
-        Represents a surface description used by VerticalAxis.
-
-        Parameters
-        ----------
-        level : int
-            Surface level index (kept for API compatibility).
-        terrain : Optional[np.ndarray]
-            Optional 2D terrain heights (ny, nx) in meters. If None, DefaultTerrain
-            will be used lazily via the `default` property.
-        pressure : Optional[float | np.ndarray]
-            Surface pressure in hPa. May be a scalar, 1D or 2D array. If None,
-            VerticalAxis will fall back to VerticalAxis.SURFACE_PRESSURE.
-        """
-        self.level = level
-        self.terrain = terrain
-        self.pressure = pressure or self.SFCP
-
-        self._default = None
+        self._terrain = terrain
+        self._pressure = pressure
+        self._default_terrain = default_terrain
 
     @property
-    def default(self) -> DefaultTerrain:
-        if self._default is None:
-            # read TERRAIN.ASC for terrain heights
-            self._default = DefaultTerrain()
-        return self._default
+    def terrain(self) -> np.ndarray | None:
+        if self._terrain is not None:
+            return np.asarray(self._terrain, dtype=float)
+        if self._default_terrain is not None:
+            return np.asarray(self._default_terrain.data, dtype=float)
+        return None
+
+    @property
+    def pressure(self) -> np.ndarray:
+        if self._pressure is None:
+            return np.asarray(self.DEFAULT_PRESSURE, dtype=float)
+        return np.asarray(self._pressure, dtype=float)
+
+    @property
+    def mean_pressure(self) -> float:
+        return float(np.asarray(self.pressure, dtype=float).mean())
+
+    @property
+    def mean_terrain(self) -> float:
+        terrain = self.terrain
+        if terrain is None:
+            return 0.0
+        return float(np.asarray(terrain, dtype=float).mean())
 
 
 class VerticalAxis:
-    """
-    Represents the vertical axis of the ARL data.
-
-    Parameters
-    ----------
-    flag : int
-        Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain, 4=hybrid, 5=wrfhybrid).
-    heights : Sequence[float]
-        Sequence of vertical heights (drec heights) corresponding to the vertical coordinate system.
-    surface : Surface
-        Surface object containing terrain and surface pressure information.
-    kwargs :
-        Additional keyword arguments:
-          - sigma_offset or grid_dummy : float used as "grid dummy" (default 0.0)
-          - wrfvcoords : sequence for WRF hybrid (z_flag==5)
-    """
-
-    FLAGS = {
-        1: "sigma",  # fraction
-        2: "pressure",  # mb/hPa
-        3: "terrain",  # fraction/height
-        4: "hybrid",  # mb: offset.fraction
-        5: "wrfhybrid",  # WRF hybrid
+    FLAGS: dict[int, str] = {
+        1: "sigma",
+        2: "pressure",
+        3: "terrain",
+        4: "hybrid",
+        5: "wrf",
     }
 
-    # meters per hPa by 100 hPa intervals (100 to 900)
-    Z_PHI1 = (17.98, 14.73, 13.09, 11.98, 11.15, 10.52, 10.04, 9.75, 9.88)
-    # meters per hPa by 10 hPa intervals (10 to 90)
-    Z_PHI2 = (31.37, 27.02, 24.59, 22.92, 21.65, 20.66, 19.83, 19.13, 18.51)
+    Z_PHI1 = np.asarray((17.98, 14.73, 13.09, 11.98, 11.15, 10.52, 10.04, 9.75, 9.88))
+    Z_PHI2 = np.asarray((31.37, 27.02, 24.59, 22.92, 21.65, 20.66, 19.83, 19.13, 18.51))
 
-    def __init__(self, flag: int, heights: Sequence[float], surface: Surface, **kwargs):
+    def __init__(
+        self,
+        flag: int,
+        heights: Sequence[float] | None = None,
+        *,
+        levels: Sequence[float] | None = None,
+        offset: float = 0.0,
+        surface: Surface | None = None,
+    ):
+        if heights is None:
+            if levels is None:
+                raise TypeError("VerticalAxis requires `heights` or `levels`.")
+            heights = levels
+        elif levels is not None:
+            raise TypeError("Pass only one of `heights` or `levels`.")
+
         self.flag = flag
-        self.heights = np.asarray(heights, dtype=float)
+        self._heights = np.asarray(heights, dtype=float)
+        self.offset = float(offset)
         self.surface = surface
-        self.kwargs = kwargs
 
     @property
     def coord_system(self) -> str:
-        return VerticalAxis.FLAGS.get(self.flag, "unknown")
+        return self.FLAGS.get(self.flag, "unknown")
 
-    def _p_to_z(self, p: float | np.ndarray) -> np.ndarray:
-        """
-        Vectorized conversion pressure -> approximate height using HYSPLIT lookup tables.
-        p: array-like pressures (hPa). Accepted shapes:
-           - scalar
-           - 1D (nl,) interpreted as level-only and broadcast over horizontal grid
-           - 3D (nl, ny, nx) explicit
-        Returns heights in meters with shape (nl, ny, nx) matching broadcasting.
-        """
+    @property
+    def dims(self) -> tuple[str]:
+        return ("level",)
+
+    @property
+    def heights(self) -> np.ndarray:
+        return self._heights.copy()
+
+    @property
+    def levels(self) -> np.ndarray:
+        return self.heights
+
+    def with_surface(self, surface: Surface | None) -> "VerticalAxis":
+        return VerticalAxis(
+            flag=self.flag,
+            heights=self._heights,
+            offset=self.offset,
+            surface=surface,
+        )
+
+    def calculate_coords(self) -> dict[str, np.ndarray]:
+        coords = {
+            "level": np.arange(len(self._heights), dtype=int),
+            "height": self.height_agl(),
+        }
+        pressure = self.pressure()
+        if pressure is not None:
+            coords["pressure"] = pressure
+        if self.flag == 1:
+            coords["sigma"] = self.heights
+        return coords
+
+    def pressure(self) -> np.ndarray | None:
+        p0 = self._surface_pressure()
+
+        if self.flag == 1:
+            return self.offset + (p0 - self.offset) * self._heights
+        if self.flag == 2:
+            return self.heights
+        if self.flag == 3:
+            return None
+        if self.flag == 4:
+            offsets = np.floor(self._heights)
+            sigma = self._heights - offsets
+            pressure = p0 * sigma + offsets
+            if pressure.size:
+                pressure[0] = p0
+            return pressure
+        if self.flag == 5:
+            raise NotImplementedError("WRF hybrid vertical coordinates are not implemented.")
+        return None
+
+    def height_agl(self) -> np.ndarray:
+        if self.flag == 3:
+            return self.heights
+
+        pressure = self.pressure()
+        if pressure is None:
+            raise ValueError(
+                f"Cannot derive height for vertical coordinate system '{self.coord_system}'."
+            )
+        return self._p_to_z(pressure)
+
+    def height_msl(self) -> np.ndarray:
+        return self.height_agl() + self._surface_terrain()
+
+    def _surface_pressure(self) -> float:
+        if self.surface is None:
+            return Surface.DEFAULT_PRESSURE
+        return self.surface.mean_pressure
+
+    def _surface_terrain(self) -> float:
+        if self.surface is None:
+            return 0.0
+        return self.surface.mean_terrain
+
+    def _p_to_z(self, p: npt.ArrayLike) -> np.ndarray:
         p = np.asarray(p, dtype=float)
-
-        # normalize p to shape (nl, ny, nx)
-        if p.ndim == 0:
-            p = p.reshape((1, 1, 1))
-        elif p.ndim == 1:
-            p = p.reshape((p.size, 1, 1))
-        elif p.ndim == 2:
-            # treat as (nl, nx) -> promote to (nl, ny=1, nx)
-            p = p.reshape((p.shape[0], p.shape[1], 1))
-
         delta_z = np.zeros_like(p, dtype=float)
 
         mask1 = p >= 100.0
         if np.any(mask1):
-            idx1 = np.clip((p[mask1] // 100).astype(int), 0, 8)
-            delta_z[mask1] = np.array(self.Z_PHI1)[idx1]
+            idx1 = np.clip((p[mask1] // 100).astype(int), 0, len(self.Z_PHI1) - 1)
+            delta_z[mask1] = self.Z_PHI1[idx1]
 
         mask2 = ~mask1
         if np.any(mask2):
-            idx2 = np.clip((p[mask2] // 10).astype(int), 0, 8)
-            delta_z[mask2] = np.array(self.Z_PHI2)[idx2]
+            idx2 = np.clip((p[mask2] // 10).astype(int), 0, len(self.Z_PHI2) - 1)
+            delta_z[mask2] = self.Z_PHI2[idx2]
 
-        # determine surface pressure p0 (broadcast to p shape)
-        p0 = self.surface.pressure
-        if p0 is None:
-            p0 = np.array(self.SURFACE_PRESSURE, dtype=float)
-        else:
-            p0 = np.asarray(p0, dtype=float)
+        z = (self._surface_pressure() - p) * delta_z
+        return np.where(z < 0.0, 0.0, z)
 
-        # ensure p0 shape is (ny, nx)
-        if p0.ndim == 0:
-            p0 = p0.reshape((1, 1))
-        elif p0.ndim == 1:
-            p0 = p0.reshape((1, p0.size))
-        elif p0.ndim > 2:
-            # unexpected, but try to accept (ny, nx)
-            p0 = p0.squeeze()
-
-        p0_b = p0[None, :, :]  # (1, ny, nx)
-
-        z = (p0_b - p) * delta_z
-        return z
-
-    def _calculate_coords(self) -> dict[str, tuple[tuple[str, ...], np.ndarray]]:
-        """
-        Build vertical coordinates dictionary similar to HYSPLIT:
-        returns mapping name -> ((dims...), ndarray).
-
-        Dimensions for 3D arrays are ('level','y','x'); for 1D arrays ('level',).
-        """
-        heights = self.heights
-        nlvl = heights.size
-
-        # prepare surface pressure array p0 with shape (ny, nx)
-        p0 = self.surface.pressure
-        if p0 is None:
-            p0 = np.array(self.SURFACE_PRESSURE, dtype=float)
-        p0 = np.asarray(p0, dtype=float)
-        if p0.ndim == 0:
-            p0 = p0.reshape((1, 1))
-        elif p0.ndim == 1:
-            p0 = p0.reshape((1, p0.size))
-        # now p0.shape == (ny, nx)
-
-        ny, nx = p0.shape
-
-        # canonical 1D pressure level (plevel_1d)
-        sfcp = float(p0.mean())
-        plevel_1d = None
-
-        z_flag = self.flag
-        grid_dummy = self.grid_dummy
-
-        if z_flag == 1:  # sigma
-            plevel_1d = grid_dummy + (sfcp - grid_dummy) * heights
-        elif z_flag == 2:  # pressure
-            plevel_1d = heights.copy()
-            if nlvl >= 1:
-                plevel_1d[0] = sfcp
-        elif z_flag == 3:  # terrain
-            plevel_1d = None
-        elif z_flag == 4:  # hybrid
-            offsets = np.floor(heights)
-            psig = heights - offsets
-            plevel_1d = sfcp * psig + offsets
-            if nlvl >= 1:
-                plevel_1d[0] = sfcp
-        elif z_flag == 5:  # wrf hybrid
-            if self.wrfvcoords is None:
-                raise ValueError("wrfvcoords required for WRF hybrid (z_flag==5)")
-            eta = np.asarray([row[6] for row in self.wrfvcoords], dtype=float)
-            plevel_1d = (
-                eta * (sfcp - grid_dummy)
-                + ((heights - eta) * (1000.0 - grid_dummy))
-                + grid_dummy
-            )
-        else:
-            raise ValueError(f"unsupported z_flag: {z_flag}")
-
-        # build 3D plevel where appropriate
-        plevel_3d = None
-        if z_flag != 3:
-            if z_flag == 1:
-                sigma = heights.reshape((nlvl, 1, 1))
-                plevel_3d = grid_dummy + (p0[None, :, :] - grid_dummy) * sigma
-            elif z_flag == 2:
-                plevel_3d = plevel_1d.reshape((nlvl, 1, 1)) + np.zeros((nlvl, ny, nx))
-            elif z_flag == 4:
-                offsets = np.floor(heights).reshape((nlvl, 1, 1))
-                psig = (heights - np.floor(heights)).reshape((nlvl, 1, 1))
-                plevel_3d = p0[None, :, :] * psig + offsets
-                if nlvl >= 1:
-                    plevel_3d[0, :, :] = p0
-            elif z_flag == 5:
-                eta = np.asarray(
-                    [row[6] for row in self.wrfvcoords], dtype=float
-                ).reshape((nlvl, 1, 1))
-                plevel_3d = (
-                    eta * (p0[None, :, :] - grid_dummy)
-                    + ((heights.reshape((nlvl, 1, 1)) - eta) * (1000.0 - grid_dummy))
-                    + grid_dummy
-                )
-
-        # compute z_agl
-        if z_flag == 3:
-            z_agl = np.broadcast_to(
-                heights.reshape((nlvl, 1, 1)), (nlvl, ny, nx)
-            ).astype(float)
-        else:
-            if plevel_3d is None:
-                raise RuntimeError("plevel_3d missing for non-terrain z_flag")
-            z_agl = self._p_to_z(plevel_3d)
-            z_agl = np.where(z_agl < 0.0, 0.0, z_agl)
-
-        # z_msl if terrain provided (use surface.terrain or default)
-        terrain = self.surface.terrain
-        if terrain is None:
-            try:
-                terrain = self.surface.default.data
-            except Exception:
-                terrain = None
-
-        if terrain is not None:
-            terrain = np.asarray(terrain, dtype=float)
-            if terrain.shape != (ny, nx):
-                raise ValueError("terrain shape must match surface_pressure shape")
-            z_msl = z_agl + terrain[None, :, :]
-        else:
-            z_msl = None
-
-        # assemble coords dict
-        coords: dict[str, tuple[tuple[str, ...], np.ndarray]] = {}
-        coords["level"] = (("level",), np.arange(1, nlvl + 1))
-        if plevel_1d is not None:
-            coords["plev_1d"] = (("level",), plevel_1d)
-            # also provide a compatibility 1D pressure variable named 'pressure'
-            coords["pressure"] = (("level",), plevel_1d)
-        if plevel_3d is not None:
-            coords["plev"] = (("level", "y", "x"), plevel_3d)
-            coords["pressure_3d"] = (("level", "y", "x"), plevel_3d)
-
-        coords["z_agl"] = (("level", "y", "x"), z_agl)
-        coords["height"] = (("level", "y", "x"), z_agl)  # compatibility
-
-        if z_msl is not None:
-            coords["z_msl"] = (("level", "y", "x"), z_msl)
-
-        if z_flag == 1:
-            coords["sigma"] = (("level",), heights.copy())
-
-        coords["_hysplit_meta"] = (
-            ("meta",),
-            np.array([z_flag, grid_dummy, sfcp], dtype=float),
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, VerticalAxis):
+            return False
+        return (
+            self.flag == other.flag
+            and self.offset == other.offset
+            and np.array_equal(self._heights, other._heights)
         )
 
-        return coords
+    def __hash__(self) -> int:
+        return hash((self.flag, self.offset, tuple(self._heights)))
 
 
 class Grid3D(Grid):
     def __init__(
         self,
-        projection: Projection,
-        nx: int,
-        ny: int,
-        vertical_flag: int,
-        levels: Sequence[float],
-        surface: Surface,
+        projection: Projection | None = None,
+        nx: int = 0,
+        ny: int = 0,
+        vertical_axis: VerticalAxis | None = None,
+        *,
+        proj: Projection | None = None,
     ):
-        super().__init__(projection, nx, ny)
-        self.vertical_axis = VerticalAxis(
-            flag=vertical_flag,
-            heights=levels,
-            surface=surface,
-            sigma_offset=projection.reserved,
-        )
+        projection = projection or proj
+        if projection is None:
+            raise TypeError("Grid3D requires `projection` or `proj`.")
+        if vertical_axis is None:
+            raise TypeError("Grid3D requires a `vertical_axis`.")
 
-    def _calculate_coords(self) -> dict[str, tuple[tuple[str, ...], np.ndarray]]:
-        # Calculate horizontal coords from Grid
-        coords = super()._calculate_coords()
+        super().__init__(projection=projection, nx=nx, ny=ny)
+        self.vertical_axis = vertical_axis
 
-        # GOAL: height anove ground level (height_agl), height above mean sea level (height_msl) (to interpolate from)
+    @property
+    def dims(self) -> tuple[str, ...]:
+        return ("level", *super().dims)
 
-        # Possible scenarios:
-        # if SHGT is not available,
-        #  - load terrain from ASC file (DefaultTerrain)
-        #    - need to interpolate terrain to model grid
-        # if PRSS is not available,
-        #  - use default surface pressure (1013.0 hPa)
-
-        # if z_flag == 3 (terrain):
-        #  - heights are AGL (1D)
-        #    - no way to go from agl to p so nothing to do
-        # if z_flag == 2 (pressure):
-        #  - heights are in pressure (1D)
-        #  - can convert to AGL using surface pressure and HYSPLIT lookup table (3D)
-        #    - this is approximate and there are definitely better ways (but not worrying now)
-        # if z_flag in (1,4,5) (sigma, hybrid, wrfhybrid):
-        #  - heights are in fraction or hybrid (1D)
-        #  - can convert to pressure using surface pressure (3D)
-        #  - can convert to AGL using surface pressure and HYSPLIT lookup table (3D)
-
-        # Add vertical coords from VerticalAxis
-        # Possible coords:
-        # - 'level' : raw values (1D)
-        # - 'height_agl' : 3D heights above ground level (1D for z_flag==3)
-        # - 'plev_1d' : 1D pressure levels when i have this? th met should always have pressure fields right?
-        #   well so if its z_flag==2, there is geopotential fields but no pressure fields
-
-        coords.update(self.vertical_axis.coords)
-
-        # Calculate MSL heights if terrain is available
-        # - 'height_msl' : 3D heights above mean sea level (if terrain available)
-
+    def calculate_coords(self) -> dict[str, object]:
+        coords = super().calculate_coords()
+        vcoords = self.vertical_axis.calculate_coords()
+        coords["level"] = vcoords["level"]
+        coords["height"] = ("level", vcoords["height"])
+        if "pressure" in vcoords:
+            coords["pressure"] = ("level", vcoords["pressure"])
+        if "sigma" in vcoords:
+            coords["sigma"] = ("level", vcoords["sigma"])
         return coords

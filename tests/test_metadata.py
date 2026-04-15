@@ -1,6 +1,15 @@
 """Tests for arlmet.metadata module."""
 
-from arlmet.metadata import letter_to_thousands, restore_year
+from collections import OrderedDict
+
+from arlmet.metadata import (
+    Header,
+    IndexRecord,
+    LvlInfo,
+    VarInfo,
+    letter_to_thousands,
+    restore_year,
+)
 
 
 class TestLetterToThousands:
@@ -57,3 +66,56 @@ class TestRestoreYear:
         assert restore_year("25") == 2025
         assert restore_year("85") == 1985
         assert restore_year("2025") == 2025
+
+
+class TestIndexRecord:
+    """Tests for IndexRecord helpers."""
+
+    def test_vertical_axis_uses_index_metadata(self):
+        """Test vertical axis reconstruction from index metadata."""
+        index = IndexRecord(
+            header=Header(
+                year=2025,
+                month=1,
+                day=1,
+                hour=0,
+                forecast=0,
+                level=0,
+                grid=(0, 0),
+                variable="INDX",
+                exponent=0,
+                precision=0.0,
+                initial_value=0.0,
+            ),
+            source="TEST",
+            forecast_hour=0,
+            minutes=0,
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=1.0,
+            tangent_lon=1.0,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=0.0,
+            sync_lon=0.0,
+            reserved=25.0,
+            nx=10,
+            ny=10,
+            nz=2,
+            vertical_flag=4,
+            index_length=124,
+            levels=[
+                LvlInfo(level=0, height=1.0, variables=OrderedDict({"PRSS": VarInfo(0, "")})),
+                LvlInfo(level=1, height=0.5, variables=OrderedDict({"TEMP": VarInfo(0, "")})),
+            ],
+        )
+
+        axis = index.vertical_axis
+
+        assert axis.flag == 4
+        assert axis.offset == 25.0
+        assert axis.coord_system == "hybrid"
+        assert axis.heights.tolist() == [1.0, 0.5]

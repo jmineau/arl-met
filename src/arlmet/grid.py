@@ -2,17 +2,14 @@
 Grid and projection definitions for ARL meteorological data.
 
 This module provides classes for representing ARL grid projections and
-coordinate systems, including horizontal grids, vertical axes, and 3D grids.
-Supports various map projections (lat-lon, polar stereographic, Lambert conformal, Mercator)
-used in ARL meteorological files.
+horizontal coordinate systems used in ARL meteorological files. Vertical
+coordinates live in ``arlmet.vertical``.
 """
 
-from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
 import numpy as np
-import numpy.typing as npt
 import pyproj
 
 
@@ -284,6 +281,13 @@ class Grid:
         return ("y", "x")
 
     @property
+    def coords(self) -> dict[str, Any]:
+        """
+        Return the calculated coordinate variables for this grid.
+        """
+        return self.calculate_coords()
+
+    @property
     def origin(self) -> tuple[float, float]:
         """
         Origin (lower-left corner) in the base CRS.
@@ -402,190 +406,3 @@ class Grid:
 
     def __hash__(self) -> int:
         return hash((self.projection, self.nx, self.ny))
-
-
-class Surface:
-    # i think we need to define the surface for each index? because the surface can change over time
-    # in which case, we also would need a different 3D grid for each time
-    # which begs the question, should we even define a 3D grid at all
-    # perhaps the file has only a 2D grid,
-    # and the record set would either have a 2D grid and a surface/vertical axis
-    # or we could keep 3D grid and have the recordset build the 3D grid from the files 2D grid and its own vaxis
-    # how should a user define their own 3D grid?
-    # we could have them define their 2D grid at the file level and optionally vaxis parameters?
-
-    def __init__(
-        self,
-        terrain: npt.ArrayLike | None = None,
-        pressure: npt.ArrayLike | None = None,
-    ):
-        """
-        Represents a surface description used by VerticalAxis.
-        """
-        self._terrain = terrain
-        self._pressure = pressure
-
-        if self._terrain is None and self._pressure is None:
-            raise ValueError(
-                "ARL meteorology files require surface variables terrain (SHGT) and/or pressure (PRSS)."
-            )
-
-    @property
-    def terrain(self) -> npt.NDArray | None:
-        """
-        Get the terrain height data.
-
-        Returns
-        -------
-        np.ndarray | None
-            Terrain height data array or None if not available.
-        """
-        if self._terrain is not None:
-            return np.asarray(self._terrain)
-        return None
-
-    @property
-    def pressure(self) -> npt.NDArray | None:
-        """
-        Get the surface pressure data.
-
-        Returns
-        -------
-        np.ndarray | None
-            Surface pressure data array or None if not available.
-        """
-        if self._pressure is not None:
-            return np.asarray(self._pressure)
-        return None
-
-
-class VerticalAxis:
-    FLAGS: dict[int, str] = {
-        1: "sigma",  # fraction
-        2: "pressure",  # mb/hPa
-        3: "terrain",  # fraction/height
-        4: "hybrid",  # mb: offset.fraction
-        5: "wrf",  # WRF
-    }
-
-    # meters per hPa by 100 hPa intervals (100 to 900)
-    Z_PHI1 = (17.98, 14.73, 13.09, 11.98, 11.15, 10.52, 10.04, 9.75, 9.88)
-    # meters per hPa by 10 hPa intervals (10 to 90)
-    Z_PHI2 = (31.37, 27.02, 24.59, 22.92, 21.65, 20.66, 19.83, 19.13, 18.51)
-
-    def __init__(self, flag: int, heights: Sequence[float], offset: float = 0.0):
-        self.flag = flag
-        self.heights = heights
-        self.offset = offset
-
-    @property
-    def coord_system(self) -> str:
-        return self.FLAGS.get(self.flag, "unknown")
-
-    @property
-    def dims(self) -> tuple:
-        """
-        Get the dimension names for this vertical axis.
-
-        Returns
-        -------
-        tuple
-            ("level",)
-        """
-        return ("level",)
-
-    @property
-    def levels(self) -> list[int]:
-        """
-        Get the vertical levels as a list of integers.
-
-        Returns
-        -------
-        list[int]
-            List of vertical levels.
-        """
-        return list(range(len(self.heights)))
-
-    def __eq__(self, other) -> bool:
-        if not isinstance(other, VerticalAxis):
-            return False
-        return self.flag == other.flag and np.array_equal(self.heights, other.heights)
-
-    def __hash__(self) -> int:
-        return hash((self.flag, tuple(self.heights)))
-
-    def calculate_coords(self, surface: Surface) -> dict[str, Any]:
-        """
-        Calculate vertical coordinate arrays based on the vertical axis type.
-
-        Returns
-        -------
-        dict[str, Any]
-            Dictionary containing vertical coordinate arrays.
-        """
-        heights = np.asarray(self.heights)
-
-        needs_sfcp = self.coord_system in ("sigma", "hybrid")
-        if needs_sfcp and surface._pressure is None:
-            raise ValueError(
-                f"Surface pressure data is required for vertical coordinate system '{self.coord_system}'."
-            )
-
-        # Define desired coordinate variables
-        pres = None
-        zagl = None
-        zmsl = None
-
-        # Calculate coordinates based on vertical axis type
-        if self.coord_system == "sigma":
-            pres = self.offset + (surface.pressure - self.offset) * heights  # 2D
-        elif self.coord_system == "pressure":
-            pres = heights  # 1D
-        elif self.coord_system == "terrain":
-            zagl = heights  # 1D
-        elif self.coord_system == "hybrid":
-            offsets = np.floor(heights)
-            psig = heights - offsets
-            pres = surface.pressure * psig + offsets  # 2D
-        elif self.coord_system == "wrf":
-            raise NotImplementedError("WRF vertical coordinate system not implemented.")
-        else:
-            raise NotImplementedError(
-                f"Vertical coordinate system '{self.coord_system}' not implemented."
-            )
-
-        if zagl is None:
-            if pres is None:
-                raise ValueError(
-                    "Either pressure or height above ground level must be calculated."
-                )
-            zmsl = self._p_to_z(pres)
-            zagl = zmsl - surface.terrain  # 2D
-        else:
-            zmsl = zagl + surface.terrain  # 2D
-
-        coords = {
-            "height": heights,
-            "height_agl": zagl,
-            "height_msl": zmsl,
-        }
-
-        if pres is not None:
-            coords["pressure"] = pres
-
-        return coords
-
-    def _p_to_z(self, p) -> npt.NDArray:
-        delta_z = np.zeros_like(p, dtype=float)
-
-        mask1 = p >= 100.0
-        if np.any(mask1):
-            idx1 = np.clip((p[mask1] // 100).astype(int), 0, 8)
-            delta_z[mask1] = np.array(self.Z_PHI1)[idx1]
-
-        mask2 = ~mask1
-        if np.any(mask2):
-            idx2 = np.clip((p[mask2] // 10).astype(int), 0, 8)
-            delta_z[mask2] = np.array(self.Z_PHI2)[idx2]
-
-        pass  # TODO complete

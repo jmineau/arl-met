@@ -1,12 +1,9 @@
+import importlib.util
+
 import numpy as np
 from numpy import typing as npt
 
-try:
-    import dask
-
-    DASK_AVAILABLE = True
-except ImportError:
-    DASK_AVAILABLE = False
+DASK_AVAILABLE = importlib.util.find_spec("dask") is not None
 
 
 def calculate_checksum(packed: bytes | bytearray) -> int:
@@ -62,10 +59,6 @@ def pack(
     initial_value = grid[0, 0]
 
     # --- Vectorized: Find max difference to determine packing parameters ---
-    # Create a flattened array with the special order of comparison
-    flat_grid = grid.flatten()
-    # Prepend the initial value for the first difference calculation
-    rold_values = np.concatenate(([initial_value], flat_grid[:-1]))
     # The FORTRAN logic for finding rmax has a tricky dependency where rold
     # from the end of a row is not the start for the next.
     # The original loop logic is more reliable here.
@@ -164,6 +157,8 @@ def unpack(
 
     # Convert packed bytes to array using the specified driver
     if DASK_AVAILABLE and driver.__name__ == "dask.array":
+        import dask
+
         # Delay conversion from buffer to array
         packed_arr = da.from_delayed(
             dask.delayed(np.frombuffer)(packed, dtype=np.uint8)

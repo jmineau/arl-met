@@ -1,3 +1,4 @@
+import importlib.util
 import io
 from abc import abstractmethod
 from collections import OrderedDict
@@ -12,16 +13,12 @@ import pandas as pd
 import xarray as xr
 from xarray.backends import CachingFileManager
 
-from arlmet.grid import Grid, Projection, Surface, VerticalAxis
+from arlmet.grid import Grid, Projection
 from arlmet.metadata import Header, IndexRecord
 from arlmet.packing import calculate_checksum, pack, unpack
+from arlmet.vertical import Surface, VerticalAxis
 
-try:
-    import dask
-
-    DASK_AVAILABLE = True
-except ImportError:
-    DASK_AVAILABLE = False
+DASK_AVAILABLE = importlib.util.find_spec("dask") is not None
 
 
 def open_dataset(filename_or_obj, drop_variables=None, squeeze=True):
@@ -682,6 +679,13 @@ class RecordSet(RecordCollection):
         """
         return Surface(terrain=self._sfc_terrain, pressure=self._sfc_pressure)
 
+    @property
+    def vertical_axis(self) -> VerticalAxis:
+        """
+        Get the file-level vertical axis bound to this recordset's surface state.
+        """
+        return self.file.vertical_axis.with_surface(self.surface)
+
     def _create_datarecord(
         self,
         position: int,
@@ -827,6 +831,19 @@ class File(RecordCollection):
         self._grid = value
 
     @property
+    def vertical_axis(self) -> VerticalAxis:
+        if self._vaxis is None:
+            raise ValueError("Vertical axis has not been set for this File.")
+        return self._vaxis
+
+    @vertical_axis.setter
+    @require_mode("w")
+    def vertical_axis(self, value: VerticalAxis):
+        if not isinstance(value, VerticalAxis):
+            raise TypeError("vertical_axis must be a VerticalAxis instance.")
+        self._vaxis = value
+
+    @property
     def times(self) -> list[pd.Timestamp]:
         """Return a sorted list of timestamps in the file."""
         return sorted(self._recordsets.keys())
@@ -923,6 +940,12 @@ class File(RecordCollection):
             # Set grid when reading the first index record
             if self._grid is None:
                 self._grid = index.grid
+
+            # Set vertical axis when reading the first index record
+            if self._vaxis is None:
+                self._vaxis = index.vertical_axis
+            elif self._vaxis != index.vertical_axis:
+                raise ValueError("Vertical axis mismatch between index records.")
 
             # Create a RecordSet for this index record (time)
             rs = self._create_recordset(

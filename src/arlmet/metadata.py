@@ -7,6 +7,7 @@ from typing import Any, ClassVar
 import pandas as pd
 
 from arlmet.grid import Grid, Projection
+from arlmet.vertical import VerticalAxis
 
 
 def letter_to_thousands(char: str) -> int:
@@ -466,12 +467,12 @@ class IndexRecord:
     @property
     def grid(self) -> Grid:
         """
-        Create a Grid3D object based on the index record's grid parameters.
+        Create a Grid object based on the index record's grid parameters.
 
         Returns
         -------
-        Grid3D
-            The constructed Grid3D object.
+        Grid
+            The constructed Grid object.
         """
         # Build projection
         proj = Projection(
@@ -491,4 +492,15 @@ class IndexRecord:
             projection=proj,
             nx=self.total_nx,
             ny=self.total_ny,
+        )
+
+    @property
+    def vertical_axis(self) -> VerticalAxis:
+        """
+        Create the file-level vertical axis definition from the index record.
+        """
+        return VerticalAxis(
+            flag=self.vertical_flag,
+            heights=[lvl.height for lvl in self.levels],
+            offset=self.reserved,
         )

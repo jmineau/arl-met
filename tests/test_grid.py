@@ -3,7 +3,8 @@
 import numpy as np
 import pytest
 
-from arlmet.grid import Grid, Grid3D, Projection, VerticalAxis, wrap_lons
+from arlmet.grid import Grid, Projection, wrap_lons
+from arlmet.vertical import Grid3D, Surface, VerticalAxis
 
 
 class TestWrapLons:
@@ -48,7 +49,6 @@ class TestProjection:
             sync_y=1.0,
             sync_lat=0.0,
             sync_lon=0.0,
-            reserved=0.0,
         )
         assert proj.is_latlon is True
         assert proj.params["proj"] == "latlong"
@@ -67,7 +67,6 @@ class TestProjection:
             sync_y=1.0,
             sync_lat=60.0,
             sync_lon=0.0,
-            reserved=0.0,
         )
         assert proj.is_latlon is False
         assert proj.params["proj"] == "stere"
@@ -87,7 +86,6 @@ class TestProjection:
             sync_y=1.0,
             sync_lat=40.0,
             sync_lon=-100.0,
-            reserved=0.0,
         )
         assert proj.is_latlon is False
         assert proj.params["proj"] == "lcc"
@@ -107,7 +105,6 @@ class TestProjection:
             sync_y=1.0,
             sync_lat=0.0,
             sync_lon=0.0,
-            reserved=0.0,
         )
         assert proj.is_latlon is False
         assert proj.params["proj"] == "merc"
@@ -127,7 +124,6 @@ class TestProjection:
                 sync_y=1.0,
                 sync_lat=0.0,
                 sync_lon=0.0,
-                reserved=0.0,
             )
 
 
@@ -148,7 +144,6 @@ class TestGrid:
             sync_y=1.0,
             sync_lat=-90.0,
             sync_lon=-180.0,
-            reserved=0.0,
         )
         grid = Grid(projection=proj, nx=360, ny=180)
 
@@ -173,7 +168,6 @@ class TestGrid:
             sync_y=1.0,
             sync_lat=60.0,
             sync_lon=0.0,
-            reserved=0.0,
         )
         grid = Grid(projection=proj, nx=100, ny=100)
 
@@ -193,34 +187,44 @@ class TestVerticalAxis:
         levels = [1.0, 0.9, 0.8, 0.7]
         axis = VerticalAxis(flag=1, levels=levels)
         assert axis.coord_system == "sigma"
-        assert axis.heights == levels
+        np.testing.assert_array_equal(axis.heights, levels)
 
     def test_pressure_coordinate(self):
         """Test pressure vertical coordinate."""
         levels = [1000, 925, 850, 700, 500]
         axis = VerticalAxis(flag=2, levels=levels)
         assert axis.coord_system == "pressure"
-        assert axis.heights == levels
+        np.testing.assert_array_equal(axis.heights, levels)
 
     def test_terrain_coordinate(self):
         """Test terrain vertical coordinate."""
         levels = [0.0, 0.25, 0.5, 0.75, 1.0]
         axis = VerticalAxis(flag=3, levels=levels)
         assert axis.coord_system == "terrain"
-        assert axis.heights == levels
+        np.testing.assert_array_equal(axis.heights, levels)
 
     def test_hybrid_coordinate(self):
         """Test hybrid vertical coordinate."""
         levels = [1000.0, 925.5, 850.0]
         axis = VerticalAxis(flag=4, levels=levels)
         assert axis.coord_system == "hybrid"
-        assert axis.heights == levels
+        np.testing.assert_array_equal(axis.heights, levels)
 
     def test_unknown_coordinate(self):
         """Test unknown vertical coordinate."""
         levels = [1.0, 0.5]
         axis = VerticalAxis(flag=99, levels=levels)
         assert axis.coord_system == "unknown"
+
+    def test_sigma_coordinate_calculates_pressure(self):
+        """Test sigma coordinate pressure derivation from surface pressure."""
+        axis = VerticalAxis(
+            flag=1,
+            levels=[1.0, 0.5],
+            surface=Surface(pressure=np.full((2, 2), 900.0)),
+        )
+        coords = axis.calculate_coords()
+        np.testing.assert_allclose(coords["pressure"], [900.0, 450.0])
 
 
 class TestGrid3D:
@@ -240,7 +244,6 @@ class TestGrid3D:
             sync_y=1.0,
             sync_lat=0.0,
             sync_lon=0.0,
-            reserved=0.0,
         )
         vertical_axis = VerticalAxis(flag=2, levels=[1000, 925, 850])
         grid = Grid3D(proj=proj, nx=10, ny=10, vertical_axis=vertical_axis)
