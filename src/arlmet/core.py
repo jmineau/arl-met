@@ -286,16 +286,12 @@ class DataRecord:
         bool
             True if the checksum matches, False otherwise.
         """
-        raise NotImplementedError("Checksum verification is not yet implemented.")
-        if self._packed is None:
-            if self._packed_dask is not None:  # FIXME
-                # Compute dask array to get packed data
-                self._packed = self._packed_dask.compute()
-            else:
-                raise ValueError("No packed data to verify checksum.")
+        if self.mode == "r":
+            packed = self.bytes[Header.N_BYTES :]
+        else:
+            packed = self._pack().tobytes()
 
-        # Calculate checksum
-        calculated_checksum = calculate_checksum(packed=self._packed.tobytes())
+        calculated_checksum = calculate_checksum(packed=packed)
         return calculated_checksum == self.checksum
 
     @property
@@ -409,8 +405,7 @@ class DataRecord:
             self._header["exponent"] = exponent
             self._header["initial_value"] = initial_value
 
-            # Calculate checksum
-            # TODO
+            self._checksum = calculate_checksum(self._packed.tobytes())
 
         return self._packed
 

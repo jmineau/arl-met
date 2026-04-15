@@ -2,6 +2,7 @@ import string
 from collections import OrderedDict
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from math import floor, log10
 from typing import Any, ClassVar
 
 import pandas as pd
@@ -40,6 +41,32 @@ def restore_year(yr: str | int):
         return yr
     # This was in hysplit python code
     return 2000 + yr if (yr < 40) else 1900 + yr
+
+
+def thousands_to_letter(value: int) -> str:
+    """
+    Convert thousands value back to ARL grid header character.
+
+    Zero is encoded as ``9`` in the files seen so far. Positive thousands
+    are encoded as letters with ``A=1000``.
+    """
+    if value == 0:
+        return "9"
+    if value % 1000 != 0 or value < 0 or value > 26000:
+        raise ValueError(f"Unsupported grid thousands value: {value}")
+    return string.ascii_uppercase[(value // 1000) - 1]
+
+
+def format_fortran_float(value: float) -> str:
+    """
+    Format a float using the ARL/Fortran-style scientific notation.
+    """
+    if value == 0.0:
+        return " 0.0000000E+00"
+
+    exponent = floor(log10(abs(value))) + 1
+    mantissa = value / (10**exponent)
+    return f"{mantissa:10.7f}E{exponent:+03d}"
 
 
 @dataclass
@@ -123,19 +150,33 @@ class Header:
 
     def tobytes(self) -> bytes:
         """
-        Convert header to bytes (not yet implemented).
+        Convert header to bytes.
 
         Returns
         -------
         bytes
             Binary representation of the header.
-
-        Raises
-        ------
-        NotImplementedError
-            This functionality is not yet implemented.
         """
-        raise NotImplementedError
+        yy = self.year % 100
+        grid = "".join(thousands_to_letter(value) for value in self.grid)
+        header = (
+            f"{yy:02d}"
+            f"{self.month:2d}"
+            f"{self.day:2d}"
+            f"{self.hour:2d}"
+            f"{self.forecast:2d}"
+            f"{self.level:2d}"
+            f"{grid:>2}"
+            f"{self.variable:<4}"
+            f"{self.exponent:4d}"
+            f"{format_fortran_float(self.precision)}"
+            f"{format_fortran_float(self.initial_value)}"
+        )
+        if len(header) != self.N_BYTES:
+            raise ValueError(
+                f"Header serialization produced {len(header)} bytes, expected {self.N_BYTES}."
+            )
+        return header.encode("ascii")
 
 
 @dataclass

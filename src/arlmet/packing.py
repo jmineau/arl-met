@@ -30,7 +30,7 @@ def calculate_checksum(packed: bytes | bytearray) -> int:
 
 def pack(
     unpacked: np.ndarray,
-) -> tuple[bytes, float, int, float]:
+) -> tuple[npt.NDArray[np.uint8], float, int, float]:
     """
     Packs a 2D numpy array using a differential packing scheme.
 
@@ -46,30 +46,21 @@ def pack(
 
     Returns
     -------
-    tuple[bytes, float, int, float]
+    tuple[np.ndarray, float, int, float]
         A tuple containing:
-        - The packed bytes.
+        - The packed uint8 array.
         - The calculated precision of the packed data.
         - The packing scaling exponent.
         - The initial real value at grid position (0,0).
     """
-    raise NotImplementedError("This function is not yet implemented.")
     ny, nx = unpacked.shape
-    grid = unpacked.astype(np.float32)
-    initial_value = grid[0, 0]
+    grid = unpacked.astype(np.float32, copy=True)
+    initial_value = float(grid[0, 0])
 
-    # --- Vectorized: Find max difference to determine packing parameters ---
-    # The FORTRAN logic for finding rmax has a tricky dependency where rold
-    # from the end of a row is not the start for the next.
-    # The original loop logic is more reliable here.
-    rold = initial_value
-    rmax = 0.0
-    for j in range(ny):
-        for i in range(nx):
-            rmax = max(abs(grid[j, i] - rold), rmax)
-            rold = grid[j, i]
-        if j + 1 < ny:
-            rold = grid[j + 1, 0]
+    # Build diffs in the same row-wise order expected by unpack().
+    diffs = np.diff(grid, axis=1, prepend=grid[:, :1])
+    diffs[:, 0] = np.diff(grid[:, 0], prepend=initial_value)
+    rmax = float(np.max(np.abs(diffs)))
 
     # --- Calculate packing exponent and precision ---
     if rmax > 0.0:
@@ -81,25 +72,16 @@ def pack(
         exponent = 0
 
     precision = (2.0**exponent) / 254.0
-    scexp = 2.0 ** (7 - exponent)
+    scale = 2.0 ** (7 - exponent)
 
-    # --- Vectorized Packing ---
-    # Apply precision and re-check initial_value
+    # Zero tiny values before packing so round-trip precision matches unpack().
     grid[np.abs(grid) < precision] = 0.0
-    initial_value = grid[0, 0]
+    initial_value = float(grid[0, 0])
+    diffs = np.diff(grid, axis=1, prepend=grid[:, :1])
+    diffs[:, 0] = np.diff(grid[:, 0], prepend=initial_value)
 
-    # Calculate differences along rows (axis=1)
-    row_diffs = np.diff(grid, axis=1, prepend=grid[:, :1])
-
-    # Calculate differences for the first column
-    col0_diffs = np.diff(grid[:, 0], prepend=initial_value)
-
-    # Combine the differences
-    diffs = row_diffs
-    diffs[:, 0] = col0_diffs
-
-    # Scale, shift, and clip to get packed integer values
-    packed = np.round(diffs / scexp + 127.5)
+    # Scale, shift, and clip to get packed integer values.
+    packed = np.floor(diffs * scale + 127.5)
     packed = np.clip(packed, 0, 255)
     packed = packed.astype(np.uint8)
 
