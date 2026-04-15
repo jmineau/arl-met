@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from arlmet.core import File, open_dataset, write_dataset
+from arlmet import File, open_dataset, write_dataset
 from arlmet.grid import Grid, Projection
 from arlmet.metadata import IndexRecord
 from arlmet.packing import pack, unpack

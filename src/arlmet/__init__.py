@@ -9,11 +9,12 @@ __version__ = "2025.10.1"
 __author__ = "James Mineau"
 __email__ = "jameskmineau@gmail.com"
 
-from .core import DataRecord, File, RecordSet, open_dataset, write_dataset
+from .core import DataRecord, File, RecordSet
 from .grid import Grid, Projection
 from .metadata import Header, IndexRecord
 from .packing import calculate_checksum, pack, unpack
 from .vertical import Grid3D, Surface, VerticalAxis
+from .xarray_io import open_dataset, write_dataset
 
 __all__ = [
     "File",
