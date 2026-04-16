@@ -13,7 +13,15 @@ from .core import DataRecord, File, RecordSet
 from .grid import Grid, Projection
 from .metadata import Header, IndexRecord
 from .packing import calculate_checksum, pack, unpack
-from .vertical import Grid3D, Surface, VerticalAxis
+from .vertical import (
+    Grid3D,
+    Surface,
+    VerticalAxis,
+    interp_vertical,
+    pressure,
+    z_agl,
+    z_msl,
+)
 from .xarray import open_dataset, write_dataset
 
 __all__ = [
@@ -27,6 +35,10 @@ __all__ = [
     "Grid3D",
     "Surface",
     "VerticalAxis",
+    "pressure",
+    "z_agl",
+    "z_msl",
+    "interp_vertical",
     "Header",
     "IndexRecord",
     "calculate_checksum",

@@ -277,6 +277,341 @@ class VerticalAxis:
         return hash((self.flag, self.offset, tuple(self._heights)))
 
 
+def _vertical_axis_from_attrs(attrs: dict[str, object]) -> VerticalAxis:
+    try:
+        flag = int(attrs["arl_vertical_flag"])
+        levels = attrs["arl_vertical_levels"]
+        offset = float(attrs.get("arl_vertical_offset", 0.0))
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError(
+            "Vertical metadata is required. Pass vertical_axis=... or include "
+            "'vertical_axis' / 'arl_vertical_*' metadata."
+        ) from exc
+
+    try:
+        return VerticalAxis(flag=flag, levels=levels, offset=offset)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "Vertical metadata is required. Pass vertical_axis=... or include "
+            "'vertical_axis' / 'arl_vertical_*' metadata."
+        ) from exc
+
+
+def _resolve_vertical_axis(
+    obj,
+    vertical_axis: VerticalAxis | None = None,
+) -> VerticalAxis:
+    if vertical_axis is not None:
+        return vertical_axis
+    if isinstance(obj, VerticalAxis):
+        return obj
+
+    attrs = getattr(obj, "attrs", {})
+    axis = attrs.get("vertical_axis")
+    if isinstance(axis, VerticalAxis):
+        return axis
+    if isinstance(attrs, dict):
+        return _vertical_axis_from_attrs(attrs)
+    raise ValueError(
+        "Vertical metadata is required. Pass vertical_axis=... or include "
+        "'vertical_axis' / 'arl_vertical_*' metadata."
+    )
+
+
+def _require_pressure_axis(axis: VerticalAxis, func_name: str) -> None:
+    if axis.flag != 2:
+        raise NotImplementedError(
+            f"{func_name}() currently only supports pressure-level vertical axes (flag == 2)."
+        )
+
+
+def _level_coord(obj, axis: VerticalAxis) -> xr.DataArray:
+    if isinstance(obj, (xr.Dataset, xr.DataArray)) and "level" in obj.coords:
+        coord = obj.coords["level"]
+        if coord.ndim == 1:
+            return coord
+
+    return xr.DataArray(np.arange(len(axis.heights), dtype=int), dims=("level",), name="level")
+
+
+def _surface_slice(field):
+    if isinstance(field, xr.DataArray) and "level" in field.dims:
+        other_dims = [dim for dim in field.dims if dim != "level"]
+        if not other_dims:
+            return field.isel(level=0, drop=True)
+
+        valid = ~field.isnull().all(dim=other_dims)
+        valid_index = np.flatnonzero(np.asarray(valid.values))
+        if valid_index.size == 0:
+            return None
+        return field.isel(level=int(valid_index[0]), drop=True)
+    return field
+
+
+def _dataset_surface_field(dataset: xr.Dataset | xr.DataArray, name: str):
+    if not isinstance(dataset, xr.Dataset) or name not in dataset.data_vars:
+        return None
+    return _surface_slice(dataset[name])
+
+
+def _surface_pressure_field(
+    obj,
+    surface_pressure: xr.DataArray | npt.ArrayLike | None = None,
+):
+    if surface_pressure is not None:
+        field = _surface_slice(surface_pressure)
+        return field if field is not None else xr.DataArray(Surface.DEFAULT_PRESSURE)
+
+    dataset_pressure = _dataset_surface_field(obj, "PRSS")
+    if dataset_pressure is not None:
+        return dataset_pressure
+    return xr.DataArray(Surface.DEFAULT_PRESSURE)
+
+
+def _terrain_field(
+    obj,
+    terrain: xr.DataArray | npt.ArrayLike | None = None,
+    default_terrain: DefaultTerrain | None = None,
+):
+    if terrain is not None:
+        field = _surface_slice(terrain)
+        if field is None:
+            raise ValueError("Explicit terrain data must contain at least one valid slice.")
+        return field
+
+    dataset_terrain = _dataset_surface_field(obj, "SHGT")
+    if dataset_terrain is not None:
+        return dataset_terrain
+
+    if default_terrain is not None:
+        return default_terrain.to_xarray()
+
+    raise ValueError(
+        "Terrain is required to derive z_msl. Pass terrain=..., include SHGT in the "
+        "dataset, or opt in with default_terrain=DefaultTerrain(...)."
+    )
+
+
+def _pressure_level_values(axis: VerticalAxis) -> np.ndarray:
+    _require_pressure_axis(axis, "pressure")
+    return axis.heights.astype(float, copy=True)
+
+
+def _pressure_level_coord(obj, axis: VerticalAxis) -> xr.DataArray:
+    level_coord = _level_coord(obj, axis)
+    level_dim = level_coord.dims[0]
+    return xr.DataArray(
+        _pressure_level_values(axis),
+        dims=(level_dim,),
+        coords={level_dim: level_coord},
+        name="pressure",
+        attrs={"units": "hPa", "long_name": "pressure"},
+    )
+
+
+def _delta_z_for_pressure(pressure_levels: xr.DataArray) -> xr.DataArray:
+    p = np.asarray(pressure_levels.values, dtype=float)
+    delta_z = np.zeros_like(p, dtype=float)
+
+    mask1 = p >= 100.0
+    if np.any(mask1):
+        idx1 = np.clip((p[mask1] // 100).astype(int), 0, len(VerticalAxis.Z_PHI1) - 1)
+        delta_z[mask1] = VerticalAxis.Z_PHI1[idx1]
+
+    mask2 = ~mask1
+    if np.any(mask2):
+        idx2 = np.clip((p[mask2] // 10).astype(int), 0, len(VerticalAxis.Z_PHI2) - 1)
+        delta_z[mask2] = VerticalAxis.Z_PHI2[idx2]
+
+    return xr.DataArray(
+        delta_z,
+        dims=pressure_levels.dims,
+        coords=pressure_levels.coords,
+        name="delta_z",
+    )
+
+
+def _standardize_vertical_dims(data: xr.DataArray) -> xr.DataArray:
+    preferred = [
+        dim for dim in ("time", "level", "lat", "lon", "y", "x") if dim in data.dims
+    ]
+    remaining = [dim for dim in data.dims if dim not in preferred]
+    return data.transpose(*preferred, *remaining)
+
+
+def pressure(
+    obj,
+    *,
+    vertical_axis: VerticalAxis | None = None,
+) -> xr.DataArray | np.ndarray:
+    """
+    Return the native pressure coordinate for a pressure-level archive.
+    """
+    axis = _resolve_vertical_axis(obj, vertical_axis=vertical_axis)
+    _require_pressure_axis(axis, "pressure")
+
+    if isinstance(obj, (xr.Dataset, xr.DataArray)):
+        return _pressure_level_coord(obj, axis)
+    return _pressure_level_values(axis)
+
+
+def z_agl(
+    obj,
+    *,
+    vertical_axis: VerticalAxis | None = None,
+    surface_pressure: xr.DataArray | npt.ArrayLike | None = None,
+) -> xr.DataArray | np.ndarray:
+    """
+    Derive height above ground level for a pressure-level archive.
+    """
+    axis = _resolve_vertical_axis(obj, vertical_axis=vertical_axis)
+    _require_pressure_axis(axis, "z_agl")
+
+    if isinstance(obj, (xr.Dataset, xr.DataArray)):
+        pressure_levels = _pressure_level_coord(obj, axis)
+        surface_p = _surface_pressure_field(obj, surface_pressure=surface_pressure)
+        delta_z = _delta_z_for_pressure(pressure_levels)
+        result = (surface_p - pressure_levels) * delta_z
+        result = result.clip(min=0.0)
+        result = _standardize_vertical_dims(result)
+        result.name = "z_agl"
+        result.attrs.update(units="m", long_name="height above ground level")
+        return result
+
+    p = _pressure_level_values(axis)
+    p0 = (
+        np.asarray(surface_pressure, dtype=float)
+        if surface_pressure is not None
+        else np.asarray(Surface.DEFAULT_PRESSURE, dtype=float)
+    )
+    delta_z = np.asarray(_delta_z_for_pressure(xr.DataArray(p, dims=("level",))).values)
+    return np.maximum((p0 - p) * delta_z, 0.0)
+
+
+def z_msl(
+    obj,
+    *,
+    vertical_axis: VerticalAxis | None = None,
+    surface_pressure: xr.DataArray | npt.ArrayLike | None = None,
+    terrain: xr.DataArray | npt.ArrayLike | None = None,
+    default_terrain: DefaultTerrain | None = None,
+) -> xr.DataArray | np.ndarray:
+    """
+    Derive height above mean sea level for a pressure-level archive.
+    """
+    axis = _resolve_vertical_axis(obj, vertical_axis=vertical_axis)
+    _require_pressure_axis(axis, "z_msl")
+
+    if isinstance(obj, (xr.Dataset, xr.DataArray)):
+        agl = z_agl(
+            obj,
+            vertical_axis=axis,
+            surface_pressure=surface_pressure,
+        )
+        terrain_field = _terrain_field(
+            obj,
+            terrain=terrain,
+            default_terrain=default_terrain,
+        )
+        result = agl + terrain_field
+        result = _standardize_vertical_dims(result)
+        result.name = "z_msl"
+        result.attrs.update(units="m", long_name="height above mean sea level")
+        return result
+
+    if terrain is None:
+        raise ValueError(
+            "Terrain is required to derive z_msl outside xarray datasets. Pass terrain=..."
+        )
+    return z_agl(
+        obj,
+        vertical_axis=axis,
+        surface_pressure=surface_pressure,
+    ) + np.asarray(terrain, dtype=float)
+
+
+def _interp_profile(values, coords, target) -> np.float32:
+    values = np.asarray(values, dtype=float)
+    coords = np.asarray(coords, dtype=float)
+    target = float(np.asarray(target, dtype=float))
+
+    mask = np.isfinite(values) & np.isfinite(coords)
+    if mask.sum() < 2:
+        return np.float32(np.nan)
+
+    values = values[mask]
+    coords = coords[mask]
+    order = np.argsort(coords)
+    coords = coords[order]
+    values = values[order]
+
+    unique_coords, unique_index = np.unique(coords, return_index=True)
+    unique_values = values[unique_index]
+    return np.float32(
+        np.interp(target, unique_coords, unique_values, left=np.nan, right=np.nan)
+    )
+
+
+def interp_vertical(
+    data: xr.DataArray,
+    target: float | xr.DataArray,
+    *,
+    coord: str = "pressure",
+    dataset: xr.Dataset | None = None,
+    vertical_axis: VerticalAxis | None = None,
+    surface_pressure: xr.DataArray | npt.ArrayLike | None = None,
+    terrain: xr.DataArray | npt.ArrayLike | None = None,
+    default_terrain: DefaultTerrain | None = None,
+) -> xr.DataArray:
+    """
+    Interpolate a field along the native vertical dimension to a scalar target.
+    """
+    if not isinstance(data, xr.DataArray):
+        raise TypeError("interp_vertical() requires an xarray.DataArray.")
+    if "level" not in data.dims:
+        raise ValueError("interp_vertical() requires a DataArray with a 'level' dimension.")
+
+    context = dataset if dataset is not None else data
+    if coord == "pressure":
+        vertical_coord = pressure(context, vertical_axis=vertical_axis)
+    elif coord == "z_agl":
+        vertical_coord = z_agl(
+            context,
+            vertical_axis=vertical_axis,
+            surface_pressure=surface_pressure,
+        )
+    elif coord == "z_msl":
+        vertical_coord = z_msl(
+            context,
+            vertical_axis=vertical_axis,
+            surface_pressure=surface_pressure,
+            terrain=terrain,
+            default_terrain=default_terrain,
+        )
+    else:
+        raise ValueError("coord must be one of 'pressure', 'z_agl', or 'z_msl'.")
+
+    interpolated = xr.apply_ufunc(
+        _interp_profile,
+        data,
+        vertical_coord,
+        target,
+        input_core_dims=[["level"], ["level"], []],
+        output_core_dims=[[]],
+        vectorize=True,
+        dask="allowed",
+        output_dtypes=[np.float32],
+    )
+    interpolated.name = data.name
+    interpolated.attrs = data.attrs.copy()
+    interpolated.attrs["interpolated_vertical_coord"] = coord
+
+    if np.isscalar(target):
+        interpolated = interpolated.assign_coords({coord: float(target)})
+
+    return interpolated
+
+
 class Grid3D(Grid):
     def __init__(
         self,
