@@ -13,10 +13,11 @@ from .core import DataRecord, File, RecordSet
 from .grid import Grid, Projection
 from .metadata import Header, IndexRecord
 from .packing import calculate_checksum, pack, unpack
+from .sampling import sample_points, terrain
 from .subset import extract_subset
+from .surface import Surface
 from .vertical import (
     Grid3D,
-    Surface,
     VerticalAxis,
     interp_vertical,
     pressure,
@@ -46,4 +47,6 @@ __all__ = [
     "pack",
     "unpack",
     "extract_subset",
+    "terrain",
+    "sample_points",
 ]

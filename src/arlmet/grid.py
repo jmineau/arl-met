@@ -439,6 +439,55 @@ class Grid:
 
         return coords
 
+    def fractional_indices(
+        self, lon: np.ndarray | float, lat: np.ndarray | float
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Convert geographic coordinates to zero-based fractional grid indices.
+
+        Parameters
+        ----------
+        lon, lat : array-like or float
+            Geographic coordinates in degrees.
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray]
+            Fractional ``(x, y)`` grid indices with the same broadcast shape as the
+            input coordinates.
+        """
+        lon_arr, lat_arr = np.broadcast_arrays(
+            np.asarray(lon, dtype=float),
+            np.asarray(lat, dtype=float),
+        )
+
+        if self.is_latlon:
+            lon_0, lat_0 = self.origin
+            dlon = self.projection.tangent_lon
+            dlat = self.projection.tangent_lat
+            if dlon == 0.0 or dlat == 0.0:
+                raise ValueError(
+                    "Lat/lon grids require non-zero tangent_lon and tangent_lat spacing."
+                )
+
+            lon_offset = ((lon_arr - lon_0 + 180.0) % 360.0) - 180.0
+            x = lon_offset / dlon
+            y = (lat_arr - lat_0) / dlat
+            return x.astype(float, copy=False), y.astype(float, copy=False)
+
+        transformer = pyproj.Transformer.from_crs(
+            "EPSG:4326",
+            self.crs,
+            always_xy=True,
+        )
+        proj_x, proj_y = transformer.transform(lon_arr, lat_arr)
+        step = self.projection.grid_size * 1000.0
+        if step == 0.0:
+            raise ValueError("Projected grids require a non-zero grid_size.")
+        x = np.asarray(proj_x, dtype=float) / step
+        y = np.asarray(proj_y, dtype=float) / step
+        return x, y
+
     def full_window(self) -> GridWindow:
         """
         Full-grid window spanning the entire domain.

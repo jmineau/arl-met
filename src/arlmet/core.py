@@ -1,7 +1,7 @@
 import io
 from abc import abstractmethod
 from collections import OrderedDict
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from functools import wraps
 from pathlib import Path
 from typing import Any, Literal
@@ -15,7 +15,8 @@ from xarray.backends import CachingFileManager
 from arlmet.grid import Grid, GridWindow, Projection
 from arlmet.metadata import Header, IndexRecord, LvlInfo, VarInfo, split_grid_component
 from arlmet.packing import calculate_checksum, pack, unpack
-from arlmet.vertical import Surface, VerticalAxis
+from arlmet.surface import Surface
+from arlmet.vertical import VerticalAxis
 
 
 def require_mode(*allowed_modes):
@@ -1087,6 +1088,31 @@ class File(RecordCollection):
             # Close the file manager
             self._manager.close()
             # TODO do i need to close mmaps?
+
+    def terrain(self, time: pd.Timestamp | str | None = None) -> np.ndarray:
+        from arlmet.sampling import terrain_from_file
+
+        return terrain_from_file(self, time=time)
+
+    def sample_points(
+        self,
+        points: Any,
+        variables: str | Iterable[str],
+        *,
+        time: pd.Timestamp | str | None = None,
+        z_kind: str = "pressure",
+        method: str = "linear",
+    ) -> pd.DataFrame:
+        from arlmet.sampling import sample_points_from_file
+
+        return sample_points_from_file(
+            self,
+            points,
+            variables,
+            time=time,
+            z_kind=z_kind,
+            method=method,
+        )
 
     def __getitem__(self, key) -> RecordSet:
         if isinstance(key, str):
