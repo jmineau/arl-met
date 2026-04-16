@@ -192,6 +192,72 @@ class TestWriter:
         with pytest.raises(ValueError, match="forecast"):
             write_dataset(ds, written_path)
 
+    def test_write_dataset_accepts_scalar_time_level_and_omits_all_nan_slices(
+        self, tmp_path
+    ):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False).load().isel(time=0, level=0)
+
+        write_dataset(ds, written_path)
+
+        reopened = open_dataset(written_path, squeeze=False)
+        assert list(reopened.data_vars) == ["PRSS"]
+        assert reopened.sizes["time"] == 1
+        assert reopened.sizes["level"] == 1
+        np.testing.assert_array_equal(reopened.coords["forecast"].values, [0])
+
+    def test_write_dataset_rejects_partial_nan_slice(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False).load()
+        ds["PRSS"].data[0, 0, 0, 0] = np.nan
+
+        with pytest.raises(ValueError, match="partially-missing slice"):
+            write_dataset(ds, written_path)
+
+    def test_write_dataset_rejects_malformed_serialized_grid_metadata(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False)
+        del ds.attrs["grid"]
+        del ds.attrs["vertical_axis"]
+        ds.attrs["arl_nx"] = "not-an-int"
+
+        with pytest.raises(ValueError, match="ARL grid metadata"):
+            write_dataset(ds, written_path)
+
+    def test_write_dataset_rejects_malformed_serialized_vertical_metadata(
+        self, tmp_path
+    ):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False)
+        del ds.attrs["grid"]
+        del ds.attrs["vertical_axis"]
+        ds.attrs["arl_vertical_flag"] = "bad-flag"
+
+        with pytest.raises(ValueError, match="ARL vertical metadata"):
+            write_dataset(ds, written_path)
+
+    def test_write_dataset_rejects_dif_variables(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False).load().rename({"PRSS": "DIFW"})
+
+        with pytest.raises(NotImplementedError, match="DIF"):
+            write_dataset(ds, written_path)
+
     @staticmethod
     def _pack_args(data: np.ndarray) -> tuple[bytes, int, int, float, int, float, type[np]]:
         packed, precision, exponent, initial_value = pack(data)

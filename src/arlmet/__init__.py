@@ -14,7 +14,7 @@ from .grid import Grid, Projection
 from .metadata import Header, IndexRecord
 from .packing import calculate_checksum, pack, unpack
 from .vertical import Grid3D, Surface, VerticalAxis
-from .xarray_io import open_dataset, write_dataset
+from .xarray import open_dataset, write_dataset
 
 __all__ = [
     "File",

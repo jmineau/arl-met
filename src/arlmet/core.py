@@ -432,49 +432,9 @@ class DataRecord:
         fh.write(raw)
 
     def to_xarray(self, squeeze=True) -> xr.DataArray:
-        """
-        Convert this DataRecord to an xarray DataArray.
-        """
-        # Construct 2D DataArray
-        da = xr.DataArray(
-            data=self.data,
-            dims=self.grid.dims,
-            coords=self.grid.calculate_coords(),
-            name=self.variable,
-        )
+        from arlmet.xarray import datarecord_to_xarray
 
-        # Expand to 4D
-        # Otherwise we cant assign derived coords to dims that don't exist
-        da = da.expand_dims(("time", "level"))
-
-        # Get derived level coordinates
-        z_coords = self.recordset.vertical_axis.calculate_coords()
-        level = self.level
-        height = z_coords["height"][level]
-        # height_agl = coords['height_agl'][level]
-        # height_msl = coords['height_msl'][level]
-
-        # Add time and level coordinates
-        da = da.assign_coords(
-            time=[self.time],
-            forecast=("time", [self.forecast]),
-            level=[level],
-            height=("level", [height]),
-            # height_agl=('level', [height_agl]),
-            # height_msl=('level', [height_msl]),
-        )
-
-        # Sort on dims
-        # da = da.sortby(da.dims)
-
-        # Add attributes
-        da.attrs.update(**self.recordset.attrs)
-
-        # Apply CF conventions TODO
-        # if apply_cf:
-        #     pass
-
-        return da.squeeze() if squeeze else da
+        return datarecord_to_xarray(self, squeeze=squeeze)
 
 
 class RecordCollection(Mapping):
@@ -500,7 +460,7 @@ class RecordCollection(Mapping):
 
     @property
     def attrs(self) -> dict:
-        from arlmet.xarray_io import record_collection_attrs
+        from arlmet.xarray import record_collection_attrs
 
         return record_collection_attrs(self)
 
@@ -534,31 +494,13 @@ class RecordCollection(Mapping):
         return Header.N_BYTES + nxy
 
     def to_xarray(self, drop_variables=None, squeeze=True) -> xr.Dataset | xr.DataArray:
-        """
-        Convert the entire container to an xarray Dataset.
-        """
+        from arlmet.xarray import record_collection_to_xarray
 
-        drop_variables = drop_variables or []
-
-        ds = xr.combine_by_coords(
-            [
-                (
-                    dr.to_xarray(squeeze=False).drop_vars("forecast")
-                )  # forecast can change between variables
-                # TODO when we cant merge forecast, then we should demote forecast to attrs on each variable with the same shape as time dim
-                # This will us to go round trip from xarray <-> arlmet
-                for dr in self.records
-                if dr.variable not in drop_variables
-            ],
-            join="outer",
-            compat="no_conflicts",
-            coords="different",
+        return record_collection_to_xarray(
+            self,
+            drop_variables=drop_variables,
+            squeeze=squeeze,
         )
-        from arlmet.xarray_io import attach_record_collection_metadata
-
-        ds = attach_record_collection_metadata(self, ds)
-
-        return ds.squeeze() if squeeze else ds
 
 
 class VariableView:
@@ -596,20 +538,9 @@ class VariableView:
         return self.data.shape
 
     def to_xarray(self, squeeze=True) -> xr.DataArray:
-        """Converts the view to an xarray DataArray."""
-        da = xr.combine_by_coords(
-            [
-                dr.to_xarray(squeeze=False)
-                for dr in self.source.records
-                if dr.variable == self.name
-            ],
-            join="outer",
-            compat="no_conflicts",
-            coords="different",
-        )
-        if isinstance(da, xr.Dataset):
-            da = da[self.name]
-        return da.squeeze() if squeeze else da
+        from arlmet.xarray import variable_view_to_xarray
+
+        return variable_view_to_xarray(self, squeeze=squeeze)
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         """Compute the dask array and return a numpy array."""

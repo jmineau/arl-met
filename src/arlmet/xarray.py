@@ -1,7 +1,7 @@
-"""xarray-facing read and write helpers for ARL meteorology files."""
+"""xarray-facing read, write, and conversion helpers for ARL meteorology files."""
 
 from collections.abc import Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
@@ -10,6 +10,9 @@ import xarray as xr
 from arlmet.core import File
 from arlmet.grid import Grid, Projection
 from arlmet.vertical import VerticalAxis
+
+if TYPE_CHECKING:
+    from arlmet.core import DataRecord, RecordCollection, VariableView
 
 PROJECTION_ATTRS = (
     "pole_lat",
@@ -43,7 +46,7 @@ def grid_from_attrs(attrs: Mapping[str, Any]) -> Grid:
         )
         nx = int(attrs["arl_nx"])
         ny = int(attrs["arl_ny"])
-    except KeyError as exc:
+    except (KeyError, TypeError, ValueError) as exc:
         raise ValueError(
             "Dataset is missing ARL grid metadata. Expected a Grid in attrs['grid'] "
             "or serialized 'arl_*' projection attributes."
@@ -63,17 +66,23 @@ def vertical_axis_from_attrs(attrs: Mapping[str, Any]) -> VerticalAxis:
     try:
         flag = int(attrs["arl_vertical_flag"])
         levels = attrs["arl_vertical_levels"]
-    except KeyError as exc:
+        offset = float(attrs.get("arl_vertical_offset", 0.0))
+    except (KeyError, TypeError, ValueError) as exc:
         raise ValueError(
             "Dataset is missing ARL vertical metadata. Expected a VerticalAxis in "
             "attrs['vertical_axis'] or serialized 'arl_vertical_*' attributes."
         ) from exc
 
-    offset = float(attrs.get("arl_vertical_offset", 0.0))
-    return VerticalAxis(flag=flag, levels=levels, offset=offset)
+    try:
+        return VerticalAxis(flag=flag, levels=levels, offset=offset)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "Dataset is missing ARL vertical metadata. Expected a VerticalAxis in "
+            "attrs['vertical_axis'] or serialized 'arl_vertical_*' attributes."
+        ) from exc
 
 
-def record_collection_attrs(source) -> dict[str, Any]:
+def record_collection_attrs(source: "RecordCollection") -> dict[str, Any]:
     attrs = {
         "source": source.source,
         "arl_source": source.source,
@@ -93,10 +102,11 @@ def record_collection_attrs(source) -> dict[str, Any]:
     return attrs
 
 
-def attach_record_collection_metadata(source, ds: xr.Dataset) -> xr.Dataset:
+def attach_record_collection_metadata(
+    source: "RecordCollection", ds: xr.Dataset
+) -> xr.Dataset:
     ds.attrs.update(record_collection_attrs(source))
-    records = getattr(source, "records", [])
-    if not records:
+    if not source.records:
         return ds
 
     forecast_by_time = source.forecast_by_time
@@ -111,6 +121,75 @@ def attach_record_collection_metadata(source, ds: xr.Dataset) -> xr.Dataset:
 
     only_forecast = next(iter(forecast_by_time.values()))
     return ds.assign_coords(forecast=only_forecast)
+
+
+def datarecord_to_xarray(record: "DataRecord", squeeze: bool = True) -> xr.DataArray:
+    """
+    Convert a DataRecord into an xarray.DataArray.
+    """
+    da = xr.DataArray(
+        data=record.data,
+        dims=record.grid.dims,
+        coords=record.grid.calculate_coords(),
+        name=record.variable,
+    )
+
+    da = da.expand_dims(("time", "level"))
+
+    z_coords = record.recordset.vertical_axis.calculate_coords()
+    level = record.level
+    height = z_coords["height"][level]
+
+    da = da.assign_coords(
+        time=[record.time],
+        forecast=("time", [record.forecast]),
+        level=[level],
+        height=("level", [height]),
+    )
+    da.attrs.update(**record.recordset.attrs)
+    return da.squeeze() if squeeze else da
+
+
+def record_collection_to_xarray(
+    source: "RecordCollection", drop_variables=None, squeeze: bool = True
+) -> xr.Dataset | xr.DataArray:
+    """
+    Convert a RecordCollection into an xarray Dataset.
+    """
+    drop_variables = drop_variables or []
+
+    ds = xr.combine_by_coords(
+        [
+            dr.to_xarray(squeeze=False).drop_vars("forecast")
+            for dr in source.records
+            if dr.variable not in drop_variables
+        ],
+        join="outer",
+        compat="no_conflicts",
+        coords="different",
+    )
+
+    ds = attach_record_collection_metadata(source, ds)
+    return ds.squeeze() if squeeze else ds
+
+
+def variable_view_to_xarray(view: "VariableView", squeeze: bool = True) -> xr.DataArray:
+    """
+    Convert a VariableView into an xarray DataArray.
+    """
+    da = xr.combine_by_coords(
+        [
+            dr.to_xarray(squeeze=False)
+            for dr in view.source.records
+            if dr.variable == view.name
+        ],
+        join="outer",
+        compat="no_conflicts",
+        coords="different",
+    )
+    if isinstance(da, xr.Dataset):
+        da = da[view.name]
+    return da.squeeze() if squeeze else da
 
 
 def _expand_scalar_dim(ds: xr.Dataset, dim: str) -> xr.Dataset:
@@ -240,8 +319,8 @@ def write_dataset(ds: xr.Dataset, filename_or_obj) -> None:
         vertical_axis=vertical_axis,
     ) as arl:
         for time_index, time in enumerate(times):
-            recordset = arl.create_recordset(pd.Timestamp(time))
             forecast = int(forecasts[time_index])
+            pending_records: list[tuple[str, int, np.ndarray]] = []
 
             for name, da in ds.data_vars.items():
                 if len(name) > 4:
@@ -275,9 +354,16 @@ def write_dataset(ds: xr.Dataset, filename_or_obj) -> None:
                             f"Variable '{name}' contains non-finite values that cannot be packed."
                         )
 
-                    recordset.create_datarecord(
-                        variable=name,
-                        level=int(level_idx),
-                        forecast=forecast,
-                        data=data,
-                    )
+                    pending_records.append((name, int(level_idx), data))
+
+            if not pending_records:
+                continue
+
+            recordset = arl.create_recordset(pd.Timestamp(time))
+            for name, level_idx, data in pending_records:
+                recordset.create_datarecord(
+                    variable=name,
+                    level=level_idx,
+                    forecast=forecast,
+                    data=data,
+                )
