@@ -1,11 +1,14 @@
 """xarray-facing read, write, and conversion helpers for ARL meteorology files."""
 
+from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
 import xarray as xr
+from xarray.backends.common import BackendArray
+from xarray.core import indexing
 
 from arlmet.core import File
 from arlmet.grid import Grid, Projection
@@ -28,6 +31,70 @@ PROJECTION_ATTRS = (
     "sync_lat",
     "sync_lon",
 )
+
+
+class ArlVariableArray(BackendArray):
+    """
+    Backend-style lazy array for a single ARL variable.
+    """
+
+    def __init__(
+        self,
+        *,
+        records: dict[tuple[int, int], "DataRecord"],
+        shape: tuple[int, int, int, int],
+        window=None,
+    ):
+        self.records = records
+        self.shape = shape
+        self.dtype = np.dtype(np.float32)
+        self.window = window
+
+    def __getitem__(self, key):
+        return indexing.explicit_indexing_adapter(
+            key,
+            self.shape,
+            indexing.IndexingSupport.OUTER_1VECTOR,
+            self._getitem,
+        )
+
+    def _getitem(self, key):
+        if len(key) != 4:
+            raise IndexError(f"ARL variable arrays expect 4 indexers, got {len(key)}.")
+
+        t_idx, t_scalar = _normalize_backend_indexer(key[0], self.shape[0])
+        z_idx, z_scalar = _normalize_backend_indexer(key[1], self.shape[1])
+        y_idx, y_scalar = _normalize_backend_indexer(key[2], self.shape[2])
+        x_idx, x_scalar = _normalize_backend_indexer(key[3], self.shape[3])
+
+        out = np.full(
+            (len(t_idx), len(z_idx), len(y_idx), len(x_idx)),
+            np.nan,
+            dtype=np.float32,
+        )
+        for time_pos, time_idx in enumerate(t_idx):
+            for level_pos, level_idx in enumerate(z_idx):
+                record = self.records.get((int(time_idx), int(level_idx)))
+                if record is None:
+                    continue
+                field = record.read(window=self.window)
+                out[time_pos, level_pos] = field[np.ix_(y_idx, x_idx)]
+
+        for axis, is_scalar in reversed(
+            list(enumerate((t_scalar, z_scalar, y_scalar, x_scalar)))
+        ):
+            if is_scalar:
+                out = np.take(out, 0, axis=axis)
+        return out
+
+
+def _normalize_backend_indexer(indexer, size: int) -> tuple[np.ndarray, bool]:
+    base = np.arange(size, dtype=int)
+    if isinstance(indexer, slice):
+        return np.asarray(base[indexer], dtype=int), False
+    if isinstance(indexer, np.ndarray):
+        return np.asarray(base[indexer], dtype=int).reshape(-1), False
+    return np.asarray([base[indexer]], dtype=int), True
 
 
 def grid_to_attrs(grid: Grid) -> dict[str, Any]:
@@ -193,34 +260,7 @@ def variable_view_to_xarray(view: "VariableView", squeeze: bool = True) -> xr.Da
     return da.squeeze() if squeeze else da
 
 
-def _selected_record_to_xarray(
-    record: "DataRecord",
-    *,
-    data: np.ndarray,
-    grid: Grid,
-    coords: dict[str, Any],
-    squeeze: bool = True,
-) -> xr.DataArray:
-    da = xr.DataArray(
-        data=data,
-        dims=grid.dims,
-        coords=coords,
-        name=record.variable,
-    )
-    da = da.expand_dims(("time", "level"))
-
-    z_coords = record.recordset.vertical_axis.calculate_coords()
-    height = z_coords["height"][record.level]
-    da = da.assign_coords(
-        time=[record.time],
-        forecast=("time", [record.forecast]),
-        level=[record.level],
-        height=("level", [height]),
-    )
-    return da.squeeze() if squeeze else da
-
-
-def _assign_subset_metadata(
+def _assign_dataset_metadata(
     ds: xr.Dataset,
     *,
     source: str,
@@ -250,8 +290,8 @@ def _assign_subset_metadata(
     return ds
 
 
-def _open_subset_dataset(
-    filename_or_obj,
+def _build_dataset_from_file(
+    met: File,
     *,
     bbox: tuple[float, float, float, float] | None,
     levels: list[int] | tuple[int, ...] | None,
@@ -259,64 +299,75 @@ def _open_subset_dataset(
     squeeze: bool = True,
 ) -> xr.Dataset:
     drop_variables = set(drop_variables or [])
+    window = resolve_window(met, bbox)
+    read_window = None if bbox is None else window
+    selected_grid = met.grid if bbox is None else met.grid.subset(window)
+    requested_levels = None if levels is None else normalize_levels(met.vertical_axis, levels)
+    requested_level_set = None if requested_levels is None else set(requested_levels)
 
-    with File(filename_or_obj) as met:
-        window = resolve_window(met, bbox)
-        subset_grid = met.grid.subset(window)
-        selected_levels = normalize_levels(met.vertical_axis, levels)
-        selected_level_set = set(selected_levels)
-        coords = subset_grid.calculate_coords()
+    selected_recordsets: list[tuple[pd.Timestamp, int, list[DataRecord]]] = []
+    present_levels: OrderedDict[int, None] = OrderedDict()
 
-        arrays = []
-        forecast_by_time: dict[pd.Timestamp, int] = {}
-        for time in met.times:
-            selected_records = [
-                record
-                for record in select_records(
-                    met[time].records,
-                    levels=selected_level_set,
-                )
-                if record.variable not in drop_variables
-            ]
-            if not selected_records:
-                continue
+    for time in met.times:
+        selected_records = [
+            record
+            for record in select_records(met[time].records, levels=requested_level_set)
+            if record.variable not in drop_variables
+        ]
+        if not selected_records:
+            continue
 
-            time_forecasts = {record.forecast for record in selected_records}
-            if len(time_forecasts) != 1:
-                raise ValueError(
-                    f"Subset selection contains multiple forecast hours for time {time}."
-                )
-            forecast_by_time[time] = time_forecasts.pop()
+        forecasts = {record.forecast for record in selected_records}
+        if len(forecasts) != 1:
+            raise ValueError(f"Selection contains multiple forecast hours for time {time}.")
 
-            for record in selected_records:
-                arrays.append(
-                    _selected_record_to_xarray(
-                        record,
-                        data=record.read(window=window),
-                        grid=subset_grid,
-                        coords=coords,
-                        squeeze=False,
-                    ).drop_vars("forecast")
-                )
+        for record in selected_records:
+            present_levels.setdefault(record.level, None)
+        selected_recordsets.append((pd.Timestamp(time), forecasts.pop(), selected_records))
 
-        if arrays:
-            ds = xr.combine_by_coords(
-                arrays,
-                join="outer",
-                compat="no_conflicts",
-                coords="different",
-            )
-        else:
-            ds = xr.Dataset()
+    selected_levels = (
+        list(requested_levels) if requested_levels is not None else list(present_levels)
+    )
+    level_pos = {level: pos for pos, level in enumerate(selected_levels)}
 
-        ds = _assign_subset_metadata(
-            ds,
-            source=met.source,
-            grid=subset_grid,
-            vertical_axis=met.vertical_axis,
-            forecast_by_time=forecast_by_time,
+    coords = selected_grid.calculate_coords()
+    ds = xr.Dataset(coords=coords)
+    ds = ds.assign_coords(
+        level=("level", list(selected_levels)),
+        height=("level", met.vertical_axis.heights[list(selected_levels)]),
+    )
+
+    times: list[pd.Timestamp] = []
+    forecast_by_time: OrderedDict[pd.Timestamp, int] = OrderedDict()
+    records_by_variable: dict[str, dict[tuple[int, int], Any]] = defaultdict(dict)
+
+    for time_pos, (time, forecast, selected_records) in enumerate(selected_recordsets):
+        times.append(time)
+        forecast_by_time[time] = forecast
+        for record in selected_records:
+            records_by_variable[record.variable][(time_pos, level_pos[record.level])] = record
+
+    if times:
+        ds = ds.assign_coords(time=("time", times))
+
+    shape = (len(times), len(selected_levels), selected_grid.ny, selected_grid.nx)
+    dims = ("time", "level", *selected_grid.dims)
+    for name in sorted(records_by_variable):
+        backend = ArlVariableArray(
+            records=records_by_variable[name],
+            shape=shape,
+            window=read_window,
         )
-        return ds.squeeze() if squeeze else ds
+        ds[name] = xr.Variable(dims, indexing.LazilyIndexedArray(backend))
+
+    ds = _assign_dataset_metadata(
+        ds,
+        source=met.source,
+        grid=selected_grid,
+        vertical_axis=met.vertical_axis,
+        forecast_by_time=forecast_by_time,
+    )
+    return ds.squeeze() if squeeze else ds
 
 
 def _expand_scalar_dim(ds: xr.Dataset, dim: str) -> xr.Dataset:
@@ -395,18 +446,14 @@ def open_dataset(
     """
     Open an ARLMet file and convert it to an xarray Dataset.
     """
-    if bbox is not None or levels is not None:
-        return _open_subset_dataset(
-            filename_or_obj,
-            bbox=bbox,
-            levels=levels,
-            drop_variables=drop_variables,
-            squeeze=squeeze,
-        )
-
     met = File(filename_or_obj)
-    ds = met.to_xarray(drop_variables=drop_variables, squeeze=squeeze)
-    return ds if isinstance(ds, xr.Dataset) else ds.to_dataset()
+    return _build_dataset_from_file(
+        met,
+        bbox=bbox,
+        levels=levels,
+        drop_variables=drop_variables,
+        squeeze=squeeze,
+    )
 
 
 def write_dataset(ds: xr.Dataset, filename_or_obj) -> None:

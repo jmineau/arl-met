@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from xarray.core import indexing
 
 from arlmet import File, open_dataset, write_dataset
 from arlmet.grid import Grid, Projection
@@ -166,6 +167,15 @@ class TestWriter:
                 np.asarray(original[name]),
                 atol=1e-6,
             )
+
+    def test_open_dataset_uses_lazy_variable_arrays_without_dask(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False)
+
+        assert isinstance(ds["PRSS"].variable._data, indexing.LazilyIndexedArray)
+        assert ds["PRSS"].variable._data.array.__class__.__name__ == "ArlVariableArray"
 
     def test_write_dataset_uses_serialized_metadata_attrs(self, tmp_path):
         source_path = tmp_path / "source.arl"

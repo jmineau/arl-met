@@ -1,11 +1,7 @@
-import importlib.util
-
 import numpy as np
 from numpy import typing as npt
 
 from arlmet.grid import GridWindow
-
-DASK_AVAILABLE = importlib.util.find_spec("dask") is not None
 
 
 def calculate_checksum(packed: bytes | bytearray) -> int:
@@ -124,7 +120,7 @@ def unpack(
         The initial real value at the grid position (0,0).
     driver : module, optional
         The array library to use for computations (e.g., numpy, dask.array).
-        If None, numpy is used by default, or dask.array if available.
+        If None, numpy is used by default.
     window : GridWindow, optional
         Rectangular grid window to unpack. When provided, only the requested
         subset is reconstructed.
@@ -149,16 +145,12 @@ def unpack(
         )
 
     if driver is None:
-        if DASK_AVAILABLE:  # prefer dask if available
-            import dask.array as da
-
-            driver = da
-        else:  #  default to numpy
-            driver = np
+        driver = np
 
     # Convert packed bytes to array using the specified driver
-    if DASK_AVAILABLE and driver.__name__ == "dask.array":
+    if getattr(driver, "__name__", "") == "dask.array":
         import dask
+        import dask.array as da
 
         # Delay conversion from buffer to array
         packed_arr = da.from_delayed(

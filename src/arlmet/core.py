@@ -1,4 +1,3 @@
-import importlib.util
 import io
 from abc import abstractmethod
 from collections import OrderedDict
@@ -17,8 +16,6 @@ from arlmet.grid import Grid, GridWindow, Projection
 from arlmet.metadata import Header, IndexRecord, LvlInfo, VarInfo, split_grid_component
 from arlmet.packing import calculate_checksum, pack, unpack
 from arlmet.vertical import Surface, VerticalAxis
-
-DASK_AVAILABLE = importlib.util.find_spec("dask") is not None
 
 
 def require_mode(*allowed_modes):
@@ -153,8 +150,9 @@ class DataRecord:
     def header(self) -> Header:
         if not isinstance(self._header, Header):
             if self.mode == "r":
-                # Parse header from bytes
-                header = Header.from_bytes(self.bytes[: Header.N_BYTES])
+                fh = self.recordset.file._manager.acquire()
+                fh.seek(self.position)
+                header = Header.from_bytes(fh.read(Header.N_BYTES))
 
                 if header.variable != self.variable or header.level != self.level:
                     raise ValueError(
@@ -274,7 +272,9 @@ class DataRecord:
             True if the checksum matches, False otherwise.
         """
         if self.mode == "r":
-            packed = self.bytes[Header.N_BYTES :]
+            fh = self.recordset.file._manager.acquire()
+            fh.seek(self.position + Header.N_BYTES)
+            packed = fh.read(self.n_bytes - Header.N_BYTES)
         else:
             packed = self._pack().tobytes()
 
@@ -300,7 +300,7 @@ class DataRecord:
         Get the data for this record.
 
         If the data has already been loaded, returns the cached data.
-        If dask is available, returns a dask array that lazily loads the data from disk.
+        Otherwise, reads and unpacks the record eagerly as a NumPy array.
 
         Returns
         -------
@@ -309,22 +309,7 @@ class DataRecord:
         """
         if self._unpacked is None:
             if self.mode == "r":
-                if DASK_AVAILABLE:
-                    import dask
-                    import dask.array as da
-
-                    nxy = self.grid.nx * self.grid.ny
-                    if nxy > 10**9:
-                        # For large data grids (> 1GB), add dask layers for each computation step
-                        unpacked = self._load_from_disk(driver=da)
-                    else:  # For smaller data grids, delay the loading the entire grid at once
-                        unpacked = dask.delayed(self._load_from_disk)(driver=np)
-                        unpacked = da.from_delayed(
-                            unpacked, shape=self.shape, dtype=self.dtype
-                        )
-                else:
-                    unpacked = self._load_from_disk()
-                self._unpacked = unpacked
+                self._unpacked = self.read()
             else:
                 raise ValueError("No data to read.")
         return self._unpacked
@@ -547,7 +532,8 @@ class RecordCollection(Mapping):
 class VariableView:
     """
     A lazy, multidimensional view of a single variable, providing access to
-    its data as a dask array and facilitating conversion to an xarray.DataArray.
+    its data as an xarray-backed lazy array and facilitating conversion to an
+    xarray.DataArray.
 
     This view can represent a 4D cube (time, level, y, x) from a File object
     or a 3D slice (level, y, x) from a RecordSet object.
@@ -561,7 +547,7 @@ class VariableView:
 
     @property
     def data(self) -> npt.NDArray:
-        """The Dask array representing the full variable view, always as 4D."""
+        """The array representing the full variable view, always as 4D."""
         return self.to_xarray().data
 
     @property
@@ -584,11 +570,11 @@ class VariableView:
         return variable_view_to_xarray(self, squeeze=squeeze)
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
-        """Compute the dask array and return a numpy array."""
+        """Compute the array and return a numpy array."""
         return np.asarray(self.data, dtype=dtype, copy=copy)
 
     def __getitem__(self, key) -> npt.ArrayLike:
-        """Slice the lazy dask array."""
+        """Slice the lazy array."""
         return self.data[key]
 
 
