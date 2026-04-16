@@ -2,6 +2,7 @@
 
 import numpy as np
 
+from arlmet.grid import GridWindow
 from arlmet.metadata import Header
 from arlmet.packing import calculate_checksum, pack, unpack
 
@@ -121,3 +122,22 @@ class TestPack:
 
         assert packed[0, 0] == 127
         assert packed[1, 0] > 127
+
+    def test_windowed_unpack_matches_full_subset(self):
+        unpacked = np.arange(1, 31, dtype=np.float32).reshape(5, 6)
+
+        packed, precision, exponent, initial_value = pack(unpacked)
+        window = GridWindow(x_start=2, x_stop=5, y_start=1, y_stop=4)
+
+        subset = unpack(
+            packed.tobytes(),
+            nx=6,
+            ny=5,
+            precision=precision,
+            exponent=exponent,
+            initial_value=initial_value,
+            window=window,
+            driver=np,
+        )
+
+        np.testing.assert_allclose(subset, unpacked[1:4, 2:5], atol=precision)

@@ -9,6 +9,7 @@ import xarray as xr
 
 from arlmet.core import File
 from arlmet.grid import Grid, Projection
+from arlmet.subset import normalize_levels, resolve_window, select_records
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
@@ -192,6 +193,132 @@ def variable_view_to_xarray(view: "VariableView", squeeze: bool = True) -> xr.Da
     return da.squeeze() if squeeze else da
 
 
+def _selected_record_to_xarray(
+    record: "DataRecord",
+    *,
+    data: np.ndarray,
+    grid: Grid,
+    coords: dict[str, Any],
+    squeeze: bool = True,
+) -> xr.DataArray:
+    da = xr.DataArray(
+        data=data,
+        dims=grid.dims,
+        coords=coords,
+        name=record.variable,
+    )
+    da = da.expand_dims(("time", "level"))
+
+    z_coords = record.recordset.vertical_axis.calculate_coords()
+    height = z_coords["height"][record.level]
+    da = da.assign_coords(
+        time=[record.time],
+        forecast=("time", [record.forecast]),
+        level=[record.level],
+        height=("level", [height]),
+    )
+    return da.squeeze() if squeeze else da
+
+
+def _assign_subset_metadata(
+    ds: xr.Dataset,
+    *,
+    source: str,
+    grid: Grid,
+    vertical_axis: VerticalAxis,
+    forecast_by_time: dict[pd.Timestamp, int],
+) -> xr.Dataset:
+    ds.attrs.update(
+        {
+            "source": source,
+            "arl_source": source,
+            "grid": grid,
+            "vertical_axis": vertical_axis,
+        }
+    )
+    ds.attrs.update(grid_to_attrs(grid))
+    ds.attrs.update(vertical_axis_to_attrs(vertical_axis))
+
+    if forecast_by_time:
+        if "time" in ds.dims:
+            times = pd.to_datetime(ds.coords["time"].values)
+            ds = ds.assign_coords(
+                forecast=("time", [forecast_by_time[pd.Timestamp(time)] for time in times])
+            )
+        else:
+            ds = ds.assign_coords(forecast=next(iter(forecast_by_time.values())))
+    return ds
+
+
+def _open_subset_dataset(
+    filename_or_obj,
+    *,
+    bbox: tuple[float, float, float, float] | None,
+    levels: list[int] | tuple[int, ...] | None,
+    drop_variables=None,
+    squeeze: bool = True,
+) -> xr.Dataset:
+    drop_variables = set(drop_variables or [])
+
+    with File(filename_or_obj) as met:
+        window = resolve_window(met, bbox)
+        subset_grid = met.grid.subset(window)
+        selected_levels = normalize_levels(met.vertical_axis, levels)
+        selected_level_set = set(selected_levels)
+        coords = subset_grid.calculate_coords()
+
+        arrays = []
+        forecast_by_time: dict[pd.Timestamp, int] = {}
+        for time in met.times:
+            selected_records = [
+                record
+                for record in select_records(
+                    met[time].records,
+                    levels=selected_level_set,
+                )
+                if record.variable not in drop_variables
+            ]
+            if not selected_records:
+                continue
+
+            time_forecasts = {record.forecast for record in selected_records}
+            if len(time_forecasts) != 1:
+                raise ValueError(
+                    f"Subset selection contains multiple forecast hours for time {time}."
+                )
+            forecast_by_time[time] = time_forecasts.pop()
+
+            for record in selected_records:
+                arrays.append(
+                    _selected_record_to_xarray(
+                        record,
+                        data=record.read(window=window),
+                        grid=subset_grid,
+                        coords=coords,
+                        squeeze=False,
+                    ).drop_vars("forecast")
+                )
+
+        if arrays:
+            ds = xr.combine_by_coords(
+                arrays,
+                join="outer",
+                compat="no_conflicts",
+                coords="different",
+            )
+        else:
+            ds = xr.Dataset()
+
+        ds = _assign_subset_metadata(
+            ds,
+            source=met.source,
+            grid=subset_grid,
+            vertical_axis=met.vertical_axis,
+            forecast_by_time=forecast_by_time,
+        )
+        return ds.squeeze() if squeeze else ds
+
+
 def _expand_scalar_dim(ds: xr.Dataset, dim: str) -> xr.Dataset:
     if dim in ds.dims:
         return ds
@@ -258,10 +385,25 @@ def extract_dataset_forecasts(ds: xr.Dataset) -> np.ndarray:
     return np.asarray(forecast.values, dtype=int)
 
 
-def open_dataset(filename_or_obj, drop_variables=None, squeeze=True):
+def open_dataset(
+    filename_or_obj,
+    drop_variables=None,
+    squeeze=True,
+    bbox: tuple[float, float, float, float] | None = None,
+    levels: list[int] | tuple[int, ...] | None = None,
+):
     """
     Open an ARLMet file and convert it to an xarray Dataset.
     """
+    if bbox is not None or levels is not None:
+        return _open_subset_dataset(
+            filename_or_obj,
+            bbox=bbox,
+            levels=levels,
+            drop_variables=drop_variables,
+            squeeze=squeeze,
+        )
+
     met = File(filename_or_obj)
     ds = met.to_xarray(drop_variables=drop_variables, squeeze=squeeze)
     return ds if isinstance(ds, xr.Dataset) else ds.to_dataset()

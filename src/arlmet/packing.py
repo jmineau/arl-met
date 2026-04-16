@@ -3,6 +3,8 @@ import importlib.util
 import numpy as np
 from numpy import typing as npt
 
+from arlmet.grid import GridWindow
+
 DASK_AVAILABLE = importlib.util.find_spec("dask") is not None
 
 
@@ -96,6 +98,7 @@ def unpack(
     exponent: int,
     initial_value: float,
     driver=None,
+    window: GridWindow | None = None,
 ) -> npt.ArrayLike:
     """
     Unpacks a differentially packed 2D array into a 2D numpy array.
@@ -122,6 +125,9 @@ def unpack(
     driver : module, optional
         The array library to use for computations (e.g., numpy, dask.array).
         If None, numpy is used by default, or dask.array if available.
+    window : GridWindow, optional
+        Rectangular grid window to unpack. When provided, only the requested
+        subset is reconstructed.
 
     Returns
     -------
@@ -129,6 +135,19 @@ def unpack(
         The unpacked 2D array with the same shape as `data`, using
         the specified `driver` array library.
     """
+    if window is not None:
+        if driver is not None and getattr(driver, "__name__", "") == "dask.array":
+            raise NotImplementedError("Windowed unpack is not implemented for dask.")
+        return _unpack_window(
+            packed=packed,
+            nx=nx,
+            ny=ny,
+            precision=precision,
+            exponent=exponent,
+            initial_value=initial_value,
+            window=window,
+        )
+
     if driver is None:
         if DASK_AVAILABLE:  # prefer dask if available
             import dask.array as da
@@ -188,3 +207,41 @@ def unpack(
 
     # Force float32 (4 bytes per value)
     return unpacked.astype(np.float32)
+
+
+def _unpack_window(
+    packed: bytes | bytearray,
+    nx: int,
+    ny: int,
+    precision: float,
+    exponent: int,
+    initial_value: float,
+    window: GridWindow,
+) -> npt.NDArray[np.float32]:
+    """
+    Unpack only a rectangular subset of the grid.
+    """
+    if window.x_stop > nx or window.y_stop > ny:
+        raise ValueError("GridWindow extends beyond the packed grid bounds.")
+
+    packed_arr = np.frombuffer(packed, dtype=np.uint8)
+    if packed_arr.shape[0] != ny * nx:
+        raise ValueError(
+            f"Packed data size {packed_arr.shape[0]} does not match expected size {ny * nx}."
+        )
+    packed_arr = packed_arr.reshape((ny, nx)).astype(np.float32)
+
+    scexp = 1.0 / (2.0 ** (7 - exponent))
+    row0_diffs = (packed_arr[: window.y_stop, 0] - 127.0) * scexp
+    row0_vals = np.cumsum(
+        np.concatenate((np.array([initial_value], dtype=np.float32), row0_diffs))
+    )[1:]
+
+    subset_diffs = (packed_arr[window.y_slice, 1 : window.x_stop] - 127.0) * scexp
+    subset_with_origin = np.concatenate(
+        (row0_vals[window.y_slice, np.newaxis], subset_diffs),
+        axis=1,
+    )
+    subset = np.cumsum(subset_with_origin, axis=1)[:, window.x_slice]
+    subset = np.where(np.abs(subset) < precision, 0.0, subset)
+    return subset.astype(np.float32)

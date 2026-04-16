@@ -216,6 +216,53 @@ class Projection:
         )
 
 
+@dataclass(frozen=True)
+class GridWindow:
+    """
+    Rectangular subset of a grid using zero-based half-open indices.
+
+    Parameters
+    ----------
+    x_start, x_stop : int
+        Inclusive start and exclusive stop indices in the x direction.
+    y_start, y_stop : int
+        Inclusive start and exclusive stop indices in the y direction.
+    """
+
+    x_start: int
+    x_stop: int
+    y_start: int
+    y_stop: int
+
+    def __post_init__(self) -> None:
+        if any(value < 0 for value in vars(self).values()):
+            raise ValueError("GridWindow indices must be non-negative.")
+        if self.x_stop <= self.x_start:
+            raise ValueError("GridWindow x_stop must be greater than x_start.")
+        if self.y_stop <= self.y_start:
+            raise ValueError("GridWindow y_stop must be greater than y_start.")
+
+    @property
+    def nx(self) -> int:
+        return self.x_stop - self.x_start
+
+    @property
+    def ny(self) -> int:
+        return self.y_stop - self.y_start
+
+    @property
+    def shape(self) -> tuple[int, int]:
+        return (self.ny, self.nx)
+
+    @property
+    def x_slice(self) -> slice:
+        return slice(self.x_start, self.x_stop)
+
+    @property
+    def y_slice(self) -> slice:
+        return slice(self.y_start, self.y_stop)
+
+
 class Grid:
     """
     Represents the 2D horizontal grid of the ARL data.
@@ -391,6 +438,98 @@ class Grid:
         }
 
         return coords
+
+    def full_window(self) -> GridWindow:
+        """
+        Full-grid window spanning the entire domain.
+        """
+        return GridWindow(x_start=0, x_stop=self.nx, y_start=0, y_stop=self.ny)
+
+    def window_from_bbox(
+        self, bbox: tuple[float, float, float, float]
+    ) -> GridWindow:
+        """
+        Resolve a geographic bounding box to grid indices.
+
+        Parameters
+        ----------
+        bbox : tuple[float, float, float, float]
+            Bounding box as ``(west, south, east, north)`` in degrees.
+            If ``west > east``, the box is assumed to cross the dateline.
+        """
+        west, south, east, north = bbox
+        if south > north:
+            raise ValueError("bbox south must be less than or equal to north.")
+
+        coords = self.calculate_coords()
+        lon_coord = coords["lon"]
+        lat_coord = coords["lat"]
+
+        if isinstance(lon_coord, tuple):
+            lons = np.asarray(lon_coord[1], dtype=float)
+        else:
+            lons = np.asarray(lon_coord, dtype=float)
+
+        if isinstance(lat_coord, tuple):
+            lats = np.asarray(lat_coord[1], dtype=float)
+        else:
+            lats = np.asarray(lat_coord, dtype=float)
+
+        if west <= east:
+            lon_mask = (lons >= west) & (lons <= east)
+        else:
+            lon_mask = (lons >= west) | (lons <= east)
+        lat_mask = (lats >= south) & (lats <= north)
+
+        if self.is_latlon:
+            x_idx = np.flatnonzero(lon_mask)
+            y_idx = np.flatnonzero(lat_mask)
+        else:
+            mask = lon_mask & lat_mask
+            if not np.any(mask):
+                raise ValueError("bbox does not intersect the grid.")
+            y_idx, x_idx = np.nonzero(mask)
+
+        if x_idx.size == 0 or y_idx.size == 0:
+            raise ValueError("bbox does not intersect the grid.")
+
+        return GridWindow(
+            x_start=int(x_idx.min()),
+            x_stop=int(x_idx.max()) + 1,
+            y_start=int(y_idx.min()),
+            y_stop=int(y_idx.max()) + 1,
+        )
+
+    def subset(self, window: GridWindow) -> "Grid":
+        """
+        Build a new grid definition for a rectangular subset.
+        """
+        if window.x_stop > self.nx or window.y_stop > self.ny:
+            raise ValueError("GridWindow extends beyond the grid bounds.")
+
+        coords = self.calculate_coords()
+        if self.is_latlon:
+            sync_lon = float(np.asarray(coords["lon"])[window.x_start])
+            sync_lat = float(np.asarray(coords["lat"])[window.y_start])
+        else:
+            sync_lon = float(np.asarray(coords["lon"][1])[window.y_start, window.x_start])
+            sync_lat = float(np.asarray(coords["lat"][1])[window.y_start, window.x_start])
+
+        projection = self.projection
+        subset_projection = Projection(
+            pole_lat=projection.pole_lat,
+            pole_lon=projection.pole_lon,
+            tangent_lat=projection.tangent_lat,
+            tangent_lon=projection.tangent_lon,
+            grid_size=projection.grid_size,
+            orientation=projection.orientation,
+            cone_angle=projection.cone_angle,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=sync_lat,
+            sync_lon=sync_lon,
+        )
+        return Grid(projection=subset_projection, nx=window.nx, ny=window.ny)
 
     def __repr__(self) -> str:
         return f"Grid(projection={self.projection}, nx={self.nx}, ny={self.ny})"

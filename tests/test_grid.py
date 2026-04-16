@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from arlmet.grid import Grid, Projection, wrap_lons
+from arlmet.grid import Grid, GridWindow, Projection, wrap_lons
 from arlmet.vertical import Grid3D, Surface, VerticalAxis
 
 
@@ -177,6 +177,48 @@ class TestGrid:
         assert "y" in grid.coords
         assert "lon" in grid.coords
         assert "lat" in grid.coords
+
+    def test_window_from_bbox_latlon(self):
+        proj = Projection(
+            pole_lat=90.0,
+            pole_lon=180.0,
+            tangent_lat=1.0,
+            tangent_lon=1.0,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=-10.0,
+            sync_lon=20.0,
+        )
+        grid = Grid(projection=proj, nx=20, ny=20)
+
+        window = grid.window_from_bbox((23.0, -7.0, 25.0, -5.0))
+
+        assert window == GridWindow(x_start=3, x_stop=6, y_start=3, y_stop=6)
+
+    def test_subset_updates_lower_left_sync_point(self):
+        proj = Projection(
+            pole_lat=90.0,
+            pole_lon=180.0,
+            tangent_lat=1.0,
+            tangent_lon=1.0,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=-10.0,
+            sync_lon=20.0,
+        )
+        grid = Grid(projection=proj, nx=20, ny=20)
+        subset = grid.subset(GridWindow(x_start=3, x_stop=6, y_start=3, y_stop=5))
+
+        assert subset.nx == 3
+        assert subset.ny == 2
+        np.testing.assert_allclose(subset.coords["lon"][0], 23.0)
+        np.testing.assert_allclose(subset.coords["lat"][0], -7.0)
 
 
 class TestVerticalAxis:

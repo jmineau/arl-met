@@ -13,6 +13,7 @@ from .core import DataRecord, File, RecordSet
 from .grid import Grid, Projection
 from .metadata import Header, IndexRecord
 from .packing import calculate_checksum, pack, unpack
+from .subset import extract_subset
 from .vertical import (
     Grid3D,
     Surface,
@@ -44,4 +45,5 @@ __all__ = [
     "calculate_checksum",
     "pack",
     "unpack",
+    "extract_subset",
 ]

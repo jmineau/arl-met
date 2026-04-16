@@ -13,7 +13,7 @@ import pandas as pd
 import xarray as xr
 from xarray.backends import CachingFileManager
 
-from arlmet.grid import Grid, Projection
+from arlmet.grid import Grid, GridWindow, Projection
 from arlmet.metadata import Header, IndexRecord, LvlInfo, VarInfo, split_grid_component
 from arlmet.packing import calculate_checksum, pack, unpack
 from arlmet.vertical import Surface, VerticalAxis
@@ -339,6 +339,47 @@ class DataRecord:
 
     def __getitem__(self, key) -> npt.NDArray:
         return self.data[key]
+
+    @require_mode("r")
+    def read(self, window: GridWindow | None = None) -> npt.NDArray[np.float32]:
+        """
+        Read this record eagerly, optionally unpacking only a subset window.
+        """
+        if window is None and isinstance(self._unpacked, np.ndarray):
+            return self._unpacked
+
+        fh = self.recordset.file.handle
+        fh.seek(self.position)
+        raw = fh.read(self.n_bytes)
+
+        header = self._header
+        if not isinstance(header, Header):
+            header = Header.from_bytes(raw[: Header.N_BYTES])
+            if header.variable != self.variable or header.level != self.level:
+                raise ValueError(
+                    f"DataRecord header mismatch at position {self.position}: "
+                    f"expected variable '{self.variable}' level {self.level}, "
+                    f"got variable '{header.variable}' level '{header.level}'"
+                )
+            self._header = header
+
+        unpacked = unpack(
+            packed=raw[Header.N_BYTES :],
+            nx=self.grid.nx,
+            ny=self.grid.ny,
+            precision=header.precision,
+            exponent=header.exponent,
+            initial_value=header.initial_value,
+            window=window,
+            driver=np,
+        )
+
+        if self._diff is not None:
+            unpacked = unpacked + self._diff.read(window=window)
+
+        if window is None and isinstance(unpacked, np.ndarray):
+            self._unpacked = unpacked
+        return np.asarray(unpacked, dtype=np.float32)
 
     @require_mode("w")
     def __setitem__(self, key, value) -> None:
