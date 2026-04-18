@@ -61,6 +61,42 @@ def write_sampling_file(path, *, time: pd.Timestamp, temp_offset: float = 0.0):
     }
 
 
+def write_deep_sampling_file(path, *, time: pd.Timestamp, temp_offset: float = 0.0):
+    grid = make_test_grid(nx=30, ny=30)
+    levels = [1000.0, 900.0, 800.0, 700.0, 600.0, 500.0, 400.0, 300.0, 200.0, 100.0, 50.0, 10.0, 1.0]
+    vertical_axis = VerticalAxis(flag=2, levels=levels)
+    yy, xx = np.meshgrid(np.arange(grid.ny), np.arange(grid.nx), indexing="ij")
+    base = 0.1 * yy + 0.1 * xx
+
+    terrain = 100.0 + base
+    surface_pressure = 1000.0 + yy + xx
+
+    with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis) as arl:
+        rs = arl.create_recordset(time)
+        rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain.astype(np.float32))
+        rs.create_datarecord(
+            "PRSS",
+            level=0,
+            forecast=0,
+            data=surface_pressure.astype(np.float32),
+        )
+        for level_index, _pressure_level in enumerate(levels):
+            temp = 280.0 + temp_offset + 5.0 * level_index + base
+            rs.create_datarecord(
+                "TEMP",
+                level=level_index,
+                forecast=0,
+                data=temp.astype(np.float32),
+            )
+
+    return {
+        "grid": grid,
+        "vertical_axis": vertical_axis,
+        "terrain": terrain.astype(np.float32),
+        "surface_pressure": surface_pressure.astype(np.float32),
+    }
+
+
 class TestPointSampling:
     def test_terrain_reads_full_surface_slice(self, tmp_path):
         path = tmp_path / "terrain.arl"
@@ -162,3 +198,35 @@ class TestPointSampling:
         result = sample_points([path0, path1], points, ["TEMP"], z_kind="pressure")
 
         np.testing.assert_allclose(result["TEMP"].to_numpy(), [290.5, 310.5])
+
+    def test_file_sample_points_supports_simple_slant_path(self, tmp_path):
+        path = tmp_path / "slant.arl"
+        time = pd.Timestamp("2024-07-18 00:00")
+        write_deep_sampling_file(path, time=time)
+
+        points = pd.DataFrame(
+            {
+                "lon": np.linspace(20.0, 20.1, 1000, dtype=float),
+                "lat": np.linspace(-10.0, -9.9, 1000, dtype=float),
+                "z": np.linspace(0.0, 20000.0, 1000, dtype=float),
+            }
+        )
+
+        with File(path) as arl:
+            sampled = arl.sample_points(
+                points,
+                ["TEMP", "pressure"],
+                time=time,
+                z_kind="agl",
+            )
+
+        assert len(sampled) == 1000
+        np.testing.assert_allclose(sampled["pressure"].iloc[0], 1000.0, atol=1e-5)
+        np.testing.assert_allclose(sampled["TEMP"].iloc[0], 280.0, atol=1e-5)
+
+        finite_pressure = sampled["pressure"].dropna().to_numpy()
+        finite_temp = sampled["TEMP"].dropna().to_numpy()
+        assert finite_pressure.size > 100
+        assert finite_temp.size == finite_pressure.size
+        assert np.all(np.diff(finite_pressure) <= 1e-5)
+        assert finite_temp[-1] > finite_temp[0]

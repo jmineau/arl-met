@@ -198,6 +198,41 @@ class TestGrid:
 
         assert window == GridWindow(x_start=3, x_stop=6, y_start=3, y_stop=6)
 
+    def test_window_from_bbox_projected_uses_corner_rounding(self):
+        proj = Projection(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=38.5,
+            tangent_lon=-97.5,
+            grid_size=3.0,
+            orientation=0.0,
+            cone_angle=38.5,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=30.0,
+            sync_lon=-125.0,
+        )
+        grid = Grid(projection=proj, nx=800, ny=600)
+        bbox = (-124.0, 31.0, -120.0, 35.0)
+
+        window = grid.window_from_bbox(bbox)
+        x_sw, y_sw = grid.fractional_indices(bbox[0], bbox[1])
+        x_ne, y_ne = grid.fractional_indices(bbox[2], bbox[3])
+
+        def nint(value):
+            if value >= 0.0:
+                return int(np.floor(value + 0.5))
+            return int(np.ceil(value - 0.5))
+
+        expected = GridWindow(
+            x_start=min(nint(float(x_sw) + 1.0), nint(float(x_ne) + 1.0)) - 1,
+            x_stop=max(nint(float(x_sw) + 1.0), nint(float(x_ne) + 1.0)),
+            y_start=min(nint(float(y_sw) + 1.0), nint(float(y_ne) + 1.0)) - 1,
+            y_stop=max(nint(float(y_sw) + 1.0), nint(float(y_ne) + 1.0)),
+        )
+
+        assert window == expected
+
     def test_subset_updates_lower_left_sync_point(self):
         proj = Projection(
             pole_lat=90.0,

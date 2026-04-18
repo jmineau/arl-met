@@ -510,6 +510,50 @@ class Grid:
         if south > north:
             raise ValueError("bbox south must be less than or equal to north.")
 
+        if not self.is_latlon:
+            if west > east:
+                raise ValueError(
+                    "Projected-grid bboxes must not cross the dateline (west <= east)."
+                )
+
+            x_sw, y_sw = self.fractional_indices(west, south)
+            x_ne, y_ne = self.fractional_indices(east, north)
+
+            def nint(value: float) -> int:
+                if value >= 0.0:
+                    return int(np.floor(value + 0.5))
+                return int(np.ceil(value - 0.5))
+
+            x1 = (nint(float(x_sw) + 1.0), nint(float(x_ne) + 1.0))
+            y1 = (nint(float(y_sw) + 1.0), nint(float(y_ne) + 1.0))
+            xmin_1based = min(x1)
+            xmax_1based = max(x1)
+            ymin_1based = min(y1)
+            ymax_1based = max(y1)
+
+            if (
+                xmax_1based < 1
+                or xmin_1based > self.nx
+                or ymax_1based < 1
+                or ymin_1based > self.ny
+            ):
+                raise ValueError("bbox does not intersect the grid.")
+
+            x_start = max(0, xmin_1based - 1)
+            x_stop = min(self.nx, xmax_1based)
+            y_start = max(0, ymin_1based - 1)
+            y_stop = min(self.ny, ymax_1based)
+
+            if x_stop <= x_start or y_stop <= y_start:
+                raise ValueError("bbox does not intersect the grid.")
+
+            return GridWindow(
+                x_start=x_start,
+                x_stop=x_stop,
+                y_start=y_start,
+                y_stop=y_stop,
+            )
+
         coords = self.calculate_coords()
         lon_coord = coords["lon"]
         lat_coord = coords["lat"]
@@ -530,14 +574,8 @@ class Grid:
             lon_mask = (lons >= west) | (lons <= east)
         lat_mask = (lats >= south) & (lats <= north)
 
-        if self.is_latlon:
-            x_idx = np.flatnonzero(lon_mask)
-            y_idx = np.flatnonzero(lat_mask)
-        else:
-            mask = lon_mask & lat_mask
-            if not np.any(mask):
-                raise ValueError("bbox does not intersect the grid.")
-            y_idx, x_idx = np.nonzero(mask)
+        x_idx = np.flatnonzero(lon_mask)
+        y_idx = np.flatnonzero(lat_mask)
 
         if x_idx.size == 0 or y_idx.size == 0:
             raise ValueError("bbox does not intersect the grid.")
