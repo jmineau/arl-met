@@ -15,7 +15,6 @@ import pandas as pd
 from arlmet.grid import Grid
 from arlmet.metadata import Header, IndexRecord, LvlInfo, VarInfo, split_grid_component
 from arlmet.record import DataRecord, require_mode
-from arlmet.surface import Surface
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
@@ -196,18 +195,8 @@ class RecordSet(RecordCollection):
         return self.file.grid
 
     @property
-    def surface(self) -> Surface:
-        """
-        Get the surface associated with this RecordSet.
-        """
-        return Surface(terrain=self._sfc_terrain, pressure=self._sfc_pressure)
-
-    @property
     def vertical_axis(self) -> VerticalAxis:
-        """
-        Get the file-level vertical axis bound to this recordset's surface state.
-        """
-        return self.file.vertical_axis.with_surface(self.surface)
+        return self.file.vertical_axis
 
     def _create_datarecord(
         self,
@@ -271,7 +260,7 @@ class RecordSet(RecordCollection):
             raise ValueError("ARL source identifiers must be 4 characters or fewer.")
 
         vaxis = self.file.vertical_axis
-        heights = vaxis.heights.tolist()
+        heights = vaxis.levels.tolist()
         if not heights:
             raise ValueError("Vertical axis must contain at least one level.")
 

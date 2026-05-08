@@ -647,6 +647,6 @@ class IndexRecord:
         """
         return VerticalAxis(
             flag=self.vertical_flag,
-            heights=[lvl.height for lvl in self.levels],
+            levels=[lvl.height for lvl in self.levels],
             offset=self.reserved,
         )

@@ -118,4 +118,4 @@ class TestIndexRecord:
         assert axis.flag == 4
         assert axis.offset == 25.0
         assert axis.coord_system == "hybrid"
-        assert axis.heights.tolist() == [1.0, 0.5]
+        assert axis.levels.tolist() == [1.0, 0.5]

@@ -62,7 +62,7 @@ def test_extract_subset_crops_bbox_and_compacts_levels(tmp_path):
     with File(source) as original, File(destination) as subset:
         assert subset.grid.nx == 12
         assert subset.grid.ny == 12
-        assert subset.vertical_axis.heights.tolist() == [0.0, 2000.0]
+        assert subset.vertical_axis.levels.tolist() == [0.0, 2000.0]
         assert subset.times == original.times
 
         source_window = original.grid.window_from_bbox((22.0, -8.0, 33.0, 3.0))
@@ -136,9 +136,10 @@ def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
     assert ds.sizes["level"] == 2
     assert ds.sizes["lat"] == 3
     assert ds.sizes["lon"] == 3
-    np.testing.assert_array_equal(ds.coords["level"].values, [0, 2])
+    # Level coord holds native heights (hPa for flag=2): indices 0,2 → [0.0, 2000.0]
+    np.testing.assert_array_equal(ds.coords["level"].values, [0.0, 2000.0])
     assert ds.attrs["arl_nx"] == 3
     assert ds.attrs["arl_ny"] == 3
-    assert ds.attrs["vertical_axis"].heights.tolist() == [0.0, 1000.0, 2000.0]
+    assert ds.attrs["vertical_axis"].levels.tolist() == [0.0, 1000.0, 2000.0]
     np.testing.assert_allclose(np.asarray(ds["PRSS"].isel(time=0, level=0)), source_prss)
     np.testing.assert_allclose(np.asarray(ds["UWND"].isel(time=0, level=1)), source_uwnd)

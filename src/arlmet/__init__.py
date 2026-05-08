@@ -15,17 +15,9 @@ from .metadata import Header, IndexRecord
 from .packing import calculate_checksum, pack, unpack
 from .record import DataRecord
 from .recordset import RecordSet
-from .sampling import sample_points, terrain
+from .sampling import sample_points
 from .subset import extract_subset
-from .surface import Surface
-from .vertical import (
-    Grid3D,
-    VerticalAxis,
-    interp_vertical,
-    pressure,
-    z_agl,
-    z_msl,
-)
+from .vertical import Grid3D, VerticalAxis
 from .xarray import open_dataset, write_dataset
 
 __all__ = [
@@ -37,18 +29,12 @@ __all__ = [
     "Projection",
     "Grid",
     "Grid3D",
-    "Surface",
     "VerticalAxis",
-    "pressure",
-    "z_agl",
-    "z_msl",
-    "interp_vertical",
     "Header",
     "IndexRecord",
     "calculate_checksum",
     "pack",
     "unpack",
     "extract_subset",
-    "terrain",
     "sample_points",
 ]

@@ -97,7 +97,7 @@ class TestWriter:
         assert reopened.source == "TEST"
         assert reopened.grid == grid
         assert reopened.vertical_axis.flag == 2
-        assert reopened.vertical_axis.heights.tolist() == [0.0, 1000.0]
+        assert reopened.vertical_axis.levels.tolist() == [0.0, 1000.0]
         assert reopened.times == [time0, time1]
 
         rs0 = reopened[time0]

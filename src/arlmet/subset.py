@@ -17,13 +17,13 @@ def normalize_levels(
     Normalize a level selection to sorted unique ARL level indices.
     """
     if levels is None:
-        return tuple(range(len(vertical_axis.heights)))
+        return tuple(range(len(vertical_axis.levels)))
 
     normalized = tuple(sorted({int(level) for level in levels}))
     if not normalized:
         raise ValueError("levels must include at least one level index.")
 
-    max_index = len(vertical_axis.heights) - 1
+    max_index = len(vertical_axis.levels) - 1
     if normalized[0] < 0 or normalized[-1] > max_index:
         raise ValueError(
             f"levels must be between 0 and {max_index}, got {normalized}."
@@ -80,7 +80,7 @@ def _build_subset_index_record(
         forecast = next(iter(forecast_hours))
 
     level_records: dict[int, OrderedDict[str, VarInfo]] = {
-        level: OrderedDict() for level in range(len(subset_axis.heights))
+        level: OrderedDict() for level in range(len(subset_axis.levels))
     }
     for record in selected_records:
         level_records[level_map[record.level]][record.variable] = VarInfo(
@@ -96,7 +96,7 @@ def _build_subset_index_record(
             height=float(height),
             variables=level_records[level],
         )
-        for level, height in enumerate(subset_axis.heights)
+        for level, height in enumerate(subset_axis.levels)
     ]
     projection = subset_grid.projection
     time = recordset.time
@@ -205,7 +205,7 @@ def extract_subset(
         subset_grid = source.grid.subset(window)
         subset_axis = VerticalAxis(
             flag=source.vertical_axis.flag,
-            levels=source.vertical_axis.heights[list(selected_levels)].tolist(),
+            levels=source.vertical_axis.levels[list(selected_levels)].tolist(),
             offset=source.vertical_axis.offset,
         )
         selected_recordsets = []

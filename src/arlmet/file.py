@@ -16,7 +16,7 @@ from arlmet.grid import Grid, Projection
 from arlmet.metadata import IndexRecord
 from arlmet.record import require_mode
 from arlmet.recordset import RecordCollection, RecordSet
-from arlmet.sampling import sample_points_from_file, terrain_from_file
+from arlmet.sampling import sample_points_from_file
 from arlmet.vertical import VerticalAxis
 
 
@@ -295,7 +295,17 @@ class File(RecordCollection):
             # TODO do i need to close mmaps?
 
     def terrain(self, time: pd.Timestamp | str | None = None) -> np.ndarray:
-        return terrain_from_file(self, time=time)
+        if time is None:
+            if len(self.times) != 1:
+                raise ValueError(
+                    "terrain() requires an explicit time when the file contains multiple times."
+                )
+            time = self.times[0]
+        recordset = self[pd.Timestamp(time)]
+        record = next((r for r in recordset.records if r.variable == "SHGT"), None)
+        if record is None:
+            raise ValueError(f"Terrain field SHGT is not available at time {recordset.time}.")
+        return np.asarray(record.read(), dtype=np.float32)
 
     def sample_points(
         self,

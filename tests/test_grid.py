@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from arlmet.grid import Grid, GridWindow, Projection, wrap_lons
-from arlmet.vertical import Grid3D, Surface, VerticalAxis
+from arlmet.vertical import Grid3D, VerticalAxis
 
 
 class TestWrapLons:
@@ -264,28 +264,28 @@ class TestVerticalAxis:
         levels = [1.0, 0.9, 0.8, 0.7]
         axis = VerticalAxis(flag=1, levels=levels)
         assert axis.coord_system == "sigma"
-        np.testing.assert_array_equal(axis.heights, levels)
+        np.testing.assert_array_equal(axis.levels, levels)
 
     def test_pressure_coordinate(self):
         """Test pressure vertical coordinate."""
         levels = [1000, 925, 850, 700, 500]
         axis = VerticalAxis(flag=2, levels=levels)
         assert axis.coord_system == "pressure"
-        np.testing.assert_array_equal(axis.heights, levels)
+        np.testing.assert_array_equal(axis.levels, levels)
 
     def test_terrain_coordinate(self):
         """Test terrain vertical coordinate."""
         levels = [0.0, 0.25, 0.5, 0.75, 1.0]
         axis = VerticalAxis(flag=3, levels=levels)
         assert axis.coord_system == "terrain"
-        np.testing.assert_array_equal(axis.heights, levels)
+        np.testing.assert_array_equal(axis.levels, levels)
 
     def test_hybrid_coordinate(self):
         """Test hybrid vertical coordinate."""
         levels = [1000.0, 925.5, 850.0]
         axis = VerticalAxis(flag=4, levels=levels)
         assert axis.coord_system == "hybrid"
-        np.testing.assert_array_equal(axis.heights, levels)
+        np.testing.assert_array_equal(axis.levels, levels)
 
     def test_unknown_coordinate(self):
         """Test unknown vertical coordinate."""
@@ -293,15 +293,12 @@ class TestVerticalAxis:
         axis = VerticalAxis(flag=99, levels=levels)
         assert axis.coord_system == "unknown"
 
-    def test_sigma_coordinate_calculates_pressure(self):
-        """Test sigma coordinate pressure derivation from surface pressure."""
-        axis = VerticalAxis(
-            flag=1,
-            levels=[1.0, 0.5],
-            surface=Surface(pressure=np.full((2, 2), 900.0)),
-        )
+    def test_sigma_coordinate_calculates_native_coords(self):
+        """Test sigma coordinate returns native sigma fractions as level coord."""
+        axis = VerticalAxis(flag=1, levels=[1.0, 0.5], offset=0.0)
         coords = axis.calculate_coords()
-        np.testing.assert_allclose(coords["pressure"], [900.0, 450.0])
+        assert set(coords.keys()) == {"level"}
+        np.testing.assert_allclose(coords["level"], [1.0, 0.5])
 
 
 class TestGrid3D:

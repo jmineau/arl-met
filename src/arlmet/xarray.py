@@ -126,7 +126,7 @@ def grid_from_attrs(attrs: Mapping[str, Any]) -> Grid:
 def vertical_axis_to_attrs(vertical_axis: VerticalAxis) -> dict[str, Any]:
     return {
         "arl_vertical_flag": vertical_axis.flag,
-        "arl_vertical_levels": vertical_axis.heights.tolist(),
+        "arl_vertical_levels": vertical_axis.levels.tolist(),
         "arl_vertical_offset": vertical_axis.offset,
     }
 
@@ -206,14 +206,12 @@ def datarecord_to_xarray(record: "DataRecord", squeeze: bool = True) -> xr.DataA
     da = da.expand_dims(("time", "level"))
 
     z_coords = record.recordset.vertical_axis.calculate_coords()
-    level = record.level
-    height = z_coords["height"][level]
+    level_value = z_coords["level"][record.level]
 
     da = da.assign_coords(
         time=[record.time],
         forecast=("time", [record.forecast]),
-        level=[level],
-        height=("level", [height]),
+        level=[level_value],
     )
     da.attrs.update(**record_collection_attrs(record.recordset))
     return da.squeeze() if squeeze else da
@@ -333,10 +331,8 @@ def _build_dataset_from_file(
 
     coords = selected_grid.calculate_coords()
     ds = xr.Dataset(coords=coords)
-    ds = ds.assign_coords(
-        level=("level", list(selected_levels)),
-        height=("level", met.vertical_axis.heights[list(selected_levels)]),
-    )
+    level_values = met.vertical_axis.levels[list(selected_levels)]
+    ds = ds.assign_coords(level=("level", level_values.tolist()))
 
     times: list[pd.Timestamp] = []
     forecast_by_time: OrderedDict[pd.Timestamp, int] = OrderedDict()
@@ -417,7 +413,7 @@ def extract_dataset_vertical_axis(attrs: Mapping[str, Any]) -> VerticalAxis:
     if isinstance(vertical_axis, VerticalAxis):
         return VerticalAxis(
             flag=vertical_axis.flag,
-            levels=vertical_axis.heights.tolist(),
+            levels=vertical_axis.levels.tolist(),
             offset=vertical_axis.offset,
         )
     return vertical_axis_from_attrs(attrs)
@@ -476,26 +472,19 @@ def write_dataset(ds: xr.Dataset, filename_or_obj) -> None:
                 f"Dataset dimension '{dim}' has size {ds.sizes[dim]}, expected {size}."
             )
 
-    level_values = np.asarray(ds.coords["level"].values)
-    if not np.allclose(level_values, level_values.astype(int)):
-        raise ValueError("The 'level' coordinate must contain integer ARL level indices.")
-    level_indices = level_values.astype(int)
-    if len(np.unique(level_indices)) != len(level_indices):
-        raise ValueError("The 'level' coordinate must not contain duplicate indices.")
-    if np.any(level_indices < 0) or np.any(level_indices >= len(vertical_axis.heights)):
-        raise ValueError("The 'level' coordinate references indices outside the vertical axis.")
-
-    height_coord = ds.coords.get("height")
-    if (
-        height_coord is not None
-        and height_coord.ndim == 1
-        and height_coord.dims == ("level",)
-    ):
-        expected_heights = vertical_axis.heights[level_indices]
-        if not np.allclose(np.asarray(height_coord.values, dtype=float), expected_heights):
+    level_values = np.asarray(ds.coords["level"].values, dtype=float)
+    all_levels = vertical_axis.levels
+    level_indices = []
+    for v in level_values:
+        matches = np.where(np.isclose(all_levels, v))[0]
+        if len(matches) == 0:
             raise ValueError(
-                "The 'height' coordinate does not match the configured vertical axis levels."
+                f"Level value {v!r} not found in the vertical axis height values."
             )
+        level_indices.append(int(matches[0]))
+    level_indices = np.asarray(level_indices, dtype=int)
+    if len(np.unique(level_indices)) != len(level_indices):
+        raise ValueError("The 'level' coordinate must not contain duplicate values.")
 
     times = pd.to_datetime(ds.coords["time"].values)
     if forecasts.shape[0] != len(times):
