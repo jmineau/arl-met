@@ -3,16 +3,26 @@
 import pandas as pd
 import pytest
 
-from arlmet.sources import GdasSource, GfsSource, HrrrSource, NamSource
+from arlmet.sources import (
+    GDAS0p5Source,
+    GDASSource,
+    GFSSource,
+    HRRRSource,
+    HRRRv1Source,
+    NAMSource,
+    NAMSSource,
+    NARRSource,
+    ReanalysisSource,
+)
 
 # ---------------------------------------------------------------------------
-# HrrrSource
+# HRRRSource
 # ---------------------------------------------------------------------------
 
 
-class TestHrrrSource:
+class TestHRRRSource:
     def setup_method(self):
-        self.src = HrrrSource()
+        self.src = HRRRSource()
 
     @pytest.mark.parametrize(
         "hour, expected",
@@ -32,96 +42,96 @@ class TestHrrrSource:
         t = pd.Timestamp(f"2024-07-18 {hour:02d}:00")
         assert self.src._filename(t) == expected
 
-    def test_s3_key_uses_year_subdir(self):
+    def test_s3_key_uses_year_month_subdir(self):
         t = pd.Timestamp("2024-07-18 03:00")
-        assert self.src._s3_key(t) == "hrrr/2024/20240718_00-05_hrrr"
+        assert self.src._s3_key(t) == "hrrr/2024/07/20240718_00-05_hrrr"
 
     def test_keys_for_range_single_block(self):
         keys = self.src.keys_for_range("2024-07-18 01:00", "2024-07-18 04:00")
-        assert keys == ["hrrr/2024/20240718_00-05_hrrr"]
+        assert keys == ["hrrr/2024/07/20240718_00-05_hrrr"]
 
     def test_keys_for_range_two_blocks(self):
         keys = self.src.keys_for_range("2024-07-18 04:00", "2024-07-18 08:00")
         assert keys == [
-            "hrrr/2024/20240718_00-05_hrrr",
-            "hrrr/2024/20240718_06-11_hrrr",
+            "hrrr/2024/07/20240718_00-05_hrrr",
+            "hrrr/2024/07/20240718_06-11_hrrr",
         ]
 
     def test_keys_for_range_all_four_blocks(self):
         keys = self.src.keys_for_range("2024-07-18 00:00", "2024-07-18 23:00")
         assert keys == [
-            "hrrr/2024/20240718_00-05_hrrr",
-            "hrrr/2024/20240718_06-11_hrrr",
-            "hrrr/2024/20240718_12-17_hrrr",
-            "hrrr/2024/20240718_18-23_hrrr",
+            "hrrr/2024/07/20240718_00-05_hrrr",
+            "hrrr/2024/07/20240718_06-11_hrrr",
+            "hrrr/2024/07/20240718_12-17_hrrr",
+            "hrrr/2024/07/20240718_18-23_hrrr",
         ]
 
     def test_keys_for_range_day_boundary(self):
         keys = self.src.keys_for_range("2024-07-18 22:00", "2024-07-19 02:00")
         assert keys == [
-            "hrrr/2024/20240718_18-23_hrrr",
-            "hrrr/2024/20240719_00-05_hrrr",
+            "hrrr/2024/07/20240718_18-23_hrrr",
+            "hrrr/2024/07/20240719_00-05_hrrr",
         ]
 
     def test_keys_for_range_backward_trajectory(self):
         # start > end: backward STILT trajectory
         keys = self.src.keys_for_range("2024-07-18 08:00", "2024-07-18 04:00")
         assert keys == [
-            "hrrr/2024/20240718_00-05_hrrr",
-            "hrrr/2024/20240718_06-11_hrrr",
+            "hrrr/2024/07/20240718_00-05_hrrr",
+            "hrrr/2024/07/20240718_06-11_hrrr",
         ]
 
     def test_keys_for_range_no_duplicates(self):
         # All times within the same block → single key
         keys = self.src.keys_for_range("2024-07-18 06:00", "2024-07-18 11:00")
-        assert keys == ["hrrr/2024/20240718_06-11_hrrr"]
+        assert keys == ["hrrr/2024/07/20240718_06-11_hrrr"]
 
     def test_repr(self):
-        assert repr(self.src) == "HrrrSource()"
+        assert repr(self.src) == "HRRRSource()"
 
 
 # ---------------------------------------------------------------------------
-# NamSource
+# NAMSource
 # ---------------------------------------------------------------------------
 
 
-class TestNamSource:
+class TestNAMSource:
     def setup_method(self):
-        self.src = NamSource()
+        self.src = NAMSource()
 
     def test_filename(self):
         assert self.src._filename(pd.Timestamp("2024-07-18")) == "20240718_nam12"
 
     def test_s3_key(self):
-        assert self.src._s3_key(pd.Timestamp("2024-07-18")) == "nam12/2024/20240718_nam12"
+        assert self.src._s3_key(pd.Timestamp("2024-07-18")) == "nam12/2024/07/20240718_nam12"
 
     def test_keys_for_range_single_day(self):
         keys = self.src.keys_for_range("2024-07-18 06:00", "2024-07-18 18:00")
-        assert keys == ["nam12/2024/20240718_nam12"]
+        assert keys == ["nam12/2024/07/20240718_nam12"]
 
     def test_keys_for_range_two_days(self):
         keys = self.src.keys_for_range("2024-07-18 22:00", "2024-07-19 06:00")
         assert keys == [
-            "nam12/2024/20240718_nam12",
-            "nam12/2024/20240719_nam12",
+            "nam12/2024/07/20240718_nam12",
+            "nam12/2024/07/20240719_nam12",
         ]
 
     def test_keys_for_range_backward(self):
         keys = self.src.keys_for_range("2024-07-19 06:00", "2024-07-18 22:00")
         assert keys == [
-            "nam12/2024/20240718_nam12",
-            "nam12/2024/20240719_nam12",
+            "nam12/2024/07/20240718_nam12",
+            "nam12/2024/07/20240719_nam12",
         ]
 
 
 # ---------------------------------------------------------------------------
-# GdasSource
+# GDASSource
 # ---------------------------------------------------------------------------
 
 
-class TestGdasSource:
+class TestGDASSource:
     def setup_method(self):
-        self.src = GdasSource()
+        self.src = GDASSource()
 
     @pytest.mark.parametrize(
         "date_str, expected_week",
@@ -191,13 +201,13 @@ class TestGdasSource:
 
 
 # ---------------------------------------------------------------------------
-# GfsSource
+# GFSSource
 # ---------------------------------------------------------------------------
 
 
-class TestGfsSource:
+class TestGFSSource:
     def setup_method(self):
-        self.src = GfsSource()
+        self.src = GFSSource()
 
     def test_filename(self):
         assert self.src._filename(pd.Timestamp("2024-07-18")) == "20240718_gfs0p25"
@@ -205,19 +215,264 @@ class TestGfsSource:
     def test_s3_key(self):
         assert (
             self.src._s3_key(pd.Timestamp("2024-07-18"))
-            == "gfs0p25/2024/20240718_gfs0p25"
+            == "gfs0p25/2024/07/20240718_gfs0p25"
         )
 
     def test_keys_for_range_single_day(self):
         keys = self.src.keys_for_range("2024-07-18 06:00", "2024-07-18 18:00")
-        assert keys == ["gfs0p25/2024/20240718_gfs0p25"]
+        assert keys == ["gfs0p25/2024/07/20240718_gfs0p25"]
 
     def test_keys_for_range_two_days(self):
         keys = self.src.keys_for_range("2024-07-18 20:00", "2024-07-19 06:00")
         assert keys == [
-            "gfs0p25/2024/20240718_gfs0p25",
-            "gfs0p25/2024/20240719_gfs0p25",
+            "gfs0p25/2024/07/20240718_gfs0p25",
+            "gfs0p25/2024/07/20240719_gfs0p25",
         ]
+
+
+# ---------------------------------------------------------------------------
+# NAMSSource
+# ---------------------------------------------------------------------------
+
+
+class TestNAMSSource:
+    def setup_method(self):
+        self.src = NAMSSource()
+
+    def test_filename_conus(self):
+        assert (
+            self.src._filename(pd.Timestamp("2024-07-18"))
+            == "20240718_hysplit.t00z.namsa"
+        )
+
+    def test_filename_ak(self):
+        src = NAMSSource(domain="ak")
+        assert (
+            src._filename(pd.Timestamp("2024-07-18"))
+            == "20240718_hysplit.t00z.namsa.AK"
+        )
+
+    def test_filename_hi(self):
+        src = NAMSSource(domain="hi")
+        assert (
+            src._filename(pd.Timestamp("2024-07-18"))
+            == "20240718_hysplit.t00z.namsa.HI"
+        )
+
+    def test_invalid_domain_raises(self):
+        with pytest.raises(ValueError, match="domain"):
+            NAMSSource(domain="eu")
+
+    def test_s3_key(self):
+        assert (
+            self.src._s3_key(pd.Timestamp("2024-07-18"))
+            == "nams/2024/07/20240718_hysplit.t00z.namsa"
+        )
+
+    def test_keys_for_range_single_day(self):
+        keys = self.src.keys_for_range("2024-07-18 06:00", "2024-07-18 18:00")
+        assert keys == ["nams/2024/07/20240718_hysplit.t00z.namsa"]
+
+    def test_keys_for_range_two_days(self):
+        keys = self.src.keys_for_range("2024-07-18 22:00", "2024-07-19 06:00")
+        assert keys == [
+            "nams/2024/07/20240718_hysplit.t00z.namsa",
+            "nams/2024/07/20240719_hysplit.t00z.namsa",
+        ]
+
+    def test_keys_for_range_backward(self):
+        keys = self.src.keys_for_range("2024-07-19 06:00", "2024-07-18 22:00")
+        assert keys == [
+            "nams/2024/07/20240718_hysplit.t00z.namsa",
+            "nams/2024/07/20240719_hysplit.t00z.namsa",
+        ]
+
+    def test_repr(self):
+        assert repr(self.src) == "NAMSSource(domain='conus')"
+
+
+# ---------------------------------------------------------------------------
+# ReanalysisSource
+# ---------------------------------------------------------------------------
+
+
+class TestReanalysisSource:
+    def setup_method(self):
+        self.src = ReanalysisSource()
+
+    @pytest.mark.parametrize(
+        "date_str, expected",
+        [
+            ("2024-07-01", "RP202407.gbl"),
+            ("2024-07-18", "RP202407.gbl"),
+            ("2024-07-31", "RP202407.gbl"),
+            ("1948-01-01", "RP194801.gbl"),
+            ("2000-12-31", "RP200012.gbl"),
+        ],
+    )
+    def test_filename(self, date_str, expected):
+        assert self.src._filename(pd.Timestamp(date_str)) == expected
+
+    def test_s3_key(self):
+        assert (
+            self.src._s3_key(pd.Timestamp("2024-07-18"))
+            == "reanalysis/2024/RP202407.gbl"
+        )
+
+    def test_keys_for_range_within_one_month(self):
+        keys = self.src.keys_for_range("2024-07-05", "2024-07-20")
+        assert keys == ["reanalysis/2024/RP202407.gbl"]
+
+    def test_keys_for_range_month_boundary(self):
+        keys = self.src.keys_for_range("2024-07-28", "2024-08-03")
+        assert keys == [
+            "reanalysis/2024/RP202407.gbl",
+            "reanalysis/2024/RP202408.gbl",
+        ]
+
+    def test_keys_for_range_year_boundary(self):
+        keys = self.src.keys_for_range("2023-12-20", "2024-01-10")
+        assert keys == [
+            "reanalysis/2023/RP202312.gbl",
+            "reanalysis/2024/RP202401.gbl",
+        ]
+
+    def test_keys_for_range_backward(self):
+        keys = self.src.keys_for_range("2024-08-03", "2024-07-28")
+        assert keys == [
+            "reanalysis/2024/RP202407.gbl",
+            "reanalysis/2024/RP202408.gbl",
+        ]
+
+    def test_repr(self):
+        assert repr(self.src) == "ReanalysisSource()"
+
+
+# ---------------------------------------------------------------------------
+# HRRRv1Source
+# ---------------------------------------------------------------------------
+
+
+class TestHRRRv1Source:
+    def setup_method(self):
+        self.src = HRRRv1Source()
+
+    @pytest.mark.parametrize(
+        "hour, expected",
+        [
+            (0,  "hysplit.20170601.00z.hrrra"),
+            (5,  "hysplit.20170601.00z.hrrra"),
+            (6,  "hysplit.20170601.06z.hrrra"),
+            (11, "hysplit.20170601.06z.hrrra"),
+            (12, "hysplit.20170601.12z.hrrra"),
+            (18, "hysplit.20170601.18z.hrrra"),
+            (23, "hysplit.20170601.18z.hrrra"),
+        ],
+    )
+    def test_filename_blocks(self, hour, expected):
+        t = pd.Timestamp(f"2017-06-01 {hour:02d}:00")
+        assert self.src._filename(t) == expected
+
+    def test_s3_key(self):
+        t = pd.Timestamp("2017-06-01 06:00")
+        assert self.src._s3_key(t) == "hrrr.v1/2017/06/hysplit.20170601.06z.hrrra"
+
+    def test_keys_for_range_single_block(self):
+        keys = self.src.keys_for_range("2017-06-01 01:00", "2017-06-01 04:00")
+        assert keys == ["hrrr.v1/2017/06/hysplit.20170601.00z.hrrra"]
+
+    def test_keys_for_range_two_blocks(self):
+        keys = self.src.keys_for_range("2017-06-01 04:00", "2017-06-01 08:00")
+        assert keys == [
+            "hrrr.v1/2017/06/hysplit.20170601.00z.hrrra",
+            "hrrr.v1/2017/06/hysplit.20170601.06z.hrrra",
+        ]
+
+    def test_repr(self):
+        assert repr(self.src) == "HRRRv1Source()"
+
+
+# ---------------------------------------------------------------------------
+# GDAS0p5Source
+# ---------------------------------------------------------------------------
+
+
+class TestGDAS0p5Source:
+    def setup_method(self):
+        self.src = GDAS0p5Source()
+
+    def test_filename(self):
+        assert self.src._filename(pd.Timestamp("2024-07-18")) == "20240718_gdas0p5"
+
+    def test_s3_key(self):
+        assert (
+            self.src._s3_key(pd.Timestamp("2024-07-18"))
+            == "gdas0p5/2024/07/20240718_gdas0p5"
+        )
+
+    def test_keys_for_range_single_day(self):
+        keys = self.src.keys_for_range("2024-07-18 06:00", "2024-07-18 18:00")
+        assert keys == ["gdas0p5/2024/07/20240718_gdas0p5"]
+
+    def test_keys_for_range_two_days(self):
+        keys = self.src.keys_for_range("2024-07-18 20:00", "2024-07-19 06:00")
+        assert keys == [
+            "gdas0p5/2024/07/20240718_gdas0p5",
+            "gdas0p5/2024/07/20240719_gdas0p5",
+        ]
+
+    def test_repr(self):
+        assert repr(self.src) == "GDAS0p5Source()"
+
+
+# ---------------------------------------------------------------------------
+# NARRSource
+# ---------------------------------------------------------------------------
+
+
+class TestNARRSource:
+    def setup_method(self):
+        self.src = NARRSource()
+
+    @pytest.mark.parametrize(
+        "date_str, expected",
+        [
+            ("2024-07-01", "NARR202407"),
+            ("2024-07-18", "NARR202407"),
+            ("2024-07-31", "NARR202407"),
+            ("1979-01-01", "NARR197901"),
+            ("2000-12-31", "NARR200012"),
+        ],
+    )
+    def test_filename(self, date_str, expected):
+        assert self.src._filename(pd.Timestamp(date_str)) == expected
+
+    def test_s3_key(self):
+        assert (
+            self.src._s3_key(pd.Timestamp("2024-07-18"))
+            == "narr/2024/NARR202407"
+        )
+
+    def test_keys_for_range_within_one_month(self):
+        keys = self.src.keys_for_range("2024-07-05", "2024-07-20")
+        assert keys == ["narr/2024/NARR202407"]
+
+    def test_keys_for_range_month_boundary(self):
+        keys = self.src.keys_for_range("2024-07-28", "2024-08-03")
+        assert keys == [
+            "narr/2024/NARR202407",
+            "narr/2024/NARR202408",
+        ]
+
+    def test_keys_for_range_year_boundary(self):
+        keys = self.src.keys_for_range("2023-12-20", "2024-01-10")
+        assert keys == [
+            "narr/2023/NARR202312",
+            "narr/2024/NARR202401",
+        ]
+
+    def test_repr(self):
+        assert repr(self.src) == "NARRSource()"
 
 
 # ---------------------------------------------------------------------------
@@ -227,7 +482,7 @@ class TestGfsSource:
 
 class TestUrls:
     def setup_method(self):
-        self.src = HrrrSource()
+        self.src = HRRRSource()
 
     def test_s3_url(self):
         key = "hrrr/2024/20240718_00-05_hrrr"
@@ -274,7 +529,7 @@ def test_fetch_raises_import_error_without_fsspec(monkeypatch):
             raise ImportError("no fsspec")
         return real_import(name, *args, **kwargs)
 
-    src = HrrrSource()
+    src = HRRRSource()
     import tempfile
     from pathlib import Path
 
@@ -308,23 +563,50 @@ class TestS3Existence:
         return fs.exists(f"noaa-oar-arl-hysplit-pds/{key}")
 
     def test_gdas_key_exists(self):
-        src = GdasSource()
+        src = GDASSource()
         key = src._s3_key(pd.Timestamp(_GDAS_TEST_TIME))
         assert self._exists(key), f"Expected S3 key not found: {key}"
 
     def test_hrrr_key_exists(self):
-        src = HrrrSource()
+        src = HRRRSource()
         key = src._s3_key(pd.Timestamp(_HRRR_TEST_TIME))
         assert self._exists(key), f"Expected S3 key not found: {key}"
 
     def test_nam_key_exists(self):
-        src = NamSource()
+        src = NAMSource()
         key = src._s3_key(pd.Timestamp(_GDAS_TEST_TIME))
         assert self._exists(key), f"Expected S3 key not found: {key}"
 
     def test_gfs_key_exists(self):
-        src = GfsSource()
+        src = GFSSource()
         key = src._s3_key(pd.Timestamp(_GDAS_TEST_TIME))
+        assert self._exists(key), f"Expected S3 key not found: {key}"
+
+    def test_nams_key_exists(self):
+        src = NAMSSource()
+        key = src._s3_key(pd.Timestamp(_GDAS_TEST_TIME))
+        assert self._exists(key), f"Expected S3 key not found: {key}"
+
+    def test_reanalysis_key_exists(self):
+        src = ReanalysisSource()
+        key = src._s3_key(pd.Timestamp(_GDAS_TEST_TIME))
+        assert self._exists(key), f"Expected S3 key not found: {key}"
+
+    def test_hrrr_v1_key_exists(self):
+        src = HRRRv1Source()
+        key = src._s3_key(pd.Timestamp("2017-06-01 06:00"))
+        assert self._exists(key), f"Expected S3 key not found: {key}"
+
+    def test_gdas0p5_key_exists(self):
+        # Archive ends mid-2019; use a date well within range
+        src = GDAS0p5Source()
+        key = src._s3_key(pd.Timestamp("2018-07-01"))
+        assert self._exists(key), f"Expected S3 key not found: {key}"
+
+    def test_narr_key_exists(self):
+        # Archive ends 2019; use a date well within range
+        src = NARRSource()
+        key = src._s3_key(pd.Timestamp("2018-07-01"))
         assert self._exists(key), f"Expected S3 key not found: {key}"
 
 
@@ -335,14 +617,14 @@ def test_gdas_header_is_valid_arl(tmp_path):
 
     from arlmet.metadata import Header
 
-    src = GdasSource()
+    src = GDASSource()
     key = src._s3_key(pd.Timestamp(_GDAS_TEST_TIME))
     fs = s3fs.S3FileSystem(anon=True)
     with fs.open(f"noaa-oar-arl-hysplit-pds/{key}", "rb") as f:
         raw = f.read(Header.N_BYTES)
 
     assert len(raw) == Header.N_BYTES
-    header = Header.frombytes(raw)
+    header = Header.from_bytes(raw)
     assert header.variable == "INDX"
 
 
@@ -358,7 +640,7 @@ def test_gdas_fetch_with_bbox(tmp_path):
     """
     from arlmet import File
 
-    src = GdasSource()
+    src = GDASSource()
     # Western North America: ~55 deg lon x 40 deg lat = ~2200 cells at 1-degree
     west_na_bbox = (-140.0, 20.0, -85.0, 60.0)
     files = src.fetch(

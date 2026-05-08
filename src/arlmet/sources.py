@@ -12,8 +12,8 @@ Storage backends
 
 Example
 -------
->>> from arlmet.sources import HrrrSource
->>> source = HrrrSource()
+>>> from arlmet.sources import HRRRSource
+>>> source = HRRRSource()
 >>> files = source.fetch("2024-07-18", "2024-07-19", local_dir="./met/")
 
 >>> # Crop to domain on download (strongly recommended for GFS)
@@ -56,8 +56,6 @@ class MeteorologySource(ABC):
     # Subclasses must define these
     name: ClassVar[str]
     description: ClassVar[str]
-    #: Approximate domain (west, south, east, north) in degrees.
-    spatial_extent: ClassVar[tuple[float, float, float, float]]
     #: Earliest date available in the NOAA archive.
     start_date: ClassVar[pd.Timestamp]
 
@@ -247,13 +245,13 @@ class MeteorologySource(ABC):
 # ---------------------------------------------------------------------------
 
 
-class HrrrSource(MeteorologySource):
+class HRRRSource(MeteorologySource):
     """HRRR 3 km analysis (CONUS, June 2019–present).
 
     Files cover 6-hour UTC blocks (00–05, 06–11, 12–17, 18–23),
     approximately 3.2 GB each.
 
-    S3: ``s3://noaa-oar-arl-hysplit-pds/hrrr/{year}/{YYYYMMDD}_{HH}-{HH}_hrrr``
+    S3: ``s3://noaa-oar-arl-hysplit-pds/hrrr/{year}/{month:02d}/{YYYYMMDD}_{HH}-{HH}_hrrr``
 
     Note
     ----
@@ -263,7 +261,6 @@ class HrrrSource(MeteorologySource):
 
     name = "hrrr"
     description = "HRRR 3 km analysis"
-    spatial_extent = (-134.1, 21.1, -60.9, 52.6)
     start_date = pd.Timestamp("2019-06-12")
 
     _HOURS_PER_FILE: ClassVar[int] = 6
@@ -274,30 +271,29 @@ class HrrrSource(MeteorologySource):
         return f"{time.strftime('%Y%m%d')}_{start_h:02d}-{end_h:02d}_hrrr"
 
     def _s3_key(self, time: pd.Timestamp) -> str:
-        return f"hrrr/{time.year}/{self._filename(time)}"
+        return f"hrrr/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
-class NamSource(MeteorologySource):
+class NAMSource(MeteorologySource):
     """NAM 12 km analysis (North America, May 2007–present).
 
     One file per calendar day.
 
-    S3: ``s3://noaa-oar-arl-hysplit-pds/nam12/{year}/{YYYYMMDD}_nam12``
+    S3: ``s3://noaa-oar-arl-hysplit-pds/nam12/{year}/{month:02d}/{YYYYMMDD}_nam12``
     """
 
     name = "nam12"
     description = "NAM 12 km analysis"
-    spatial_extent = (-153.0, 12.2, -49.4, 61.2)
     start_date = pd.Timestamp("2007-05-01")
 
     def _filename(self, time: pd.Timestamp) -> str:
         return f"{time.strftime('%Y%m%d')}_nam12"
 
     def _s3_key(self, time: pd.Timestamp) -> str:
-        return f"nam12/{time.year}/{self._filename(time)}"
+        return f"nam12/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
-class GdasSource(MeteorologySource):
+class GDASSource(MeteorologySource):
     """GDAS 1-degree global analysis (December 2004–present).
 
     Weekly files (~571 MB each). Week boundaries are fixed per month:
@@ -309,7 +305,6 @@ class GdasSource(MeteorologySource):
 
     name = "gdas1"
     description = "GDAS 1-degree global analysis"
-    spatial_extent = (-180.0, -90.0, 180.0, 90.0)
     start_date = pd.Timestamp("2004-12-01")
 
     def _week(self, time: pd.Timestamp) -> int:
@@ -324,31 +319,162 @@ class GdasSource(MeteorologySource):
         return f"gdas1/{time.year}/{self._filename(time)}"
 
 
-class GfsSource(MeteorologySource):
+class GFSSource(MeteorologySource):
     """GFS 0.25-degree global analysis (June 2019–present).
 
     One file per calendar day, approximately 2.7 GB each.
     Cropping with ``bbox=`` on fetch is strongly recommended.
 
-    S3: ``s3://noaa-oar-arl-hysplit-pds/gfs0p25/{year}/{YYYYMMDD}_gfs0p25``
+    S3: ``s3://noaa-oar-arl-hysplit-pds/gfs0p25/{year}/{month:02d}/{YYYYMMDD}_gfs0p25``
     """
 
     name = "gfs0p25"
     description = "GFS 0.25-degree global analysis"
-    spatial_extent = (-180.0, -90.0, 180.0, 90.0)
     start_date = pd.Timestamp("2019-06-01")
 
     def _filename(self, time: pd.Timestamp) -> str:
         return f"{time.strftime('%Y%m%d')}_gfs0p25"
 
     def _s3_key(self, time: pd.Timestamp) -> str:
-        return f"gfs0p25/{time.year}/{self._filename(time)}"
+        return f"gfs0p25/{time.year}/{time.month:02d}/{self._filename(time)}"
+
+
+class NAMSSource(MeteorologySource):
+    """NAMS hybrid sigma-pressure analysis (CONUS/Alaska/Hawaii, 2010–present).
+
+    One file per calendar day. Uses hybrid sigma-pressure vertical coordinates
+    (flag=4), making it suitable for high-accuracy boundary-layer transport.
+
+    Parameters
+    ----------
+    domain : {"conus", "ak", "hi"}
+        Regional domain — CONUS (default), Alaska, or Hawaii.
+
+    S3: ``s3://noaa-oar-arl-hysplit-pds/nams/{year}/{month:02d}/{YYYYMMDD}_hysplit.t00z.namsa[.AK|.HI]``
+    """
+
+    name = "nams"
+    description = "NAMS hybrid sigma-pressure analysis"
+    start_date = pd.Timestamp("2010-01-01")
+
+    _DOMAIN_SUFFIXES: ClassVar[dict[str, str]] = {
+        "conus": "",
+        "ak": ".AK",
+        "hi": ".HI",
+    }
+
+    def __init__(self, domain: str = "conus") -> None:
+        if domain not in self._DOMAIN_SUFFIXES:
+            raise ValueError(
+                f"domain must be one of {list(self._DOMAIN_SUFFIXES)!r}, got {domain!r}"
+            )
+        self.domain = domain
+
+    def _filename(self, time: pd.Timestamp) -> str:
+        suffix = self._DOMAIN_SUFFIXES[self.domain]
+        return f"{time.strftime('%Y%m%d')}_hysplit.t00z.namsa{suffix}"
+
+    def _s3_key(self, time: pd.Timestamp) -> str:
+        return f"nams/{time.year}/{time.month:02d}/{self._filename(time)}"
+
+    def __repr__(self) -> str:
+        return f"NAMSSource(domain={self.domain!r})"
+
+
+class ReanalysisSource(MeteorologySource):
+    """NCEP/NCAR Reanalysis 2.5-degree global (1948–present).
+
+    Monthly files (~500 MB each). Covers the full globe at 2.5-degree
+    resolution. Useful for long climatological back-trajectory studies.
+    Cropping with ``bbox=`` on fetch is strongly recommended.
+
+    S3: ``s3://noaa-oar-arl-hysplit-pds/reanalysis/{year}/RP{YYYYMM}.gbl``
+    """
+
+    name = "reanalysis"
+    description = "NCEP/NCAR Reanalysis 2.5-degree global"
+    start_date = pd.Timestamp("1948-01-01")
+
+    def _filename(self, time: pd.Timestamp) -> str:
+        return f"RP{time.strftime('%Y%m')}.gbl"
+
+    def _s3_key(self, time: pd.Timestamp) -> str:
+        return f"reanalysis/{time.year}/{self._filename(time)}"
+
+
+class HRRRv1Source(MeteorologySource):
+    """HRRR 3 km analysis, version 1 (CONUS, June 2015–2019).
+
+    Files cover 6-hour UTC blocks (00z, 06z, 12z, 18z).
+    Superseded by :class:`HRRRSource` from June 2019 onward.
+
+    S3: ``s3://noaa-oar-arl-hysplit-pds/hrrr.v1/{year}/{month:02d}/hysplit.{YYYYMMDD}.{HH}z.hrrra``
+    """
+
+    name = "hrrr.v1"
+    description = "HRRR 3 km analysis v1"
+    start_date = pd.Timestamp("2015-06-01")
+
+    _HOURS_PER_FILE: ClassVar[int] = 6
+
+    def _filename(self, time: pd.Timestamp) -> str:
+        start_h = (time.hour // self._HOURS_PER_FILE) * self._HOURS_PER_FILE
+        return f"hysplit.{time.strftime('%Y%m%d')}.{start_h:02d}z.hrrra"
+
+    def _s3_key(self, time: pd.Timestamp) -> str:
+        return f"hrrr.v1/{time.year}/{time.month:02d}/{self._filename(time)}"
+
+
+class GDAS0p5Source(MeteorologySource):
+    """GDAS 0.5-degree global analysis (September 2007–mid 2019).
+
+    One file per calendar day. Higher resolution than :class:`GDASSource`
+    (1-degree). Cropping with ``bbox=`` on fetch is strongly recommended.
+
+    S3: ``s3://noaa-oar-arl-hysplit-pds/gdas0p5/{year}/{month:02d}/{YYYYMMDD}_gdas0p5``
+    """
+
+    name = "gdas0p5"
+    description = "GDAS 0.5-degree global analysis"
+    start_date = pd.Timestamp("2007-09-01")
+
+    def _filename(self, time: pd.Timestamp) -> str:
+        return f"{time.strftime('%Y%m%d')}_gdas0p5"
+
+    def _s3_key(self, time: pd.Timestamp) -> str:
+        return f"gdas0p5/{time.year}/{time.month:02d}/{self._filename(time)}"
+
+
+class NARRSource(MeteorologySource):
+    """NCEP North American Regional Reanalysis (January 1979–2019).
+
+    Monthly files at 32 km resolution over North America. Useful for
+    long climatological back-trajectory studies over the continent.
+    No file extension.
+
+    S3: ``s3://noaa-oar-arl-hysplit-pds/narr/{year}/NARR{YYYYMM}``
+    """
+
+    name = "narr"
+    description = "NCEP North American Regional Reanalysis 32 km"
+    start_date = pd.Timestamp("1979-01-01")
+
+    def _filename(self, time: pd.Timestamp) -> str:
+        return f"NARR{time.strftime('%Y%m')}"
+
+    def _s3_key(self, time: pd.Timestamp) -> str:
+        return f"narr/{time.year}/{self._filename(time)}"
 
 
 __all__ = [
     "MeteorologySource",
-    "HrrrSource",
-    "NamSource",
-    "GdasSource",
-    "GfsSource",
+    "HRRRSource",
+    "HRRRv1Source",
+    "NAMSource",
+    "NAMSSource",
+    "GDASSource",
+    "GDAS0p5Source",
+    "GFSSource",
+    "NARRSource",
+    "ReanalysisSource",
 ]
