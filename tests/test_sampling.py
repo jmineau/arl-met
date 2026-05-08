@@ -107,7 +107,8 @@ class TestPointSampling:
             result = arl.terrain(time)
 
         np.testing.assert_allclose(result, sample["terrain"])
-        np.testing.assert_allclose(terrain(path, time=time), sample["terrain"])
+        with File(path) as f:
+            np.testing.assert_allclose(terrain(f, time=time), sample["terrain"])
 
     def test_file_sample_points_interpolates_native_and_pressure_queries(self, tmp_path):
         path = tmp_path / "points.arl"
@@ -195,7 +196,8 @@ class TestPointSampling:
             }
         )
 
-        result = sample_points([path0, path1], points, ["TEMP"], z_kind="pressure")
+        with File(path0) as f0, File(path1) as f1:
+            result = sample_points([f0, f1], points, ["TEMP"], z_kind="pressure")
 
         np.testing.assert_allclose(result["TEMP"].to_numpy(), [290.5, 310.5])
 

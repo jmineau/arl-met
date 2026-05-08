@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from collections.abc import Iterable, Sequence
-from contextlib import ExitStack
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -17,7 +15,9 @@ from arlmet.surface import Surface
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
-    from arlmet.core import DataRecord, File, RecordSet
+    from arlmet.file import File
+    from arlmet.record import DataRecord
+    from arlmet.recordset import RecordSet
 
 
 SURFACE_VARIABLES = {"PRSS", "SHGT"}
@@ -507,51 +507,37 @@ def sample_points_from_file(
     return result
 
 
-def _open_source(item: File | str | Path, stack: ExitStack) -> File:
-    from arlmet.core import File
-
-    if isinstance(item, File):
-        return item
-    return stack.enter_context(File(item))
-
-
-def _normalize_sources(
-    source: File | str | Path | Sequence[File | str | Path],
-) -> tuple[File | str | Path, ...]:
-    if isinstance(source, (str, Path)):
-        return (source,)
-    from arlmet.core import File
-
-    if isinstance(source, File):
-        return (source,)
+def _normalize_sources(source: File | Sequence[File]) -> tuple[File, ...]:
+    # File is a Mapping; a plain sequence of Files is not — use that to distinguish.
+    if isinstance(source, Mapping):
+        return (source,)  # single File
     return tuple(source)
 
 
 def terrain(
-    source: File | str | Path | Sequence[File | str | Path],
+    source: File | Sequence[File],
     *,
     time: pd.Timestamp | str | None = None,
 ) -> np.ndarray:
-    items = _normalize_sources(source)
-    with ExitStack() as stack:
-        files = tuple(_open_source(item, stack) for item in items)
-        if len(files) != 1:
-            if time is None:
-                raise ValueError(
-                    "terrain() requires time=... when multiple sources are provided."
-                )
-            target_time = pd.Timestamp(time)
-            matches = [file for file in files if target_time in file.times]
-            if len(matches) != 1:
-                raise ValueError(
-                    f"Expected exactly one source containing time {target_time}, found {len(matches)}."
-                )
-            return terrain_from_file(matches[0], time=target_time)
+    files = _normalize_sources(source)
+    if len(files) == 1:
         return terrain_from_file(files[0], time=time)
+
+    if time is None:
+        raise ValueError(
+            "terrain() requires time=... when multiple sources are provided."
+        )
+    target_time = pd.Timestamp(time)
+    matches = [file for file in files if target_time in file.times]
+    if len(matches) != 1:
+        raise ValueError(
+            f"Expected exactly one source containing time {target_time}, found {len(matches)}."
+        )
+    return terrain_from_file(matches[0], time=target_time)
 
 
 def sample_points(
-    source: File | str | Path | Sequence[File | str | Path],
+    source: File | Sequence[File],
     points: Any,
     variables: str | Iterable[str],
     *,
@@ -559,52 +545,49 @@ def sample_points(
     z_kind: str = "pressure",
     method: str = "linear",
 ) -> pd.DataFrame:
-    items = _normalize_sources(source)
-    with ExitStack() as stack:
-        files = tuple(_open_source(item, stack) for item in items)
-        if len(files) == 1:
-            return sample_points_from_file(
-                files[0],
-                points,
-                variables,
-                time=time,
-                z_kind=z_kind,
-                method=method,
-            )
-
-        normalized = _normalize_points(
+    files = _normalize_sources(source)
+    if len(files) == 1:
+        return sample_points_from_file(
+            files[0],
             points,
-            require_time=True,
-            require_z=True,
-            default_time=pd.Timestamp(time) if time is not None else None,
+            variables,
+            time=time,
+            z_kind=z_kind,
+            method=method,
         )
-        time_map: dict[pd.Timestamp, File] = {}
-        for file in files:
-            for sample_time in file.times:
-                if sample_time in time_map:
-                    raise ValueError(
-                        f"Multiple sources contain meteorology for time {sample_time}."
-                    )
-                time_map[sample_time] = file
 
-        missing_times = sorted(set(normalized["time"]) - set(time_map))
-        if missing_times:
-            raise ValueError(
-                "No source contains the requested point times: "
-                + ", ".join(str(pd.Timestamp(time)) for time in missing_times)
-            )
+    normalized = _normalize_points(
+        points,
+        require_time=True,
+        require_z=True,
+        default_time=pd.Timestamp(time) if time is not None else None,
+    )
+    time_map: dict[pd.Timestamp, File] = {}
+    for file in files:
+        for sample_time in file.times:
+            if sample_time in time_map:
+                raise ValueError(
+                    f"Multiple sources contain meteorology for time {sample_time}."
+                )
+            time_map[sample_time] = file
 
-        pieces: list[pd.DataFrame] = []
-        for sample_time, index in normalized.groupby("time").groups.items():
-            piece = sample_points_from_file(
-                time_map[pd.Timestamp(sample_time)],
-                normalized.loc[index],
-                variables,
-                time=pd.Timestamp(sample_time),
-                z_kind=z_kind,
-                method=method,
-            )
-            pieces.append(piece)
+    missing_times = sorted(set(normalized["time"]) - set(time_map))
+    if missing_times:
+        raise ValueError(
+            "No source contains the requested point times: "
+            + ", ".join(str(pd.Timestamp(t)) for t in missing_times)
+        )
 
-        result = pd.concat(pieces).reindex(normalized.index)
-        return result
+    pieces: list[pd.DataFrame] = []
+    for sample_time, index in normalized.groupby("time").groups.items():
+        piece = sample_points_from_file(
+            time_map[pd.Timestamp(sample_time)],
+            normalized.loc[index],
+            variables,
+            time=pd.Timestamp(sample_time),
+            z_kind=z_kind,
+            method=method,
+        )
+        pieces.append(piece)
+
+    return pd.concat(pieces).reindex(normalized.index)

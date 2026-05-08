@@ -10,13 +10,14 @@ import xarray as xr
 from xarray.backends.common import BackendArray
 from xarray.core import indexing
 
-from arlmet.core import File
+from arlmet.file import File
 from arlmet.grid import Grid, Projection
 from arlmet.subset import normalize_levels, resolve_window, select_records
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
-    from arlmet.core import DataRecord, RecordCollection, VariableView
+    from arlmet.record import DataRecord
+    from arlmet.recordset import RecordCollection, VariableView
 
 PROJECTION_ATTRS = (
     "pole_lat",
@@ -214,7 +215,7 @@ def datarecord_to_xarray(record: "DataRecord", squeeze: bool = True) -> xr.DataA
         level=[level],
         height=("level", [height]),
     )
-    da.attrs.update(**record.recordset.attrs)
+    da.attrs.update(**record_collection_attrs(record.recordset))
     return da.squeeze() if squeeze else da
 
 
@@ -228,7 +229,7 @@ def record_collection_to_xarray(
 
     ds = xr.combine_by_coords(
         [
-            dr.to_xarray(squeeze=False).drop_vars("forecast")
+            datarecord_to_xarray(dr, squeeze=False).drop_vars("forecast")
             for dr in source.records
             if dr.variable not in drop_variables
         ],
@@ -247,7 +248,7 @@ def variable_view_to_xarray(view: "VariableView", squeeze: bool = True) -> xr.Da
     """
     da = xr.combine_by_coords(
         [
-            dr.to_xarray(squeeze=False)
+            datarecord_to_xarray(dr, squeeze=False)
             for dr in view.source.records
             if dr.variable == view.name
         ],

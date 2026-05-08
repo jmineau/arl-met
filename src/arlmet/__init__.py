@@ -9,10 +9,12 @@ __version__ = "2025.10.1"
 __author__ = "James Mineau"
 __email__ = "jameskmineau@gmail.com"
 
-from .core import DataRecord, File, RecordSet
+from .file import File
 from .grid import Grid, Projection
 from .metadata import Header, IndexRecord
 from .packing import calculate_checksum, pack, unpack
+from .record import DataRecord
+from .recordset import RecordSet
 from .sampling import sample_points, terrain
 from .subset import extract_subset
 from .surface import Surface

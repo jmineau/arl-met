@@ -4,7 +4,7 @@ from collections import OrderedDict
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
-from arlmet.core import File
+from arlmet.file import File
 from arlmet.grid import GridWindow
 from arlmet.metadata import Header, IndexRecord, LvlInfo, VarInfo, split_grid_component
 from arlmet.vertical import VerticalAxis
