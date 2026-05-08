@@ -609,10 +609,21 @@ class VariableAccessor(Mapping):
 
 
 class RecordSet(RecordCollection):
-    def __init__(self, file: "File", position: int, time: pd.Timestamp):
+    def __init__(
+        self,
+        file: "File",
+        position: int,
+        time: pd.Timestamp,
+        *,
+        forecast: int | None = None,
+    ):
         self.file = file
         self.position = position
         self.time = time
+        #: Forecast hour from the index record header. Populated from the
+        #: parsed IndexRecord when reading; pass explicitly when writing a
+        #: copy or subset so the value is preserved rather than re-derived.
+        self.forecast = forecast
 
         self._sfc_terrain: DataRecord | None = None
         self._sfc_pressure: DataRecord | None = None
@@ -743,11 +754,18 @@ class RecordSet(RecordCollection):
             level_records[dr.level][dr.variable] = dr
             dr._pack()
 
-        if len(forecast_hours) != 1:
+        if self.forecast is not None:
+            # Propagated from source index record (e.g. during subset/copy).
+            # Per-record forecast hours may legitimately differ (e.g. GDAS).
+            forecast = self.forecast
+        elif len(forecast_hours) == 1:
+            forecast = next(iter(forecast_hours))
+        else:
             raise ValueError(
-                "All DataRecords in a RecordSet must share the same forecast hour."
+                "All DataRecords in a RecordSet must share the same forecast hour "
+                "when writing new data. Pass forecast= to create_recordset() when "
+                "copying from a source file that mixes forecast hours."
             )
-        forecast_hour = forecast_hours.pop()
 
         grid_x, nx = split_grid_component(self.grid.nx)
         grid_y, ny = split_grid_component(self.grid.ny)
@@ -775,7 +793,7 @@ class RecordSet(RecordCollection):
             month=self.time.month,
             day=self.time.day,
             hour=self.time.hour,
-            forecast=forecast_hour,
+            forecast=forecast,
             level=0,
             grid=(grid_x, grid_y),
             variable="INDX",
@@ -786,7 +804,7 @@ class RecordSet(RecordCollection):
         return IndexRecord(
             header=header,
             source=self.source,
-            forecast_hour=forecast_hour,
+            forecast=forecast,
             minutes=self.time.minute,
             pole_lat=projection.pole_lat,
             pole_lon=projection.pole_lon,
@@ -966,7 +984,13 @@ class File(RecordCollection):
         return grid
 
     def _create_recordset(
-        self, position, source: str | None, grid: Grid | None, time: pd.Timestamp
+        self,
+        position,
+        source: str | None,
+        grid: Grid | None,
+        time: pd.Timestamp,
+        *,
+        forecast: int | None = None,
     ) -> RecordSet:
         """Internal factory method to create a new RecordSet."""
         if time in self._recordsets:
@@ -978,20 +1002,32 @@ class File(RecordCollection):
         if grid is not None and self._grid != grid:
             raise ValueError("Grid mismatch when creating RecordSet.")
 
-        rs = RecordSet(file=self, position=position, time=time)
+        rs = RecordSet(file=self, position=position, time=time, forecast=forecast)
         self._recordsets[time] = rs
         return rs
 
     @require_mode("w", "a")
-    def create_recordset(self, time) -> RecordSet:
-        """Factory method to create a new, writable RecordSet."""
+    def create_recordset(
+        self, time, *, forecast: int | None = None
+    ) -> RecordSet:
+        """Factory method to create a new, writable RecordSet.
+
+        Parameters
+        ----------
+        forecast :
+            Forecast hour for the index record header. When copying or
+            subsetting an existing file, pass ``src_recordset.forecast`` so
+            the value is preserved exactly. When writing new data, omit and
+            the value will be derived from the DataRecords (which must all
+            share the same forecast hour).
+        """
         if self.source is None or self.grid is None:
             raise ValueError("Source and Grid must be set to create RecordSets.")
 
         position = -1  # New recordsets have no on-disk position yet
         source = grid = None  # skip checks in _create_recordset
         return self._create_recordset(
-            position=position, source=source, grid=grid, time=time
+            position=position, source=source, grid=grid, time=time, forecast=forecast
         )
 
     def _scan(self) -> None:
@@ -1024,7 +1060,11 @@ class File(RecordCollection):
 
             # Create a RecordSet for this index record (time)
             rs = self._create_recordset(
-                position=position, source=index.source, grid=index.grid, time=index.time
+                position=position,
+                source=index.source,
+                grid=index.grid,
+                time=index.time,
+                forecast=index.forecast,
             )
 
             # Skip to the end of the index record

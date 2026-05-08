@@ -87,7 +87,7 @@ class TestWriter:
             index0 = IndexRecord.from_position(handle, 0)
 
         assert index0.source == "TEST"
-        assert index0.forecast_hour == 0
+        assert index0.forecast == 0
         assert index0.vertical_flag == 2
         assert [lvl.height for lvl in index0.levels] == [0.0, 1000.0]
         assert list(index0.levels[0].variables) == ["PRSS"]

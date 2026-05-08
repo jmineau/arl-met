@@ -67,12 +67,17 @@ def _build_subset_index_record(
     selected_records: Sequence,
     level_map: dict[int, int],
 ) -> IndexRecord:
-    forecast_hours = {record.forecast for record in selected_records}
-    if len(forecast_hours) != 1:
-        raise ValueError(
-            f"Subset selection for time {recordset.time} contains multiple forecast hours."
-        )
-    forecast_hour = forecast_hours.pop()
+    if recordset.forecast is not None:
+        forecast = recordset.forecast
+    else:
+        forecast_hours = {record.forecast for record in selected_records}
+        if len(forecast_hours) != 1:
+            raise ValueError(
+                f"Subset selection for time {recordset.time} contains mixed forecast "
+                f"hours {sorted(forecast_hours)} and no index forecast hour is available. "
+                "This should not happen for files opened with arlmet.File."
+            )
+        forecast = next(iter(forecast_hours))
 
     level_records: dict[int, OrderedDict[str, VarInfo]] = {
         level: OrderedDict() for level in range(len(subset_axis.heights))
@@ -101,7 +106,7 @@ def _build_subset_index_record(
             month=time.month,
             day=time.day,
             hour=time.hour,
-            forecast=forecast_hour,
+            forecast=forecast,
             level=0,
             grid=(grid_x, grid_y),
             variable="INDX",
@@ -110,7 +115,7 @@ def _build_subset_index_record(
             initial_value=0.0,
         ),
         source=recordset.source,
-        forecast_hour=forecast_hour,
+        forecast=forecast,
         minutes=time.minute,
         pole_lat=projection.pole_lat,
         pole_lon=projection.pole_lon,
@@ -154,11 +159,13 @@ def validate_subset_record_size(
         )
         index_size = len(index.tobytes())
         if index_size > record_size:
+            min_cells = index_size - Header.N_BYTES
             raise ValueError(
                 "Subset grid is too small to encode an ARL index record: "
                 f"time {recordset.time} needs {index_size} bytes, but each record is "
                 f"only {record_size} bytes for grid {subset_grid.nx}x{subset_grid.ny}. "
-                "Expand the bbox or keep fewer levels or variables."
+                f"The bbox must yield at least {min_cells} grid cells (nx*ny). "
+                "Expand the bbox or reduce levels/variables."
             )
 
 
@@ -227,7 +234,10 @@ def extract_subset(
             vertical_axis=subset_axis,
         ) as destination:
             for src_recordset, selected_records in selected_recordsets:
-                dst_recordset = destination.create_recordset(src_recordset.time)
+                dst_recordset = destination.create_recordset(
+                    src_recordset.time,
+                    forecast=src_recordset.forecast,
+                )
                 for record in selected_records:
                     data = record.read(window=window)
                     dst_recordset.create_datarecord(

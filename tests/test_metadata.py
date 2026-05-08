@@ -88,7 +88,7 @@ class TestIndexRecord:
                 initial_value=0.0,
             ),
             source="TEST",
-            forecast_hour=0,
+            forecast=0,
             minutes=0,
             pole_lat=90.0,
             pole_lon=0.0,

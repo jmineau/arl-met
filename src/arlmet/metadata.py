@@ -249,7 +249,7 @@ class IndexRecord:
         The header information for the index record.
     source : str
         Source identifier (4 characters).
-    forecast_hour : int
+    forecast : int
         Forecast hour.
     minutes : int
         Minutes after the hour.
@@ -318,7 +318,7 @@ class IndexRecord:
 
     header: Header = field(repr=False)
     source: str
-    forecast_hour: int
+    forecast: int
     minutes: int
     pole_lat: float
     pole_lon: float
@@ -406,7 +406,7 @@ class IndexRecord:
         proj = "".join(format_fixed_width_float(value, 7) for value in values)
         fixed = (
             f"{self.source:<4}"
-            f"{self.forecast_hour:3d}"
+            f"{self.forecast:3d}"
             f"{self.minutes:2d}"
             f"{proj}"
             f"{self.nx:3d}"
@@ -483,7 +483,7 @@ class IndexRecord:
         fixed = data[: IndexRecord.N_BYTES_FIXED].decode("ascii", errors="ignore")
 
         fields["source"] = fixed[:4].strip()
-        fields["forecast_hour"] = int(fixed[4:7].strip())
+        fields["forecast"] = int(fixed[4:7].strip())
         fields["minutes"] = int(fixed[7:9].strip())
 
         # Parse 12 floating point values (each 7 characters)
