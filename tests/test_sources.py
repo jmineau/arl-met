@@ -1,5 +1,10 @@
 """Unit tests for arlmet.sources — no network access required."""
 
+import io
+import sys
+import types
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -516,6 +521,126 @@ class TestUrls:
     def test_non_s3_storage_options_empty(self):
         assert self.src._storage_options("ftp") == {}
         assert self.src._storage_options("http") == {}
+
+
+class TestFetchHelpers:
+    def setup_method(self):
+        self.src = HRRRSource()
+
+    def test_dest_path_adds_crop_tag(self, tmp_path):
+        plain = self.src._dest_path(tmp_path, "file.arl", None)
+        cropped = self.src._dest_path(tmp_path, "file.arl", (-111.5, 40.5, -110.0, 41.0))
+
+        assert plain == tmp_path / "file.arl"
+        assert cropped == tmp_path / "file.arl.crop_-111.50_40.50_-110.00_41.00"
+
+    def test_download_copies_bytes_and_renames_tmp_file(self, tmp_path, monkeypatch):
+        class FakeOpen:
+            def __init__(self, data: bytes):
+                self.data = data
+
+            def __call__(self, url, mode, **opts):
+                assert url == "s3://bucket/test"
+                assert mode == "rb"
+                assert opts == {"anon": True}
+                return io.BytesIO(self.data)
+
+        monkeypatch.setitem(sys.modules, "fsspec", types.SimpleNamespace(open=FakeOpen(b"arl-bytes")))
+
+        dest = tmp_path / "download.arl"
+        self.src._download("s3://bucket/test", dest, {"anon": True})
+
+        assert dest.read_bytes() == b"arl-bytes"
+        assert not Path(str(dest) + ".tmp").exists()
+
+    def test_download_cleans_up_tmp_file_on_failure(self, tmp_path, monkeypatch):
+        monkeypatch.setitem(
+            sys.modules,
+            "fsspec",
+            types.SimpleNamespace(open=lambda url, mode, **opts: io.BytesIO(b"bytes")),
+        )
+
+        def boom(src, dst, length):
+            raise RuntimeError("copy failed")
+
+        monkeypatch.setattr("arlmet.sources.shutil.copyfileobj", boom)
+        dest = tmp_path / "broken.arl"
+
+        with pytest.raises(RuntimeError, match="copy failed"):
+            self.src._download("s3://bucket/test", dest, {})
+
+        assert not dest.exists()
+        assert not Path(str(dest) + ".tmp").exists()
+
+    def test_fetch_and_crop_cleans_up_temp_input(self, tmp_path, monkeypatch):
+        downloaded = []
+        cropped = []
+
+        def fake_download(url, dest, opts):
+            downloaded.append((url, dest, opts))
+            Path(dest).write_bytes(b"raw")
+
+        def fake_extract_subset(src, dst, bbox):
+            cropped.append((Path(src), Path(dst), bbox))
+            Path(dst).write_bytes(Path(src).read_bytes() + b"-cropped")
+
+        monkeypatch.setattr(self.src, "_download", fake_download)
+        monkeypatch.setitem(
+            sys.modules,
+            "arlmet.subset",
+            types.SimpleNamespace(extract_subset=fake_extract_subset),
+        )
+
+        dest = tmp_path / "cropped.arl"
+        self.src._fetch_and_crop("s3://bucket/test", dest, (-112.0, 40.0, -111.0, 41.0), {})
+
+        assert downloaded[0][0] == "s3://bucket/test"
+        assert dest.read_bytes() == b"raw-cropped"
+        assert not cropped[0][0].exists()
+
+    def test_fetch_uses_cache_and_dispatches_crop_download_and_overwrite(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setitem(sys.modules, "fsspec", types.SimpleNamespace(open=lambda *a, **k: None))
+        monkeypatch.setattr(self.src, "keys_for_range", lambda start, end: ["hrrr/2024/07/a", "hrrr/2024/07/b"])
+
+        downloads = []
+        crops = []
+
+        def fake_download(url, dest, opts):
+            downloads.append((url, Path(dest), opts))
+            Path(dest).write_text("downloaded")
+
+        def fake_crop(url, dest, bbox, opts):
+            crops.append((url, Path(dest), bbox, opts))
+            Path(dest).write_text("cropped")
+
+        monkeypatch.setattr(self.src, "_download", fake_download)
+        monkeypatch.setattr(self.src, "_fetch_and_crop", fake_crop)
+
+        cached = tmp_path / "a"
+        cached.write_text("cached")
+
+        results = self.src.fetch("2024-07-18", "2024-07-19", local_dir=tmp_path)
+        assert results == [cached, tmp_path / "b"]
+        assert downloads == [
+            ("s3://noaa-oar-arl-hysplit-pds/hrrr/2024/07/b", tmp_path / "b", {"anon": True})
+        ]
+
+        downloads.clear()
+        results = self.src.fetch(
+            "2024-07-18",
+            "2024-07-19",
+            local_dir=tmp_path,
+            bbox=(-112.0, 40.0, -111.0, 41.0),
+            overwrite=True,
+        )
+        assert len(results) == 2
+        assert downloads == []
+        assert [entry[1].name for entry in crops] == [
+            "a.crop_-112.00_40.00_-111.00_41.00",
+            "b.crop_-112.00_40.00_-111.00_41.00",
+        ]
 
 
 # ---------------------------------------------------------------------------

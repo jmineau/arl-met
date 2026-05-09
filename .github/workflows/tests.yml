@@ -27,8 +27,8 @@ jobs:
     - name: Sync dependencies
       run: uv sync --frozen
 
-    - name: Run tests with pytest
-      run: uv run --no-sync pytest -v --cov=arlmet --junitxml=junit.xml -o junit_family=legacy
+    - name: Run non-network tests with pytest
+      run: uv run --no-sync pytest -v -m "not network" --cov=arlmet --junitxml=junit.xml -o junit_family=legacy
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
@@ -41,3 +41,22 @@ jobs:
       uses: codecov/test-results-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+
+  test-network:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        version: "0.10.4"
+        enable-cache: true
+        python-version: '3.11'
+
+    - name: Sync dependencies
+      run: uv sync --frozen
+
+    - name: Run network tests with pytest
+      run: uv run --no-sync pytest -v -m network

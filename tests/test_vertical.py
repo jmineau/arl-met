@@ -1,9 +1,10 @@
-"""Tests for VerticalAxis coordinate and conversion helpers."""
+"""Tests for VerticalAxis and Grid3D coordinate helpers."""
 
 import numpy as np
 import pytest
 
-from arlmet.vertical import VerticalAxis
+from arlmet.grid import Projection
+from arlmet.vertical import Grid3D, VerticalAxis
 
 
 class TestCalculateCoords:
@@ -29,6 +30,26 @@ class TestCalculateCoords:
         c2 = ax.calculate_coords()
         c1["level"][0] = 9999.0
         np.testing.assert_allclose(c2["level"][0], 1000.0)
+
+    def test_coord_system_unknown_and_levels_property_returns_copy(self):
+        ax = VerticalAxis(flag=99, levels=[1.0, 2.0])
+        levels = ax.levels
+
+        assert ax.coord_system == "unknown"
+        levels[0] = -1.0
+        np.testing.assert_allclose(ax.levels, [1.0, 2.0])
+
+
+class TestVerticalAxisEquality:
+    def test_equality_hash_and_non_axis_comparison(self):
+        left = VerticalAxis(flag=2, levels=[1000.0, 900.0], offset=5.0)
+        right = VerticalAxis(flag=2, levels=[1000.0, 900.0], offset=5.0)
+        different = VerticalAxis(flag=1, levels=[1.0, 0.9], offset=0.0)
+
+        assert left == right
+        assert left != different
+        assert left != object()
+        assert hash(left) == hash(right)
 
 
 class TestSigmaToPressure:
@@ -76,3 +97,38 @@ class TestSigmaToPressure:
         result = ax.sigma_to_pressure(np.array([1000.0, 900.0, 800.0]), [0, 1])
         assert result.ndim == 2
         assert result.shape == (3, 2)
+
+
+class TestGrid3D:
+    def make_projection(self):
+        return Projection(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=1.0,
+            tangent_lon=1.0,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=-10.0,
+            sync_lon=20.0,
+        )
+
+    def test_requires_projection_and_vertical_axis(self):
+        axis = VerticalAxis(flag=2, levels=[1000.0, 900.0])
+
+        with pytest.raises(TypeError, match="requires `projection` or `proj`"):
+            Grid3D(vertical_axis=axis)
+
+        with pytest.raises(TypeError, match="requires a `vertical_axis`"):
+            Grid3D(projection=self.make_projection(), nx=2, ny=2)
+
+    def test_dims_and_coords_include_vertical_axis(self):
+        axis = VerticalAxis(flag=2, levels=[1000.0, 900.0])
+        grid = Grid3D(proj=self.make_projection(), nx=2, ny=3, vertical_axis=axis)
+
+        assert grid.dims == ("level", "lat", "lon")
+        coords = grid.calculate_coords()
+        assert coords["level"][0] == "level"
+        np.testing.assert_allclose(coords["level"][1], [1000.0, 900.0])

@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import xarray as xr
 from xarray.core import indexing
 
 from arlmet import File, open_dataset, write_dataset
@@ -10,6 +11,16 @@ from arlmet.grid import Grid, Projection
 from arlmet.metadata import IndexRecord
 from arlmet.packing import pack, unpack
 from arlmet.vertical import VerticalAxis
+from arlmet.xarray import (
+    _assign_dataset_metadata,
+    _expand_scalar_dim,
+    attach_record_collection_metadata,
+    extract_dataset_forecasts,
+    extract_dataset_source,
+    extract_dataset_vertical_axis,
+    normalize_dataset_for_write,
+    record_collection_to_xarray,
+)
 
 
 def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
@@ -270,6 +281,134 @@ class TestWriter:
         ds = open_dataset(source_path, squeeze=False).load().rename({"PRSS": "DIFW"})
 
         with pytest.raises(NotImplementedError, match="DIF"):
+            write_dataset(ds, written_path)
+
+    def test_record_collection_to_xarray_can_drop_variables(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+
+        self.write_sample_file(source_path)
+        with File(source_path) as arl:
+            ds = record_collection_to_xarray(arl, drop_variables=["TEMP"], squeeze=False)
+
+        assert list(ds.data_vars) == ["PRSS"]
+        np.testing.assert_array_equal(ds.coords["forecast"].values, [0, 3])
+
+    def test_attach_record_collection_metadata_assigns_scalar_forecast_for_recordset(
+        self, tmp_path
+    ):
+        source_path = tmp_path / "source.arl"
+
+        sample = self.write_sample_file(source_path)
+        with File(source_path) as arl:
+            ds = xr.Dataset(coords=arl.grid.calculate_coords())
+            enriched = attach_record_collection_metadata(arl[sample["time0"]], ds)
+
+        assert enriched.coords["forecast"].item() == 0
+        assert enriched.attrs["source"] == "TEST"
+
+    def test_assign_dataset_metadata_handles_scalar_forecast(self):
+        grid = make_test_grid()
+        vertical_axis = VerticalAxis(flag=2, levels=[0.0, 1000.0])
+        ds = xr.Dataset(coords=grid.calculate_coords())
+
+        enriched = _assign_dataset_metadata(
+            ds,
+            source="TEST",
+            grid=grid,
+            vertical_axis=vertical_axis,
+            forecast_by_time={pd.Timestamp("2024-07-18 00:00"): 6},
+        )
+
+        assert enriched.coords["forecast"].item() == 6
+        assert enriched.attrs["arl_vertical_levels"] == [0.0, 1000.0]
+
+    def test_expand_scalar_dim_rejects_missing_and_non_scalar_coords(self):
+        ds = xr.Dataset(coords={"time": pd.Timestamp("2024-07-18 00:00")})
+        expanded = _expand_scalar_dim(ds, "time")
+        assert expanded.sizes["time"] == 1
+
+        with pytest.raises(ValueError, match="include a 'level' coordinate"):
+            _expand_scalar_dim(ds, "level")
+
+        with pytest.raises(ValueError, match="dimension or scalar coordinate"):
+            _expand_scalar_dim(xr.Dataset(coords={"time2": ("z", [1, 2])}), "time2")
+
+    def test_normalize_dataset_for_write_requires_dataset(self):
+        with pytest.raises(TypeError, match="xarray.Dataset"):
+            normalize_dataset_for_write([1, 2, 3])
+
+    def test_extract_dataset_source_supports_fallback_and_validation(self):
+        assert extract_dataset_source({"arl_source": "TEST"}) == "TEST"
+
+        with pytest.raises(ValueError, match="source identifier"):
+            extract_dataset_source({})
+
+    def test_extract_dataset_vertical_axis_returns_copy(self):
+        axis = VerticalAxis(flag=2, levels=[1000.0, 900.0], offset=5.0)
+
+        extracted = extract_dataset_vertical_axis({"vertical_axis": axis})
+
+        assert extracted is not axis
+        assert extracted.flag == axis.flag
+        np.testing.assert_allclose(extracted.levels, axis.levels)
+        assert extracted.offset == axis.offset
+
+    def test_extract_dataset_forecasts_rejects_wrong_dimensions(self):
+        ds = xr.Dataset(coords={"time": [0, 1], "level": [0, 1]})
+        ds = ds.assign_coords(forecast=(("time", "level"), np.zeros((2, 2), dtype=int)))
+
+        with pytest.raises(ValueError, match="must use only the 'time' dimension"):
+            extract_dataset_forecasts(ds)
+
+    def test_write_dataset_rejects_missing_horizontal_dimension(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False).isel(lon=0)
+
+        with pytest.raises(ValueError, match="required horizontal dimension 'lon'"):
+            write_dataset(ds, written_path)
+
+    def test_write_dataset_rejects_wrong_horizontal_dimension_size(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False).isel(lon=slice(0, -1))
+
+        with pytest.raises(ValueError, match="dimension 'lon' has size"):
+            write_dataset(ds, written_path)
+
+    def test_write_dataset_rejects_duplicate_level_values(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False).assign_coords(level=[0.0, 0.0])
+
+        with pytest.raises(ValueError, match="must not contain duplicate values"):
+            write_dataset(ds, written_path)
+
+    def test_write_dataset_rejects_nonfinite_values(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False).load()
+        ds["PRSS"].data[0, 0, 0, 0] = np.inf
+
+        with pytest.raises(ValueError, match="non-finite values"):
+            write_dataset(ds, written_path)
+
+    def test_write_dataset_rejects_long_variable_names(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False).rename({"PRSS": "PRESS"})
+
+        with pytest.raises(ValueError, match="4 characters or fewer"):
             write_dataset(ds, written_path)
 
     @staticmethod

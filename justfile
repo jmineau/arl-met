@@ -48,7 +48,7 @@ quality-check:
 	uv run ruff check src/arlmet
 	@echo "Type checking with pyright..."
 	uv run pyright src/arlmet
-	just test
+	just test-no-network
 
 # Run ruff fixes and formatting
 ruff:
@@ -56,7 +56,17 @@ ruff:
 	uv run ruff check --fix src/arlmet
 	uv run ruff format src/arlmet
 
-# Run tests with pytest
+# Run the full test suite, including network tests
 test:
-	@echo "Running tests..."
+	@echo "Running all tests, including network tests..."
 	uv run pytest -v
+
+# Run tests without live network access
+test-no-network:
+	@echo "Running non-network tests..."
+	uv run pytest -v -m "not network"
+
+# Run only tests that require live network access
+test-network:
+	@echo "Running network tests..."
+	uv run pytest -v -m network
