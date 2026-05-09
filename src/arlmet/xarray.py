@@ -60,6 +60,7 @@ class ArlVariableArray(BackendArray):
         )
 
     def _getitem(self, key):
+        """Materialize the requested outer-indexed slice from the backing records."""
         if len(key) != 4:
             raise IndexError(f"ARL variable arrays expect 4 indexers, got {len(key)}.")
 
@@ -90,6 +91,7 @@ class ArlVariableArray(BackendArray):
 
 
 def _normalize_backend_indexer(indexer, size: int) -> tuple[np.ndarray, bool]:
+    """Normalize one backend indexer to explicit integer indices and scalar status."""
     base = np.arange(size, dtype=int)
     if isinstance(indexer, slice):
         return np.asarray(base[indexer], dtype=int), False
@@ -99,16 +101,20 @@ def _normalize_backend_indexer(indexer, size: int) -> tuple[np.ndarray, bool]:
 
 
 def grid_to_attrs(grid: Grid) -> dict[str, Any]:
+    """Serialize Grid metadata into JSON-safe dataset attributes."""
     attrs = {
         "arl_nx": grid.nx,
         "arl_ny": grid.ny,
     }
     projection = grid.projection
-    attrs.update({f"arl_{name}": getattr(projection, name) for name in PROJECTION_ATTRS})
+    attrs.update(
+        {f"arl_{name}": getattr(projection, name) for name in PROJECTION_ATTRS}
+    )
     return attrs
 
 
 def grid_from_attrs(attrs: Mapping[str, Any]) -> Grid:
+    """Reconstruct a Grid from serialized ARL dataset attributes."""
     try:
         projection = Projection(
             **{name: float(attrs[f"arl_{name}"]) for name in PROJECTION_ATTRS}
@@ -124,6 +130,7 @@ def grid_from_attrs(attrs: Mapping[str, Any]) -> Grid:
 
 
 def vertical_axis_to_attrs(vertical_axis: VerticalAxis) -> dict[str, Any]:
+    """Serialize a VerticalAxis into JSON-safe dataset attributes."""
     return {
         "arl_vertical_flag": vertical_axis.flag,
         "arl_vertical_levels": vertical_axis.levels.tolist(),
@@ -132,6 +139,7 @@ def vertical_axis_to_attrs(vertical_axis: VerticalAxis) -> dict[str, Any]:
 
 
 def vertical_axis_from_attrs(attrs: Mapping[str, Any]) -> VerticalAxis:
+    """Reconstruct a VerticalAxis from serialized dataset attributes."""
     try:
         flag = int(attrs["arl_vertical_flag"])
         levels = attrs["arl_vertical_levels"]
@@ -152,6 +160,7 @@ def vertical_axis_from_attrs(attrs: Mapping[str, Any]) -> VerticalAxis:
 
 
 def record_collection_attrs(source: "RecordCollection") -> dict[str, Any]:
+    """Collect source, grid, and vertical metadata for xarray attrs."""
     attrs = {
         "source": source.source,
         "arl_source": source.source,
@@ -174,6 +183,7 @@ def record_collection_attrs(source: "RecordCollection") -> dict[str, Any]:
 def attach_record_collection_metadata(
     source: "RecordCollection", ds: xr.Dataset
 ) -> xr.Dataset:
+    """Attach serialized ARL metadata and forecast coordinates to a dataset."""
     ds.attrs.update(record_collection_attrs(source))
     if not source.records:
         return ds
@@ -267,6 +277,7 @@ def _assign_dataset_metadata(
     vertical_axis: VerticalAxis,
     forecast_by_time: dict[pd.Timestamp, int],
 ) -> xr.Dataset:
+    """Attach ARL metadata and forecast coordinates to a constructed dataset."""
     ds.attrs.update(
         {
             "source": source,
@@ -282,7 +293,10 @@ def _assign_dataset_metadata(
         if "time" in ds.dims:
             times = pd.to_datetime(ds.coords["time"].values)
             ds = ds.assign_coords(
-                forecast=("time", [forecast_by_time[pd.Timestamp(time)] for time in times])
+                forecast=(
+                    "time",
+                    [forecast_by_time[pd.Timestamp(time)] for time in times],
+                )
             )
         else:
             ds = ds.assign_coords(forecast=next(iter(forecast_by_time.values())))
@@ -297,11 +311,14 @@ def _build_dataset_from_file(
     drop_variables=None,
     squeeze: bool = True,
 ) -> xr.Dataset:
+    """Build a lazy xarray.Dataset from a File selection."""
     drop_variables = set(drop_variables or [])
     window = resolve_window(met, bbox)
     read_window = None if bbox is None else window
     selected_grid = met.grid if bbox is None else met.grid.subset(window)
-    requested_levels = None if levels is None else normalize_levels(met.vertical_axis, levels)
+    requested_levels = (
+        None if levels is None else normalize_levels(met.vertical_axis, levels)
+    )
     requested_level_set = None if requested_levels is None else set(requested_levels)
 
     selected_recordsets: list[tuple[pd.Timestamp, int, list[DataRecord]]] = []
@@ -318,11 +335,15 @@ def _build_dataset_from_file(
 
         forecasts = {record.forecast for record in selected_records}
         if len(forecasts) != 1:
-            raise ValueError(f"Selection contains multiple forecast hours for time {time}.")
+            raise ValueError(
+                f"Selection contains multiple forecast hours for time {time}."
+            )
 
         for record in selected_records:
             present_levels.setdefault(record.level, None)
-        selected_recordsets.append((pd.Timestamp(time), forecasts.pop(), selected_records))
+        selected_recordsets.append(
+            (pd.Timestamp(time), forecasts.pop(), selected_records)
+        )
 
     selected_levels = (
         list(requested_levels) if requested_levels is not None else list(present_levels)
@@ -342,7 +363,9 @@ def _build_dataset_from_file(
         times.append(time)
         forecast_by_time[time] = forecast
         for record in selected_records:
-            records_by_variable[record.variable][(time_pos, level_pos[record.level])] = record
+            records_by_variable[record.variable][
+                (time_pos, level_pos[record.level])
+            ] = record
 
     if times:
         ds = ds.assign_coords(time=("time", times))
@@ -368,6 +391,7 @@ def _build_dataset_from_file(
 
 
 def _expand_scalar_dim(ds: xr.Dataset, dim: str) -> xr.Dataset:
+    """Promote a scalar coordinate to a length-1 dimension when needed."""
     if dim in ds.dims:
         return ds
     if dim not in ds.coords:
@@ -383,6 +407,7 @@ def _expand_scalar_dim(ds: xr.Dataset, dim: str) -> xr.Dataset:
 
 
 def normalize_dataset_for_write(ds: xr.Dataset) -> xr.Dataset:
+    """Normalize a dataset to the dimensional form required by write_dataset()."""
     if not isinstance(ds, xr.Dataset):
         raise TypeError("write_dataset() requires an xarray.Dataset.")
 
@@ -393,6 +418,7 @@ def normalize_dataset_for_write(ds: xr.Dataset) -> xr.Dataset:
 
 
 def extract_dataset_source(attrs: Mapping[str, Any]) -> str:
+    """Extract the ARL source identifier from dataset attributes."""
     source = attrs.get("source", attrs.get("arl_source"))
     if not isinstance(source, str) or not source:
         raise ValueError(
@@ -402,6 +428,7 @@ def extract_dataset_source(attrs: Mapping[str, Any]) -> str:
 
 
 def extract_dataset_grid(attrs: Mapping[str, Any]) -> Grid:
+    """Extract a Grid instance from dataset attributes."""
     grid = attrs.get("grid")
     if isinstance(grid, Grid):
         return grid
@@ -409,6 +436,7 @@ def extract_dataset_grid(attrs: Mapping[str, Any]) -> Grid:
 
 
 def extract_dataset_vertical_axis(attrs: Mapping[str, Any]) -> VerticalAxis:
+    """Extract a VerticalAxis instance from dataset attributes."""
     vertical_axis = attrs.get("vertical_axis")
     if isinstance(vertical_axis, VerticalAxis):
         return VerticalAxis(
@@ -420,6 +448,7 @@ def extract_dataset_vertical_axis(attrs: Mapping[str, Any]) -> VerticalAxis:
 
 
 def extract_dataset_forecasts(ds: xr.Dataset) -> np.ndarray:
+    """Extract forecast hours from a dataset as a one-dimensional integer array."""
     if "forecast" not in ds.coords:
         raise ValueError(
             "Dataset must include a 'forecast' coordinate aligned to the time dimension."
@@ -429,7 +458,9 @@ def extract_dataset_forecasts(ds: xr.Dataset) -> np.ndarray:
     if forecast.ndim == 0:
         return np.asarray([int(forecast.item())], dtype=int)
     if forecast.dims != ("time",):
-        raise ValueError("The 'forecast' coordinate must use only the 'time' dimension.")
+        raise ValueError(
+            "The 'forecast' coordinate must use only the 'time' dimension."
+        )
     return np.asarray(forecast.values, dtype=int)
 
 
@@ -441,7 +472,36 @@ def open_dataset(
     levels: list[int] | tuple[int, ...] | None = None,
 ):
     """
-    Open an ARLMet file and convert it to an xarray Dataset.
+    Open an ARL meteorology file as an xarray.Dataset.
+
+    Parameters
+    ----------
+    filename_or_obj : path-like
+        Path to the ARL file.
+    drop_variables : iterable of str, optional
+        Variable names to omit from the resulting dataset.
+    squeeze : bool, default True
+        Remove length-1 dimensions from the returned dataset.
+    bbox : tuple[float, float, float, float], optional
+        Geographic bounding box ``(west, south, east, north)`` in degrees.
+        When provided, records are cropped before unpacking.
+    levels : list[int] or tuple[int, ...], optional
+        ARL level indices to keep.
+
+    Returns
+    -------
+    xarray.Dataset
+        Lazy dataset containing the selected ARL variables and coordinates.
+
+    Examples
+    --------
+    >>> import arlmet
+    >>> ds = arlmet.open_dataset("met.arl")
+    >>> subset = arlmet.open_dataset(
+    ...     "met.arl",
+    ...     bbox=(-114.0, 39.0, -110.0, 42.0),
+    ...     levels=[0, 1, 2],
+    ... )
     """
     met = File(filename_or_obj)
     return _build_dataset_from_file(
@@ -455,7 +515,26 @@ def open_dataset(
 
 def write_dataset(ds: xr.Dataset, filename_or_obj) -> None:
     """
-    Write an xarray Dataset to ARL format.
+    Write an xarray.Dataset to ARL format.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset produced by :func:`open_dataset` or another dataset carrying
+        equivalent ``arl_*`` metadata.
+    filename_or_obj : path-like
+        Output path for the ARL file.
+
+    Returns
+    -------
+    None
+        This function writes the dataset to disk.
+
+    Examples
+    --------
+    >>> import arlmet
+    >>> ds = arlmet.open_dataset("met.arl", levels=[0, 1, 2])
+    >>> arlmet.write_dataset(ds, "subset.arl")
     """
     ds = normalize_dataset_for_write(ds)
     source = extract_dataset_source(ds.attrs)
@@ -466,7 +545,9 @@ def write_dataset(ds: xr.Dataset, filename_or_obj) -> None:
     h_dims = grid.dims
     for dim, size in zip(h_dims, (grid.ny, grid.nx), strict=True):
         if dim not in ds.dims:
-            raise ValueError(f"Dataset is missing required horizontal dimension '{dim}'.")
+            raise ValueError(
+                f"Dataset is missing required horizontal dimension '{dim}'."
+            )
         if ds.sizes[dim] != size:
             raise ValueError(
                 f"Dataset dimension '{dim}' has size {ds.sizes[dim]}, expected {size}."
@@ -507,9 +588,13 @@ def write_dataset(ds: xr.Dataset, filename_or_obj) -> None:
                         f"Variable names must be 4 characters or fewer, got '{name}'."
                     )
                 if name.startswith("DIF"):
-                    raise NotImplementedError("Writing DIF* variables is not implemented.")
+                    raise NotImplementedError(
+                        "Writing DIF* variables is not implemented."
+                    )
 
-                transposed = da.transpose("time", "level", *h_dims, missing_dims="raise")
+                transposed = da.transpose(
+                    "time", "level", *h_dims, missing_dims="raise"
+                )
                 for level_pos, level_idx in enumerate(level_indices):
                     data = np.asarray(
                         transposed.isel(time=time_index, level=level_pos).values,

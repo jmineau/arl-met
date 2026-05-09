@@ -22,6 +22,19 @@ if TYPE_CHECKING:
 
 
 class RecordCollection(Mapping):
+    """
+    Shared mapping interface for collections of ARL data records.
+
+    Attributes
+    ----------
+    records : list[DataRecord]
+        Materialized list of records in insertion order.
+    record_size : int
+        Binary size in bytes of one ARL record for the collection grid.
+    variables : VariableAccessor
+        Lazy variable-wise accessor over the underlying records.
+    """
+
     def __init__(self):
         # Initialize datarecords as an ordered dict to preserve insertion order
         # Mapping: (time, level, variable) -> DataRecord
@@ -74,12 +87,25 @@ class RecordCollection(Mapping):
 
 class VariableView:
     """
-    A lazy, multidimensional view of a single variable, providing access to
-    its data as an xarray-backed lazy array and facilitating conversion to an
-    xarray.DataArray.
+    Lazy multi-dimensional view of one ARL variable.
 
-    This view can represent a 4D cube (time, level, y, x) from a File object
-    or a 3D slice (level, y, x) from a RecordSet object.
+    Parameters
+    ----------
+    source : RecordCollection
+        File-like or recordset-like collection that owns the variable.
+    name : str
+        Variable name to expose.
+
+    Attributes
+    ----------
+    data : numpy.ndarray
+        Materialized array for the selected variable.
+    dtype : numpy.dtype
+        NumPy dtype of the materialized data.
+    ndim : int
+        Number of dimensions in the view.
+    shape : tuple
+        Array shape in ``(time, level, y, x)`` or squeezed form.
     """
 
     def __init__(self, source: RecordCollection, name: str):
@@ -110,6 +136,19 @@ class VariableView:
         return self.data.shape
 
     def to_xarray(self, squeeze=True):
+        """
+        Convert this variable view to an xarray object.
+
+        Parameters
+        ----------
+        squeeze : bool, default True
+            Remove length-1 dimensions from the result.
+
+        Returns
+        -------
+        xarray.DataArray
+            Lazy xarray view over the selected variable.
+        """
         # Delayed import: xarray.py imports from recordset.py — cycle broken at runtime
         from arlmet.xarray import variable_view_to_xarray
 
@@ -125,10 +164,7 @@ class VariableView:
 
 
 class VariableAccessor(Mapping):
-    """
-    A lazy, dictionary-like view of variables for a given File or RecordSet.
-    It provides access to VariableView objects for each variable.
-    """
+    """Dictionary-like accessor that returns VariableView objects by name."""
 
     def __init__(self, source: RecordCollection):
         self.source = source
@@ -154,6 +190,42 @@ class VariableAccessor(Mapping):
 
 
 class RecordSet(RecordCollection):
+    """
+    Records for one valid time within an ARL file.
+
+    Parameters
+    ----------
+    file : File
+        Parent ARL file handle.
+    position : int
+        Byte offset of the index record on disk, or ``-1`` for a new writable
+        record set.
+    time : pandas.Timestamp
+        Valid time represented by the record set.
+    forecast : int, optional
+        Forecast hour stored in the index record header.
+
+    Attributes
+    ----------
+    file : File
+        Parent ARL file.
+    position : int
+        Byte offset of the index record.
+    time : pandas.Timestamp
+        Valid time of the record set.
+    forecast : int or None
+        Forecast hour associated with the index record.
+    records : list[DataRecord]
+        Data records stored at this time.
+    variables : VariableAccessor
+        Lazy variable accessor inherited from RecordCollection.
+
+    Methods
+    -------
+    create_datarecord(variable, level, forecast=-1, data=None)
+        Create a writable data record for this time.
+    """
+
     def __init__(
         self,
         file: File,
@@ -239,7 +311,23 @@ class RecordSet(RecordCollection):
         data: np.ndarray | None = None,
     ) -> DataRecord:
         """
-        Create a new DataRecord.
+        Create a writable DataRecord attached to this time step.
+
+        Parameters
+        ----------
+        variable : str
+            Four-character ARL variable name.
+        level : int
+            ARL level index for the record.
+        forecast : int, default -1
+            Forecast hour to write into the record header.
+        data : numpy.ndarray, optional
+            Initial ``(ny, nx)`` field values to assign.
+
+        Returns
+        -------
+        DataRecord
+            Writable data record for the requested variable and level.
         """
         if not isinstance(forecast, int):
             raise ValueError("Forecast must be an integer.")
@@ -271,7 +359,9 @@ class RecordSet(RecordCollection):
 
         for dr in self.records:
             if dr.variable.startswith("DIF") or dr._diff is not None:
-                raise NotImplementedError("Writing difference records is not implemented.")
+                raise NotImplementedError(
+                    "Writing difference records is not implemented."
+                )
             if len(dr.variable) > 4:
                 raise ValueError(
                     f"Variable names must be 4 characters or fewer, got '{dr.variable}'."
@@ -363,6 +453,7 @@ class RecordSet(RecordCollection):
 
     @require_mode("w")
     def _flush(self):
+        """Write the index record and all pending data records to disk."""
         index = self._build_index_record()
         fh = self.file.handle
 

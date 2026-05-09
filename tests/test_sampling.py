@@ -44,15 +44,25 @@ def write_sampling_file(path, *, time: pd.Timestamp, temp_offset: float = 0.0):
     hgts1 = terrain + (surface_pressure - 900.0) * _DZ
     hgts2 = terrain + (surface_pressure - 800.0) * _DZ
 
-    with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis) as arl:
+    with File(
+        path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+    ) as arl:
         rs = arl.create_recordset(time)
-        rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain.astype(np.float32))
-        rs.create_datarecord("PRSS", level=0, forecast=0, data=surface_pressure.astype(np.float32))
+        rs.create_datarecord(
+            "SHGT", level=0, forecast=0, data=terrain.astype(np.float32)
+        )
+        rs.create_datarecord(
+            "PRSS", level=0, forecast=0, data=surface_pressure.astype(np.float32)
+        )
         for level_index, (temp, hgts) in enumerate(
             zip([temp0, temp1, temp2], [hgts0, hgts1, hgts2], strict=True)
         ):
-            rs.create_datarecord("TEMP", level=level_index, forecast=0, data=temp.astype(np.float32))
-            rs.create_datarecord("HGTS", level=level_index, forecast=0, data=hgts.astype(np.float32))
+            rs.create_datarecord(
+                "TEMP", level=level_index, forecast=0, data=temp.astype(np.float32)
+            )
+            rs.create_datarecord(
+                "HGTS", level=level_index, forecast=0, data=hgts.astype(np.float32)
+            )
 
     return {
         "grid": grid,
@@ -78,7 +88,21 @@ def _level_dz(pressure_level: float) -> float:
 
 def write_deep_sampling_file(path, *, time: pd.Timestamp, temp_offset: float = 0.0):
     grid = make_test_grid(nx=30, ny=30)
-    levels = [1000.0, 900.0, 800.0, 700.0, 600.0, 500.0, 400.0, 300.0, 200.0, 100.0, 50.0, 10.0, 1.0]
+    levels = [
+        1000.0,
+        900.0,
+        800.0,
+        700.0,
+        600.0,
+        500.0,
+        400.0,
+        300.0,
+        200.0,
+        100.0,
+        50.0,
+        10.0,
+        1.0,
+    ]
     vertical_axis = VerticalAxis(flag=2, levels=levels)
     yy, xx = np.meshgrid(np.arange(grid.ny), np.arange(grid.nx), indexing="ij")
     base = 0.1 * yy + 0.1 * xx
@@ -86,14 +110,24 @@ def write_deep_sampling_file(path, *, time: pd.Timestamp, temp_offset: float = 0
     terrain = 100.0 + base
     surface_pressure = 1000.0 + yy + xx
 
-    with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis) as arl:
+    with File(
+        path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+    ) as arl:
         rs = arl.create_recordset(time)
-        rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain.astype(np.float32))
-        rs.create_datarecord("PRSS", level=0, forecast=0, data=surface_pressure.astype(np.float32))
+        rs.create_datarecord(
+            "SHGT", level=0, forecast=0, data=terrain.astype(np.float32)
+        )
+        rs.create_datarecord(
+            "PRSS", level=0, forecast=0, data=surface_pressure.astype(np.float32)
+        )
         for level_index, pressure_level in enumerate(levels):
             temp = 280.0 + temp_offset + 5.0 * level_index + base
-            rs.create_datarecord("TEMP", level=level_index, forecast=0, data=temp.astype(np.float32))
-            agl = np.maximum((surface_pressure - pressure_level) * _level_dz(pressure_level), 0.0)
+            rs.create_datarecord(
+                "TEMP", level=level_index, forecast=0, data=temp.astype(np.float32)
+            )
+            agl = np.maximum(
+                (surface_pressure - pressure_level) * _level_dz(pressure_level), 0.0
+            )
             hgts = (terrain + agl).astype(np.float32)
             rs.create_datarecord("HGTS", level=level_index, forecast=0, data=hgts)
 
@@ -116,7 +150,9 @@ class TestPointSampling:
 
         np.testing.assert_allclose(result, sample["terrain"])
 
-    def test_file_sample_points_interpolates_native_and_pressure_queries(self, tmp_path):
+    def test_file_sample_points_interpolates_native_and_pressure_queries(
+        self, tmp_path
+    ):
         path = tmp_path / "points.arl"
         time = pd.Timestamp("2024-07-18 00:00")
         write_sampling_file(path, time=time)
@@ -130,7 +166,9 @@ class TestPointSampling:
         )
 
         with File(path) as arl:
-            native = arl.sample_points(points.iloc[[0]], ["TEMP", "PRSS"], time=time, z_kind="native")
+            native = arl.sample_points(
+                points.iloc[[0]], ["TEMP", "PRSS"], time=time, z_kind="native"
+            )
             pressure_points = arl.sample_points(
                 points.iloc[[1]],
                 ["TEMP", "pressure"],
@@ -241,6 +279,7 @@ class TestPointSampling:
 
 # --- sigma (flag=1), hybrid (flag=4), and terrain (flag=3) fixtures ---
 
+
 def write_sigma_sampling_file(path, *, time: pd.Timestamp):
     """
     Sigma (flag=1) file with offset=0 (p_top=0 hPa).
@@ -253,7 +292,9 @@ def write_sigma_sampling_file(path, *, time: pd.Timestamp):
     terrain_data = np.full((grid.ny, grid.nx), 100.0, dtype=np.float32)
     surface_pressure = np.full((grid.ny, grid.nx), 1000.0, dtype=np.float32)
 
-    with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis) as arl:
+    with File(
+        path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+    ) as arl:
         rs = arl.create_recordset(time)
         rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain_data)
         rs.create_datarecord("PRSS", level=0, forecast=0, data=surface_pressure)
@@ -285,7 +326,9 @@ def write_terrain_sampling_file(path, *, time: pd.Timestamp):
     vertical_axis = VerticalAxis(flag=3, levels=[0.0, 100.0, 500.0])
     terrain_data = np.full((grid.ny, grid.nx), 200.0, dtype=np.float32)
 
-    with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis) as arl:
+    with File(
+        path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+    ) as arl:
         rs = arl.create_recordset(time)
         rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain_data)
         for level_index, temp_val in enumerate([280.0, 290.0, 300.0]):
@@ -378,7 +421,9 @@ def write_hybrid_sampling_file(path, *, time: pd.Timestamp):
     terrain_data = np.full((grid.ny, grid.nx), 100.0, dtype=np.float32)
     surface_pressure = np.full((grid.ny, grid.nx), 1000.0, dtype=np.float32)
 
-    with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis) as arl:
+    with File(
+        path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+    ) as arl:
         rs = arl.create_recordset(time)
         rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain_data)
         rs.create_datarecord("PRSS", level=0, forecast=0, data=surface_pressure)
@@ -477,7 +522,9 @@ def write_sampling_file_with_hgts(path, *, time: pd.Timestamp):
     surface_pressure = np.full((grid.ny, grid.nx), 1000.0, dtype=np.float32)
     hgts_values = [200.0, 1200.0, 2200.0]
 
-    with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis) as arl:
+    with File(
+        path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+    ) as arl:
         rs = arl.create_recordset(time)
         rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain_data)
         rs.create_datarecord("PRSS", level=0, forecast=0, data=surface_pressure)
@@ -513,7 +560,9 @@ class TestHgtsBasedSampling:
         # 500m AGL = midpoint of [0, 1000] → TEMP=285, pressure=950
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
         with File(path) as arl:
-            result = arl.sample_points(points, ["TEMP", "pressure"], time=time, z_kind="agl")
+            result = arl.sample_points(
+                points, ["TEMP", "pressure"], time=time, z_kind="agl"
+            )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
         np.testing.assert_allclose(result["pressure"].iloc[0], 950.0, atol=1e-4)
@@ -526,7 +575,9 @@ class TestHgtsBasedSampling:
         # 700m MSL = midpoint of HGTS [200, 1200] → TEMP=285
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [700.0]})
         with File(path) as arl:
-            result = arl.sample_points(points, ["TEMP", "pressure"], time=time, z_kind="msl")
+            result = arl.sample_points(
+                points, ["TEMP", "pressure"], time=time, z_kind="msl"
+            )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
         np.testing.assert_allclose(result["pressure"].iloc[0], 950.0, atol=1e-4)
@@ -721,9 +772,9 @@ class TestSamplingErrors:
         time = pd.Timestamp("2024-07-18")
         write_sampling_file(path, time=time)
 
-        points = pd.DataFrame({
-            "lon": [20.0], "lat": [-10.0], "z": [950.0], "time": [time]
-        })
+        points = pd.DataFrame(
+            {"lon": [20.0], "lat": [-10.0], "z": [950.0], "time": [time]}
+        )
         with File(path) as f, pytest.raises(ValueError, match="Multiple sources"):
             sample_points([f, f], points, ["TEMP"], z_kind="pressure")
 
@@ -748,12 +799,14 @@ class TestMultiTimeFile:
 
         # 950 hPa sits midway between levels 0 (1000 hPa) and 1 (900 hPa)
         # time0: (280 + 290) / 2 = 285; time1: (300 + 310) / 2 = 305
-        points = pd.DataFrame({
-            "time": [time0, time1],
-            "lon": [20.0, 20.0],
-            "lat": [-10.0, -10.0],
-            "z": [950.0, 950.0],
-        })
+        points = pd.DataFrame(
+            {
+                "time": [time0, time1],
+                "lon": [20.0, 20.0],
+                "lat": [-10.0, -10.0],
+                "z": [950.0, 950.0],
+            }
+        )
         with File(path) as arl:
             result = arl.sample_points(points, ["TEMP"], z_kind="pressure")
 

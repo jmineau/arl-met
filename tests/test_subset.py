@@ -34,7 +34,9 @@ def write_subset_source(path):
     time0 = pd.Timestamp("2024-07-18 00:00")
     time1 = pd.Timestamp("2024-07-18 03:00")
 
-    with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis) as arl:
+    with File(
+        path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+    ) as arl:
         rs0 = arl.create_recordset(time0)
         rs0.create_datarecord("PRSS", level=0, forecast=0, data=1000.0 + base)
         rs0.create_datarecord("TEMP", level=1, forecast=0, data=280.0 + base)
@@ -141,5 +143,9 @@ def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
     assert ds.attrs["arl_nx"] == 3
     assert ds.attrs["arl_ny"] == 3
     assert ds.attrs["vertical_axis"].levels.tolist() == [0.0, 1000.0, 2000.0]
-    np.testing.assert_allclose(np.asarray(ds["PRSS"].isel(time=0, level=0)), source_prss)
-    np.testing.assert_allclose(np.asarray(ds["UWND"].isel(time=0, level=1)), source_uwnd)
+    np.testing.assert_allclose(
+        np.asarray(ds["PRSS"].isel(time=0, level=0)), source_prss
+    )
+    np.testing.assert_allclose(
+        np.asarray(ds["UWND"].isel(time=0, level=1)), source_uwnd
+    )

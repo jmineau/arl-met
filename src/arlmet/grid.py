@@ -33,7 +33,7 @@ def wrap_lons(lons: np.ndarray) -> np.ndarray:
 @dataclass
 class Projection:
     """
-    ARL Grid Projection
+    Horizontal projection metadata from an ARL index record.
 
     Parameters
     ----------
@@ -77,11 +77,37 @@ class Projection:
 
     Attributes
     ----------
+    params : dict[str, Any]
+        pyproj parameter dictionary derived from the ARL metadata.
     crs : pyproj.CRS
-        The pyproj CRS object representing the base grid projection.
-        The projection is defined without false easting/northing offsets.
+        pyproj coordinate reference system representing the base projection.
+        False easting and northing offsets are applied at the Grid level.
     is_latlon : bool
         True if the grid is a lat-lon grid (grid_size == 0).
+
+    Methods
+    -------
+    _get_params()
+        Translate ARL projection metadata into pyproj parameters.
+
+    Examples
+    --------
+    >>> from arlmet.grid import Projection
+    >>> proj = Projection(
+    ...     pole_lat=90.0,
+    ...     pole_lon=180.0,
+    ...     tangent_lat=1.0,
+    ...     tangent_lon=1.0,
+    ...     grid_size=0.0,
+    ...     orientation=0.0,
+    ...     cone_angle=0.0,
+    ...     sync_x=1.0,
+    ...     sync_y=1.0,
+    ...     sync_lat=-90.0,
+    ...     sync_lon=-180.0,
+    ... )
+    >>> proj.is_latlon
+    True
     """
 
     pole_lat: float
@@ -227,6 +253,19 @@ class GridWindow:
         Inclusive start and exclusive stop indices in the x direction.
     y_start, y_stop : int
         Inclusive start and exclusive stop indices in the y direction.
+
+    Attributes
+    ----------
+    nx : int
+        Number of selected x-grid points.
+    ny : int
+        Number of selected y-grid points.
+    shape : tuple[int, int]
+        Window shape as ``(ny, nx)``.
+    x_slice : slice
+        Slice object for selecting the x range.
+    y_slice : slice
+        Slice object for selecting the y range.
     """
 
     x_start: int
@@ -265,12 +304,12 @@ class GridWindow:
 
 class Grid:
     """
-    Represents the 2D horizontal grid of the ARL data.
+    Two-dimensional horizontal grid definition for ARL data.
 
     Parameters
     ----------
-    proj : Projection
-        The grid projection information.
+    projection : Projection
+        Grid projection metadata.
     nx : int
         Number of grid points in the x-direction (columns).
     ny : int
@@ -291,6 +330,32 @@ class Grid:
     -------
     calculate_coords() -> dict[str, Any]
         Calculate grid coordinates in both projected and geographic systems.
+    fractional_indices(lon, lat)
+        Convert lon/lat positions to fractional grid indices.
+    window_from_bbox(bbox)
+        Resolve a geographic bounding box to an inclusive grid window.
+    subset(window)
+        Build a new Grid describing a rectangular subset.
+
+    Examples
+    --------
+    >>> from arlmet.grid import Grid, Projection
+    >>> proj = Projection(
+    ...     pole_lat=90.0,
+    ...     pole_lon=180.0,
+    ...     tangent_lat=1.0,
+    ...     tangent_lon=1.0,
+    ...     grid_size=0.0,
+    ...     orientation=0.0,
+    ...     cone_angle=0.0,
+    ...     sync_x=1.0,
+    ...     sync_y=1.0,
+    ...     sync_lat=40.0,
+    ...     sync_lon=-120.0,
+    ... )
+    >>> grid = Grid(projection=proj, nx=3, ny=2)
+    >>> tuple(grid.dims)
+    ('lat', 'lon')
     """
 
     def __init__(self, projection: Projection, nx: int, ny: int):
@@ -490,13 +555,16 @@ class Grid:
 
     def full_window(self) -> GridWindow:
         """
-        Full-grid window spanning the entire domain.
+        Return a GridWindow spanning the full horizontal domain.
+
+        Returns
+        -------
+        GridWindow
+            Window covering all x and y indices in the grid.
         """
         return GridWindow(x_start=0, x_stop=self.nx, y_start=0, y_stop=self.ny)
 
-    def window_from_bbox(
-        self, bbox: tuple[float, float, float, float]
-    ) -> GridWindow:
+    def window_from_bbox(self, bbox: tuple[float, float, float, float]) -> GridWindow:
         """
         Resolve a geographic bounding box to grid indices.
 
@@ -520,6 +588,7 @@ class Grid:
             x_ne, y_ne = self.fractional_indices(east, north)
 
             def nint(value: float) -> int:
+                """Round like Fortran NINT for HYSPLIT-compatible window bounds."""
                 if value >= 0.0:
                     return int(np.floor(value + 0.5))
                 return int(np.ceil(value - 0.5))
@@ -590,6 +659,17 @@ class Grid:
     def subset(self, window: GridWindow) -> "Grid":
         """
         Build a new grid definition for a rectangular subset.
+
+        Parameters
+        ----------
+        window : GridWindow
+            Zero-based half-open window into the parent grid.
+
+        Returns
+        -------
+        Grid
+            New grid whose synchronization point corresponds to the lower-left
+            corner of ``window``.
         """
         if window.x_stop > self.nx or window.y_stop > self.ny:
             raise ValueError("GridWindow extends beyond the grid bounds.")
@@ -599,8 +679,12 @@ class Grid:
             sync_lon = float(np.asarray(coords["lon"])[window.x_start])
             sync_lat = float(np.asarray(coords["lat"])[window.y_start])
         else:
-            sync_lon = float(np.asarray(coords["lon"][1])[window.y_start, window.x_start])
-            sync_lat = float(np.asarray(coords["lat"][1])[window.y_start, window.x_start])
+            sync_lon = float(
+                np.asarray(coords["lon"][1])[window.y_start, window.x_start]
+            )
+            sync_lat = float(
+                np.asarray(coords["lat"][1])[window.y_start, window.x_start]
+            )
 
         projection = self.projection
         subset_projection = Projection(

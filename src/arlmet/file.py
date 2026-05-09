@@ -21,6 +21,66 @@ from arlmet.vertical import VerticalAxis
 
 
 class File(RecordCollection):
+    """
+    Read or write an ARL meteorology file.
+
+    Parameters
+    ----------
+    path : path-like
+        Location of the ARL file on disk.
+    mode : {"r", "w"}, default "r"
+        File mode. Read mode scans the file immediately; write mode expects
+        the caller to provide ``source``, ``grid``, and ``vertical_axis``
+        before creating records.
+    source : str, optional
+        Four-character ARL source identifier used when writing.
+    grid : Grid, optional
+        Horizontal grid metadata used when writing.
+    vertical_axis : VerticalAxis, optional
+        Vertical axis metadata used when writing.
+
+    Attributes
+    ----------
+    path : pathlib.Path
+        Filesystem path for the ARL file.
+    mode : {"r", "w"}
+        Active file mode.
+    times : list[pandas.Timestamp]
+        Sorted valid times discovered in the file.
+    source : str
+        ARL source identifier.
+    grid : Grid
+        Horizontal grid metadata.
+    vertical_axis : VerticalAxis
+        Vertical coordinate metadata.
+    variables : VariableAccessor
+        Lazy accessor for variable-wise views inherited from RecordCollection.
+
+    Methods
+    -------
+    create_grid(...)
+        Build and attach a Grid when writing a new file.
+    create_recordset(time, forecast=None)
+        Create a writable RecordSet for one valid time.
+    terrain(time=None)
+        Read the SHGT terrain field as a NumPy array.
+    sample_points(points, variables, ...)
+        Interpolate fields at arbitrary lon/lat/z sample points.
+    close()
+        Flush pending writes and release the file handle.
+
+    Examples
+    --------
+    >>> import arlmet
+    >>> with arlmet.File("met.arl") as met:
+    ...     met.times[0]
+    Timestamp('2024-07-18 00:00:00')
+    >>> with arlmet.File("met.arl") as met:
+    ...     topo = met.terrain()
+    ...     topo.shape
+    (met.grid.ny, met.grid.nx)
+    """
+
     def __init__(
         self,
         path: Path | str,
@@ -123,7 +183,36 @@ class File(RecordCollection):
         sync_lat: float,
         sync_lon: float,
     ) -> Grid:
-        """Factory method to create and set the grid for this File."""
+        """
+        Create and attach the horizontal grid metadata for a writable file.
+
+        Parameters
+        ----------
+        nx : int
+            Number of grid points in the x direction.
+        ny : int
+            Number of grid points in the y direction.
+        pole_lat, pole_lon : float
+            Projection pole definition from the ARL index record.
+        tangent_lat, tangent_lon : float
+            Reference latitude and longitude that define the projection.
+        grid_size : float
+            Grid spacing in kilometres at the projection reference point.
+        orientation : float
+            Rotation of the grid y-axis relative to true north.
+        cone_angle : float
+            Projection cone angle used for stereographic, Lambert, or
+            Mercator grids.
+        sync_x, sync_y : float
+            One-based grid coordinates of the synchronization point.
+        sync_lat, sync_lon : float
+            Geographic coordinates of the synchronization point.
+
+        Returns
+        -------
+        Grid
+            The created grid instance, also stored on the file.
+        """
         if self._grid is not None:
             raise ValueError("Grid has already been set for this File.")
 
@@ -172,19 +261,25 @@ class File(RecordCollection):
         return rs
 
     @require_mode("w", "a")
-    def create_recordset(
-        self, time, *, forecast: int | None = None
-    ) -> RecordSet:
-        """Factory method to create a new, writable RecordSet.
+    def create_recordset(self, time, *, forecast: int | None = None) -> RecordSet:
+        """
+        Create a writable RecordSet for one valid time.
 
         Parameters
         ----------
-        forecast :
+        time : pandas.Timestamp or compatible datetime-like
+            Valid time for the new record set.
+        forecast : int, optional
             Forecast hour for the index record header. When copying or
             subsetting an existing file, pass ``src_recordset.forecast`` so
             the value is preserved exactly. When writing new data, omit and
             the value will be derived from the DataRecords (which must all
             share the same forecast hour).
+
+        Returns
+        -------
+        RecordSet
+            Writable record set associated with ``time``.
         """
         if self.source is None or self.grid is None:
             raise ValueError("Source and Grid must be set to create RecordSets.")
@@ -196,6 +291,7 @@ class File(RecordCollection):
         )
 
     def _scan(self) -> None:
+        """Populate RecordSet objects by walking the on-disk index records."""
         # Scan the file to populate recordsets in read mode
         fh = self.handle
 
@@ -282,7 +378,7 @@ class File(RecordCollection):
             fh.seek(position)
 
     def close(self) -> None:
-        """Flushes any changes and closes the file."""
+        """Flush pending writes and close the managed binary file handle."""
         try:
             if self.mode == "w":
                 for rs in self._recordsets.values():
@@ -295,6 +391,27 @@ class File(RecordCollection):
             # TODO do i need to close mmaps?
 
     def terrain(self, time: pd.Timestamp | str | None = None) -> np.ndarray:
+        """
+        Return the terrain field for one file time.
+
+        Parameters
+        ----------
+        time : pandas.Timestamp or str, optional
+            Time to sample. Required when the file contains more than one time.
+
+        Returns
+        -------
+        numpy.ndarray
+            Terrain height field from the ``SHGT`` variable as ``float32``.
+
+        Examples
+        --------
+        >>> import arlmet
+        >>> with arlmet.File("met.arl") as met:
+        ...     terrain = met.terrain()
+        ...     terrain.shape
+        (met.grid.ny, met.grid.nx)
+        """
         if time is None:
             if len(self.times) != 1:
                 raise ValueError(
@@ -304,7 +421,9 @@ class File(RecordCollection):
         recordset = self[pd.Timestamp(time)]
         record = next((r for r in recordset.records if r.variable == "SHGT"), None)
         if record is None:
-            raise ValueError(f"Terrain field SHGT is not available at time {recordset.time}.")
+            raise ValueError(
+                f"Terrain field SHGT is not available at time {recordset.time}."
+            )
         return np.asarray(record.read(), dtype=np.float32)
 
     def sample_points(
@@ -316,6 +435,37 @@ class File(RecordCollection):
         z_kind: str = "pressure",
         method: str = "linear",
     ) -> pd.DataFrame:
+        """
+        Sample fields from this file at arbitrary lon/lat/z points.
+
+        Parameters
+        ----------
+        points : Any
+            Table-like object with ``lon``, ``lat``, ``z``, and optionally
+            ``time`` columns.
+        variables : str or iterable of str
+            One or more ARL variables to interpolate.
+        time : pandas.Timestamp or str, optional
+            Default or override time when ``points`` does not include a
+            ``time`` column.
+        z_kind : {"pressure", "native", "agl", "msl"}, default "pressure"
+            Interpretation of the ``z`` coordinate.
+        method : {"linear", "nearest"}, default "linear"
+            Horizontal interpolation method.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Copy of ``points`` with one result column per requested variable.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> import arlmet
+        >>> pts = pd.DataFrame({"lon": [-111.9], "lat": [40.7], "z": [850.0]})
+        >>> with arlmet.File("met.arl") as met:
+        ...     met.sample_points(pts, ["UWND", "VWND"])
+        """
         return sample_points_from_file(
             self,
             points,

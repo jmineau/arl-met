@@ -1,4 +1,5 @@
-"""Remote meteorological data sources for NOAA ARL archives.
+"""
+Remote meteorological data sources for NOAA ARL archives.
 
 Each source class encodes the filename convention, S3 path layout, and
 approximate spatial extent for one ARL-formatted met product hosted on
@@ -16,9 +17,10 @@ Example
 >>> source = HRRRSource()
 >>> files = source.fetch("2024-07-18", "2024-07-19", local_dir="./met/")
 
->>> # Crop to domain on download (strongly recommended for GFS)
+>>> # Crop to domain on download (recommended due to large file sizes)
 >>> files = source.fetch(
-...     "2024-07-18", "2024-07-19",
+...     "2024-07-18",
+...     "2024-07-19",
 ...     local_dir="./met/",
 ...     bbox=(-114.0, 39.0, -110.0, 42.0),
 ... )
@@ -34,23 +36,50 @@ import shutil
 import tempfile
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import ClassVar
+from typing import BinaryIO, ClassVar, cast
 
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 _MONTH_CODES: tuple[str, ...] = (
-    "jan", "feb", "mar", "apr", "may", "jun",
-    "jul", "aug", "sep", "oct", "nov", "dec",
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "may",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "oct",
+    "nov",
+    "dec",
 )
 
 
 class MeteorologySource(ABC):
-    """Abstract base for NOAA ARL meteorological data sources.
+    """
+    Abstract base class for NOAA ARL meteorological archive sources.
 
     Subclasses set class-level metadata and implement ``_s3_key()`` to
     encode the filename convention for their product.
+
+    Attributes
+    ----------
+    name : str
+        Short source identifier used by callers.
+    description : str
+        Human-readable product description.
+    start_date : pandas.Timestamp
+        Earliest archive date supported by the source.
+
+    Methods
+    -------
+    keys_for_range(start, end)
+        Return archive keys covering the requested inclusive time range.
+    fetch(start, end, ...)
+        Download or crop local ARL files for the requested time range.
     """
 
     # Subclasses must define these
@@ -80,10 +109,21 @@ class MeteorologySource(ABC):
         start: pd.Timestamp | str,
         end: pd.Timestamp | str,
     ) -> list[str]:
-        """Return deduplicated, sorted S3 keys covering ``[start, end]``.
+        """
+        Return deduplicated, sorted S3 keys covering ``[start, end]``.
 
         Handles backward trajectories (``start > end``) by normalizing to
         chronological order before scanning.
+
+        Parameters
+        ----------
+        start, end : pandas.Timestamp or str
+            Inclusive time range to cover.
+
+        Returns
+        -------
+        list[str]
+            Unique archive keys in chronological order.
         """
         t0 = pd.Timestamp(start).floor("h")
         t1 = pd.Timestamp(end).floor("h")
@@ -111,7 +151,8 @@ class MeteorologySource(ABC):
         bbox: tuple[float, float, float, float] | None = None,
         overwrite: bool = False,
     ) -> list[Path]:
-        """Download ARL files covering ``[start, end]`` to *local_dir*.
+        """
+        Download ARL files covering ``[start, end]`` to *local_dir*.
 
         Parameters
         ----------
@@ -139,6 +180,12 @@ class MeteorologySource(ABC):
         ------
         ImportError
             If ``fsspec`` is not installed.
+
+        Examples
+        --------
+        >>> from arlmet.sources import HRRRSource
+        >>> source = HRRRSource()
+        >>> source.fetch("2024-07-18", "2024-07-19", local_dir="./met")
         """
         try:
             import fsspec  # noqa: F401
@@ -184,6 +231,7 @@ class MeteorologySource(ABC):
         filename: str,
         bbox: tuple[float, float, float, float] | None,
     ) -> Path:
+        """Return the local cache path for a downloaded file and optional crop."""
         if bbox is None:
             return local_dir / filename
         w, s, e, n = bbox
@@ -191,6 +239,7 @@ class MeteorologySource(ABC):
         return local_dir / f"{filename}{tag}"
 
     def _url(self, key: str, backend: str) -> str:
+        """Return the fully qualified remote URL for an archive key."""
         if backend == "s3":
             return f"s3://{self.S3_BUCKET}/{key}"
         if backend == "ftp":
@@ -198,22 +247,26 @@ class MeteorologySource(ABC):
             return f"ftp://anonymous@{self.FTP_HOST}/archives/{key}"
         if backend == "http":
             return f"{self.HTTP_BASE}/{key}"
-        raise ValueError(
-            f"Unknown backend {backend!r}. Choose 's3', 'ftp', or 'http'."
-        )
+        raise ValueError(f"Unknown backend {backend!r}. Choose 's3', 'ftp', or 'http'.")
 
     def _storage_options(self, backend: str) -> dict:
+        """Return fsspec storage options for the selected backend."""
         if backend == "s3":
             return {"anon": True}
         return {}
 
     def _download(self, url: str, dest: Path, opts: dict) -> None:
+        """Download one ARL file to a temporary path and atomically move it into place."""
         import fsspec
 
         tmp = dest.with_suffix(dest.suffix + ".tmp")
         try:
             with fsspec.open(url, "rb", **opts) as src, open(tmp, "wb") as dst:
-                shutil.copyfileobj(src, dst, length=8 * 1024 * 1024)
+                shutil.copyfileobj(
+                    cast(BinaryIO, src),
+                    cast(BinaryIO, dst),
+                    length=8 * 1024 * 1024,
+                )
             tmp.rename(dest)
         except Exception:
             tmp.unlink(missing_ok=True)
@@ -226,6 +279,7 @@ class MeteorologySource(ABC):
         bbox: tuple[float, float, float, float],
         opts: dict,
     ) -> None:
+        """Download one ARL file, crop it to *bbox*, and write the cropped copy."""
         from arlmet.subset import extract_subset
 
         with tempfile.NamedTemporaryFile(suffix=".arl", delete=False) as f:
@@ -246,7 +300,8 @@ class MeteorologySource(ABC):
 
 
 class HRRRSource(MeteorologySource):
-    """HRRR 3 km analysis (CONUS, June 2019–present).
+    """
+    HRRR 3 km analysis (CONUS, June 2019–present).
 
     Files cover 6-hour UTC blocks (00–05, 06–11, 12–17, 18–23),
     approximately 3.2 GB each.
@@ -266,16 +321,19 @@ class HRRRSource(MeteorologySource):
     _HOURS_PER_FILE: ClassVar[int] = 6
 
     def _filename(self, time: pd.Timestamp) -> str:
+        """Return the HRRR archive filename covering *time*."""
         start_h = (time.hour // self._HOURS_PER_FILE) * self._HOURS_PER_FILE
         end_h = start_h + self._HOURS_PER_FILE - 1
         return f"{time.strftime('%Y%m%d')}_{start_h:02d}-{end_h:02d}_hrrr"
 
     def _s3_key(self, time: pd.Timestamp) -> str:
+        """Return the NOAA ARL S3 object key for the HRRR file covering *time*."""
         return f"hrrr/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
 class NAMSource(MeteorologySource):
-    """NAM 12 km analysis (North America, May 2007–present).
+    """
+    NAM 12 km analysis (North America, May 2007–present).
 
     One file per calendar day.
 
@@ -287,14 +345,17 @@ class NAMSource(MeteorologySource):
     start_date = pd.Timestamp("2007-05-01")
 
     def _filename(self, time: pd.Timestamp) -> str:
+        """Return the daily NAM archive filename for *time*."""
         return f"{time.strftime('%Y%m%d')}_nam12"
 
     def _s3_key(self, time: pd.Timestamp) -> str:
+        """Return the NOAA ARL S3 object key for the NAM file covering *time*."""
         return f"nam12/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
 class GDASSource(MeteorologySource):
-    """GDAS 1-degree global analysis (December 2004–present).
+    """
+    GDAS 1-degree global analysis (December 2004–present).
 
     Weekly files (~571 MB each). Week boundaries are fixed per month:
     w1 = days 1–7, w2 = days 8–14, w3 = days 15–21,
@@ -308,19 +369,23 @@ class GDASSource(MeteorologySource):
     start_date = pd.Timestamp("2004-12-01")
 
     def _week(self, time: pd.Timestamp) -> int:
+        """Return the 1-based archive week within the month for *time*."""
         return (time.day - 1) // 7 + 1
 
     def _filename(self, time: pd.Timestamp) -> str:
+        """Return the weekly GDAS archive filename for *time*."""
         month = _MONTH_CODES[time.month - 1]
         year_2d = time.strftime("%y")
         return f"gdas1.{month}{year_2d}.w{self._week(time)}"
 
     def _s3_key(self, time: pd.Timestamp) -> str:
+        """Return the NOAA ARL S3 object key for the GDAS file covering *time*."""
         return f"gdas1/{time.year}/{self._filename(time)}"
 
 
 class GFSSource(MeteorologySource):
-    """GFS 0.25-degree global analysis (June 2019–present).
+    """
+    GFS 0.25-degree global analysis (June 2019–present).
 
     One file per calendar day, approximately 2.7 GB each.
     Cropping with ``bbox=`` on fetch is strongly recommended.
@@ -333,14 +398,17 @@ class GFSSource(MeteorologySource):
     start_date = pd.Timestamp("2019-06-01")
 
     def _filename(self, time: pd.Timestamp) -> str:
+        """Return the daily GFS archive filename for *time*."""
         return f"{time.strftime('%Y%m%d')}_gfs0p25"
 
     def _s3_key(self, time: pd.Timestamp) -> str:
+        """Return the NOAA ARL S3 object key for the GFS file covering *time*."""
         return f"gfs0p25/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
 class NAMSSource(MeteorologySource):
-    """NAMS hybrid sigma-pressure analysis (CONUS/Alaska/Hawaii, 2010–present).
+    """
+    NAMS hybrid sigma-pressure analysis (CONUS/Alaska/Hawaii, 2010–present).
 
     One file per calendar day. Uses hybrid sigma-pressure vertical coordinates
     (flag=4), making it suitable for high-accuracy boundary-layer transport.
@@ -371,10 +439,12 @@ class NAMSSource(MeteorologySource):
         self.domain = domain
 
     def _filename(self, time: pd.Timestamp) -> str:
+        """Return the daily NAMS archive filename for *time* and the selected domain."""
         suffix = self._DOMAIN_SUFFIXES[self.domain]
         return f"{time.strftime('%Y%m%d')}_hysplit.t00z.namsa{suffix}"
 
     def _s3_key(self, time: pd.Timestamp) -> str:
+        """Return the NOAA ARL S3 object key for the NAMS file covering *time*."""
         return f"nams/{time.year}/{time.month:02d}/{self._filename(time)}"
 
     def __repr__(self) -> str:
@@ -382,7 +452,8 @@ class NAMSSource(MeteorologySource):
 
 
 class ReanalysisSource(MeteorologySource):
-    """NCEP/NCAR Reanalysis 2.5-degree global (1948–present).
+    """
+    NCEP/NCAR Reanalysis 2.5-degree global (1948–present).
 
     Monthly files (~500 MB each). Covers the full globe at 2.5-degree
     resolution. Useful for long climatological back-trajectory studies.
@@ -396,14 +467,17 @@ class ReanalysisSource(MeteorologySource):
     start_date = pd.Timestamp("1948-01-01")
 
     def _filename(self, time: pd.Timestamp) -> str:
+        """Return the monthly reanalysis archive filename for *time*."""
         return f"RP{time.strftime('%Y%m')}.gbl"
 
     def _s3_key(self, time: pd.Timestamp) -> str:
+        """Return the NOAA ARL S3 object key for the reanalysis file covering *time*."""
         return f"reanalysis/{time.year}/{self._filename(time)}"
 
 
 class HRRRv1Source(MeteorologySource):
-    """HRRR 3 km analysis, version 1 (CONUS, June 2015–2019).
+    """
+    HRRR 3 km analysis, version 1 (CONUS, June 2015–2019).
 
     Files cover 6-hour UTC blocks (00z, 06z, 12z, 18z).
     Superseded by :class:`HRRRSource` from June 2019 onward.
@@ -418,15 +492,18 @@ class HRRRv1Source(MeteorologySource):
     _HOURS_PER_FILE: ClassVar[int] = 6
 
     def _filename(self, time: pd.Timestamp) -> str:
+        """Return the legacy HRRR v1 archive filename covering *time*."""
         start_h = (time.hour // self._HOURS_PER_FILE) * self._HOURS_PER_FILE
         return f"hysplit.{time.strftime('%Y%m%d')}.{start_h:02d}z.hrrra"
 
     def _s3_key(self, time: pd.Timestamp) -> str:
+        """Return the NOAA ARL S3 object key for the HRRR v1 file covering *time*."""
         return f"hrrr.v1/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
 class GDAS0p5Source(MeteorologySource):
-    """GDAS 0.5-degree global analysis (September 2007–mid 2019).
+    """
+    GDAS 0.5-degree global analysis (September 2007–mid 2019).
 
     One file per calendar day. Higher resolution than :class:`GDASSource`
     (1-degree). Cropping with ``bbox=`` on fetch is strongly recommended.
@@ -439,14 +516,17 @@ class GDAS0p5Source(MeteorologySource):
     start_date = pd.Timestamp("2007-09-01")
 
     def _filename(self, time: pd.Timestamp) -> str:
+        """Return the daily GDAS 0.5-degree archive filename for *time*."""
         return f"{time.strftime('%Y%m%d')}_gdas0p5"
 
     def _s3_key(self, time: pd.Timestamp) -> str:
+        """Return the NOAA ARL S3 object key for the GDAS 0.5-degree file covering *time*."""
         return f"gdas0p5/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
 class NARRSource(MeteorologySource):
-    """NCEP North American Regional Reanalysis (January 1979–2019).
+    """
+    NCEP North American Regional Reanalysis (January 1979–2019).
 
     Monthly files at 32 km resolution over North America. Useful for
     long climatological back-trajectory studies over the continent.
@@ -460,9 +540,11 @@ class NARRSource(MeteorologySource):
     start_date = pd.Timestamp("1979-01-01")
 
     def _filename(self, time: pd.Timestamp) -> str:
+        """Return the monthly NARR archive filename for *time*."""
         return f"NARR{time.strftime('%Y%m')}"
 
     def _s3_key(self, time: pd.Timestamp) -> str:
+        """Return the NOAA ARL S3 object key for the NARR file covering *time*."""
         return f"narr/{time.year}/{self._filename(time)}"
 
 

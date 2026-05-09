@@ -108,8 +108,12 @@ class TestIndexRecord:
             vertical_flag=4,
             index_length=124,
             levels=[
-                LvlInfo(level=0, height=1.0, variables=OrderedDict({"PRSS": VarInfo(0, "")})),
-                LvlInfo(level=1, height=0.5, variables=OrderedDict({"TEMP": VarInfo(0, "")})),
+                LvlInfo(
+                    level=0, height=1.0, variables=OrderedDict({"PRSS": VarInfo(0, "")})
+                ),
+                LvlInfo(
+                    level=1, height=0.5, variables=OrderedDict({"TEMP": VarInfo(0, "")})
+                ),
             ],
         )
 

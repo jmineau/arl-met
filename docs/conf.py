@@ -5,8 +5,17 @@
 
 import os
 import sys
+import warnings
 
 sys.path.insert(0, os.path.abspath("../src"))
+
+from sphinx.deprecation import RemovedInSphinx10Warning
+
+warnings.filterwarnings(
+    "ignore",
+    category=RemovedInSphinx10Warning,
+    module=r"sphinx_autodoc_typehints\..*",
+)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -36,6 +45,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
+html_css_files = ["custom.css"]
 
 html_theme_options = {
     "github_url": "https://github.com/jmineau/arl-met",
@@ -62,16 +72,15 @@ napoleon_type_aliases = None
 napoleon_attr_annotations = True
 
 # Autodoc settings
+autoclass_content = "class"
 autodoc_default_options = {
-    "members": True,
     "member-order": "bysource",
-    "special-members": "__init__",
-    "undoc-members": True,
     "exclude-members": "__weakref__",
 }
 
 # Autosummary settings
 autosummary_generate = True
+autosummary_imported_members = True
 
 # Intersphinx settings
 intersphinx_mapping = {

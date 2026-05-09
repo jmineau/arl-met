@@ -23,7 +23,8 @@ SURFACE_VARIABLES = {"PRSS", "SHGT"}
 
 @dataclass(frozen=True)
 class HorizontalSamplePlan:
-    """Pre-computed bilinear interpolation weights for a set of (lon, lat) points.
+    """
+    Pre-computed bilinear interpolation weights for a set of (lon, lat) points.
 
     Attributes
     ----------
@@ -127,7 +128,8 @@ def _build_horizontal_plan(
     *,
     method: str,
 ) -> HorizontalSamplePlan:
-    """Compute grid-space fractional indices and bilinear weights for (lon, lat) points.
+    """
+    Compute grid-space fractional indices and bilinear weights for (lon, lat) points.
 
     The returned GridWindow is the tightest bounding box over all valid points so
     callers can read only the necessary subset of a record.
@@ -225,7 +227,9 @@ def _sample_record(record: DataRecord, plan: HorizontalSamplePlan) -> np.ndarray
     return _sample_field(np.asarray(field, dtype=np.float32), plan)
 
 
-def _interp_profile(values: np.ndarray, coords: np.ndarray, target: float) -> np.float32:
+def _interp_profile(
+    values: np.ndarray, coords: np.ndarray, target: float
+) -> np.float32:
     """1-D linear interpolation of *values* at *target* along *coords*. Returns NaN outside range."""
     mask = np.isfinite(values) & np.isfinite(coords)
     if mask.sum() < 2:
@@ -254,7 +258,8 @@ def _interp_profiles(
     coords: np.ndarray,
     targets: np.ndarray,
 ) -> np.ndarray:
-    """Vectorised _interp_profile over n_points rows.
+    """
+    Vectorised _interp_profile over n_points rows.
 
     Parameters
     ----------
@@ -311,7 +316,8 @@ def _sample_variable(
     surface_pressure: np.ndarray | None,
     terrain: np.ndarray | None,
 ) -> np.ndarray:
-    """Interpolate *variable* to each point's target height.
+    """
+    Interpolate *variable* to each point's target height.
 
     Parameters
     ----------
@@ -364,11 +370,17 @@ def _sample_variable(
                 "Ensure the ARL file contains HGTS at each level."
             )
         if axis.flag == 2:
-            pressure_values = np.broadcast_to(level_values[None, :], (n, len(level_values)))
+            pressure_values = np.broadcast_to(
+                level_values[None, :], (n, len(level_values))
+            )
         else:  # flag=1 (sigma) or flag=4 (hybrid)
             if surface_pressure is None:
-                raise ValueError("surface_pressure (PRSS) is required for sigma/hybrid axes.")
-            pressure_values = axis.sigma_to_pressure(surface_pressure, list(range(len(axis.levels))))
+                raise ValueError(
+                    "surface_pressure (PRSS) is required for sigma/hybrid axes."
+                )
+            pressure_values = axis.sigma_to_pressure(
+                surface_pressure, list(range(len(axis.levels)))
+            )
 
         if z_kind == "msl":
             height_coords = hgts
@@ -393,14 +405,18 @@ def _sample_variable(
             coords = np.asarray(axis.levels, dtype=float)[list(levels)]
         elif axis.flag in {1, 4}:
             if surface_pressure is None:
-                raise ValueError("surface_pressure (PRSS) is required for sigma/hybrid pressure sampling.")
+                raise ValueError(
+                    "surface_pressure (PRSS) is required for sigma/hybrid pressure sampling."
+                )
             coords = axis.sigma_to_pressure(surface_pressure, levels)
         elif axis.flag == 3:
             raise ValueError(
                 "z_kind='pressure' is not supported for terrain-following (flag=3) vertical axes."
             )
         else:
-            raise NotImplementedError(f"z_kind='pressure' not implemented for flag={axis.flag}.")
+            raise NotImplementedError(
+                f"z_kind='pressure' not implemented for flag={axis.flag}."
+            )
         return _interp_profiles(samples, coords, targets)
 
     # z_kind in {"agl", "msl"}
@@ -442,7 +458,8 @@ def sample_points_from_file(
     z_kind: str = "pressure",
     method: str = "linear",
 ) -> pd.DataFrame:
-    """Sample meteorological variables at arbitrary (lon, lat, z, time) points from one file.
+    """
+    Sample meteorological variables at arbitrary (lon, lat, z, time) points from one file.
 
     Parameters
     ----------
@@ -473,7 +490,11 @@ def sample_points_from_file(
     """
     variable_names = _normalize_variables(variables)
     require_time = time is None and len(file.times) != 1
-    default_time = pd.Timestamp(time) if time is not None else (file.times[0] if len(file.times) == 1 else None)
+    default_time = (
+        pd.Timestamp(time)
+        if time is not None
+        else (file.times[0] if len(file.times) == 1 else None)
+    )
     normalized = _normalize_points(
         points,
         require_time=require_time,
@@ -540,6 +561,7 @@ def sample_points_from_file(
 
 
 def _normalize_sources(source: File | Sequence[File]) -> tuple[File, ...]:
+    """Normalize one File or a sequence of Files to a tuple."""
     # File is a Mapping; a plain sequence of Files is not — use that to distinguish.
     if isinstance(source, Mapping):
         return (source,)  # single File
@@ -555,7 +577,8 @@ def sample_points(
     z_kind: str = "pressure",
     method: str = "linear",
 ) -> pd.DataFrame:
-    """Sample meteorological variables at arbitrary (lon, lat, z, time) points.
+    """
+    Sample meteorological variables at arbitrary (lon, lat, z, time) points.
 
     Accepts one file or a sequence of files spanning different time periods.
     For single-file sampling prefer :func:`sample_points_from_file` to avoid
@@ -583,6 +606,16 @@ def sample_points(
     -------
     pd.DataFrame
         Copy of *points* with one column added per requested variable, index preserved.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> import arlmet
+    >>> points = pd.DataFrame(
+    ...     {"lon": [-111.9], "lat": [40.7], "z": [850.0], "time": ["2024-07-18 00:00"]}
+    ... )
+    >>> with arlmet.File("met.arl") as met:
+    ...     arlmet.sample_points(met, points, ["UWND", "VWND"])
     """
     files = _normalize_sources(source)
     if len(files) == 1:

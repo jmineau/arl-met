@@ -103,7 +103,10 @@ class TestNAMSource:
         assert self.src._filename(pd.Timestamp("2024-07-18")) == "20240718_nam12"
 
     def test_s3_key(self):
-        assert self.src._s3_key(pd.Timestamp("2024-07-18")) == "nam12/2024/07/20240718_nam12"
+        assert (
+            self.src._s3_key(pd.Timestamp("2024-07-18"))
+            == "nam12/2024/07/20240718_nam12"
+        )
 
     def test_keys_for_range_single_day(self):
         keys = self.src.keys_for_range("2024-07-18 06:00", "2024-07-18 18:00")
@@ -136,11 +139,16 @@ class TestGDASSource:
     @pytest.mark.parametrize(
         "date_str, expected_week",
         [
-            ("2025-09-01", 1), ("2025-09-07", 1),
-            ("2025-09-08", 2), ("2025-09-14", 2),
-            ("2025-09-15", 3), ("2025-09-21", 3),
-            ("2025-09-22", 4), ("2025-09-28", 4),
-            ("2025-09-29", 5), ("2025-09-30", 5),
+            ("2025-09-01", 1),
+            ("2025-09-07", 1),
+            ("2025-09-08", 2),
+            ("2025-09-14", 2),
+            ("2025-09-15", 3),
+            ("2025-09-21", 3),
+            ("2025-09-22", 4),
+            ("2025-09-28", 4),
+            ("2025-09-29", 5),
+            ("2025-09-30", 5),
             ("2025-01-31", 5),  # 31-day month
         ],
     )
@@ -163,8 +171,7 @@ class TestGDASSource:
 
     def test_s3_key(self):
         assert (
-            self.src._s3_key(pd.Timestamp("2025-09-01"))
-            == "gdas1/2025/gdas1.sep25.w1"
+            self.src._s3_key(pd.Timestamp("2025-09-01")) == "gdas1/2025/gdas1.sep25.w1"
         )
 
     def test_keys_for_range_within_one_week(self):
@@ -360,9 +367,9 @@ class TestHRRRv1Source:
     @pytest.mark.parametrize(
         "hour, expected",
         [
-            (0,  "hysplit.20170601.00z.hrrra"),
-            (5,  "hysplit.20170601.00z.hrrra"),
-            (6,  "hysplit.20170601.06z.hrrra"),
+            (0, "hysplit.20170601.00z.hrrra"),
+            (5, "hysplit.20170601.00z.hrrra"),
+            (6, "hysplit.20170601.06z.hrrra"),
             (11, "hysplit.20170601.06z.hrrra"),
             (12, "hysplit.20170601.12z.hrrra"),
             (18, "hysplit.20170601.18z.hrrra"),
@@ -448,10 +455,7 @@ class TestNARRSource:
         assert self.src._filename(pd.Timestamp(date_str)) == expected
 
     def test_s3_key(self):
-        assert (
-            self.src._s3_key(pd.Timestamp("2024-07-18"))
-            == "narr/2024/NARR202407"
-        )
+        assert self.src._s3_key(pd.Timestamp("2024-07-18")) == "narr/2024/NARR202407"
 
     def test_keys_for_range_within_one_month(self):
         keys = self.src.keys_for_range("2024-07-05", "2024-07-20")
@@ -631,7 +635,8 @@ def test_gdas_header_is_valid_arl(tmp_path):
 @pytest.mark.network
 @pytest.mark.slow
 def test_gdas_fetch_with_bbox(tmp_path):
-    """Fetch one GDAS weekly file cropped to a western North America domain.
+    """
+    Fetch one GDAS weekly file cropped to a western North America domain.
 
     GDAS is 1-degree resolution with many levels/variables, so the ARL index
     record is large (~1654 bytes). The bbox must yield enough grid cells

@@ -25,9 +25,7 @@ def normalize_levels(
 
     max_index = len(vertical_axis.levels) - 1
     if normalized[0] < 0 or normalized[-1] > max_index:
-        raise ValueError(
-            f"levels must be between 0 and {max_index}, got {normalized}."
-        )
+        raise ValueError(f"levels must be between 0 and {max_index}, got {normalized}.")
     return normalized
 
 
@@ -67,6 +65,7 @@ def _build_subset_index_record(
     selected_records: Sequence,
     level_map: dict[int, int],
 ) -> IndexRecord:
+    """Build the destination index record for one subsetted time step."""
     if recordset.forecast is not None:
         forecast = recordset.forecast
     else:
@@ -191,6 +190,16 @@ def extract_subset(
         from zero while preserving the selected level heights.
     variables : iterable of str, optional
         Variable names to keep. All variables are included by default.
+
+    Examples
+    --------
+    >>> import arlmet
+    >>> arlmet.extract_subset(
+    ...     "met.arl",
+    ...     "subset.arl",
+    ...     bbox=(-114.0, 39.0, -110.0, 42.0),
+    ...     levels=[0, 1, 2],
+    ... )
     """
     variable_names = None if variables is None else set(variables)
 

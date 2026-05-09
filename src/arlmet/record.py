@@ -21,18 +21,26 @@ if TYPE_CHECKING:
 
 def require_mode(*allowed_modes):
     """
-    Decorator to ensure a method is called only when the file is in an allowed mode.
+    Restrict a method to specific ARL read/write modes.
 
-    Args:
-        *allowed_modes: A sequence of strings representing the allowed modes (e.g., 'r', 'w').
+    Parameters
+    ----------
+    *allowed_modes : str
+        One or more mode strings, typically ``"r"`` or ``"w"``.
 
-    Raises:
-        io.UnsupportedOperation: If the instance's mode is not in the allowed modes.
+    Returns
+    -------
+    collections.abc.Callable
+        Decorator that raises :class:`io.UnsupportedOperation` when the bound
+        instance mode is not allowed.
     """
 
     def decorator(func):
+        """Wrap *func* with an ARL mode check."""
+
         @wraps(func)
         def wrapper(self, *args, **kwargs):
+            """Raise UnsupportedOperation when the instance mode is disallowed."""
             if not hasattr(self, "mode") or self.mode not in allowed_modes:
                 raise io.UnsupportedOperation(
                     f"'{func.__name__}' is only available in mode(s) {allowed_modes}, "
@@ -47,9 +55,49 @@ def require_mode(*allowed_modes):
 
 class DataRecord:
     """
-    A class that represents a 2D array from a differentially packed
-    data source, with support for lazy loading, caching, and a
-    NumPy-compatible interface.
+    One ARL data record representing a single 2D variable slice.
+
+    Parameters
+    ----------
+    recordset : RecordSet
+        Parent record set for the record.
+    position : int
+        Byte offset of the record on disk, or ``-1`` for a writable in-memory
+        record.
+    level : int
+        ARL vertical level index.
+    variable : str
+        Four-character ARL variable name.
+    forecast : int, optional
+        Forecast hour required when constructing a writable record.
+    checksum : int, optional
+        Stored ARL checksum from the index record.
+    reserved : str, optional
+        Reserved one-character metadata from the index record.
+
+    Attributes
+    ----------
+    ndim : int
+        NumPy-style dimensionality, always ``2``.
+    recordset : RecordSet
+        Parent record set.
+    position : int
+        Byte position of the record in the file.
+    level : int
+        ARL level index.
+    variable : str
+        Variable name for the record.
+    shape : tuple[int, int]
+        Grid shape as ``(ny, nx)``.
+    data : array-like
+        Cached unpacked data, loaded lazily on first access.
+
+    Methods
+    -------
+    read(window=None)
+        Unpack the record from disk, optionally for a subset window.
+    verify_checksum()
+        Validate the packed bytes against the stored checksum.
     """
 
     ndim: int = 2
@@ -173,7 +221,10 @@ class DataRecord:
                         "Writing difference records is not implemented."
                     )
                 header_state = self._header
-                if not {"precision", "exponent", "initial_value"} <= header_state.keys():
+                if (
+                    not {"precision", "exponent", "initial_value"}
+                    <= header_state.keys()
+                ):
                     self._pack()
                     header_state = self._header
                     if not isinstance(header_state, dict):
@@ -265,7 +316,7 @@ class DataRecord:
 
     def verify_checksum(self) -> bool:
         """
-        Verify the checksum of the packed data against the stored checksum.
+        Verify the packed payload against the checksum stored in metadata.
 
         Returns
         -------
@@ -329,7 +380,18 @@ class DataRecord:
     @require_mode("r")
     def read(self, window: GridWindow | None = None) -> npt.NDArray[np.float32]:
         """
-        Read this record eagerly, optionally unpacking only a subset window.
+        Read and unpack this record eagerly.
+
+        Parameters
+        ----------
+        window : GridWindow, optional
+            Spatial subset to unpack. When omitted, the full grid is read.
+
+        Returns
+        -------
+        numpy.ndarray
+            Unpacked ``float32`` array for the full field or the requested
+            window.
         """
         if window is None and isinstance(self._unpacked, np.ndarray):
             return self._unpacked
@@ -426,6 +488,7 @@ class DataRecord:
 
     @require_mode("w")
     def _pack(self) -> npt.NDArray[np.uint8]:
+        """Pack cached unpacked data and update header state for writing."""
         if self._packed is None:
             if not isinstance(self._unpacked, np.ndarray):
                 raise ValueError("Data to pack must be a numpy array.")

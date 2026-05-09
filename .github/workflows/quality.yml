@@ -32,4 +32,4 @@ jobs:
 
     - name: Check docstring coverage
       if: ${{ !cancelled() }}
-      run: uv run --no-sync docstr-coverage src/arlmet --skip-magic --skip-init
+      run: uv run --no-sync docstr-coverage src/arlmet --skip-magic --skip-init --skip-property --fail-under 95

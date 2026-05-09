@@ -1,3 +1,5 @@
+"""Differential packing and unpacking routines for ARL data records."""
+
 import numpy as np
 from numpy import typing as npt
 
@@ -6,7 +8,7 @@ from arlmet.grid import GridWindow
 
 def calculate_checksum(packed: bytes | bytearray) -> int:
     """
-    Calculates the checksum for a packed byte array.
+    Compute the ARL checksum for a packed payload.
 
     Parameters
     ----------
@@ -16,7 +18,7 @@ def calculate_checksum(packed: bytes | bytearray) -> int:
     Returns
     -------
     int
-        The calculated checksum.
+        Rolling checksum used in ARL index records.
     """
     checksum = 0
     for byte_val in packed:
@@ -30,12 +32,10 @@ def pack(
     unpacked: np.ndarray,
 ) -> tuple[npt.NDArray[np.uint8], float, int, float]:
     """
-    Packs a 2D numpy array using a differential packing scheme.
+    Pack a 2D field using the ARL differential byte encoding.
 
-    This function is a vectorized Python translation of the HYSPLIT
-    FORTRAN PAKOUT subroutine. It is the inverse of the `unpack` function.
-    It determines the optimal packing parameters (precision, exponent)
-    based on the data.
+    This is the inverse of :func:`unpack` and mirrors the HYSPLIT
+    ``PAKOUT`` routine.
 
     Parameters
     ----------
@@ -45,11 +45,10 @@ def pack(
     Returns
     -------
     tuple[np.ndarray, float, int, float]
-        A tuple containing:
-        - The packed uint8 array.
-        - The calculated precision of the packed data.
-        - The packing scaling exponent.
-        - The initial real value at grid position (0,0).
+        Tuple of ``(packed, precision, exponent, initial_value)``.
+        ``packed`` is the byte payload, ``precision`` and ``exponent`` are the
+        ARL packing parameters, and ``initial_value`` is the reference value at
+        the first grid cell.
     """
     ny, nx = unpacked.shape
     grid = unpacked.astype(np.float32, copy=True)
@@ -97,11 +96,9 @@ def unpack(
     window: GridWindow | None = None,
 ) -> npt.ArrayLike:
     """
-    Unpacks a differentially packed 2D array into a 2D numpy array.
-    This function is a vectorized Python translation of the HYSPLIT
-    FORTRAN PAKINP subroutine. It uses a differential unpacking scheme
-    where each value is derived from the previous one. The implementation
-    is optimized using vectorized operations for high performance.
+    Unpack an ARL differential byte stream into a 2D field.
+
+    This is a vectorized translation of the HYSPLIT ``PAKINP`` routine.
 
     Parameters
     ----------
@@ -128,8 +125,8 @@ def unpack(
     Returns
     -------
     array-like
-        The unpacked 2D array with the same shape as `data`, using
-        the specified `driver` array library.
+        Unpacked 2D array with shape ``(ny, nx)`` or the requested windowed
+        shape when ``window`` is provided.
     """
     if window is not None:
         if driver is not None and getattr(driver, "__name__", "") == "dask.array":

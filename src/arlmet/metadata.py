@@ -1,3 +1,5 @@
+"""Binary metadata codecs for ARL record headers and index records."""
+
 import string
 from collections import OrderedDict
 from collections.abc import Sequence
@@ -103,7 +105,42 @@ def split_grid_component(total: int) -> tuple[int, int]:
 
 @dataclass
 class Header:
-    "First 50 bytes of each record"
+    """
+    Fixed-width 50-byte header present at the start of every ARL record.
+
+    Parameters
+    ----------
+    year, month, day, hour : int
+        Valid time components stored in the record header.
+    forecast : int
+        Forecast hour associated with the record.
+    level : int
+        ARL vertical level index.
+    grid : tuple[int, int]
+        Thousands-encoded x and y grid header components.
+    variable : str
+        Four-character ARL variable name.
+    exponent : int
+        Differential packing exponent.
+    precision : float
+        Packed-data precision used during unpacking.
+    initial_value : float
+        Initial grid value at the start of the differential packing stream.
+
+    Attributes
+    ----------
+    N_BYTES : int
+        Fixed serialized size of the header.
+    time : pandas.Timestamp
+        Timestamp reconstructed from the header date fields.
+
+    Methods
+    -------
+    from_bytes(data)
+        Parse a Header from raw bytes.
+    tobytes()
+        Serialize the header to its fixed-width ASCII representation.
+    """
 
     year: int
     month: int
@@ -213,6 +250,8 @@ class Header:
 
 @dataclass
 class VarInfo:
+    """Checksum and reserved-byte metadata for one variable within an index record."""
+
     checksum: int
     reserved: str
 
@@ -240,8 +279,7 @@ class LvlInfo:
 @dataclass
 class IndexRecord:
     """
-    Represents a complete ARL index record that precedes data records for each time period.
-    Combines the fixed portion with the variable levels portion.
+    Index record describing one ARL time step and its contained variables.
 
     Parameters
     ----------
@@ -302,11 +340,8 @@ class IndexRecord:
         Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain, 4=hybrid).
     index_length : int
         Total length of the index record in bytes, including fixed and variable portions.
-    levels : list[LvlInfo]
-        List of levels, each containing:
-            - level: Level index (0 to nz-1).
-            - height: Height of the level in units of the vertical coordinate.
-            - vars: Dictionary mapping variable names to VarInfo (checksum and reserved).
+    levels : sequence of LvlInfo
+        Variable manifests for each stored vertical level.
 
     Attributes
     ----------
@@ -314,6 +349,34 @@ class IndexRecord:
         Number of bytes in the fixed portion of the index record (108 bytes).
     time : pd.Timestamp
         The valid time of the record, calculated from the header time and minutes.
+
+    Methods
+    -------
+    from_position(file, position)
+        Read and parse an index record from a file handle.
+    tobytes()
+        Serialize the exact used bytes of the index record.
+    to_record_bytes(record_size)
+        Serialize the index record padded to one ARL record.
+
+    Examples
+    --------
+    >>> from arlmet.metadata import Header, IndexRecord
+    >>> header = Header(
+    ...     year=2024,
+    ...     month=7,
+    ...     day=18,
+    ...     hour=0,
+    ...     forecast=0,
+    ...     level=0,
+    ...     grid=(0, 0),
+    ...     variable="INDX",
+    ...     exponent=0,
+    ...     precision=0.0,
+    ...     initial_value=0.0,
+    ... )
+    >>> isinstance(header.time, pd.Timestamp)
+    True
     """
 
     header: Header = field(repr=False)

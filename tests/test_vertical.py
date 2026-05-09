@@ -76,5 +76,3 @@ class TestSigmaToPressure:
         result = ax.sigma_to_pressure(np.array([1000.0, 900.0, 800.0]), [0, 1])
         assert result.ndim == 2
         assert result.shape == (3, 2)
-
-

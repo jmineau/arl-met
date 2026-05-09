@@ -1,3 +1,11 @@
+"""
+Vertical coordinate helpers for ARL meteorology grids.
+
+This module keeps vertical metadata separate from the horizontal grid model in
+``arlmet.grid`` and provides lightweight helpers for deriving level
+coordinates.
+"""
+
 from collections.abc import Sequence
 
 import numpy as np
@@ -7,6 +15,48 @@ from arlmet.grid import Grid, Projection
 
 
 class VerticalAxis:
+    """
+    Vertical coordinate metadata for an ARL file.
+
+    Parameters
+    ----------
+    flag : int
+        ARL vertical coordinate flag. Supported values include ``1`` (sigma),
+        ``2`` (pressure), ``3`` (terrain-following), ``4`` (hybrid), and
+        ``5`` (WRF).
+    levels : sequence of float
+        Native level values stored in the file.
+    offset : float, default 0.0
+        Pressure offset used by sigma and hybrid coordinate conversions.
+
+    Attributes
+    ----------
+    flag : int
+        Raw ARL vertical flag.
+    coord_system : str
+        Human-readable coordinate system name.
+    levels : numpy.ndarray
+        Copy of the stored level values.
+    offset : float
+        Pressure offset for sigma or hybrid coordinates.
+
+    Methods
+    -------
+    calculate_coords()
+        Return the native level coordinate values.
+    sigma_to_pressure(surface_pressure, levels)
+        Convert sigma or hybrid levels to pressure at sample points.
+
+    Examples
+    --------
+    >>> from arlmet.vertical import VerticalAxis
+    >>> axis = VerticalAxis(flag=2, levels=[1000.0, 925.0, 850.0])
+    >>> axis.coord_system
+    'pressure'
+    >>> axis.calculate_coords()["level"].tolist()
+    [1000.0, 925.0, 850.0]
+    """
+
     FLAGS: dict[int, str] = {
         1: "sigma",
         2: "pressure",
@@ -91,6 +141,35 @@ class VerticalAxis:
 
 
 class Grid3D(Grid):
+    """
+    Horizontal grid plus ARL vertical metadata.
+
+    Parameters
+    ----------
+    projection : Projection, optional
+        Horizontal projection definition.
+    nx : int, default 0
+        Number of x-grid points.
+    ny : int, default 0
+        Number of y-grid points.
+    vertical_axis : VerticalAxis
+        Vertical coordinate metadata.
+    proj : Projection, optional
+        Backward-compatible alias for ``projection``.
+
+    Attributes
+    ----------
+    vertical_axis : VerticalAxis
+        Vertical coordinate metadata for the grid.
+    dims : tuple[str, ...]
+        Dimension names in ``("level", ...)`` order.
+
+    Methods
+    -------
+    calculate_coords()
+        Return combined horizontal and vertical coordinates.
+    """
+
     def __init__(
         self,
         projection: Projection | None = None,
@@ -114,6 +193,7 @@ class Grid3D(Grid):
         return ("level", *super().dims)
 
     def calculate_coords(self) -> dict[str, object]:
+        """Return horizontal coordinates augmented with the vertical level axis."""
         coords = super().calculate_coords()
         vcoords = self.vertical_axis.calculate_coords()
         coords["level"] = ("level", vcoords["level"])

@@ -105,8 +105,10 @@ select = [
     "B",  # flake8-bugbear
     "SIM",  # flake8-simplify
     "I",  # isort
+    "D213",  # multi-line summary should start at the second line
 ]
 ignore = [
+    "D212",  # incompatible with D213; keep summaries on the second line
     "E501",  # line too long, handled by formatter
 ]
 

@@ -34,12 +34,16 @@ class TestWriter:
         grid = make_test_grid()
         vertical_axis = VerticalAxis(flag=2, levels=[0.0, 1000.0])
 
-        prss0 = 1000.0 + np.arange(grid.nx * grid.ny, dtype=np.float32).reshape(
-            grid.ny, grid.nx
-        ) * 0.01
-        temp0 = 280.0 + np.arange(grid.nx * grid.ny, dtype=np.float32).reshape(
-            grid.ny, grid.nx
-        ) * 0.05
+        prss0 = (
+            1000.0
+            + np.arange(grid.nx * grid.ny, dtype=np.float32).reshape(grid.ny, grid.nx)
+            * 0.01
+        )
+        temp0 = (
+            280.0
+            + np.arange(grid.nx * grid.ny, dtype=np.float32).reshape(grid.ny, grid.nx)
+            * 0.05
+        )
         prss1 = prss0 + 1.0
         temp1 = temp0 + 2.0
 
@@ -269,7 +273,9 @@ class TestWriter:
             write_dataset(ds, written_path)
 
     @staticmethod
-    def _pack_args(data: np.ndarray) -> tuple[bytes, int, int, float, int, float, type[np]]:
+    def _pack_args(
+        data: np.ndarray,
+    ) -> tuple[bytes, int, int, float, int, float, type[np]]:
         packed, precision, exponent, initial_value = pack(data)
         return (
             packed.tobytes(),
