@@ -183,6 +183,26 @@ class TestWriter:
                 atol=1e-6,
             )
 
+    def test_open_dataset_handles_mixed_forecast_hours_within_recordset(self, tmp_path):
+        """open_dataset must not raise when data records within one time step
+        carry different per-record forecast hours (e.g. GDAS weekly files)."""
+        path = tmp_path / "mixed_forecast.arl"
+        grid = make_test_grid()
+        vertical_axis = VerticalAxis(flag=2, levels=[0.0, 1000.0])
+        time0 = pd.Timestamp("2025-09-01 00:00")
+        data = np.ones((grid.ny, grid.nx), dtype=np.float32)
+
+        with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis) as arl:
+            rs = arl.create_recordset(time0, forecast=0)
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=data)
+            rs.create_datarecord("TEMP", level=1, forecast=3, data=data)
+
+        ds = open_dataset(path, squeeze=False)
+
+        assert "PRSS" in ds
+        assert "TEMP" in ds
+        assert ds.coords["forecast"].item() == 0
+
     def test_open_dataset_uses_lazy_variable_arrays_without_dask(self, tmp_path):
         source_path = tmp_path / "source.arl"
 

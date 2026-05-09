@@ -757,35 +757,47 @@ def test_gdas_header_is_valid_arl(tmp_path):
     assert header.variable == "INDX"
 
 
+# ---------------------------------------------------------------------------
+# Fetch-and-open integration tests — require live S3 access and disk space.
+# Each case downloads a full source file then crops to the given bbox.
+#
+# Bbox choice:
+#   _SLV_BBOX    : high-res regional products (3–12 km) — SLV domain gives
+#                  hundreds of grid cells, easily fitting any index record.
+#   _WEST_NA_BBOX: coarse-resolution products (≥32 km or global) — the SLV
+#                  domain yields too few cells for their larger index records.
+# ---------------------------------------------------------------------------
+
+_SLV_BBOX = (-114.0, 39.5, -110.5, 42.0)
+_WEST_NA_BBOX = (-140.0, 20.0, -85.0, 60.0)
+
+_SOURCE_OPEN_CASES = [
+    pytest.param(HRRRSource(),     _HRRR_TEST_TIME,   _SLV_BBOX,     id="hrrr"),
+    pytest.param(HRRRv1Source(),   "2017-06-01 06:00", _SLV_BBOX,    id="hrrr-v1"),
+    pytest.param(NAMSource(),      _GDAS_TEST_TIME,   _SLV_BBOX,     id="nam"),
+    pytest.param(NAMSSource(),     _GDAS_TEST_TIME,   _SLV_BBOX,     id="nams"),
+    pytest.param(GDASSource(),     _GDAS_TEST_TIME,   _WEST_NA_BBOX, id="gdas1"),
+    pytest.param(GDAS0p5Source(),  "2018-07-01",      _WEST_NA_BBOX, id="gdas0p5"),
+    pytest.param(GFSSource(),      _GDAS_TEST_TIME,   _WEST_NA_BBOX, id="gfs"),
+    pytest.param(NARRSource(),     "2018-07-01",      _WEST_NA_BBOX, id="narr"),
+    pytest.param(ReanalysisSource(), _GDAS_TEST_TIME, _WEST_NA_BBOX, id="reanalysis"),
+]
+
+
 @pytest.mark.network
 @pytest.mark.slow
-def test_gdas_fetch_with_bbox(tmp_path):
-    """
-    Fetch one GDAS weekly file cropped to a western North America domain.
+@pytest.mark.parametrize("source,time,bbox", _SOURCE_OPEN_CASES)
+def test_source_fetch_and_open(tmp_path, source, time, bbox):
+    """Fetch one file from each source and verify it opens as an xarray Dataset."""
+    from arlmet import open_dataset
 
-    GDAS is 1-degree resolution with many levels/variables, so the ARL index
-    record is large (~1654 bytes). The bbox must yield enough grid cells
-    (nx*ny >= ~1604) to hold it — the SLV domain is far too small for GDAS.
-    Use a regional domain instead.
-    """
-    from arlmet import File
-
-    src = GDASSource()
-    # Western North America: ~55 deg lon x 40 deg lat = ~2200 cells at 1-degree
-    west_na_bbox = (-140.0, 20.0, -85.0, 60.0)
-    files = src.fetch(
-        _GDAS_TEST_TIME,
-        _GDAS_TEST_TIME,
-        local_dir=tmp_path,
-        bbox=west_na_bbox,
-    )
+    files = source.fetch(time, time, local_dir=tmp_path, bbox=bbox)
 
     assert len(files) == 1
     dest = files[0]
     assert dest.exists()
     assert dest.stat().st_size > 0
 
-    with File(dest) as f:
-        assert f.grid.nx > 0
-        assert f.grid.ny > 0
-        assert len(f.times) > 0
+    ds = open_dataset(dest, squeeze=False)
+    assert len(ds.data_vars) > 0
+    assert "level" in ds.dims

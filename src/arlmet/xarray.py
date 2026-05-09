@@ -333,16 +333,21 @@ def _build_dataset_from_file(
         if not selected_records:
             continue
 
-        forecasts = {record.forecast for record in selected_records}
-        if len(forecasts) != 1:
-            raise ValueError(
-                f"Selection contains multiple forecast hours for time {time}."
-            )
+        recordset = met[time]
+        if recordset.forecast is not None:
+            forecast = recordset.forecast
+        else:
+            forecasts = {record.forecast for record in selected_records}
+            if len(forecasts) != 1:
+                raise ValueError(
+                    f"Selection contains multiple forecast hours for time {time}."
+                )
+            forecast = forecasts.pop()
 
         for record in selected_records:
             present_levels.setdefault(record.level, None)
         selected_recordsets.append(
-            (pd.Timestamp(time), forecasts.pop(), selected_records)
+            (pd.Timestamp(time), forecast, selected_records)
         )
 
     selected_levels = (
