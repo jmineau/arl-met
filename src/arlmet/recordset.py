@@ -145,6 +145,7 @@ class RecordSet:
         level: int,
         forecast: int,
         data: np.ndarray | None = None,
+        diff: str | None = None,
     ) -> DataRecord:
         """
         Create a writable DataRecord attached to this time step.
@@ -160,15 +161,26 @@ class RecordSet:
             Missing data should use a value of -1.
         data : numpy.ndarray, optional
             Initial ``(ny, nx)`` field values to assign.
+        diff : str, optional
+            Name of a trailing DIF record to derive from the parent field.
 
         Returns
         -------
         DataRecord
             Writable data record for the requested variable and level.
         """
+        if variable.startswith("DIF"):
+            raise ValueError(
+                "Create DIF records through the parent record using diff='DIF...'."
+            )
+        if diff is not None:
+            self.file.register_diff_binding(diff_name=diff, parent_name=variable)
         dr = self._create_datarecord(
             position=-1, variable=variable, level=level, forecast=forecast
         )
+        if diff is not None:
+            dr._create_diff(position=-1, variable=diff, forecast=forecast)
+            dr._derive_diff_on_pack = True
         if data is not None:
             dr[:] = data
         return dr
@@ -193,10 +205,6 @@ class RecordSet:
         }
 
         for dr in self.records:
-            if dr.variable.startswith("DIF") or dr._diff is not None:
-                raise NotImplementedError(
-                    "Writing difference records is not implemented."
-                )
             if len(dr.variable) > 4:
                 raise ValueError(
                     f"Variable names must be 4 characters or fewer, got '{dr.variable}'."
@@ -213,6 +221,9 @@ class RecordSet:
             forecast_hours.add(dr.forecast)
             level_records[dr.level][dr.variable] = dr
             dr._pack()
+            if dr.diff is not None:
+                forecast_hours.add(dr.diff.forecast)
+                level_records[dr.level][dr.diff.variable] = dr.diff
 
         # Derive the index record forecast hour from the data records, ensuring consistency
         forecast = _derive_index_forecast(
@@ -294,7 +305,23 @@ class RecordSet:
 
         for level in index.levels:
             for name in level.variables:
-                self[(level.level, name)]._flush()
+                self._lookup_flush_record(level.level, name)._flush()
+
+    def _lookup_flush_record(self, level: int, variable: str) -> DataRecord:
+        key = (self.time, level, variable)
+        record = self._datarecords.get(key)
+        if record is not None:
+            return record
+
+        for parent in self.records:
+            if (
+                parent.level == level
+                and parent.diff is not None
+                and parent.diff.variable == variable
+            ):
+                return parent.diff
+
+        raise KeyError(f"No writable record found for ({level}, {variable}).")
 
     def __getitem__(self, key) -> DataRecord:
         if not isinstance(key, tuple) or len(key) != 2:

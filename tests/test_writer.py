@@ -168,19 +168,28 @@ class TestWriter:
         assert ds.arl.vertical_axis.flag == 2
         assert ds.arl.vertical_axis.levels.tolist() == [0.0, 1000.0]
         np.testing.assert_array_equal(ds["forecast_hour"].values, [0, 3])
-        assert ds["forecast_hour"].attrs["long_name"] == "ARL index record forecast hour"
-        assert "Individual variable record forecasts may differ" in ds["forecast_hour"].attrs["description"]
+        assert (
+            ds["forecast_hour"].attrs["long_name"] == "ARL index record forecast hour"
+        )
+        assert (
+            "Individual variable record forecasts may differ"
+            in ds["forecast_hour"].attrs["description"]
+        )
 
     def test_open_dataset_handles_mixed_forecast_hours_within_recordset(self, tmp_path):
-        """open_dataset must not raise when data records within one time step
-        carry different per-record forecast hours (e.g. GDAS weekly files)."""
+        """
+        open_dataset must not raise when data records within one time step
+        carry different per-record forecast hours (e.g. GDAS weekly files).
+        """
         path = tmp_path / "mixed_forecast.arl"
         grid = make_test_grid()
         vertical_axis = VerticalAxis(flag=2, levels=[0.0, 1000.0])
         time0 = pd.Timestamp("2025-09-01 00:00")
         data = np.ones((grid.ny, grid.nx), dtype=np.float32)
 
-        with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis) as arl:
+        with File(
+            path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+        ) as arl:
             rs = arl.create_recordset(time0, forecast=0)
             rs.create_datarecord("PRSS", level=0, forecast=0, data=data)
             rs.create_datarecord("TEMP", level=1, forecast=3, data=data)
@@ -201,7 +210,9 @@ class TestWriter:
         write_dataset(ds, written_path)
         reopened = open_dataset(written_path, squeeze=False)
 
-        np.testing.assert_array_equal(reopened["forecast_hour"].values, ds["forecast_hour"].values)
+        np.testing.assert_array_equal(
+            reopened["forecast_hour"].values, ds["forecast_hour"].values
+        )
         np.testing.assert_allclose(reopened["PRSS"].values, ds["PRSS"].values)
         np.testing.assert_allclose(reopened["TEMP"].values, ds["TEMP"].values)
 
@@ -224,10 +235,14 @@ class TestWriter:
         self.write_surface_only_file(source_path)
         ds = open_dataset(source_path, squeeze=False)
 
-        with pytest.raises(ValueError, match="Surface-only datasets require an explicit vertical_axis"):
+        with pytest.raises(
+            ValueError, match="Surface-only datasets require an explicit vertical_axis"
+        ):
             write_dataset(ds, written_path)
 
-        write_dataset(ds, written_path, vertical_axis=VerticalAxis(flag=2, levels=[0.0]))
+        write_dataset(
+            ds, written_path, vertical_axis=VerticalAxis(flag=2, levels=[0.0])
+        )
         reopened = open_dataset(written_path, squeeze=False)
         np.testing.assert_allclose(reopened["PRSS"].values, ds["PRSS"].values)
 
@@ -240,6 +255,55 @@ class TestWriter:
         ds["TEMP"] = ds["TEMP"].where(ds["level"] != 1)
 
         with pytest.raises(ValueError, match="contains missing values"):
+            write_dataset(ds, written_path)
+
+    def test_write_dataset_generates_diff_from_parent_attrs(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False)
+        ds["TEMP"].attrs["diff"] = "DIFT"
+
+        write_dataset(ds, written_path)
+
+        with File(written_path) as reopened:
+            record = reopened[
+                self.write_sample_file.__self__
+                if False
+                else pd.Timestamp("2024-07-18 00:00")
+            ]
+
+        with File(written_path) as reopened:
+            time0 = pd.Timestamp("2024-07-18 00:00")
+            record = reopened[time0][(1, "TEMP")]
+            assert record.diff is not None
+            assert record.diff.variable == "DIFT"
+
+        reopened_ds = open_dataset(written_path, squeeze=False)
+        np.testing.assert_allclose(reopened_ds["TEMP"].values, ds["TEMP"].values)
+
+    def test_write_dataset_rejects_invalid_diff_attr_name(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False)
+        ds["TEMP"].attrs["diff"] = "WDIFF"
+
+        with pytest.raises(ValueError, match="must start with 'DIF'"):
+            write_dataset(ds, written_path)
+
+    def test_write_dataset_rejects_conflicting_diff_bindings(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path, squeeze=False)
+        ds["PRSS"].attrs["diff"] = "DIFX"
+        ds["TEMP"].attrs["diff"] = "DIFX"
+
+        with pytest.raises(ValueError, match="already bound to parent"):
             write_dataset(ds, written_path)
 
     def test_open_dataset_uses_lazy_variable_arrays_without_dask(self, tmp_path):
@@ -262,8 +326,8 @@ class TestWriter:
         path = tmp_path / "sample.arl"
         self.write_sample_file(path)
         ds = open_dataset(path, squeeze=False)
-        assert "level" not in ds["PRSS"].dims   # sfc var
-        assert "level" in ds["TEMP"].dims       # upper var
+        assert "level" not in ds["PRSS"].dims  # sfc var
+        assert "level" in ds["TEMP"].dims  # upper var
         assert "PRSS" in ds.data_vars
         assert "TEMP" in ds.data_vars
 

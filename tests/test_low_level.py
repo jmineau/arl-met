@@ -1,7 +1,7 @@
 """Tests for low-level record, recordset, file, and xarray helper behavior."""
 
-from collections import OrderedDict
 import io
+from collections import OrderedDict
 from types import SimpleNamespace
 
 import numpy as np
@@ -12,6 +12,7 @@ from arlmet import File
 from arlmet.grid import Grid, GridWindow, Projection
 from arlmet.header import Header
 from arlmet.index import LvlInfo, VarInfo
+from arlmet.packing import unpack
 from arlmet.record import DataRecord
 from arlmet.recordset import VariableAccessor
 from arlmet.vertical import VerticalAxis
@@ -121,7 +122,9 @@ class StubDiff:
 
 
 class TestDataRecordModeGuards:
-    def test_datarecord_constructor_validates_forecast_for_read_and_write(self, tmp_path):
+    def test_datarecord_constructor_validates_forecast_for_read_and_write(
+        self, tmp_path
+    ):
         path = tmp_path / "constructor.arl"
         time, _ = write_single_record_file(path)
 
@@ -215,7 +218,9 @@ class TestDataRecordModeGuards:
         path = tmp_path / "header_validation.arl"
         grid = make_test_grid()
         vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
-        arl = File(path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis)
+        arl = File(
+            path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+        )
 
         try:
             rs = arl.create_recordset(pd.Timestamp("2024-07-18 00:00"))
@@ -247,9 +252,10 @@ class TestDataRecordModeGuards:
                 _ = record.header
 
             record._header = {"forecast": 0}
-            record._diff = StubDiff(np.zeros((grid.ny, grid.nx), dtype=np.float32))
-            with pytest.raises(NotImplementedError, match="difference records"):
-                _ = record.header
+            record[:] = np.zeros((grid.ny, grid.nx), dtype=np.float32)
+            record._create_diff(position=-1, variable="DIFW", forecast=0)
+            record._derive_diff_on_pack = True
+            assert record.header.variable == "TEMP"
         finally:
             arl._manager.close()
 
@@ -260,10 +266,18 @@ class TestDataRecordModeGuards:
         with File(path) as arl:
             record = arl[time][(0, "TEMP")]
 
-            diff = record._create_diff(position=record.position + record.n_bytes, variable="DIFW")
+            diff = record._create_diff(
+                position=record.position + record.n_bytes, variable="DIFW"
+            )
             assert diff.level == record.level
             with pytest.raises(ValueError, match="Difference record already exists"):
-                record._create_diff(position=record.position + 2 * record.n_bytes, variable="DIFX")
+                record._create_diff(
+                    position=record.position + 2 * record.n_bytes, variable="DIFX"
+                )
+            with pytest.raises(ValueError, match="must start with 'DIF'"):
+                diff._create_diff(
+                    position=record.position + 3 * record.n_bytes, variable="TEMP"
+                )
 
             record._checksum = None
             with pytest.raises(ValueError, match="No stored checksum"):
@@ -283,7 +297,9 @@ class TestDataRecordModeGuards:
             rs = writable.create_recordset(pd.Timestamp("2024-07-18 00:00"))
             record = rs.create_datarecord("TEMP", level=0, forecast=0)
 
-            with pytest.raises(ValueError, match="Data must be packed before accessing checksum"):
+            with pytest.raises(
+                ValueError, match="Data must be packed before accessing checksum"
+            ):
                 _ = record.checksum
 
             with pytest.raises(ValueError, match="No data to read"):
@@ -311,11 +327,100 @@ class TestDataRecordModeGuards:
         finally:
             writable._manager.close()
 
-    def test_writable_record_rejects_non_mutable_header_after_pack(self, tmp_path, monkeypatch):
+    def test_write_roundtrip_with_generated_diff_record(self, tmp_path):
+        path = tmp_path / "generated_diff.arl"
+        grid = make_test_grid()
+        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        time = pd.Timestamp("2024-07-18 00:00")
+        base = (
+            0.123
+            + np.arange(grid.nx * grid.ny, dtype=np.float32).reshape(grid.ny, grid.nx)
+            * 0.0073
+        )
+
+        with File(
+            path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=vertical_axis,
+        ) as arl:
+            rs = arl.create_recordset(time)
+            record = rs.create_datarecord(
+                "WWND", level=0, forecast=0, data=base, diff="DIFW"
+            )
+            assert record.diff is not None
+            assert record.diff.variable == "DIFW"
+
+        with File(path) as reopened:
+            record = reopened[time][(0, "WWND")]
+            assert record.diff is not None
+            assert record.diff.variable == "DIFW"
+            combined = record.read()
+            parent_only = unpack(
+                packed=record.bytes[Header.N_BYTES :],
+                nx=grid.nx,
+                ny=grid.ny,
+                precision=record.header.precision,
+                exponent=record.header.exponent,
+                initial_value=record.header.initial_value,
+                driver=np,
+            )
+            np.testing.assert_allclose(combined, base, atol=record.header.precision)
+            np.testing.assert_allclose(
+                np.asarray(parent_only, dtype=np.float32) + record.diff.read(),
+                combined,
+                atol=max(record.header.precision, record.diff.header.precision),
+            )
+
+    def test_write_rejects_conflicting_diff_bindings(self, tmp_path):
+        path = tmp_path / "conflicting_diff.arl"
+        grid = make_test_grid()
+        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        data = np.ones((grid.ny, grid.nx), dtype=np.float32)
+
+        with File(
+            path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=vertical_axis,
+        ) as arl:
+            rs = arl.create_recordset(pd.Timestamp("2024-07-18 00:00"))
+            rs.create_datarecord("WWND", level=0, forecast=0, data=data, diff="DIFW")
+            with pytest.raises(ValueError, match="already bound to parent"):
+                rs.create_datarecord(
+                    "TEMP", level=0, forecast=0, data=data, diff="DIFW"
+                )
+
+    def test_write_rejects_invalid_diff_name(self, tmp_path):
+        path = tmp_path / "invalid_diff.arl"
+        grid = make_test_grid()
+        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        data = np.ones((grid.ny, grid.nx), dtype=np.float32)
+
+        with File(
+            path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=vertical_axis,
+        ) as arl:
+            rs = arl.create_recordset(pd.Timestamp("2024-07-18 00:00"))
+            with pytest.raises(ValueError, match="must start with 'DIF'"):
+                rs.create_datarecord(
+                    "WWND", level=0, forecast=0, data=data, diff="WDIFF"
+                )
+
+    def test_writable_record_rejects_non_mutable_header_after_pack(
+        self, tmp_path, monkeypatch
+    ):
         path = tmp_path / "mutable_header.arl"
         grid = make_test_grid()
         vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
-        arl = File(path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis)
+        arl = File(
+            path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+        )
 
         try:
             rs = arl.create_recordset(pd.Timestamp("2024-07-18 00:00"))
@@ -396,15 +501,21 @@ class TestDataRecordModeGuards:
             _ = record.header
             original_forecast = record.forecast
             record._invalidate_write_cache()
-            assert record._header == record._header  # keep linter happy about branch use
+            assert (
+                record._header == record._header
+            )  # keep linter happy about branch use
             assert record._bytes is not None  # no-op in read mode
             assert record.forecast == original_forecast
 
-    def test_writable_record_invalidate_cache_and_flush_existing_position(self, tmp_path):
+    def test_writable_record_invalidate_cache_and_flush_existing_position(
+        self, tmp_path
+    ):
         path = tmp_path / "flush_record.arl"
         grid = make_test_grid()
         vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
-        arl = File(path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis)
+        arl = File(
+            path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+        )
 
         try:
             rs = arl.create_recordset(pd.Timestamp("2024-07-18 00:00"))
@@ -435,8 +546,9 @@ class TestDataRecordModeGuards:
 
 
 class TestRecordCollectionForecasts:
-
-    def test_recordset_derives_index_forecast_from_mixed_record_forecasts(self, tmp_path):
+    def test_recordset_derives_index_forecast_from_mixed_record_forecasts(
+        self, tmp_path
+    ):
         path = tmp_path / "derived_forecast.arl"
         grid = make_test_grid()
         vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
@@ -456,7 +568,9 @@ class TestRecordCollectionForecasts:
         with File(path) as arl:
             assert arl[pd.Timestamp("2024-07-18 00:00")].forecast == 0
 
-    def test_file_add_record_creates_recordsets_and_derives_file_records(self, tmp_path):
+    def test_file_add_record_creates_recordsets_and_derives_file_records(
+        self, tmp_path
+    ):
         path = tmp_path / "add_record.arl"
         grid = make_test_grid()
         vertical_axis = VerticalAxis(flag=2, levels=[1000.0, 900.0])
@@ -540,8 +654,12 @@ class TestVariableViewsAndAccessors:
 
             array = np.asarray(view)
             assert array.shape == (2, 2, 20, 20)
-            np.testing.assert_allclose(array[0, 0], 1.0)   # time=0, level idx 0 → 1000 hPa
-            np.testing.assert_allclose(array[0, 1], 11.0)  # time=0, level idx 1 → 900 hPa
+            np.testing.assert_allclose(
+                array[0, 0], 1.0
+            )  # time=0, level idx 0 → 1000 hPa
+            np.testing.assert_allclose(
+                array[0, 1], 11.0
+            )  # time=0, level idx 1 → 900 hPa
             np.testing.assert_allclose(view[1, 1, 0, :3], [111.0, 111.0, 111.0])
 
     def test_recordset_variable_view_mapping_helpers(self, tmp_path):
@@ -726,7 +844,9 @@ class TestFileLowLevelBehavior:
         with pytest.raises(ValueError, match="Vertical axis mismatch"):
             File(path)
 
-    def test_scan_rejects_diff_record_without_preceding_record(self, tmp_path, monkeypatch):
+    def test_scan_rejects_diff_record_without_preceding_record(
+        self, tmp_path, monkeypatch
+    ):
         path = tmp_path / "scan_diff.arl"
         path.write_bytes(b"\0" * 2000)
         grid = make_test_grid()

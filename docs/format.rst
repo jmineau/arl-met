@@ -57,6 +57,25 @@ Each record set contains:
   - Surface data first (Level 0)
   - Then upper levels (1 to nz-1)
 
+Differential records
+~~~~~~~~~~~~~~~~~~~~
+
+Some ARL streams include trailing ``DIF*`` records. These are separate on-disk
+records that belong to the immediately preceding non-``DIF`` parent record at
+the same time and level.
+
+arl-met preserves that stream structure in the low-level API. When reading a
+parent record through :class:`arlmet.DataRecord`, the returned values are the
+combined field ``parent + diff``. The attached DIF record remains available in
+the low-level model for exact rewrite and subset preservation.
+
+When arl-met generates a DIF record while writing, it follows the producer-side
+HYSPLIT pattern:
+
+.. code-block:: text
+
+   write parent -> unpack packed parent -> diff = target - unpacked_parent -> write DIF
+
 3. Individual Data Record Structure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -99,6 +118,10 @@ Upper-Air Variables (Levels 1-nz)
 - **Heights**: HGTS
 - **Moisture**: RELH, SPHU
 - **Special**: TKEN, DIFT, DIFW
+
+The presence of a ``DIF*`` record is stream-dependent. Do not assume every
+variable has one or that every ``DIF*`` name is universally valid outside the
+source workflow that produced it.
 
 Key Features
 ------------

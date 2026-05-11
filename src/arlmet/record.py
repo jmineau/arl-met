@@ -128,6 +128,7 @@ class DataRecord:
         self._packed: npt.NDArray[np.uint8] | None = None  # Packed payload
         self._unpacked: npt.NDArray[Any] | None = None  # The unpacked data
         self._diff: DataRecord | None = None  # The difference DataRecord if applicable
+        self._derive_diff_on_pack = False
         self._checksum = checksum  # The stored checksum if applicable
         self._reserved = reserved  # Reserved field if applicable
 
@@ -157,6 +158,15 @@ class DataRecord:
         """
         if self._diff is not None:
             raise ValueError("Difference record already exists.")
+        if not variable.startswith("DIF"):
+            raise ValueError(
+                f"Difference record names must start with 'DIF', got '{variable}'."
+            )
+        if self.mode == "w" and forecast is None:
+            if isinstance(self._header, dict):
+                forecast = self._header.get("forecast")
+            elif isinstance(self._header, Header):
+                forecast = self._header.forecast
         diff = DataRecord(
             recordset=self.recordset,
             position=position,
@@ -172,6 +182,11 @@ class DataRecord:
     @property
     def mode(self) -> Literal["r", "w"]:
         return "w" if self.position == -1 else "r"
+
+    @property
+    def diff(self) -> DataRecord | None:
+        """Return the attached DIF record when present."""
+        return self._diff
 
     @property
     def bytes(self) -> bytes:
@@ -217,10 +232,6 @@ class DataRecord:
                 if not isinstance(self._header, dict):
                     raise ValueError(
                         "Header state must be a dictionary before constructing a writable record header."
-                    )
-                if self._diff is not None:
-                    raise NotImplementedError(
-                        "Writing difference records is not implemented."
                     )
                 header_state = self._header
                 if (
@@ -497,6 +508,11 @@ class DataRecord:
         self._packed = None
         self._bytes = None
         self._checksum = None
+        if isinstance(self._diff, DataRecord):
+            self._diff._header = {"forecast": forecast}
+            self._diff._packed = None
+            self._diff._bytes = None
+            self._diff._checksum = None
 
     @require_mode("r")
     def _load_from_disk(self, driver=None) -> Any:
@@ -541,6 +557,28 @@ class DataRecord:
             self._header["initial_value"] = initial_value
 
             self._checksum = calculate_checksum(self._packed.tobytes())
+
+            if isinstance(self._diff, DataRecord) and self._derive_diff_on_pack:
+                reconstructed = np.asarray(
+                    unpack(
+                        packed=self._packed.tobytes(),
+                        nx=self.grid.nx,
+                        ny=self.grid.ny,
+                        precision=precision,
+                        exponent=exponent,
+                        initial_value=initial_value,
+                        driver=np,
+                    ),
+                    dtype=np.float32,
+                )
+                self._diff._unpacked = np.asarray(
+                    self._unpacked - reconstructed,
+                    dtype=np.float32,
+                )
+                self._diff._invalidate_write_cache()
+                self._diff._pack()
+            elif isinstance(self._diff, DataRecord) and self._diff._packed is None:
+                self._diff._pack()
 
         return self._packed
 

@@ -106,6 +106,7 @@ class File:
         # Initialize recordsets as an ordered dict to preserve time order
         # Mapping: time -> RecordSet
         self._recordsets: OrderedDict[pd.Timestamp, RecordSet] = OrderedDict()
+        self._diff_parents: dict[str, str] = {}
         self.variables = VariableAccessor(self)
 
         # Scan the file to populate recordsets in read mode
@@ -301,6 +302,23 @@ class File:
         )
 
     @require_mode("w")
+    def register_diff_binding(self, diff_name: str, parent_name: str) -> None:
+        """Record and validate the explicit parent binding for a generated DIF name."""
+        if not diff_name.startswith("DIF"):
+            raise ValueError(
+                f"Generated diff record names must start with 'DIF', got '{diff_name}'."
+            )
+
+        bound_parent = self._diff_parents.get(diff_name)
+        if bound_parent is not None and bound_parent != parent_name:
+            raise ValueError(
+                f"Difference record '{diff_name}' is already bound to parent "
+                f"'{bound_parent}', not '{parent_name}'."
+            )
+
+        self._diff_parents[diff_name] = parent_name
+
+    @require_mode("w")
     def add_record(
         self,
         time,
@@ -431,6 +449,8 @@ class File:
             if self.mode == "w":
                 for rs in self._recordsets.values():
                     if rs.position == -1:
+                        if len(rs) == 0:
+                            continue
                         rs._flush()
                 self.handle.flush()
         finally:

@@ -123,7 +123,9 @@ def test_extract_subset_allows_mixed_record_forecasts(tmp_path):
     data = np.ones((grid.ny, grid.nx), dtype=np.float32)
     time0 = pd.Timestamp("2025-09-01 00:00")
 
-    with File(source, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis) as arl:
+    with File(
+        source, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+    ) as arl:
         rs = arl.create_recordset(time0)
         rs.create_datarecord("PRSS", level=0, forecast=0, data=data)
         rs.create_datarecord("TEMP", level=1, forecast=3, data=data)
@@ -134,6 +136,42 @@ def test_extract_subset_allows_mixed_record_forecasts(tmp_path):
         assert subset[time0].forecast == 0
         assert subset[time0][(0, "PRSS")].forecast == 0
         assert subset[time0][(1, "TEMP")].forecast == 3
+
+
+def test_extract_subset_preserves_diff_records(tmp_path):
+    source = tmp_path / "diff_source.arl"
+    destination = tmp_path / "diff_subset.arl"
+    grid = make_test_grid()
+    vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+    time0 = pd.Timestamp("2024-07-18 00:00")
+    data = (
+        0.123
+        + np.arange(grid.nx * grid.ny, dtype=np.float32).reshape(grid.ny, grid.nx)
+        * 0.0073
+    )
+
+    with File(
+        source, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+    ) as arl:
+        rs = arl.create_recordset(time0)
+        rs.create_datarecord("WWND", level=0, forecast=0, data=data, diff="DIFW")
+
+    bbox = (22.0, -8.0, 33.0, 3.0)
+    extract_subset(source, destination, bbox=bbox)
+
+    with File(source) as original, File(destination) as subset:
+        source_window = original.grid.window_from_bbox(bbox)
+        source_record = original[time0][(0, "WWND")]
+        subset_record = subset[time0][(0, "WWND")]
+
+        assert subset_record.diff is not None
+        assert subset_record.diff.variable == "DIFW"
+
+        np.testing.assert_allclose(
+            subset_record.read(),
+            source_record.read(window=source_window),
+            atol=subset_record.header.precision,
+        )
 
 
 def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
@@ -170,9 +208,7 @@ def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
     # loaded so it shows as 0.0 in the reconstructed levels array
     assert ds.arl.vertical_axis.levels.tolist() == [0.0, 0.0, 2000.0]
     # PRSS has no level dim; UWND level dim has one element (index 0 → 2000 hPa)
-    np.testing.assert_allclose(
-        np.asarray(ds["PRSS"].isel(time=0)), source_prss
-    )
+    np.testing.assert_allclose(np.asarray(ds["PRSS"].isel(time=0)), source_prss)
     np.testing.assert_allclose(
         np.asarray(ds["UWND"].isel(time=0, level=0)), source_uwnd
     )

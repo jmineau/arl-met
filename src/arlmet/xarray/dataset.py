@@ -251,6 +251,22 @@ def write_dataset(
     if not data_vars:
         raise ValueError("Dataset contains no data variables to write.")
 
+    diff_names: dict[str, str] = {}
+    for name in data_vars:
+        da = ds[str(name)]
+        diff_name = da.attrs.get("diff")
+        if diff_name is None:
+            continue
+        if not isinstance(diff_name, str) or not diff_name:
+            raise ValueError(
+                f"Variable '{name}' attrs['diff'] must be a non-empty string when provided."
+            )
+        if not diff_name.startswith("DIF"):
+            raise ValueError(
+                f"Variable '{name}' attrs['diff'] must start with 'DIF', got '{diff_name}'."
+            )
+        diff_names[str(name)] = diff_name
+
     with File(
         filename_or_obj,
         mode="w",
@@ -271,8 +287,8 @@ def write_dataset(
                         f"Variable names must be 4 characters or fewer, got '{var_name}'."
                     )
                 if var_name.startswith("DIF"):
-                    raise NotImplementedError(
-                        "Writing DIF* variables is not implemented."
+                    raise ValueError(
+                        "Dataset DIF generation is parent-led; set attrs['diff'] on the parent variable instead of writing a DIF* data variable."
                     )
 
                 da = ds[var_name]
@@ -343,4 +359,5 @@ def write_dataset(
                         level=int(level_index),
                         forecast=forecast_hours[time_index],
                         data=data,
+                        diff=diff_names.get(var_name),
                     )

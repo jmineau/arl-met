@@ -76,6 +76,14 @@ variables share one ``level`` coordinate.
    ds["TEMP"] = ds["TEMP"] - 273.15
    arlmet.write_dataset(ds, "path/to/edited.arl")
 
+If you need a trailing DIF record for a parent variable, set the parent
+DataArray's ``diff`` attr before writing:
+
+.. code-block:: python
+
+   ds["WWND"].attrs["diff"] = "DIFW"
+   arlmet.write_dataset(ds, "path/to/edited-with-diff.arl")
+
 For irregular files, including per-variable forecast hours, see :doc:`writing`
 for the low-level :class:`arlmet.File` workflow.
 

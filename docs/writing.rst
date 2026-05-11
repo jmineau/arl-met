@@ -27,6 +27,15 @@ Round-trip with Dataset
    ds["TEMP"] = ds["TEMP"] - 273.15
    arlmet.write_dataset(ds, "edited.arl")
 
+To request a trailing DIF record when writing a parent variable, set the
+parent DataArray's ``diff`` attr to the DIF record name:
+
+.. code-block:: python
+
+  ds = arlmet.open_dataset("input.arl", squeeze=False)
+  ds["WWND"].attrs["diff"] = "DIFW"
+  arlmet.write_dataset(ds, "edited-with-diff.arl")
+
 Dataset write contract
 ----------------------
 
@@ -49,9 +58,34 @@ Write constraints
 - ``forecast_hour`` must have dims ``("time",)`` when present
 - variable names must be 4 characters or fewer
 - slices must be complete and finite; missing values are not written
-- ``DIF*`` variables are not currently writable
+- generated DIF names must be declared on the parent variable with
+  ``attrs["diff"]`` and must start with ``DIF``
+- Dataset DIF writing is parent-led; do not add ``DIF*`` variables as separate
+  Dataset data variables
 - surface-only datasets must pass ``vertical_axis=`` explicitly to
   :func:`arlmet.write_dataset`
+
+Differential records
+--------------------
+
+arl-met supports two DIF authoring paths:
+
+- low-level: pass ``diff="DIF..."`` to :meth:`arlmet.RecordSet.create_datarecord`
+- Dataset: set ``DataArray.attrs["diff"] = "DIF..."`` on the parent variable
+
+In both cases the caller supplies only the intended parent field values.
+arl-met writes the parent record first, immediately unpacks the packed parent,
+computes the residual ``target - unpacked_parent``, and writes that residual as
+the trailing DIF record.
+
+Validation rules:
+
+- DIF names must start with ``DIF``
+- generated DIF records inherit the parent time, level, and forecast
+- the same DIF name cannot be rebound to a different parent variable during one
+  write
+- existing on-disk ``DIF*`` records are preserved on low-level rewrite and
+  subset extraction
 
 Analysis with open_dataset
 --------------------------
@@ -116,10 +150,11 @@ disk.
    ) as arl:
        rs = arl.create_recordset(time, forecast=0)
        rs.create_datarecord("PRSS", level=0, forecast=0, data=prss)
-       rs.create_datarecord("TEMP", level=1, forecast=3, data=temp)
+    rs.create_datarecord("TEMP", level=1, forecast=3, data=temp)
+    rs.create_datarecord("WWND", level=1, forecast=3, data=temp, diff="DIFW")
 
 This low-level path is the recommended workflow whenever different variables at
-the same time need different forecast hours.
+  the same time need different forecast hours or explicit record-level control.
 
 Contributing ideas
 ------------------
