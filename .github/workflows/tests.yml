@@ -29,19 +29,22 @@ jobs:
       run: uv sync --frozen
 
     - name: Run default tests with pytest
-      run: uv run --no-sync pytest -v -m "not network and not slow" --cov=arlmet --junitxml=junit.xml -o junit_family=legacy
+      run: uv run --no-sync pytest -v -m "not network and not slow" --cov=arlmet --cov-report=xml --junitxml=junit.xml -o junit_family=legacy
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
-      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10' && !always() }}
+      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10' && !cancelled() }}
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        files: coverage.xml
 
     - name: Upload test results to Codecov
-      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10' && !always() }}
-      uses: codecov/test-results-action@v1
+      uses: codecov/codecov-action@v5
+      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10' && !cancelled() }}
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        files: junit.xml
+        report_type: test_results
 
   test-network:
     runs-on: ubuntu-latest

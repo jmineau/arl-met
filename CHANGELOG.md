@@ -1,8 +1,17 @@
 # Changelog
 
-All notable changes to PYSTILT are documented here.
+All notable changes to arl-met are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Fixed
+
+- Codecov uploads not running: replaced `!always()` condition with `!cancelled()`
+- Coverage XML not generated: added `--cov-report=xml` to pytest command
+- Coverage upload missing explicit `files: coverage.xml`
+- Test results upload switched from `codecov/test-results-action@v1` to `codecov/codecov-action@v5` with `report_type: test_results` and explicit `files: junit.xml`
 
 ## [0.1.0a1] - 2026-05-11
 
