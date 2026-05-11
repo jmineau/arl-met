@@ -249,7 +249,10 @@ class TestZAglHelper:
         z = arlmet.z_agl(ds)
         # Should return HGTS data variable directly, not the height coord
         assert "HGTS" in ds
-        np.testing.assert_allclose(z.isel(lat=0, lon=0).values, [100.0, 500.0])
+        np.testing.assert_allclose(
+            z.isel(time=0, lat=0, lon=0).values,
+            [100.0, 500.0],
+        )
 
     def test_flag2_hgts_preferred_over_hypsometric(self, tmp_path):
         path = tmp_path / "test.arl"
@@ -264,7 +267,7 @@ class TestZAglHelper:
         )
         ds = ds.assign(HGTS=sentinel)
         z = arlmet.z_agl(ds)
-        assert float(z.isel(lat=0, lon=0, level=0).values) == 999.0
+        assert float(z.isel(time=0, lat=0, lon=0, level=0).values) == 999.0
 
     def test_flag2_hypsometric_increases_with_altitude(self, tmp_path):
         path = tmp_path / "test.arl"
@@ -272,7 +275,7 @@ class TestZAglHelper:
                              pressure_levels=[1000.0, 850.0, 700.0])
         ds = arlmet.open_dataset(path)
         z = arlmet.z_agl(ds)
-        z_vals = z.isel(lat=0, lon=0).values  # select single point
+        z_vals = z.isel(time=0, lat=0, lon=0).values  # select single point
         # Height should increase with level (decreasing pressure)
         assert z_vals[0] < z_vals[1] < z_vals[2]
 
