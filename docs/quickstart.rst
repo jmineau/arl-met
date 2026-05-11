@@ -72,7 +72,7 @@ variables share one ``level`` coordinate.
 
    import arlmet
 
-   ds = arlmet.open_dataset("path/to/file.arl", squeeze=False)
+   ds = arlmet.open_dataset("path/to/file.arl")
    ds["TEMP"] = ds["TEMP"] - 273.15
    arlmet.write_dataset(ds, "path/to/edited.arl")
 

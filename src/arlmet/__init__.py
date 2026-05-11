@@ -5,9 +5,29 @@ This package provides tools to read, parse, and work with ARL (Air Resources Lab
 packed meteorological data files used by HYSPLIT and other atmospheric transport models.
 """
 
-__version__ = "2025.10.1"
+from importlib.metadata import PackageNotFoundError, version as package_version
+from pathlib import Path
+import re
+
+
+def _detect_version() -> str:
+    try:
+        return package_version("arlmet")
+    except PackageNotFoundError:
+        pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
+        match = re.search(
+            r'^version\s*=\s*"([^"]+)"',
+            pyproject.read_text(encoding="utf-8"),
+            flags=re.MULTILINE,
+        )
+        if match is None:
+            return "0+unknown"
+        return match.group(1)
+
+
+__version__ = _detect_version()
 __author__ = "James Mineau"
-__email__ = "jameskmineau@gmail.com"
+__email__ = "jmineau@gmail.com"
 
 from .file import File
 from .grid import Grid, Projection

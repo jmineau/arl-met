@@ -10,76 +10,152 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Pyright](https://img.shields.io/badge/pyright-checked-brightgreen.svg)](https://github.com/microsoft/pyright)
 
-Read and analyze ARL meteorological files.
+Read, write, subset, and sample NOAA ARL meteorological files.
 
-## 🚧 Work in Progress
+`arl-met` provides a Python-first interface to the ARL packed meteorology
+format used by HYSPLIT and related workflows. It supports:
 
-This project aims to create a Python package for reading and analyzing NOAA ARL (Air Resources Laboratory) meteorological files.
+- low-level record-preserving reads and writes through `File`, `RecordSet`, and `DataRecord`
+- xarray Dataset reads and common-case writes through `open_dataset()` and `write_dataset()`
+- crop-before-unpack subset extraction with `extract_subset()`
+- NOAA source fetching helpers for common ARL archives
+- vertical helper functions such as `pressure()`, `z_agl()`, and `z_msl()`
 
-### Status update
+## Alpha status
 
-- Current capability: ARLMet can parse ARL files and load records into xarray DataArray/Dataset structures. Core data ingest and record unpacking are functional, but higher-level features remain limited.
-- Immediate tasks:
-    - Calculate vertical coordinates in meters above ground level (m AGL) from the ARL vertical axis information.
-    - Calculate mean sea level (MSL) heights. This requires terrain elevation; if terrain is not present in the ARLMet data, provide and document a default terrain file (or a configurable fallback) to compute MSL.
-    - Update dataset and variable attributes.
-    - Make attributes CF-compliant (standard names, units, axis/coordinates, and global metadata).
-- Next steps: add tests and examples for vertical coordinate handling, document the default-terrain behaviour, and expand CF attribute coverage across variables and coordinates.
+This is an alpha release. The core read/write/subset APIs are usable, but the
+package is still tightening its high-level contracts and release surface.
 
-### Resources
+Current strengths:
 
-The follow pages provide useful information about ARL files and their structure:
- - [HYSPLIT User Guide](https://www.arl.noaa.gov/documents/reports/hysplit_user_guide.pdf)
- - [HYSPLIT HTML page for Meteorology](https://www.ready.noaa.gov/hysplitusersguide/S141.htm)
- - [The READY Archive](https://www.ready.noaa.gov/archives.php)
+- low-level ARL fidelity, including preservation of trailing `DIF*` records
+- xarray-native analysis workflow for common ARL files
+- direct subset extraction and point sampling
+- tested support for Python 3.10 through 3.12
 
- Additionally, [here](https://www.ready.noaa.gov/gdas1.php) is an example of the packing for GDAS1 files.
+Current limitations:
 
- Finally, a somewhat related project is [ARLreader](https://github.com/martin-rdz/ARLreader), however, it currently only works with GDAS1 files and I wanted to load data into xarray structures.
+- `write_dataset()` is intentionally conservative and targets the flat common-case Dataset contract
+- complex multi-record DIFF chains are not tested
+- WRF vertical flag 5 is not implemented
 
 ## Installation
 
-### Development Setup
+Install the core package:
 
-Install `uv` first if needed: <https://docs.astral.sh/uv/getting-started/installation/>
+```bash
+pip install arlmet
+```
+
+Install the optional source-fetching dependencies:
+
+```bash
+pip install "arlmet[sources]"
+```
+
+For development:
 
 ```bash
 git clone https://github.com/jmineau/arl-met.git
 cd arl-met
-uv sync
+uv sync --dev
 ```
 
-This project now uses `uv` for local development, dependency management, and CI.
+## Quick examples
 
-Common commands:
-
-```bash
-uv run pytest -v
-uv run ruff check src/arlmet
-uv run pyright src/arlmet
-uv run sphinx-build -M html docs docs/_build
-```
-
-## Usage
+Open an ARL file as a Dataset:
 
 ```python
 import arlmet
 
-# Add usage example here
+ds = arlmet.open_dataset("met.arl")
+print(ds)
 ```
 
-## Documentation
+Modify a Dataset and write it back:
 
-Full documentation is available at [https://jmineau.github.io/arl-met/](https://jmineau.github.io/arl-met/)
+```python
+import arlmet
+
+ds = arlmet.open_dataset("met.arl")
+ds["TEMP"] = ds["TEMP"] - 273.15
+ds["WWND"].attrs["diff"] = "DIFW"
+arlmet.write_dataset(ds, "edited.arl")
+```
+
+Extract a subset without unpacking the full file first:
+
+```python
+import arlmet
+
+arlmet.extract_subset(
+    "met.arl",
+    "subset.arl",
+    bbox=(-114.0, 39.0, -110.0, 42.0),
+    levels=[0, 1, 2],
+)
+```
+
+Use the low-level writer for irregular layouts:
+
+```python
+import numpy as np
+import pandas as pd
+import arlmet
+
+grid = arlmet.Grid(
+    projection=arlmet.Projection(
+        pole_lat=90.0,
+        pole_lon=0.0,
+        tangent_lat=1.0,
+        tangent_lon=1.0,
+        grid_size=0.0,
+        orientation=0.0,
+        cone_angle=0.0,
+        sync_x=1.0,
+        sync_y=1.0,
+        sync_lat=-10.0,
+        sync_lon=20.0,
+    ),
+    nx=20,
+    ny=20,
+)
+vertical_axis = arlmet.VerticalAxis(flag=2, levels=[0.0, 1000.0])
+time = pd.Timestamp("2024-07-18 00:00")
+
+prss = np.ones((grid.ny, grid.nx), dtype=np.float32)
+wwnd = np.ones((grid.ny, grid.nx), dtype=np.float32)
+
+with arlmet.File("custom.arl", mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis) as arl:
+    rs = arl.create_recordset(time, forecast=0)
+    rs.create_datarecord("PRSS", level=0, forecast=0, data=prss)
+    rs.create_datarecord("WWND", level=1, forecast=0, data=wwnd, diff="DIFW")
+```
+
+## Resources
+
+Documentation is available at https://jmineau.github.io/arl-met/
+
+Useful ARL/HYSPLIT references:
+
+- [HYSPLIT User Guide](https://www.arl.noaa.gov/documents/reports/hysplit_user_guide.pdf) for the broader model and file-format context.
+- [HYSPLIT meteorology page](https://www.ready.noaa.gov/hysplitusersguide/S141.htm) for the ARL meteorology format overview.
+- [READY archive](https://www.ready.noaa.gov/archives.php) for the available meteorology archives.
+- [GDAS1 packing notes](https://www.ready.noaa.gov/gdas1.php) for a concrete example of ARL packing behavior.
+
+Related project:
+
+- [ARLreader](https://github.com/martin-rdz/ARLreader), which focuses on GDAS1 files, while `arl-met` targets a broader ARL/xarray workflow.
+
+## Release notes
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for development
+setup and contribution guidelines.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Author
-
-**James Mineau** - [jmineau](https://github.com/jmineau)
+This project is licensed under the MIT License. See [LICENSE](LICENSE).

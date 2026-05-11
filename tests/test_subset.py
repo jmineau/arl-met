@@ -181,7 +181,6 @@ def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
     bbox = (22.0, -8.0, 24.0, -6.0)
     ds = open_dataset(
         source,
-        squeeze=False,
         bbox=bbox,
         levels=[0, 2],
         drop_variables=["TEMP"],

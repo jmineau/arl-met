@@ -162,7 +162,7 @@ class TestWriter:
         source_path = tmp_path / "source.arl"
 
         self.write_sample_file(source_path)
-        ds = open_dataset(source_path, squeeze=False)
+        ds = open_dataset(source_path)
 
         assert ds.attrs["source"] == "TEST"
         assert ds.arl.vertical_axis.flag == 2
@@ -194,21 +194,23 @@ class TestWriter:
             rs.create_datarecord("PRSS", level=0, forecast=0, data=data)
             rs.create_datarecord("TEMP", level=1, forecast=3, data=data)
 
-        ds = open_dataset(path, squeeze=False)
+        ds = open_dataset(path)
 
         assert "PRSS" in ds
         assert "TEMP" in ds
         np.testing.assert_array_equal(ds["forecast_hour"].values, [0])
+        assert ds.sizes["time"] == 1
+        assert ds.sizes["level"] == 1
 
     def test_write_dataset_roundtrips_simple_dataset(self, tmp_path):
         source_path = tmp_path / "source.arl"
         written_path = tmp_path / "written.arl"
 
         self.write_sample_file(source_path)
-        ds = open_dataset(source_path, squeeze=False)
+        ds = open_dataset(source_path)
 
         write_dataset(ds, written_path)
-        reopened = open_dataset(written_path, squeeze=False)
+        reopened = open_dataset(written_path)
 
         np.testing.assert_array_equal(
             reopened["forecast_hour"].values, ds["forecast_hour"].values
@@ -221,7 +223,7 @@ class TestWriter:
         written_path = tmp_path / "written.arl"
 
         self.write_sample_file(source_path)
-        ds = open_dataset(source_path, squeeze=False).drop_vars("forecast_hour")
+        ds = open_dataset(source_path).drop_vars("forecast_hour")
 
         write_dataset(ds, written_path)
 
@@ -233,7 +235,7 @@ class TestWriter:
         written_path = tmp_path / "written.arl"
 
         self.write_surface_only_file(source_path)
-        ds = open_dataset(source_path, squeeze=False)
+        ds = open_dataset(source_path)
 
         with pytest.raises(
             ValueError, match="Surface-only datasets require an explicit vertical_axis"
@@ -243,7 +245,7 @@ class TestWriter:
         write_dataset(
             ds, written_path, vertical_axis=VerticalAxis(flag=2, levels=[0.0])
         )
-        reopened = open_dataset(written_path, squeeze=False)
+        reopened = open_dataset(written_path)
         np.testing.assert_allclose(reopened["PRSS"].values, ds["PRSS"].values)
 
     def test_write_dataset_rejects_missing_upper_level_slices(self, tmp_path):
@@ -251,7 +253,7 @@ class TestWriter:
         written_path = tmp_path / "written.arl"
 
         self.write_sample_file(source_path)
-        ds = open_dataset(source_path, squeeze=False)
+        ds = open_dataset(source_path)
         ds["TEMP"] = ds["TEMP"].where(ds["level"] != 1)
 
         with pytest.raises(ValueError, match="contains missing values"):
@@ -262,7 +264,7 @@ class TestWriter:
         written_path = tmp_path / "written.arl"
 
         self.write_sample_file(source_path)
-        ds = open_dataset(source_path, squeeze=False)
+        ds = open_dataset(source_path)
         ds["TEMP"].attrs["diff"] = "DIFT"
 
         write_dataset(ds, written_path)
@@ -280,7 +282,7 @@ class TestWriter:
             assert record.diff is not None
             assert record.diff.variable == "DIFT"
 
-        reopened_ds = open_dataset(written_path, squeeze=False)
+        reopened_ds = open_dataset(written_path)
         np.testing.assert_allclose(reopened_ds["TEMP"].values, ds["TEMP"].values)
 
     def test_write_dataset_rejects_invalid_diff_attr_name(self, tmp_path):
@@ -288,7 +290,7 @@ class TestWriter:
         written_path = tmp_path / "written.arl"
 
         self.write_sample_file(source_path)
-        ds = open_dataset(source_path, squeeze=False)
+        ds = open_dataset(source_path)
         ds["TEMP"].attrs["diff"] = "WDIFF"
 
         with pytest.raises(ValueError, match="must start with 'DIF'"):
@@ -299,18 +301,18 @@ class TestWriter:
         written_path = tmp_path / "written.arl"
 
         self.write_sample_file(source_path)
-        ds = open_dataset(source_path, squeeze=False)
+        ds = open_dataset(source_path)
         ds["PRSS"].attrs["diff"] = "DIFX"
         ds["TEMP"].attrs["diff"] = "DIFX"
 
         with pytest.raises(ValueError, match="already bound to parent"):
             write_dataset(ds, written_path)
 
-    def test_open_dataset_uses_lazy_variable_arrays_without_dask(self, tmp_path):
+    def test_open_dataset_uses_lazy_variable_arrays(self, tmp_path):
         source_path = tmp_path / "source.arl"
 
         self.write_sample_file(source_path)
-        ds = open_dataset(source_path, squeeze=False)
+        ds = open_dataset(source_path)
 
         # TEMP is upper-air — LazilyIndexedArray directly wraps ArlVariableArray
         assert isinstance(ds["TEMP"].variable._data, indexing.LazilyIndexedArray)
@@ -325,7 +327,7 @@ class TestWriter:
     def test_open_dataset_sfc_vars_have_no_level_dim(self, tmp_path):
         path = tmp_path / "sample.arl"
         self.write_sample_file(path)
-        ds = open_dataset(path, squeeze=False)
+        ds = open_dataset(path)
         assert "level" not in ds["PRSS"].dims  # sfc var
         assert "level" in ds["TEMP"].dims  # upper var
         assert "PRSS" in ds.data_vars

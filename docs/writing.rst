@@ -23,7 +23,7 @@ Round-trip with Dataset
 
    import arlmet
 
-   ds = arlmet.open_dataset("input.arl", squeeze=False)
+  ds = arlmet.open_dataset("input.arl")
    ds["TEMP"] = ds["TEMP"] - 273.15
    arlmet.write_dataset(ds, "edited.arl")
 
@@ -32,7 +32,7 @@ parent DataArray's ``diff`` attr to the DIF record name:
 
 .. code-block:: python
 
-  ds = arlmet.open_dataset("input.arl", squeeze=False)
+  ds = arlmet.open_dataset("input.arl")
   ds["WWND"].attrs["diff"] = "DIFW"
   arlmet.write_dataset(ds, "edited-with-diff.arl")
 

@@ -816,6 +816,6 @@ def test_source_fetch_and_open(tmp_path, source, time, bbox):
     assert dest.exists()
     assert dest.stat().st_size > 0
 
-    ds = open_dataset(dest, squeeze=False)
+    ds = open_dataset(dest)
     assert len(ds.data_vars) > 0
     assert "level" in ds.dims

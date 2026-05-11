@@ -522,7 +522,7 @@ class DataRecord:
         # Get header (dont delay)
         header = self.header  # this will load the bytes from disk
 
-        # Unpack (will be delayed if dask is available)
+        # Unpack the packed field bytes.
         ny, nx = self.shape
         unpacked = unpack(
             packed=self.bytes[Header.N_BYTES :],

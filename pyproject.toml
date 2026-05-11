@@ -4,22 +4,25 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arlmet"
-version = "2025.10.0"
+version = "0.1.0a1"
 description = "Read and write ARL meteorological files."
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "James Mineau", email = "jameskmineau@gmail.com"}
 ]
+keywords = ["arl", "hysplit", "meteorology", "atmospheric-science", "xarray"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Typing :: Typed",
 ]
 dependencies = [
     "numpy>=1.24",
@@ -34,7 +37,7 @@ sources = ["fsspec>=2024.2", "s3fs>=2024.2"]
 [dependency-groups]
 dev = [
     "arlmet[sources]",
-    "dask>=2023.6",
+    "build>=1.2",
     "docstr-coverage>=2.0.0",
     "pydata-sphinx-theme>=0.14.0",
     "pre-commit>=3.0.0",
@@ -45,6 +48,7 @@ dev = [
     "rust-just>=1.42.4",
     "sphinx>=7.0.0",
     "sphinx-autodoc-typehints>=1.24.0",
+    "twine>=5.0",
 ]
 
 [project.urls]

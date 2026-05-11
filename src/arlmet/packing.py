@@ -116,8 +116,8 @@ def unpack(
     initial_value : float
         The initial real value at the grid position (0,0).
     driver : module, optional
-        The array library to use for computations (e.g., numpy, dask.array).
-        If None, numpy is used by default.
+        The array library to use for computations. If None, numpy is used by
+        default.
     window : GridWindow, optional
         Rectangular grid window to unpack. When provided, only the requested
         subset is reconstructed.
@@ -129,8 +129,6 @@ def unpack(
         shape when ``window`` is provided.
     """
     if window is not None:
-        if driver is not None and getattr(driver, "__name__", "") == "dask.array":
-            raise NotImplementedError("Windowed unpack is not implemented for dask.")
         return _unpack_window(
             packed=packed,
             nx=nx,
@@ -144,16 +142,8 @@ def unpack(
     if driver is None:
         driver = np
 
-    # Convert packed bytes to array using the specified driver
-    if getattr(driver, "__name__", "") == "dask.array":
-        import dask.array as da
-        from dask.delayed import delayed
-
-        # Delay conversion from buffer to array
-        packed_arr = da.from_delayed(delayed(np.frombuffer)(packed, dtype=np.uint8))
-    else:
-        # Eager conversion from buffer to array
-        packed_arr = np.frombuffer(packed, dtype=np.uint8)
+    # Convert packed bytes to an eager NumPy array for unpacking.
+    packed_arr = np.frombuffer(packed, dtype=np.uint8)
 
     # Prepare initial value as array
     initial_arr = np.expand_dims(np.array(initial_value), axis=0)

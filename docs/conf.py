@@ -4,8 +4,11 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import os
+import re
 import sys
 import warnings
+from importlib.metadata import PackageNotFoundError, version as package_version
+from pathlib import Path
 
 sys.path.insert(0, os.path.abspath("../src"))
 
@@ -23,7 +26,25 @@ warnings.filterwarnings(
 project = "arl-met"
 copyright = "2025, James Mineau"
 author = "James Mineau"
-release = "2025.10.0"
+
+
+def _detect_release() -> str:
+    try:
+        return package_version("arlmet")
+    except PackageNotFoundError:
+        pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+        match = re.search(
+            r'^version\s*=\s*"([^"]+)"',
+            pyproject.read_text(encoding="utf-8"),
+            flags=re.MULTILINE,
+        )
+        if match is None:
+            return "0+unknown"
+        return match.group(1)
+
+
+release = _detect_release()
+version = release
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

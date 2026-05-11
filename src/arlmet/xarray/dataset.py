@@ -32,7 +32,6 @@ def _build_dataset_from_file(
     met: File,
     *,
     drop_variables=None,
-    squeeze: bool = True,
     bbox: tuple[float, float, float, float] | None = None,
     levels: list[int] | tuple[int, ...] | None = None,
 ) -> xr.Dataset:
@@ -153,13 +152,12 @@ def _build_dataset_from_file(
                 "the 'level' coordinate will contain raw ARL level indices only.",
                 stacklevel=2,
             )
-    return ds.squeeze() if squeeze else ds
+    return ds
 
 
 def open_dataset(
     filename_or_obj,
     drop_variables=None,
-    squeeze=True,
     bbox: tuple[float, float, float, float] | None = None,
     levels: list[int] | tuple[int, ...] | None = None,
 ) -> xr.Dataset:
@@ -184,8 +182,6 @@ def open_dataset(
         Path to the ARL file.
     drop_variables : iterable of str, optional
         Variable names to omit from the resulting dataset.
-    squeeze : bool, default True
-        Remove length-1 dimensions from the returned dataset.
     bbox : tuple[float, float, float, float], optional
         Geographic bounding box ``(west, south, east, north)`` in degrees.
     levels : list[int] or tuple[int, ...], optional
@@ -200,7 +196,6 @@ def open_dataset(
     with File(filename_or_obj) as met:
         return met.to_dataset(
             drop_variables=drop_variables,
-            squeeze=squeeze,
             bbox=bbox,
             levels=levels,
         )

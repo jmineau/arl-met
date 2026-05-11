@@ -8,6 +8,12 @@ Overview
 
 The ARL packed data format is a hierarchical binary structure designed for efficient storage and retrieval of meteorological data.
 
+Useful references
+-----------------
+
+- `HYSPLIT meteorology page <https://www.ready.noaa.gov/hysplitusersguide/S141.htm>`_ for the ARL meteorology format overview.
+- `GDAS1 packing notes <https://www.ready.noaa.gov/gdas1.php>`_ for a concrete example of ARL packing behavior.
+
 File Structure
 --------------
 

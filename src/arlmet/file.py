@@ -511,7 +511,6 @@ class File:
         self,
         *,
         drop_variables=None,
-        squeeze: bool = True,
         bbox: tuple[float, float, float, float] | None = None,
         levels: list[int] | tuple[int, ...] | None = None,
     ) -> xr.Dataset:
@@ -521,7 +520,6 @@ class File:
         return _build_dataset_from_file(
             self,
             drop_variables=drop_variables,
-            squeeze=squeeze,
             bbox=bbox,
             levels=levels,
         )
