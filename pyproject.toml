@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "arlmet"
 version = "2025.10.0"
-description = "Read and analyze ARL meteorological files."
+description = "Read and write ARL meteorological files."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -22,19 +22,19 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "numpy",
-    "pandas",
-    "pyproj",
-    "xarray",
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "pyproj>=3.5",
+    "xarray>=2023.6",
 ]
 
 [project.optional-dependencies]
-sources = ["fsspec>=2023.0", "s3fs>=2023.0"]
+sources = ["fsspec>=2024.2", "s3fs>=2024.2"]
 
 [dependency-groups]
 dev = [
     "arlmet[sources]",
-    "dask",
+    "dask>=2023.6",
     "docstr-coverage>=2.0.0",
     "pydata-sphinx-theme>=0.14.0",
     "pre-commit>=3.0.0",

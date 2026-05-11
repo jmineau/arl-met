@@ -248,19 +248,19 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fsspec", marker = "extra == 'sources'", specifier = ">=2023.0" },
-    { name = "numpy" },
-    { name = "pandas" },
-    { name = "pyproj" },
-    { name = "s3fs", marker = "extra == 'sources'", specifier = ">=2023.0" },
-    { name = "xarray" },
+    { name = "fsspec", marker = "extra == 'sources'", specifier = ">=2024.2" },
+    { name = "numpy", specifier = ">=1.24" },
+    { name = "pandas", specifier = ">=2.0" },
+    { name = "pyproj", specifier = ">=3.5" },
+    { name = "s3fs", marker = "extra == 'sources'", specifier = ">=2024.2" },
+    { name = "xarray", specifier = ">=2023.6" },
 ]
 provides-extras = ["sources"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "arlmet", extras = ["sources"] },
-    { name = "dask" },
+    { name = "dask", specifier = ">=2023.6" },
     { name = "docstr-coverage", specifier = ">=2.0.0" },
     { name = "pre-commit", specifier = ">=3.0.0" },
     { name = "pydata-sphinx-theme", specifier = ">=0.14.0" },
