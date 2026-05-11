@@ -97,6 +97,7 @@ class File:
         # Open the binary file handle
         bmode = self.mode + "b"
         self._manager = CachingFileManager(open, self.path, mode=bmode)
+        self._handle: BinaryIO | None = None
 
         # Must be consistent throughout the file
         self._source: str | None = source
@@ -115,7 +116,11 @@ class File:
 
     @property
     def handle(self) -> BinaryIO:
-        return cast(BinaryIO, self._manager.acquire())
+        if self._handle is None:
+            # Hot record read/write paths hit this repeatedly, so keep one
+            # acquired handle per File instead of reentering the manager.
+            self._handle = cast(BinaryIO, self._manager.acquire())
+        return self._handle
 
     @property
     def size(self) -> int:
@@ -457,6 +462,7 @@ class File:
             # Close the file manager — this releases the underlying file handle.
             # Any mmap objects created from it become invalid and are GC'd automatically.
             self._manager.close()
+            self._handle = None
 
     def sample_points(
         self,

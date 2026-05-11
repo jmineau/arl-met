@@ -590,9 +590,9 @@ class DataRecord:
         raw = self.bytes
         fh = self.recordset.file.handle
         if self.position == -1:
-            # New record; append to end of file
-            fh.seek(0, io.SEEK_END)
+            # New writable records are normally flushed sequentially, so append
+            # at the current offset and avoid an extra seek.
             self.position = fh.tell()
-        else:
+        elif fh.tell() != self.position:
             fh.seek(self.position)
         fh.write(raw)

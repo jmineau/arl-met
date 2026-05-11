@@ -141,3 +141,34 @@ class TestPack:
         )
 
         np.testing.assert_allclose(subset, unpacked[1:4, 2:5], atol=precision)
+
+    def test_roundtrip_uses_running_reconstructed_value(self):
+        unpacked = np.array(
+            [
+                [200.0, 208.25, 208.25, 208.25, 208.25, 208.25, 208.25, 208.25],
+                [
+                    231.7,
+                    232.0125,
+                    232.325,
+                    232.6375,
+                    232.95,
+                    233.2625,
+                    233.575,
+                    233.8875,
+                ],
+            ],
+            dtype=np.float32,
+        )
+
+        packed, precision, exponent, initial_value = pack(unpacked)
+        roundtripped = unpack(
+            packed.tobytes(),
+            nx=unpacked.shape[1],
+            ny=unpacked.shape[0],
+            precision=precision,
+            exponent=exponent,
+            initial_value=initial_value,
+            driver=np,
+        )
+
+        np.testing.assert_allclose(roundtripped, unpacked, atol=precision)

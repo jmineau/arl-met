@@ -204,6 +204,20 @@ class RecordSet:
             level: OrderedDict() for level in range(len(heights))
         }
 
+        def record_forecast(record: DataRecord) -> int:
+            # Writable records may still hold raw header fields in a dict.
+            # Read forecast directly from that state so index assembly does not
+            # materialize a full Header object for every record.
+            header_state = record._header
+            if isinstance(header_state, dict):
+                forecast = header_state.get("forecast")
+                if forecast is None:
+                    raise ValueError(
+                        f"Writable DataRecord '{record.variable}' at level {record.level} is missing a forecast hour."
+                    )
+                return int(forecast)
+            return record.forecast
+
         for dr in self.records:
             if len(dr.variable) > 4:
                 raise ValueError(
@@ -218,11 +232,11 @@ class RecordSet:
                     f"DataRecord level {dr.level} is outside the configured vertical axis."
                 )
 
-            forecast_hours.add(dr.forecast)
+            forecast_hours.add(record_forecast(dr))
             level_records[dr.level][dr.variable] = dr
             dr._pack()
             if dr.diff is not None:
-                forecast_hours.add(dr.diff.forecast)
+                forecast_hours.add(record_forecast(dr.diff))
                 level_records[dr.level][dr.diff.variable] = dr.diff
 
         # Derive the index record forecast hour from the data records, ensuring consistency
