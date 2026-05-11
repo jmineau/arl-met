@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from . import _accessor  # noqa: F401 — registers ds.arl accessor
-from .dataset import open_dataset, write_dataset
 from ._vertical import pressure, z_agl, z_msl
+from .dataset import open_dataset, write_dataset
 
 __all__ = [
     "open_dataset",

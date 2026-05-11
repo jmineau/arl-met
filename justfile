@@ -56,10 +56,10 @@ ruff:
 	uv run ruff check --fix src/arlmet
 	uv run ruff format src/arlmet
 
-# Run the full test suite, including network tests
+# Run the default test suite, excluding slow tests
 test:
-	@echo "Running all tests, including network tests..."
-	uv run pytest -v
+	@echo "Running default tests (excluding slow tests)..."
+	uv run pytest -v -m "not slow"
 
 # Run tests without live network access
 test-no-network:

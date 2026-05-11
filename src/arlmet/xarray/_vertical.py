@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Hashable
+from typing import Any
+
 import numpy as np
 import xarray as xr
 
-R_D = 287.05   # dry air gas constant [J/(kg·K)]
-G = 9.80665    # standard gravity [m/s²]
+R_D = 287.05  # dry air gas constant [J/(kg·K)]
+G = 9.80665  # standard gravity [m/s²]
 
 
 def _hypsometric_z_agl(
@@ -14,7 +17,8 @@ def _hypsometric_z_agl(
     p_surface: xr.DataArray,
     temp: xr.DataArray,
 ) -> xr.DataArray:
-    """Height AGL (m) at each level via the hypsometric equation.
+    """
+    Height AGL (m) at each level via the hypsometric equation.
 
     ``p_levels`` must be ordered from high to low pressure (surface to top).
     For flag=2, ``p_levels`` is 1D ``(level,)`` and is broadcast to match
@@ -74,12 +78,17 @@ def _hypsometric_z_agl(
         z_vals.astype(np.float32),
         dims=temp.dims,
         coords=temp.coords,
-        attrs={"units": "m", "long_name": "height above ground level", "standard_name": "height"},
+        attrs={
+            "units": "m",
+            "long_name": "height above ground level",
+            "standard_name": "height",
+        },
     )
 
 
 def pressure(ds: xr.Dataset) -> xr.DataArray:
-    """Pressure (hPa) at each level.
+    """
+    Pressure (hPa) at each level.
 
     Parameters
     ----------
@@ -126,8 +135,10 @@ def pressure(ds: xr.Dataset) -> xr.DataArray:
         level_target = len(orig_shape) - n_spatial
         p_arr = np.moveaxis(p_arr, -1, level_target)
 
-        result_dims = list(prss.dims[:level_target]) + ["level"] + list(prss.dims[level_target:])
-        coords: dict[str, xr.Variable] = {
+        result_dims = (
+            list(prss.dims[:level_target]) + ["level"] + list(prss.dims[level_target:])
+        )
+        coords: dict[Hashable, Any] = {
             d: ds.coords[d] for d in result_dims if d in ds.coords
         }
         # Include 2D aux coords (lat/lon for projected grids)
@@ -139,7 +150,11 @@ def pressure(ds: xr.Dataset) -> xr.DataArray:
             p_arr.astype(np.float32),
             dims=result_dims,
             coords=coords,
-            attrs={"units": "hPa", "long_name": "air pressure", "standard_name": "air_pressure"},
+            attrs={
+                "units": "hPa",
+                "long_name": "air pressure",
+                "standard_name": "air_pressure",
+            },
         )
 
     if vaxis.flag == 3:
@@ -156,7 +171,8 @@ def pressure(ds: xr.Dataset) -> xr.DataArray:
 
 
 def z_agl(ds: xr.Dataset) -> xr.DataArray:
-    """Height above ground level (m) at each level.
+    """
+    Height above ground level (m) at each level.
 
     Parameters
     ----------
@@ -188,7 +204,9 @@ def z_agl(ds: xr.Dataset) -> xr.DataArray:
 
     if vaxis.flag == 3:
         if "height" not in ds.coords:
-            raise ValueError("Dataset has no 'height' coordinate and no 'HGTS' variable.")
+            raise ValueError(
+                "Dataset has no 'height' coordinate and no 'HGTS' variable."
+            )
         return ds.coords["height"]
 
     if vaxis.flag not in (1, 2, 4):
@@ -198,7 +216,9 @@ def z_agl(ds: xr.Dataset) -> xr.DataArray:
 
     for name in ("PRSS", "TEMP"):
         if name not in ds:
-            raise ValueError(f"z_agl() requires '{name}' in dataset (or 'HGTS' as an alternative).")
+            raise ValueError(
+                f"z_agl() requires '{name}' in dataset (or 'HGTS' as an alternative)."
+            )
 
     p_levels = pressure(ds)
 
@@ -213,7 +233,8 @@ def z_agl(ds: xr.Dataset) -> xr.DataArray:
 
 
 def z_msl(ds: xr.Dataset) -> xr.DataArray:
-    """Height above mean sea level (m) at each level.
+    """
+    Height above mean sea level (m) at each level.
 
     Requires ``SHGT`` (surface terrain height in meters) in the dataset.
 
@@ -228,7 +249,9 @@ def z_msl(ds: xr.Dataset) -> xr.DataArray:
         ``z_agl(ds) + ds["SHGT"]``.
     """
     if "SHGT" not in ds:
-        raise ValueError("z_msl() requires 'SHGT' (terrain height in meters) in dataset.")
+        raise ValueError(
+            "z_msl() requires 'SHGT' (terrain height in meters) in dataset."
+        )
     result = z_agl(ds) + ds["SHGT"]
     result.attrs = {"units": "m", "long_name": "height above mean sea level"}
     return result

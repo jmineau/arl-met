@@ -7,7 +7,8 @@ from ._coords import grid_from_coord, vaxis_from_coord
 
 @xr.register_dataset_accessor("arl")
 class ARLDatasetAccessor:
-    """xarray accessor exposing ARL-specific metadata on a Dataset.
+    """
+    xarray accessor exposing ARL-specific metadata on a Dataset.
 
     Access via ``ds.arl``.
 

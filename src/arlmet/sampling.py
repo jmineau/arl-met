@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
 
+from arlmet._time import ensure_timestamp
 from arlmet.grid import Grid, GridWindow
 
 if TYPE_CHECKING:
@@ -491,7 +492,7 @@ def sample_points_from_file(
     variable_names = _normalize_variables(variables)
     require_time = time is None and len(file.times) != 1
     default_time = (
-        pd.Timestamp(time)
+        ensure_timestamp(time)
         if time is not None
         else (file.times[0] if len(file.times) == 1 else None)
     )
@@ -519,7 +520,7 @@ def sample_points_from_file(
         result[variable] = np.nan
 
     for sample_time, index in result.groupby("time").groups.items():
-        recordset = file[pd.Timestamp(sample_time)]
+        recordset = file[ensure_timestamp(sample_time)]
         subset = result.loc[index]
         plan = _build_horizontal_plan(
             recordset.grid,
@@ -562,8 +563,9 @@ def sample_points_from_file(
 
 def _normalize_sources(source: File | Sequence[File]) -> tuple[File, ...]:
     """Normalize one File or a sequence of Files to a tuple."""
-    # File is a Mapping; a plain sequence of Files is not — use that to distinguish.
-    if isinstance(source, Mapping):
+    from arlmet.file import File
+
+    if isinstance(source, File):
         return (source,)  # single File
     return tuple(source)
 
@@ -631,7 +633,7 @@ def sample_points(
     normalized = _normalize_points(
         points,
         require_time=True,
-        default_time=pd.Timestamp(time) if time is not None else None,
+        default_time=ensure_timestamp(time) if time is not None else None,
     )
     time_map: dict[pd.Timestamp, File] = {}
     for file in files:
@@ -640,22 +642,22 @@ def sample_points(
                 raise ValueError(
                     f"Multiple sources contain meteorology for time {sample_time}."
                 )
-            time_map[sample_time] = file
+            time_map[ensure_timestamp(sample_time)] = file
 
     missing_times = sorted(set(normalized["time"]) - set(time_map))
     if missing_times:
         raise ValueError(
             "No source contains the requested point times: "
-            + ", ".join(str(pd.Timestamp(t)) for t in missing_times)
+            + ", ".join(str(ensure_timestamp(t)) for t in missing_times)
         )
 
     pieces: list[pd.DataFrame] = []
     for sample_time, index in normalized.groupby("time").groups.items():
         piece = sample_points_from_file(
-            time_map[pd.Timestamp(sample_time)],
+            time_map[ensure_timestamp(sample_time)],
             normalized.loc[index],
             variables,
-            time=pd.Timestamp(sample_time),
+            time=ensure_timestamp(sample_time),
             z_kind=z_kind,
             method=method,
         )

@@ -86,8 +86,8 @@ exclude = ["**/__pycache__", "**/.venv"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-    "network: requires live network access to NOAA S3 (exclude with -m 'not network')",
-    "slow: downloads a full ARL file; combine with network (exclude with -m 'not slow')",
+    "network: requires live network access to external services such as NOAA S3",
+    "slow: expensive runtime, bandwidth, or disk usage; excluded from default test runs",
 ]
 
 [tool.ruff]

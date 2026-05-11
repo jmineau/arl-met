@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import io
 from collections import OrderedDict
-from collections.abc import Iterable, Iterator, Mapping
-from typing import TYPE_CHECKING, Literal, Protocol
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
-import numpy.typing as npt
 import pandas as pd
 
 from arlmet.collection import VariableAccessor
@@ -216,7 +215,9 @@ class RecordSet:
             dr._pack()
 
         # Derive the index record forecast hour from the data records, ensuring consistency
-        forecast = _derive_index_forecast(record_forecasts=forecast_hours, explicit_forecast=self.forecast)
+        forecast = _derive_index_forecast(
+            record_forecasts=forecast_hours, explicit_forecast=self.forecast
+        )
 
         grid_x, nx = split_grid_component(self.grid.nx)
         grid_y, ny = split_grid_component(self.grid.ny)

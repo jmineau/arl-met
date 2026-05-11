@@ -1,18 +1,20 @@
 """Binary codec for the fixed 50-byte ARL record header."""
 
 import string
+from collections.abc import Callable
 from dataclasses import dataclass
 from math import floor, log10
 from typing import Any, ClassVar
 
 import pandas as pd
 
+from arlmet._time import ensure_timestamp
 from arlmet.grid import Grid
-
 
 # ---------------------------------------------------------------------------
 # Helper functions
 # ---------------------------------------------------------------------------
+
 
 def restore_year(yr: str | int):
     """
@@ -98,6 +100,7 @@ def record_length_from_grid(grid: Grid) -> int:
 # Header
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Header:
     """
@@ -151,7 +154,7 @@ class Header:
 
     N_BYTES: ClassVar[int] = 50
 
-    FIELDS: ClassVar[dict[str, tuple[int, int, callable]]] = {
+    FIELDS: ClassVar[dict[str, tuple[int, int, Callable[[str], Any]]]] = {
         "year": (0, 2, restore_year),
         "month": (2, 4, int),
         "day": (4, 6, int),
@@ -193,8 +196,8 @@ class Header:
     @property
     def time(self) -> pd.Timestamp:
         """Timestamp reconstructed from the header date fields."""
-        return pd.Timestamp(
-            year=self.year, month=self.month, day=self.day, hour=self.hour
+        return ensure_timestamp(
+            pd.Timestamp(year=self.year, month=self.month, day=self.day, hour=self.hour)
         )
 
     def tobytes(self) -> bytes:

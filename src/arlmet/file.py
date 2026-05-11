@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-import io
 from collections import OrderedDict
 from collections.abc import Iterable, Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, BinaryIO, Literal, cast
 
 import numpy as np
 import pandas as pd
 from xarray.backends import CachingFileManager
 
+from arlmet._time import ensure_timestamp
 from arlmet.grid import Grid, Projection
 from arlmet.header import record_length_from_grid
 from arlmet.index import IndexRecord
-from arlmet.record import require_mode
-from arlmet.record import DataRecord
+from arlmet.record import DataRecord, require_mode
 from arlmet.recordset import RecordSet, VariableAccessor
 from arlmet.sampling import sample_points_from_file
 from arlmet.vertical import VerticalAxis
@@ -114,8 +113,8 @@ class File:
             self._scan()
 
     @property
-    def handle(self) -> io.IOBase:
-        return self._manager.acquire()
+    def handle(self) -> BinaryIO:
+        return cast(BinaryIO, self._manager.acquire())
 
     @property
     def size(self) -> int:
@@ -166,7 +165,11 @@ class File:
     @property
     def records(self) -> list[DataRecord]:
         """List of all DataRecords in the file across all RecordSets."""
-        return [record for recordset in self._recordsets.values() for record in recordset.records]
+        return [
+            record
+            for recordset in self._recordsets.values()
+            for record in recordset.records
+        ]
 
     @property
     def record_length(self) -> int:
@@ -308,7 +311,7 @@ class File:
         data=None,
     ) -> DataRecord:
         """Add one writable DataRecord, creating its RecordSet if needed."""
-        time = pd.Timestamp(time)
+        time = ensure_timestamp(time)
 
         if time in self._recordsets:
             recordset = self._recordsets[time]
@@ -491,7 +494,7 @@ class File:
         squeeze: bool = True,
         bbox: tuple[float, float, float, float] | None = None,
         levels: list[int] | tuple[int, ...] | None = None,
-    ) -> "xr.Dataset":
+    ) -> xr.Dataset:
         """Project this file into the simplified analysis Dataset representation."""
         from arlmet.xarray.dataset import _build_dataset_from_file
 
@@ -503,10 +506,10 @@ class File:
             levels=levels,
         )
 
-    def __getitem__(self, key) -> RecordSet:
+    def __getitem__(self, key: str | int | pd.Timestamp) -> RecordSet:
         if isinstance(key, str):
             # Allow lookup by string/int time representation
-            key = pd.Timestamp(key)
+            key = ensure_timestamp(key)
         elif isinstance(key, int):
             # Allow lookup by positional index
             key = list(self._recordsets.keys())[key]

@@ -35,8 +35,8 @@ _PHYS_COORD: dict[int, tuple[str, str, str]] = {
 _CF_SPATIAL: dict[str, dict[str, str]] = {
     "lon": {"standard_name": "longitude", "units": "degrees_east", "axis": "X"},
     "lat": {"standard_name": "latitude", "units": "degrees_north", "axis": "Y"},
-    "x":   {"standard_name": "projection_x_coordinate", "units": "m", "axis": "X"},
-    "y":   {"standard_name": "projection_y_coordinate", "units": "m", "axis": "Y"},
+    "x": {"standard_name": "projection_x_coordinate", "units": "m", "axis": "X"},
+    "y": {"standard_name": "projection_y_coordinate", "units": "m", "axis": "Y"},
 }
 # 2D auxiliary coords don't get 'axis' per CF conventions
 _CF_SPATIAL_AUX: dict[str, dict[str, str]] = {
@@ -74,7 +74,9 @@ def grid_from_coord(coord: xr.DataArray | xr.Variable) -> Grid:
     """Reconstruct a Grid from an ``arl_grid`` coordinate."""
     attrs = coord.attrs
     try:
-        projection = Projection(**{name: float(attrs[name]) for name in PROJECTION_ATTRS})
+        projection = Projection(
+            **{name: float(attrs[name]) for name in PROJECTION_ATTRS}
+        )
         nx = int(attrs["nx"])
         ny = int(attrs["ny"])
     except (KeyError, TypeError, ValueError) as exc:
@@ -170,7 +172,9 @@ def _extract_dataset_vertical_axis(
     )
 
 
-def _extract_dataset_forecast_hours(ds: xr.Dataset, times: pd.DatetimeIndex) -> list[int]:
+def _extract_dataset_forecast_hours(
+    ds: xr.Dataset, times: pd.DatetimeIndex
+) -> list[int]:
     """Return one index-record forecast hour per dataset time step."""
     if "forecast_hour" not in ds.data_vars:
         return [0] * len(times)

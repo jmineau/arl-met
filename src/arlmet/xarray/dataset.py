@@ -9,6 +9,7 @@ import pandas as pd
 import xarray as xr
 from xarray.core import indexing
 
+from arlmet._time import ensure_timestamp
 from arlmet.subset import normalize_levels, resolve_window, select_records
 from arlmet.vertical import VerticalAxis
 
@@ -20,9 +21,7 @@ from ._coords import (
     grid_from_coord,
     grid_to_coord,
     physical_coord_for_vaxis,
-    vaxis_from_coord,
 )
-
 
 if TYPE_CHECKING:
     from arlmet.file import File
@@ -62,7 +61,7 @@ def _build_dataset_from_file(
         for record in selected_records:
             present_levels.setdefault(record.level, None)
         selected_recordsets.append(
-            (pd.Timestamp(time), recordset.forecast, selected_records)
+            (ensure_timestamp(time), recordset.forecast, selected_records)
         )
 
     selected_levels = (
@@ -81,16 +80,22 @@ def _build_dataset_from_file(
     index_forecasts: list[int] = []
     records_by_variable: dict[str, dict[tuple[int, int], Any]] = defaultdict(dict)
 
-    for time_pos, (time, _index_forecast, selected_records) in enumerate(selected_recordsets):
+    for time_pos, (time, _index_forecast, selected_records) in enumerate(
+        selected_recordsets
+    ):
         times.append(time)
-        index_forecasts.append(int(_index_forecast))
+        index_forecasts.append(0 if _index_forecast is None else int(_index_forecast))
         for record in selected_records:
             records_by_variable[record.variable][
                 (time_pos, level_pos[record.level])
             ] = record
 
     if times:
-        ds = ds.assign_coords(time=xr.Variable("time", times, attrs={"standard_name": "time", "axis": "T"}))
+        ds = ds.assign_coords(
+            time=xr.Variable(
+                "time", times, attrs={"standard_name": "time", "axis": "T"}
+            )
+        )
         ds["forecast_hour"] = xr.Variable(
             "time",
             [int(value) for value in index_forecasts],
@@ -118,7 +123,8 @@ def _build_dataset_from_file(
     sfc_pos = level_pos.get(0)
     if sfc_pos is not None:
         sfc_only_vars = {
-            name for name, recs in records_by_variable.items()
+            name
+            for name, recs in records_by_variable.items()
             if all(z == sfc_pos for (_, z) in recs)
         }
         for name in sfc_only_vars:
@@ -137,7 +143,9 @@ def _build_dataset_from_file(
         # Add physical non-dim coord for upper-air levels
         upper_level_ints = [int(v) for v in ds.coords["level"].values.tolist()]
         try:
-            phys_name, phys_var = physical_coord_for_vaxis(met.vertical_axis, upper_level_ints)
+            phys_name, phys_var = physical_coord_for_vaxis(
+                met.vertical_axis, upper_level_ints
+            )
             ds = ds.assign_coords({phys_name: phys_var})
         except NotImplementedError:
             warnings.warn(
@@ -166,9 +174,9 @@ def open_dataset(
     ARL metadata is accessible via the ``.arl`` accessor::
 
         ds = arlmet.open_dataset("met.arl")
-        ds.arl.grid          # Grid object (survives isel/sel)
-        ds.arl.vertical_axis # VerticalAxis
-        ds.isel(level=0)     # selects level 0 for upper vars; sfc vars unchanged
+        ds.arl.grid  # Grid object (survives isel/sel)
+        ds.arl.vertical_axis  # VerticalAxis
+        ds.isel(level=0)  # selects level 0 for upper vars; sfc vars unchanged
 
     Parameters
     ----------
@@ -204,7 +212,8 @@ def write_dataset(
     *,
     vertical_axis: VerticalAxis | None = None,
 ) -> None:
-    """Write a simple flat Dataset representation to an ARL file.
+    """
+    Write a simple flat Dataset representation to an ARL file.
 
     This writer supports the common-case Dataset contract returned by
     ``open_dataset()``:
@@ -262,7 +271,9 @@ def write_dataset(
                         f"Variable names must be 4 characters or fewer, got '{var_name}'."
                     )
                 if var_name.startswith("DIF"):
-                    raise NotImplementedError("Writing DIF* variables is not implemented.")
+                    raise NotImplementedError(
+                        "Writing DIF* variables is not implemented."
+                    )
 
                 da = ds[var_name]
                 for dim, size in zip(h_dims, (grid.ny, grid.nx), strict=True):

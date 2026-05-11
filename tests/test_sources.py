@@ -529,7 +529,9 @@ class TestFetchHelpers:
 
     def test_dest_path_adds_crop_tag(self, tmp_path):
         plain = self.src._dest_path(tmp_path, "file.arl", None)
-        cropped = self.src._dest_path(tmp_path, "file.arl", (-111.5, 40.5, -110.0, 41.0))
+        cropped = self.src._dest_path(
+            tmp_path, "file.arl", (-111.5, 40.5, -110.0, 41.0)
+        )
 
         assert plain == tmp_path / "file.arl"
         assert cropped == tmp_path / "file.arl.crop_-111.50_40.50_-110.00_41.00"
@@ -545,7 +547,9 @@ class TestFetchHelpers:
                 assert opts == {"anon": True}
                 return io.BytesIO(self.data)
 
-        monkeypatch.setitem(sys.modules, "fsspec", types.SimpleNamespace(open=FakeOpen(b"arl-bytes")))
+        monkeypatch.setitem(
+            sys.modules, "fsspec", types.SimpleNamespace(open=FakeOpen(b"arl-bytes"))
+        )
 
         dest = tmp_path / "download.arl"
         self.src._download("s3://bucket/test", dest, {"anon": True})
@@ -592,7 +596,9 @@ class TestFetchHelpers:
         )
 
         dest = tmp_path / "cropped.arl"
-        self.src._fetch_and_crop("s3://bucket/test", dest, (-112.0, 40.0, -111.0, 41.0), {})
+        self.src._fetch_and_crop(
+            "s3://bucket/test", dest, (-112.0, 40.0, -111.0, 41.0), {}
+        )
 
         assert downloaded[0][0] == "s3://bucket/test"
         assert dest.read_bytes() == b"raw-cropped"
@@ -601,8 +607,14 @@ class TestFetchHelpers:
     def test_fetch_uses_cache_and_dispatches_crop_download_and_overwrite(
         self, tmp_path, monkeypatch
     ):
-        monkeypatch.setitem(sys.modules, "fsspec", types.SimpleNamespace(open=lambda *a, **k: None))
-        monkeypatch.setattr(self.src, "keys_for_range", lambda start, end: ["hrrr/2024/07/a", "hrrr/2024/07/b"])
+        monkeypatch.setitem(
+            sys.modules, "fsspec", types.SimpleNamespace(open=lambda *a, **k: None)
+        )
+        monkeypatch.setattr(
+            self.src,
+            "keys_for_range",
+            lambda start, end: ["hrrr/2024/07/a", "hrrr/2024/07/b"],
+        )
 
         downloads = []
         crops = []
@@ -624,7 +636,11 @@ class TestFetchHelpers:
         results = self.src.fetch("2024-07-18", "2024-07-19", local_dir=tmp_path)
         assert results == [cached, tmp_path / "b"]
         assert downloads == [
-            ("s3://noaa-oar-arl-hysplit-pds/hrrr/2024/07/b", tmp_path / "b", {"anon": True})
+            (
+                "s3://noaa-oar-arl-hysplit-pds/hrrr/2024/07/b",
+                tmp_path / "b",
+                {"anon": True},
+            )
         ]
 
         downloads.clear()
@@ -766,21 +782,23 @@ def test_gdas_header_is_valid_arl(tmp_path):
 #                  hundreds of grid cells, easily fitting any index record.
 #   _WEST_NA_BBOX: coarse-resolution products (≥32 km or global) — the SLV
 #                  domain yields too few cells for their larger index records.
+#   None         : skip cropping for very coarse products whose monthly index
+#                  records still overflow on a regional crop.
 # ---------------------------------------------------------------------------
 
 _SLV_BBOX = (-114.0, 39.5, -110.5, 42.0)
 _WEST_NA_BBOX = (-140.0, 20.0, -85.0, 60.0)
 
 _SOURCE_OPEN_CASES = [
-    pytest.param(HRRRSource(),     _HRRR_TEST_TIME,   _SLV_BBOX,     id="hrrr"),
-    pytest.param(HRRRv1Source(),   "2017-06-01 06:00", _SLV_BBOX,    id="hrrr-v1"),
-    pytest.param(NAMSource(),      _GDAS_TEST_TIME,   _WEST_NA_BBOX, id="nam"),
-    pytest.param(NAMSSource(),     _GDAS_TEST_TIME,   _WEST_NA_BBOX, id="nams"),
-    pytest.param(GDASSource(),     _GDAS_TEST_TIME,   _WEST_NA_BBOX, id="gdas1"),
-    pytest.param(GDAS0p5Source(),  "2018-07-01",      _WEST_NA_BBOX, id="gdas0p5"),
-    pytest.param(GFSSource(),      _GDAS_TEST_TIME,   _WEST_NA_BBOX, id="gfs"),
-    pytest.param(NARRSource(),     "2018-07-01",      _WEST_NA_BBOX, id="narr"),
-    pytest.param(ReanalysisSource(), _GDAS_TEST_TIME, _WEST_NA_BBOX, id="reanalysis"),
+    pytest.param(HRRRSource(), _HRRR_TEST_TIME, _SLV_BBOX, id="hrrr"),
+    pytest.param(HRRRv1Source(), "2017-06-01 06:00", _SLV_BBOX, id="hrrr-v1"),
+    pytest.param(NAMSource(), _GDAS_TEST_TIME, _WEST_NA_BBOX, id="nam"),
+    pytest.param(NAMSSource(), _GDAS_TEST_TIME, _WEST_NA_BBOX, id="nams"),
+    pytest.param(GDASSource(), _GDAS_TEST_TIME, _WEST_NA_BBOX, id="gdas1"),
+    pytest.param(GDAS0p5Source(), "2018-07-01", _WEST_NA_BBOX, id="gdas0p5"),
+    pytest.param(GFSSource(), _GDAS_TEST_TIME, _WEST_NA_BBOX, id="gfs"),
+    pytest.param(NARRSource(), "2018-07-01", _WEST_NA_BBOX, id="narr"),
+    pytest.param(ReanalysisSource(), _GDAS_TEST_TIME, None, id="reanalysis"),
 ]
 
 

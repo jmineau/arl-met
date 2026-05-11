@@ -146,13 +146,11 @@ def unpack(
 
     # Convert packed bytes to array using the specified driver
     if getattr(driver, "__name__", "") == "dask.array":
-        import dask
         import dask.array as da
+        from dask.delayed import delayed
 
         # Delay conversion from buffer to array
-        packed_arr = da.from_delayed(
-            dask.delayed(np.frombuffer)(packed, dtype=np.uint8)
-        )
+        packed_arr = da.from_delayed(delayed(np.frombuffer)(packed, dtype=np.uint8))
     else:
         # Eager conversion from buffer to array
         packed_arr = np.frombuffer(packed, dtype=np.uint8)

@@ -40,6 +40,8 @@ from typing import BinaryIO, ClassVar, cast
 
 import pandas as pd
 
+from arlmet._time import ensure_timestamp
+
 logger = logging.getLogger(__name__)
 
 _MONTH_CODES: tuple[str, ...] = (
@@ -125,8 +127,8 @@ class MeteorologySource(ABC):
         list[str]
             Unique archive keys in chronological order.
         """
-        t0 = pd.Timestamp(start).floor("h")
-        t1 = pd.Timestamp(end).floor("h")
+        t0 = ensure_timestamp(start, floor="h")
+        t1 = ensure_timestamp(end, floor="h")
         if t0 > t1:
             t0, t1 = t1, t0
 
@@ -138,7 +140,7 @@ class MeteorologySource(ABC):
             if key not in seen:
                 seen.add(key)
                 keys.append(key)
-            t += pd.Timedelta(hours=1)
+            t = ensure_timestamp(t + pd.Timedelta(hours=1))
         return keys
 
     def fetch(
@@ -316,7 +318,7 @@ class HRRRSource(MeteorologySource):
 
     name = "hrrr"
     description = "HRRR 3 km analysis"
-    start_date = pd.Timestamp("2019-06-12")
+    start_date = ensure_timestamp("2019-06-12")
 
     _HOURS_PER_FILE: ClassVar[int] = 6
 
@@ -342,7 +344,7 @@ class NAMSource(MeteorologySource):
 
     name = "nam12"
     description = "NAM 12 km analysis"
-    start_date = pd.Timestamp("2007-05-01")
+    start_date = ensure_timestamp("2007-05-01")
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the daily NAM archive filename for *time*."""
@@ -366,7 +368,7 @@ class GDASSource(MeteorologySource):
 
     name = "gdas1"
     description = "GDAS 1-degree global analysis"
-    start_date = pd.Timestamp("2004-12-01")
+    start_date = ensure_timestamp("2004-12-01")
 
     def _week(self, time: pd.Timestamp) -> int:
         """Return the 1-based archive week within the month for *time*."""
@@ -395,7 +397,7 @@ class GFSSource(MeteorologySource):
 
     name = "gfs0p25"
     description = "GFS 0.25-degree global analysis"
-    start_date = pd.Timestamp("2019-06-01")
+    start_date = ensure_timestamp("2019-06-01")
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the daily GFS archive filename for *time*."""
@@ -423,7 +425,7 @@ class NAMSSource(MeteorologySource):
 
     name = "nams"
     description = "NAMS hybrid sigma-pressure analysis"
-    start_date = pd.Timestamp("2010-01-01")
+    start_date = ensure_timestamp("2010-01-01")
 
     _DOMAIN_SUFFIXES: ClassVar[dict[str, str]] = {
         "conus": "",
@@ -464,7 +466,7 @@ class ReanalysisSource(MeteorologySource):
 
     name = "reanalysis"
     description = "NCEP/NCAR Reanalysis 2.5-degree global"
-    start_date = pd.Timestamp("1948-01-01")
+    start_date = ensure_timestamp("1948-01-01")
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the monthly reanalysis archive filename for *time*."""
@@ -487,7 +489,7 @@ class HRRRv1Source(MeteorologySource):
 
     name = "hrrr.v1"
     description = "HRRR 3 km analysis v1"
-    start_date = pd.Timestamp("2015-06-01")
+    start_date = ensure_timestamp("2015-06-01")
 
     _HOURS_PER_FILE: ClassVar[int] = 6
 
@@ -513,7 +515,7 @@ class GDAS0p5Source(MeteorologySource):
 
     name = "gdas0p5"
     description = "GDAS 0.5-degree global analysis"
-    start_date = pd.Timestamp("2007-09-01")
+    start_date = ensure_timestamp("2007-09-01")
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the daily GDAS 0.5-degree archive filename for *time*."""
@@ -537,7 +539,7 @@ class NARRSource(MeteorologySource):
 
     name = "narr"
     description = "NCEP North American Regional Reanalysis 32 km"
-    start_date = pd.Timestamp("1979-01-01")
+    start_date = ensure_timestamp("1979-01-01")
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the monthly NARR archive filename for *time*."""

@@ -16,7 +16,7 @@ class ArlVariableArray(BackendArray):
     def __init__(
         self,
         *,
-        records: dict[tuple[int, int], "DataRecord"],
+        records: dict[tuple[int, int], DataRecord],
         shape: tuple[int, int, int, int],
         window=None,
     ):

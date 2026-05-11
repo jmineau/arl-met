@@ -17,6 +17,7 @@ from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
     import xarray as xr
+
     from arlmet.recordset import RecordSet
 
 
@@ -125,7 +126,7 @@ class DataRecord:
         self._header: Header | dict[str, Any] | None = None  # Record header
         self._bytes: bytes | None = None  # The packed record bytes
         self._packed: npt.NDArray[np.uint8] | None = None  # Packed payload
-        self._unpacked: npt.ArrayLike | None = None  # The unpacked data
+        self._unpacked: npt.NDArray[Any] | None = None  # The unpacked data
         self._diff: DataRecord | None = None  # The difference DataRecord if applicable
         self._checksum = checksum  # The stored checksum if applicable
         self._reserved = reserved  # Reserved field if applicable
@@ -179,13 +180,14 @@ class DataRecord:
         """
         if self._bytes is None:
             if self.mode == "r":
-                fh = self.recordset.file._manager.acquire()
+                fh = self.recordset.file.handle
                 fh.seek(self.position)
                 self._bytes = fh.read(self.n_bytes)
             else:
                 # Pack data to get bytes
                 packed = self._pack()
                 self._bytes = self.header.tobytes() + packed.tobytes()
+        assert self._bytes is not None
         return self._bytes
 
     @property
@@ -199,7 +201,7 @@ class DataRecord:
     def header(self) -> Header:
         if not isinstance(self._header, Header):
             if self.mode == "r":
-                fh = self.recordset.file._manager.acquire()
+                fh = self.recordset.file.handle
                 fh.seek(self.position)
                 header = Header.from_bytes(fh.read(Header.N_BYTES))
 
@@ -324,7 +326,7 @@ class DataRecord:
             True if the checksum matches, False otherwise.
         """
         if self.mode == "r":
-            fh = self.recordset.file._manager.acquire()
+            fh = self.recordset.file.handle
             fh.seek(self.position + Header.N_BYTES)
             packed = fh.read(self.n_bytes - Header.N_BYTES)
         else:
@@ -334,10 +336,10 @@ class DataRecord:
         return calculated_checksum == self.checksum
 
     @property
-    def dtype(self) -> npt.DTypeLike:
+    def dtype(self) -> np.dtype[Any]:
         if self._unpacked is None:
             # Data not loaded yet; assume float32
-            return np.float32
+            return np.dtype(np.float32)
         return self._unpacked.dtype
 
     @property
@@ -347,7 +349,7 @@ class DataRecord:
         return (grid.ny, grid.nx)
 
     @property
-    def data(self) -> npt.ArrayLike:
+    def data(self) -> npt.NDArray[Any]:
         """
         Get the data for this record.
 
@@ -366,7 +368,7 @@ class DataRecord:
                 raise ValueError("No data to read.")
         return self._unpacked
 
-    def __array__(self, dtype=None, copy=None) -> npt.NDArray:
+    def __array__(self, dtype=None, copy=None) -> npt.NDArray[Any]:
         array = np.asarray(self.data)
         if dtype and np.dtype(dtype) != array.dtype:
             return array.astype(dtype)
@@ -374,7 +376,7 @@ class DataRecord:
             return array.copy()
         return array
 
-    def __getitem__(self, key) -> npt.NDArray:
+    def __getitem__(self, key) -> Any:
         return self.data[key]
 
     @require_mode("r")
@@ -421,15 +423,16 @@ class DataRecord:
             window=window,
             driver=np,
         )
+        unpacked_array = np.asarray(unpacked, dtype=np.float32)
 
         if self._diff is not None:
-            unpacked = unpacked + self._diff.read(window=window)
+            unpacked_array = unpacked_array + self._diff.read(window=window)
 
-        if window is None and isinstance(unpacked, np.ndarray):
-            self._unpacked = unpacked
-        return np.asarray(unpacked, dtype=np.float32)
+        if window is None:
+            self._unpacked = unpacked_array
+        return unpacked_array
 
-    def to_xarray(self, squeeze: bool = True) -> "xr.DataArray":
+    def to_xarray(self, squeeze: bool = True) -> xr.DataArray:
         """
         Convert this DataRecord to an xarray.DataArray.
 
@@ -496,7 +499,7 @@ class DataRecord:
         self._checksum = None
 
     @require_mode("r")
-    def _load_from_disk(self, driver=None) -> npt.ArrayLike:
+    def _load_from_disk(self, driver=None) -> Any:
         """
         Loads data from disk, returning a numpy array.
         """

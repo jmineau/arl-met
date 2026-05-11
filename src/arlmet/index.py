@@ -1,12 +1,13 @@
 """Binary codecs for ARL index records: VarInfo, LvlInfo, and IndexRecord."""
 
 from collections import OrderedDict
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Iterable
+from typing import Any, ClassVar
 
 import pandas as pd
 
+from arlmet._time import ensure_timestamp
 from arlmet.grid import Grid, Projection
 from arlmet.header import Header, format_fixed_width_float
 from arlmet.vertical import VerticalAxis
@@ -393,7 +394,7 @@ class IndexRecord:
     @property
     def time(self) -> pd.Timestamp:
         """Valid time calculated from header time plus minutes offset."""
-        return self.header.time + pd.Timedelta(minutes=self.minutes)
+        return ensure_timestamp(self.header.time + pd.Timedelta(minutes=self.minutes))
 
     @property
     def total_nx(self) -> int:
