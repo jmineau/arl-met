@@ -744,7 +744,7 @@ def test_gdas_header_is_valid_arl(tmp_path):
     """Download the first 50 bytes of a GDAS file and check the ARL header."""
     import s3fs
 
-    from arlmet.metadata import Header
+    from arlmet.header import Header
 
     src = GDASSource()
     key = src._s3_key(pd.Timestamp(_GDAS_TEST_TIME))
@@ -774,8 +774,8 @@ _WEST_NA_BBOX = (-140.0, 20.0, -85.0, 60.0)
 _SOURCE_OPEN_CASES = [
     pytest.param(HRRRSource(),     _HRRR_TEST_TIME,   _SLV_BBOX,     id="hrrr"),
     pytest.param(HRRRv1Source(),   "2017-06-01 06:00", _SLV_BBOX,    id="hrrr-v1"),
-    pytest.param(NAMSource(),      _GDAS_TEST_TIME,   _SLV_BBOX,     id="nam"),
-    pytest.param(NAMSSource(),     _GDAS_TEST_TIME,   _SLV_BBOX,     id="nams"),
+    pytest.param(NAMSource(),      _GDAS_TEST_TIME,   _WEST_NA_BBOX, id="nam"),
+    pytest.param(NAMSSource(),     _GDAS_TEST_TIME,   _WEST_NA_BBOX, id="nams"),
     pytest.param(GDASSource(),     _GDAS_TEST_TIME,   _WEST_NA_BBOX, id="gdas1"),
     pytest.param(GDAS0p5Source(),  "2018-07-01",      _WEST_NA_BBOX, id="gdas0p5"),
     pytest.param(GFSSource(),      _GDAS_TEST_TIME,   _WEST_NA_BBOX, id="gfs"),

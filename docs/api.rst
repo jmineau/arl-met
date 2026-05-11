@@ -3,8 +3,8 @@ API Reference
 
 Use this reference when you want the exact signature, parameters, return
 values, and class interfaces for arl-met. Most workflows start with
-``open_dataset()``, ``write_dataset()``, ``extract_subset()``, or
-``sample_points()``.
+``open_dataset()``, ``write_dataset()``,
+``extract_subset()``, or ``sample_points()``.
 
 .. currentmodule:: arlmet
 
@@ -48,7 +48,6 @@ Grid And Vertical Metadata
 
    Projection
    Grid
-   Grid3D
    VerticalAxis
 
 Binary Metadata And Packing

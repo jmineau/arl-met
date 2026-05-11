@@ -478,8 +478,9 @@ class Grid:
             dlat = proj.tangent_lat
             dlon = proj.tangent_lon
             lats = lat_0 + np.arange(self.ny) * dlat
-            lons = lon_0 + np.arange(self.nx) * dlon
-            lons = wrap_lons(lons)
+            # Normalize only the start to [-180, 180]; keep the sequence monotonic
+            lon_start = ((lon_0 + 180) % 360) - 180
+            lons = lon_start + np.arange(self.nx) * dlon
             return {"lon": lons, "lat": lats}
 
         # Calculate the coordinates in the projection space
@@ -637,10 +638,14 @@ class Grid:
         else:
             lats = np.asarray(lat_coord, dtype=float)
 
+        # Normalize to [-180, 180] for comparison with bbox (which is always in
+        # EPSG:4326 degrees). Grid lons may be in [0, 360] for global files.
+        lons_norm = wrap_lons(lons)
+
         if west <= east:
-            lon_mask = (lons >= west) & (lons <= east)
+            lon_mask = (lons_norm >= west) & (lons_norm <= east)
         else:
-            lon_mask = (lons >= west) | (lons <= east)
+            lon_mask = (lons_norm >= west) | (lons_norm <= east)
         lat_mask = (lats >= south) & (lats <= north)
 
         x_idx = np.flatnonzero(lon_mask)

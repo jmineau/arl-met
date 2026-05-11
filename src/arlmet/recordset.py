@@ -1,19 +1,20 @@
-"""RecordCollection, VariableView, VariableAccessor, and RecordSet for ARL files."""
+"""RecordCollection protocol, VariableView, VariableAccessor, and RecordSet."""
 
 from __future__ import annotations
 
 import io
-from abc import abstractmethod
 from collections import OrderedDict
-from collections.abc import Iterator, Mapping
-from typing import TYPE_CHECKING, Literal
+from collections.abc import Iterable, Iterator, Mapping
+from typing import TYPE_CHECKING, Literal, Protocol
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
+from arlmet.collection import VariableAccessor
 from arlmet.grid import Grid
-from arlmet.metadata import Header, IndexRecord, LvlInfo, VarInfo, split_grid_component
+from arlmet.header import Header, split_grid_component
+from arlmet.index import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
 from arlmet.record import DataRecord, require_mode
 from arlmet.vertical import VerticalAxis
 
@@ -21,175 +22,7 @@ if TYPE_CHECKING:
     from arlmet.file import File
 
 
-class RecordCollection(Mapping):
-    """
-    Shared mapping interface for collections of ARL data records.
-
-    Attributes
-    ----------
-    records : list[DataRecord]
-        Materialized list of records in insertion order.
-    record_size : int
-        Binary size in bytes of one ARL record for the collection grid.
-    variables : VariableAccessor
-        Lazy variable-wise accessor over the underlying records.
-    """
-
-    def __init__(self):
-        # Initialize datarecords as an ordered dict to preserve insertion order
-        # Mapping: (time, level, variable) -> DataRecord
-        self._datarecords: OrderedDict[tuple[pd.Timestamp, int, str], DataRecord] = (
-            OrderedDict()
-        )
-
-        # Variables accessor
-        self.variables = VariableAccessor(self)
-
-    @property
-    @abstractmethod
-    def source(self) -> str:
-        pass
-
-    @property
-    @abstractmethod
-    def grid(self) -> Grid:
-        pass
-
-    @property
-    def forecast_by_time(self) -> OrderedDict[pd.Timestamp, int]:
-        forecasts: OrderedDict[pd.Timestamp, set[int]] = OrderedDict()
-        for dr in self.records:
-            forecasts.setdefault(dr.time, set()).add(dr.forecast)
-
-        mapping: OrderedDict[pd.Timestamp, int] = OrderedDict()
-        for time, values in forecasts.items():
-            if len(values) != 1:
-                raise ValueError(
-                    f"RecordCollection contains multiple forecast hours for time {time}."
-                )
-            mapping[time] = next(iter(values))
-        return mapping
-
-    @property
-    def records(self) -> list[DataRecord]:
-        """Return a list of all DataRecords in the file."""
-        return list(self._datarecords.values())
-
-    @property
-    def record_size(self) -> int:
-        """
-        Get the size of each data record in bytes.
-        """
-        grid = self.grid
-        nxy = grid.nx * grid.ny
-        return Header.N_BYTES + nxy
-
-
-class VariableView:
-    """
-    Lazy multi-dimensional view of one ARL variable.
-
-    Parameters
-    ----------
-    source : RecordCollection
-        File-like or recordset-like collection that owns the variable.
-    name : str
-        Variable name to expose.
-
-    Attributes
-    ----------
-    data : numpy.ndarray
-        Materialized array for the selected variable.
-    dtype : numpy.dtype
-        NumPy dtype of the materialized data.
-    ndim : int
-        Number of dimensions in the view.
-    shape : tuple
-        Array shape in ``(time, level, y, x)`` or squeezed form.
-    """
-
-    def __init__(self, source: RecordCollection, name: str):
-        self.source = source
-        self.name = name
-
-        # File has a `times` attribute; RecordSet does not — use duck typing to
-        # avoid importing File here (file.py imports recordset.py).
-        self._is_file_view = hasattr(source, "times")
-
-    @property
-    def data(self) -> npt.NDArray:
-        """The array representing the full variable view, always as 4D."""
-        return self.to_xarray().data
-
-    @property
-    def dtype(self) -> npt.DTypeLike:
-        return self.data.dtype
-
-    @property
-    def ndim(self) -> int:
-        """Return the number of dimensions of the data cube."""
-        return self.data.ndim
-
-    @property
-    def shape(self) -> tuple:
-        """Return the shape of the data cube (time, level, y, x)"""
-        return self.data.shape
-
-    def to_xarray(self, squeeze=True):
-        """
-        Convert this variable view to an xarray object.
-
-        Parameters
-        ----------
-        squeeze : bool, default True
-            Remove length-1 dimensions from the result.
-
-        Returns
-        -------
-        xarray.DataArray
-            Lazy xarray view over the selected variable.
-        """
-        # Delayed import: xarray.py imports from recordset.py — cycle broken at runtime
-        from arlmet.xarray import variable_view_to_xarray
-
-        return variable_view_to_xarray(self, squeeze=squeeze)
-
-    def __array__(self, dtype=None, copy=None) -> np.ndarray:
-        """Compute the array and return a numpy array."""
-        return np.asarray(self.data, dtype=dtype, copy=copy)
-
-    def __getitem__(self, key) -> npt.ArrayLike:
-        """Slice the lazy array."""
-        return self.data[key]
-
-
-class VariableAccessor(Mapping):
-    """Dictionary-like accessor that returns VariableView objects by name."""
-
-    def __init__(self, source: RecordCollection):
-        self.source = source
-
-    @property
-    def _names(self) -> set[str]:
-        """Dynamically get available variable names from the source."""
-        if not hasattr(self.source, "records"):
-            raise TypeError("Source must have a 'records' attribute.")
-        return set(dr.variable for dr in self.source.records)
-
-    def __getitem__(self, name: str) -> VariableView:
-        return VariableView(source=self.source, name=name)
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self._names)
-
-    def __len__(self) -> int:
-        return len(self._names)
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({list(self.keys())})"
-
-
-class RecordSet(RecordCollection):
+class RecordSet:
     """
     Records for one valid time within an ARL file.
 
@@ -222,6 +55,12 @@ class RecordSet(RecordCollection):
 
     Methods
     -------
+    __getitem__(key)
+        Get a DataRecord by (level, variable) key.
+    __iter__()
+        Iterate over DataRecords in this record set.
+    __len__()
+        Get the number of records in this record set.
     create_datarecord(variable, level, forecast=-1, data=None)
         Create a writable data record for this time.
     """
@@ -237,38 +76,41 @@ class RecordSet(RecordCollection):
         self.file = file
         self.position = position
         self.time = time
-        #: Forecast hour from the index record header. Populated from the
-        #: parsed IndexRecord when reading; pass explicitly when writing a
-        #: copy or subset so the value is preserved rather than re-derived.
         self.forecast = forecast
-
-        self._sfc_terrain: DataRecord | None = None
-        self._sfc_pressure: DataRecord | None = None
-
-        # Initialize the base class
-        super().__init__()
+        self._datarecords: OrderedDict[tuple[pd.Timestamp, int, str], DataRecord] = (
+            OrderedDict()
+        )
+        self.variables = VariableAccessor(self)
 
     @property
     def mode(self) -> Literal["r", "w"]:
+        """Access mode of the record set, inferred from the position."""
         return "w" if self.position == -1 else "r"
 
     @property
     def source(self) -> str:
-        """
-        Get the source associated with this RecordSet.
-        """
+        """RecordSet file source"""
         return self.file.source
 
     @property
     def grid(self) -> Grid:
-        """
-        Get the grid associated with this RecordSet.
-        """
+        """RecordSet file grid"""
         return self.file.grid
 
     @property
     def vertical_axis(self) -> VerticalAxis:
+        """RecordSet file vertical axis"""
         return self.file.vertical_axis
+
+    @property
+    def record_length(self) -> int:
+        """Record length in bytes for this record set, derived from the file grid."""
+        return self.file.record_length
+
+    @property
+    def records(self) -> list[DataRecord]:
+        """List of DataRecords in this record set."""
+        return list(self._datarecords.values())
 
     def _create_datarecord(
         self,
@@ -291,14 +133,9 @@ class RecordSet(RecordCollection):
             checksum=checksum,
             reserved=reserved,
         )
-        self._datarecords[(self.time, level, variable)] = dr
-        self.file._datarecords[(self.time, level, variable)] = dr
 
-        # Store surface variables
-        if variable == "SHGT":
-            self._sfc_terrain = dr
-        elif variable == "PRSS":
-            self._sfc_pressure = dr
+        # Store the record in the record set's internal mapping
+        self._datarecords[(self.time, level, variable)] = dr
 
         return dr
 
@@ -307,7 +144,7 @@ class RecordSet(RecordCollection):
         self,
         variable: str,
         level: int,
-        forecast: int = -1,
+        forecast: int,
         data: np.ndarray | None = None,
     ) -> DataRecord:
         """
@@ -319,8 +156,9 @@ class RecordSet(RecordCollection):
             Four-character ARL variable name.
         level : int
             ARL level index for the record.
-        forecast : int, default -1
+        forecast : int
             Forecast hour to write into the record header.
+            Missing data should use a value of -1.
         data : numpy.ndarray, optional
             Initial ``(ny, nx)`` field values to assign.
 
@@ -329,8 +167,6 @@ class RecordSet(RecordCollection):
         DataRecord
             Writable data record for the requested variable and level.
         """
-        if not isinstance(forecast, int):
-            raise ValueError("Forecast must be an integer.")
         dr = self._create_datarecord(
             position=-1, variable=variable, level=level, forecast=forecast
         )
@@ -379,18 +215,8 @@ class RecordSet(RecordCollection):
             level_records[dr.level][dr.variable] = dr
             dr._pack()
 
-        if self.forecast is not None:
-            # Propagated from source index record (e.g. during subset/copy).
-            # Per-record forecast hours may legitimately differ (e.g. GDAS).
-            forecast = self.forecast
-        elif len(forecast_hours) == 1:
-            forecast = next(iter(forecast_hours))
-        else:
-            raise ValueError(
-                "All DataRecords in a RecordSet must share the same forecast hour "
-                "when writing new data. Pass forecast= to create_recordset() when "
-                "copying from a source file that mixes forecast hours."
-            )
+        # Derive the index record forecast hour from the data records, ensuring consistency
+        forecast = _derive_index_forecast(record_forecasts=forecast_hours, explicit_forecast=self.forecast)
 
         grid_x, nx = split_grid_component(self.grid.nx)
         grid_y, ny = split_grid_component(self.grid.ny)
@@ -463,7 +289,7 @@ class RecordSet(RecordCollection):
         else:
             fh.seek(self.position)
 
-        fh.write(index.to_record_bytes(self.record_size))
+        fh.write(index.to_record_bytes(self.record_length))
 
         for level in index.levels:
             for name in level.variables:

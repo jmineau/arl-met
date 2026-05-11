@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from arlmet.grid import Grid, GridWindow, Projection, wrap_lons
-from arlmet.vertical import Grid3D, VerticalAxis
+from arlmet.vertical import VerticalAxis
 
 
 class TestWrapLons:
@@ -198,6 +198,34 @@ class TestGrid:
 
         assert window == GridWindow(x_start=3, x_stop=6, y_start=3, y_stop=6)
 
+    def test_window_from_bbox_latlon_0_360_grid(self):
+        """Global 0-360 grid (GDAS-style) with a negative-longitude bbox."""
+        proj = Projection(
+            pole_lat=90.0,
+            pole_lon=180.0,
+            tangent_lat=1.0,
+            tangent_lon=1.0,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=-90.0,
+            sync_lon=0.0,
+        )
+        # 360×181 global lat-lon grid, lons 0→359, lats -90→90
+        grid = Grid(projection=proj, nx=360, ny=181)
+
+        # SLV bbox in [-180, 180] convention — should find western NA cells
+        bbox = (-114.0, 39.5, -110.5, 42.0)
+        window = grid.window_from_bbox(bbox)
+
+        # Lons 246–249 correspond to -114 to -111 in 0-360
+        assert window.x_start >= 246
+        assert window.x_stop <= 250
+        assert window.x_start < window.x_stop
+        assert window.y_start < window.y_stop
+
     def test_window_from_bbox_projected_uses_corner_rounding(self):
         proj = Projection(
             pole_lat=90.0,
@@ -299,30 +327,3 @@ class TestVerticalAxis:
         coords = axis.calculate_coords()
         assert set(coords.keys()) == {"level"}
         np.testing.assert_allclose(coords["level"], [1.0, 0.5])
-
-
-class TestGrid3D:
-    """Tests for Grid3D class."""
-
-    def test_grid3d_initialization(self):
-        """Test 3D grid initialization."""
-        proj = Projection(
-            pole_lat=90.0,
-            pole_lon=0.0,
-            tangent_lat=1.0,
-            tangent_lon=1.0,
-            grid_size=0.0,
-            orientation=0.0,
-            cone_angle=0.0,
-            sync_x=1.0,
-            sync_y=1.0,
-            sync_lat=0.0,
-            sync_lon=0.0,
-        )
-        vertical_axis = VerticalAxis(flag=2, levels=[1000, 925, 850])
-        grid = Grid3D(proj=proj, nx=10, ny=10, vertical_axis=vertical_axis)
-
-        assert grid.nx == 10
-        assert grid.ny == 10
-        assert grid.vertical_axis.coord_system == "pressure"
-        assert len(grid.vertical_axis.levels) == 3

@@ -11,14 +11,15 @@ __email__ = "jameskmineau@gmail.com"
 
 from .file import File
 from .grid import Grid, Projection
-from .metadata import Header, IndexRecord
+from .header import Header
+from .index import IndexRecord
 from .packing import calculate_checksum, pack, unpack
 from .record import DataRecord
 from .recordset import RecordSet
 from .sampling import sample_points
 from .subset import extract_subset
-from .vertical import Grid3D, VerticalAxis
-from .xarray import open_dataset, write_dataset
+from .vertical import VerticalAxis
+from .xarray import open_dataset, pressure, write_dataset, z_agl, z_msl
 
 __all__ = [
     "File",
@@ -26,9 +27,11 @@ __all__ = [
     "DataRecord",
     "open_dataset",
     "write_dataset",
+    "pressure",
+    "z_agl",
+    "z_msl",
     "Projection",
     "Grid",
-    "Grid3D",
     "VerticalAxis",
     "Header",
     "IndexRecord",

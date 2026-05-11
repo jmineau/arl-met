@@ -11,11 +11,12 @@ import numpy.typing as npt
 import pandas as pd
 
 from arlmet.grid import Grid, GridWindow
-from arlmet.metadata import Header, split_grid_component
+from arlmet.header import Header, record_length_from_grid, split_grid_component
 from arlmet.packing import calculate_checksum, pack, unpack
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
+    import xarray as xr
     from arlmet.recordset import RecordSet
 
 
@@ -192,8 +193,7 @@ class DataRecord:
         """
         Get the number of bytes in the packed data record (including the header).
         """
-        grid = self.grid
-        return Header.N_BYTES + grid.nx * grid.ny
+        return record_length_from_grid(grid=self.grid)
 
     @property
     def header(self) -> Header:
@@ -428,6 +428,41 @@ class DataRecord:
         if window is None and isinstance(unpacked, np.ndarray):
             self._unpacked = unpacked
         return np.asarray(unpacked, dtype=np.float32)
+
+    def to_xarray(self, squeeze: bool = True) -> "xr.DataArray":
+        """
+        Convert this DataRecord to an xarray.DataArray.
+
+        Parameters
+        ----------
+        squeeze : bool, optional
+            Whether to squeeze singleton dimensions. Default is True.
+
+        Returns
+        -------
+        xarray.DataArray
+            An xarray view of this data record.
+        """
+        import xarray as xr
+
+        da = xr.DataArray(
+            data=self.data,
+            dims=self.grid.dims,
+            coords=self.grid.calculate_coords(),
+            name=self.variable,
+        )
+
+        da = da.expand_dims(("time", "level"))
+
+        z_coords = self.recordset.vertical_axis.calculate_coords()
+        level_value = z_coords["level"][self.level]
+
+        da = da.assign_coords(
+            time=[self.time],
+            level=[level_value],
+        )
+        da.attrs["source"] = self.recordset.source
+        return da.squeeze() if squeeze else da
 
     @require_mode("w")
     def __setitem__(self, key, value) -> None:

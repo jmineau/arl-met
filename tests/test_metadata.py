@@ -2,14 +2,8 @@
 
 from collections import OrderedDict
 
-from arlmet.metadata import (
-    Header,
-    IndexRecord,
-    LvlInfo,
-    VarInfo,
-    letter_to_thousands,
-    restore_year,
-)
+from arlmet.header import Header, letter_to_thousands, restore_year
+from arlmet.index import IndexRecord, LvlInfo, VarInfo
 
 
 class TestLetterToThousands:

@@ -3,7 +3,7 @@
 import numpy as np
 
 from arlmet.grid import GridWindow
-from arlmet.metadata import Header
+from arlmet.header import Header
 from arlmet.packing import calculate_checksum, pack, unpack
 
 

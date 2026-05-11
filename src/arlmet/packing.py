@@ -167,7 +167,7 @@ def unpack(
     # Reshape to 2D grid
     if packed_arr.shape[0] != ny * nx:
         raise ValueError(
-            f"Packed data size {packed_arr.shape[0]} does not match expected size {ny * nx}."
+            f"Packed data length {packed_arr.shape[0]} does not match expected length {ny * nx}."
         )
     packed_arr = packed_arr.reshape((ny, nx))
 
@@ -216,7 +216,7 @@ def _unpack_window(
     packed_arr = np.frombuffer(packed, dtype=np.uint8)
     if packed_arr.shape[0] != ny * nx:
         raise ValueError(
-            f"Packed data size {packed_arr.shape[0]} does not match expected size {ny * nx}."
+            f"Packed data length {packed_arr.shape[0]} does not match expected length {ny * nx}."
         )
     packed_arr = packed_arr.reshape((ny, nx)).astype(np.float32)
 

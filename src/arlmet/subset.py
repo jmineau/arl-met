@@ -6,7 +6,8 @@ from pathlib import Path
 
 from arlmet.file import File
 from arlmet.grid import GridWindow
-from arlmet.metadata import Header, IndexRecord, LvlInfo, VarInfo, split_grid_component
+from arlmet.header import Header, record_length_from_grid, split_grid_component
+from arlmet.index import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
 from arlmet.vertical import VerticalAxis
 
 
@@ -66,17 +67,10 @@ def _build_subset_index_record(
     level_map: dict[int, int],
 ) -> IndexRecord:
     """Build the destination index record for one subsetted time step."""
-    if recordset.forecast is not None:
-        forecast = recordset.forecast
-    else:
-        forecast_hours = {record.forecast for record in selected_records}
-        if len(forecast_hours) != 1:
-            raise ValueError(
-                f"Subset selection for time {recordset.time} contains mixed forecast "
-                f"hours {sorted(forecast_hours)} and no index forecast hour is available. "
-                "This should not happen for files opened with arlmet.File."
-            )
-        forecast = next(iter(forecast_hours))
+    forecast = _derive_index_forecast(
+        (record.forecast for record in selected_records),
+        recordset.forecast,
+    )
 
     level_records: dict[int, OrderedDict[str, VarInfo]] = {
         level: OrderedDict() for level in range(len(subset_axis.levels))
@@ -137,7 +131,7 @@ def _build_subset_index_record(
     )
 
 
-def validate_subset_record_size(
+def validate_subset_record_length(
     selected_recordsets: Sequence[tuple],
     *,
     subset_grid,
@@ -147,7 +141,7 @@ def validate_subset_record_size(
     """
     Fail early when a cropped ARL grid cannot fit its index record.
     """
-    record_size = Header.N_BYTES + subset_grid.nx * subset_grid.ny
+    record_len = record_length_from_grid(grid=subset_grid)
     for recordset, selected_records in selected_recordsets:
         index = _build_subset_index_record(
             recordset,
@@ -156,13 +150,13 @@ def validate_subset_record_size(
             selected_records=selected_records,
             level_map=level_map,
         )
-        index_size = len(index.tobytes())
-        if index_size > record_size:
-            min_cells = index_size - Header.N_BYTES
+        index_len = len(index.tobytes())
+        if index_len > record_len:
+            min_cells = index_len - Header.N_BYTES
             raise ValueError(
                 "Subset grid is too small to encode an ARL index record: "
-                f"time {recordset.time} needs {index_size} bytes, but each record is "
-                f"only {record_size} bytes for grid {subset_grid.nx}x{subset_grid.ny}. "
+                f"time {recordset.time} needs {index_len} bytes, but each record is "
+                f"only {record_len} bytes for grid {subset_grid.nx}x{subset_grid.ny}. "
                 f"The bbox must yield at least {min_cells} grid cells (nx*ny). "
                 "Expand the bbox or reduce levels/variables."
             )
@@ -228,7 +222,7 @@ def extract_subset(
             if selected_records:
                 selected_recordsets.append((src_recordset, selected_records))
 
-        validate_subset_record_size(
+        validate_subset_record_length(
             selected_recordsets,
             subset_grid=subset_grid,
             subset_axis=subset_axis,

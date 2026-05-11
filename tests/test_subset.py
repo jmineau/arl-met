@@ -115,6 +115,27 @@ def test_extract_subset_rejects_subset_too_small_for_index_record(tmp_path):
         )
 
 
+def test_extract_subset_allows_mixed_record_forecasts(tmp_path):
+    source = tmp_path / "mixed_forecast_source.arl"
+    destination = tmp_path / "mixed_forecast_subset.arl"
+    grid = make_test_grid()
+    vertical_axis = VerticalAxis(flag=2, levels=[0.0, 1000.0])
+    data = np.ones((grid.ny, grid.nx), dtype=np.float32)
+    time0 = pd.Timestamp("2025-09-01 00:00")
+
+    with File(source, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis) as arl:
+        rs = arl.create_recordset(time0)
+        rs.create_datarecord("PRSS", level=0, forecast=0, data=data)
+        rs.create_datarecord("TEMP", level=1, forecast=3, data=data)
+
+    extract_subset(source, destination, variables=["PRSS", "TEMP"])
+
+    with File(destination) as subset:
+        assert subset[time0].forecast == 0
+        assert subset[time0][(0, "PRSS")].forecast == 0
+        assert subset[time0][(1, "TEMP")].forecast == 3
+
+
 def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
     source = tmp_path / "source.arl"
     write_subset_source(source)
@@ -133,19 +154,25 @@ def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
         source_prss = original[0][(0, "PRSS")].read(window=source_window)
         source_uwnd = original[0][(2, "UWND")].read(window=source_window)
 
-    assert set(ds.data_vars) == {"PRSS", "UWND"}
+    assert set(ds.data_vars) == {"PRSS", "UWND", "forecast_hour"}
+    np.testing.assert_array_equal(ds["forecast_hour"].values, [0, 3])
     assert ds.sizes["time"] == 2
-    assert ds.sizes["level"] == 2
+    # PRSS is sfc (no level dim); UWND is the only upper var → level size 1
+    assert ds.sizes["level"] == 1
     assert ds.sizes["lat"] == 3
     assert ds.sizes["lon"] == 3
-    # Level coord holds native heights (hPa for flag=2): indices 0,2 → [0.0, 2000.0]
-    np.testing.assert_array_equal(ds.coords["level"].values, [0.0, 2000.0])
-    assert ds.attrs["arl_nx"] == 3
-    assert ds.attrs["arl_ny"] == 3
-    assert ds.attrs["vertical_axis"].levels.tolist() == [0.0, 1000.0, 2000.0]
+    # Level coord is integer ARL index; physical coord (pressure) carries hPa values
+    np.testing.assert_array_equal(ds.coords["level"].values, [2])
+    np.testing.assert_array_equal(ds.coords["pressure"].values, [2000.0])
+    assert ds.arl.grid.nx == 3
+    assert ds.arl.grid.ny == 3
+    # vertical_axis is reconstructed from the subset — level 1 (1000 hPa) was not
+    # loaded so it shows as 0.0 in the reconstructed levels array
+    assert ds.arl.vertical_axis.levels.tolist() == [0.0, 0.0, 2000.0]
+    # PRSS has no level dim; UWND level dim has one element (index 0 → 2000 hPa)
     np.testing.assert_allclose(
-        np.asarray(ds["PRSS"].isel(time=0, level=0)), source_prss
+        np.asarray(ds["PRSS"].isel(time=0)), source_prss
     )
     np.testing.assert_allclose(
-        np.asarray(ds["UWND"].isel(time=0, level=1)), source_uwnd
+        np.asarray(ds["UWND"].isel(time=0, level=0)), source_uwnd
     )

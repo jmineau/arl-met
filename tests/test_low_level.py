@@ -10,11 +10,12 @@ import pytest
 
 from arlmet import File
 from arlmet.grid import Grid, GridWindow, Projection
-from arlmet.metadata import Header, LvlInfo, VarInfo
+from arlmet.header import Header
+from arlmet.index import LvlInfo, VarInfo
 from arlmet.record import DataRecord
 from arlmet.recordset import VariableAccessor
 from arlmet.vertical import VerticalAxis
-from arlmet.xarray import ArlVariableArray, _normalize_backend_indexer
+from arlmet.xarray._backend import ArlVariableArray, _normalize_backend_indexer
 
 
 def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
@@ -434,28 +435,76 @@ class TestDataRecordModeGuards:
 
 
 class TestRecordCollectionForecasts:
-    def test_forecast_by_time_raises_for_conflicting_record_forecasts(self, tmp_path):
-        path = tmp_path / "conflict.arl"
+
+    def test_recordset_derives_index_forecast_from_mixed_record_forecasts(self, tmp_path):
+        path = tmp_path / "derived_forecast.arl"
         grid = make_test_grid()
         vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
-        arl = File(
+        zeros = np.zeros((grid.ny, grid.nx), dtype=np.float32)
+
+        with File(
             path,
             mode="w",
             source="TEST",
             grid=grid,
             vertical_axis=vertical_axis,
-        )
-
-        try:
+        ) as arl:
             rs = arl.create_recordset(pd.Timestamp("2024-07-18 00:00"))
-            zeros = np.zeros((grid.ny, grid.nx), dtype=np.float32)
-            rs.create_datarecord("TEMP", level=0, forecast=0, data=zeros)
-            rs.create_datarecord("UWND", level=0, forecast=3, data=zeros)
+            rs.create_datarecord("TEMP", level=0, forecast=3, data=zeros)
+            rs.create_datarecord("UWND", level=0, forecast=0, data=zeros)
 
-            with pytest.raises(ValueError, match="multiple forecast hours"):
-                _ = rs.forecast_by_time
-        finally:
-            arl._manager.close()
+        with File(path) as arl:
+            assert arl[pd.Timestamp("2024-07-18 00:00")].forecast == 0
+
+    def test_file_add_record_creates_recordsets_and_derives_file_records(self, tmp_path):
+        path = tmp_path / "add_record.arl"
+        grid = make_test_grid()
+        vertical_axis = VerticalAxis(flag=2, levels=[1000.0, 900.0])
+        zeros = np.zeros((grid.ny, grid.nx), dtype=np.float32)
+        time0 = pd.Timestamp("2024-07-18 00:00")
+        time1 = pd.Timestamp("2024-07-18 03:00")
+
+        with File(
+            path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=vertical_axis,
+        ) as arl:
+            arl.add_record(time0, "TEMP", level=0, forecast=0, data=zeros)
+            arl.add_record(time0, "UWND", level=1, forecast=3, data=zeros)
+            arl.add_record(time1, "TEMP", level=0, forecast=6, data=zeros)
+
+            assert len(arl.records) == 3
+            assert [record.time for record in arl.records] == [time0, time0, time1]
+            assert arl[time0].forecast is None
+
+        with File(path) as arl:
+            assert [record.time for record in arl.records] == [time0, time0, time1]
+            assert arl[time0].forecast == 0
+            assert arl[time1].forecast == 6
+
+    def test_file_add_record_respects_explicit_recordset_forecast(self, tmp_path):
+        path = tmp_path / "add_record_explicit_forecast.arl"
+        grid = make_test_grid()
+        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        zeros = np.zeros((grid.ny, grid.nx), dtype=np.float32)
+        time0 = pd.Timestamp("2024-07-18 00:00")
+
+        with File(
+            path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=vertical_axis,
+        ) as arl:
+            arl.create_recordset(time0, forecast=9)
+            arl.add_record(time0, "TEMP", level=0, forecast=0, data=zeros)
+
+            assert arl[time0].forecast == 9
+
+        with File(path) as arl:
+            assert arl[time0].forecast == 9
 
 
 class TestVariableViewsAndAccessors:
@@ -491,22 +540,20 @@ class TestVariableViewsAndAccessors:
 
             array = np.asarray(view)
             assert array.shape == (2, 2, 20, 20)
-            np.testing.assert_allclose(array[0, 0], 11.0)
-            np.testing.assert_allclose(array[0, 1], 1.0)
-            np.testing.assert_allclose(view[1, 1, 0, :3], [101.0, 101.0, 101.0])
+            np.testing.assert_allclose(array[0, 0], 1.0)   # time=0, level idx 0 → 1000 hPa
+            np.testing.assert_allclose(array[0, 1], 11.0)  # time=0, level idx 1 → 900 hPa
+            np.testing.assert_allclose(view[1, 1, 0, :3], [111.0, 111.0, 111.0])
 
-    def test_recordset_variable_view_to_xarray_and_mapping_helpers(self, tmp_path):
+    def test_recordset_variable_view_mapping_helpers(self, tmp_path):
         path = tmp_path / "variables.arl"
         times = write_variable_view_file(path)
 
         with File(path) as arl:
             rs = arl[times[0]]
-            da = rs.variables["TEMP"].to_xarray(squeeze=False)
+            view = rs.variables["TEMP"]
 
-            assert da.name == "TEMP"
-            assert da.dims == ("time", "level", "lat", "lon")
-            assert da.shape == (1, 2, 20, 20)
-            np.testing.assert_array_equal(da.coords["forecast"].values, [0])
+            assert view.ndim == 4
+            assert view.shape == (1, 2, 20, 20)
 
             assert len(rs) == 4
             assert all(record.recordset is rs for record in rs)
@@ -632,26 +679,6 @@ class TestFileLowLevelBehavior:
                 arl.create_recordset(pd.Timestamp("2024-07-18 00:00"))
         finally:
             arl._manager.close()
-
-    def test_terrain_raises_when_shgt_is_missing(self, tmp_path):
-        path = tmp_path / "no_terrain.arl"
-        write_single_record_file(path)
-
-        with File(path) as arl:
-            with pytest.raises(ValueError, match="Terrain field SHGT"):
-                arl.terrain()
-
-    def test_terrain_requires_explicit_time_for_multi_time_file(self, tmp_path):
-        path = tmp_path / "terrain_multi.arl"
-        times = [
-            pd.Timestamp("2024-07-18 00:00"),
-            pd.Timestamp("2024-07-18 03:00"),
-        ]
-        write_terrain_file(path, times)
-
-        with File(path) as arl:
-            with pytest.raises(ValueError, match="explicit time"):
-                arl.terrain()
 
     def test_file_getitem_supports_integer_and_string_lookup(self, tmp_path):
         path = tmp_path / "terrain_lookup.arl"

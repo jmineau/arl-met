@@ -140,16 +140,6 @@ def write_deep_sampling_file(path, *, time: pd.Timestamp, temp_offset: float = 0
 
 
 class TestPointSampling:
-    def test_terrain_reads_full_surface_slice(self, tmp_path):
-        path = tmp_path / "terrain.arl"
-        time = pd.Timestamp("2024-07-18 00:00")
-        sample = write_sampling_file(path, time=time)
-
-        with File(path) as arl:
-            result = arl.terrain(time)
-
-        np.testing.assert_allclose(result, sample["terrain"])
-
     def test_file_sample_points_interpolates_native_and_pressure_queries(
         self, tmp_path
     ):

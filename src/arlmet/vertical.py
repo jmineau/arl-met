@@ -11,8 +11,6 @@ from collections.abc import Sequence
 import numpy as np
 import numpy.typing as npt
 
-from arlmet.grid import Grid, Projection
-
 
 class VerticalAxis:
     """
@@ -138,63 +136,3 @@ class VerticalAxis:
 
     def __hash__(self) -> int:
         return hash((self.flag, self.offset, tuple(self._levels)))
-
-
-class Grid3D(Grid):
-    """
-    Horizontal grid plus ARL vertical metadata.
-
-    Parameters
-    ----------
-    projection : Projection, optional
-        Horizontal projection definition.
-    nx : int, default 0
-        Number of x-grid points.
-    ny : int, default 0
-        Number of y-grid points.
-    vertical_axis : VerticalAxis
-        Vertical coordinate metadata.
-    proj : Projection, optional
-        Backward-compatible alias for ``projection``.
-
-    Attributes
-    ----------
-    vertical_axis : VerticalAxis
-        Vertical coordinate metadata for the grid.
-    dims : tuple[str, ...]
-        Dimension names in ``("level", ...)`` order.
-
-    Methods
-    -------
-    calculate_coords()
-        Return combined horizontal and vertical coordinates.
-    """
-
-    def __init__(
-        self,
-        projection: Projection | None = None,
-        nx: int = 0,
-        ny: int = 0,
-        vertical_axis: VerticalAxis | None = None,
-        *,
-        proj: Projection | None = None,
-    ):
-        projection = projection or proj
-        if projection is None:
-            raise TypeError("Grid3D requires `projection` or `proj`.")
-        if vertical_axis is None:
-            raise TypeError("Grid3D requires a `vertical_axis`.")
-
-        super().__init__(projection=projection, nx=nx, ny=ny)
-        self.vertical_axis = vertical_axis
-
-    @property
-    def dims(self) -> tuple[str, ...]:
-        return ("level", *super().dims)
-
-    def calculate_coords(self) -> dict[str, object]:
-        """Return horizontal coordinates augmented with the vertical level axis."""
-        coords = super().calculate_coords()
-        vcoords = self.vertical_axis.calculate_coords()
-        coords["level"] = ("level", vcoords["level"])
-        return coords

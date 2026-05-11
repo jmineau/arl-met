@@ -6,21 +6,26 @@ import io
 from collections import OrderedDict
 from collections.abc import Iterable, Iterator
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import pandas as pd
 from xarray.backends import CachingFileManager
 
 from arlmet.grid import Grid, Projection
-from arlmet.metadata import IndexRecord
+from arlmet.header import record_length_from_grid
+from arlmet.index import IndexRecord
 from arlmet.record import require_mode
-from arlmet.recordset import RecordCollection, RecordSet
+from arlmet.record import DataRecord
+from arlmet.recordset import RecordSet, VariableAccessor
 from arlmet.sampling import sample_points_from_file
 from arlmet.vertical import VerticalAxis
 
+if TYPE_CHECKING:
+    import xarray as xr
 
-class File(RecordCollection):
+
+class File:
     """
     Read or write an ARL meteorology file.
 
@@ -62,8 +67,6 @@ class File(RecordCollection):
         Build and attach a Grid when writing a new file.
     create_recordset(time, forecast=None)
         Create a writable RecordSet for one valid time.
-    terrain(time=None)
-        Read the SHGT terrain field as a NumPy array.
     sample_points(points, variables, ...)
         Interpolate fields at arbitrary lon/lat/z sample points.
     close()
@@ -75,23 +78,19 @@ class File(RecordCollection):
     >>> with arlmet.File("met.arl") as met:
     ...     met.times[0]
     Timestamp('2024-07-18 00:00:00')
-    >>> with arlmet.File("met.arl") as met:
-    ...     topo = met.terrain()
-    ...     topo.shape
-    (met.grid.ny, met.grid.nx)
     """
 
     def __init__(
         self,
         path: Path | str,
-        mode: Literal["r", "w", "a"] = "r",
+        mode: Literal["r", "w"] = "r",
         source: str | None = None,
         grid: Grid | None = None,
         vertical_axis: VerticalAxis | None = None,
     ):
         # File attrs
         self.path = Path(path)
-        self.mode = mode
+        self.mode: Literal["r", "w"] = mode
 
         if self.mode not in ("r", "w"):
             raise ValueError("Mode must be 'r' (read) or 'w' (write).")
@@ -108,16 +107,14 @@ class File(RecordCollection):
         # Initialize recordsets as an ordered dict to preserve time order
         # Mapping: time -> RecordSet
         self._recordsets: OrderedDict[pd.Timestamp, RecordSet] = OrderedDict()
-
-        # Initialize the base class
-        super().__init__()
+        self.variables = VariableAccessor(self)
 
         # Scan the file to populate recordsets in read mode
         if self.mode != "w":
             self._scan()
 
     @property
-    def handle(self) -> io.BufferedIOBase:
+    def handle(self) -> io.IOBase:
         return self._manager.acquire()
 
     @property
@@ -165,6 +162,15 @@ class File(RecordCollection):
     def times(self) -> list[pd.Timestamp]:
         """Return a sorted list of timestamps in the file."""
         return sorted(self._recordsets.keys())
+
+    @property
+    def records(self) -> list[DataRecord]:
+        """List of all DataRecords in the file across all RecordSets."""
+        return [record for recordset in self._recordsets.values() for record in recordset.records]
+
+    @property
+    def record_length(self) -> int:
+        return record_length_from_grid(self.grid)
 
     @require_mode("w")
     def create_grid(
@@ -260,7 +266,7 @@ class File(RecordCollection):
         self._recordsets[time] = rs
         return rs
 
-    @require_mode("w", "a")
+    @require_mode("w")
     def create_recordset(self, time, *, forecast: int | None = None) -> RecordSet:
         """
         Create a writable RecordSet for one valid time.
@@ -270,11 +276,12 @@ class File(RecordCollection):
         time : pandas.Timestamp or compatible datetime-like
             Valid time for the new record set.
         forecast : int, optional
-            Forecast hour for the index record header. When copying or
-            subsetting an existing file, pass ``src_recordset.forecast`` so
-            the value is preserved exactly. When writing new data, omit and
-            the value will be derived from the DataRecords (which must all
-            share the same forecast hour).
+            Forecast hour for the index record header.
+            HYSPLIT docs are unclear on this, but conversion code appears to
+            use the forecast hour from the first variable specified in the config file.
+            This is brittle in `arlmet`s case, so we chose to either allow
+            specifying it here or an index's forecast hour will be set to the minimum
+            forecast hour among its variables (defaulting to -1 when all variables are missing data).
 
         Returns
         -------
@@ -288,6 +295,50 @@ class File(RecordCollection):
         source = grid = None  # skip checks in _create_recordset
         return self._create_recordset(
             position=position, source=source, grid=grid, time=time, forecast=forecast
+        )
+
+    @require_mode("w")
+    def add_record(
+        self,
+        time,
+        variable: str,
+        *,
+        level: int,
+        forecast: int | None = None,
+        data=None,
+    ) -> DataRecord:
+        """Add one writable DataRecord, creating its RecordSet if needed."""
+        time = pd.Timestamp(time)
+
+        if time in self._recordsets:
+            recordset = self._recordsets[time]
+        else:
+            recordset = self.create_recordset(time)
+
+        # Check if data is missing or effectively empty
+        is_empty = data is None
+        if not is_empty:
+            # Convert to numpy to handle xarray, pandas, or lists uniformly
+            arr = np.asanyarray(data)
+            # Check if array is empty or all elements are NaN
+            if arr.size == 0 or np.all(pd.isna(arr)):
+                is_empty = True
+
+        if is_empty:
+            if forecast is None:
+                forecast = -1
+            elif forecast != -1:
+                # Warn if a forecast hour is provided for missing data, since it will be ignored
+                raise ValueError("Forecast must be -1 for missing data.")
+        elif forecast is None:
+            # Raise if data is valid but no forecast was supplied
+            raise ValueError("forecast must be supplied when data is present")
+
+        return recordset.create_datarecord(
+            variable=variable,
+            level=level,
+            forecast=forecast,
+            data=data,
         )
 
     def _scan(self) -> None:
@@ -329,8 +380,8 @@ class File(RecordCollection):
             )
 
             # Skip to the end of the index record
-            record_size = self.record_size
-            fh.seek(position + record_size)
+            record_length = self.record_length
+            fh.seek(position + record_length)
 
             # Read data records for this index record
             position = fh.tell()  # start of data records
@@ -363,16 +414,10 @@ class File(RecordCollection):
                             reserved=reserved,
                         )
 
-                        # Store surface variables
-                        if var == "SHGT":
-                            rs._sfc_terrain = dr
-                        if var == "PRSS":
-                            rs._sfc_pressure = dr
-
                         # Keep track of previous data record for diff assignment
                         prev_dr = dr
 
-                    position += record_size  # go to next record
+                    position += record_length  # go to next record
 
             # Move file pointer to the start of the next index record
             fh.seek(position)
@@ -386,45 +431,9 @@ class File(RecordCollection):
                         rs._flush()
                 self.handle.flush()
         finally:
-            # Close the file manager
+            # Close the file manager — this releases the underlying file handle.
+            # Any mmap objects created from it become invalid and are GC'd automatically.
             self._manager.close()
-            # TODO do i need to close mmaps?
-
-    def terrain(self, time: pd.Timestamp | str | None = None) -> np.ndarray:
-        """
-        Return the terrain field for one file time.
-
-        Parameters
-        ----------
-        time : pandas.Timestamp or str, optional
-            Time to sample. Required when the file contains more than one time.
-
-        Returns
-        -------
-        numpy.ndarray
-            Terrain height field from the ``SHGT`` variable as ``float32``.
-
-        Examples
-        --------
-        >>> import arlmet
-        >>> with arlmet.File("met.arl") as met:
-        ...     terrain = met.terrain()
-        ...     terrain.shape
-        (met.grid.ny, met.grid.nx)
-        """
-        if time is None:
-            if len(self.times) != 1:
-                raise ValueError(
-                    "terrain() requires an explicit time when the file contains multiple times."
-                )
-            time = self.times[0]
-        recordset = self[pd.Timestamp(time)]
-        record = next((r for r in recordset.records if r.variable == "SHGT"), None)
-        if record is None:
-            raise ValueError(
-                f"Terrain field SHGT is not available at time {recordset.time}."
-            )
-        return np.asarray(record.read(), dtype=np.float32)
 
     def sample_points(
         self,
@@ -473,6 +482,25 @@ class File(RecordCollection):
             time=time,
             z_kind=z_kind,
             method=method,
+        )
+
+    def to_dataset(
+        self,
+        *,
+        drop_variables=None,
+        squeeze: bool = True,
+        bbox: tuple[float, float, float, float] | None = None,
+        levels: list[int] | tuple[int, ...] | None = None,
+    ) -> "xr.Dataset":
+        """Project this file into the simplified analysis Dataset representation."""
+        from arlmet.xarray.dataset import _build_dataset_from_file
+
+        return _build_dataset_from_file(
+            self,
+            drop_variables=drop_variables,
+            squeeze=squeeze,
+            bbox=bbox,
+            levels=levels,
         )
 
     def __getitem__(self, key) -> RecordSet:
