@@ -2,9 +2,34 @@
 
 import numpy as np
 
+from arlmet._pack import pack_core as _pack_core
 from arlmet.grid import GridWindow
 from arlmet.header import Header
 from arlmet.packing import calculate_checksum, pack, unpack
+
+
+def _pack_core_python(
+    unpacked: np.ndarray,
+    scale: float,
+    inv_scale: float,
+    initial_value: float,
+) -> np.ndarray:
+    """Pure-Python reference implementation of the feedback-loop encoder."""
+    ny, nx = unpacked.shape
+    packed = np.empty((ny, nx), dtype=np.uint8)
+    packed[0, 0] = 127
+    previous_row0 = initial_value
+    for y in range(ny):
+        if y > 0:
+            icval = int((unpacked[y, 0] - previous_row0) * scale + 127.5)
+            packed[y, 0] = icval
+            previous_row0 += (icval - 127) * inv_scale
+        previous_value = previous_row0
+        for x in range(1, nx):
+            icval = int((unpacked[y, x] - previous_value) * scale + 127.5)
+            packed[y, x] = icval
+            previous_value += (icval - 127) * inv_scale
+    return packed
 
 
 class TestChecksum:
@@ -172,3 +197,69 @@ class TestPack:
         )
 
         np.testing.assert_allclose(roundtripped, unpacked, atol=precision)
+
+
+class TestPackCore:
+    """Validate the C extension byte-for-byte against the Python reference."""
+
+    def _args(self, unpacked: np.ndarray):
+        import math
+
+        diffs = np.empty_like(unpacked)
+        diffs[:, 1:] = unpacked[:, 1:] - unpacked[:, :-1]
+        diffs[1:, 0] = unpacked[1:, 0] - unpacked[:-1, 0]
+        diffs[0, 0] = 0.0
+        rmax = float(np.max(np.abs(diffs)))
+        if rmax > 0.0:
+            sexp = math.log(rmax) / math.log(2.0)
+            exponent = int(sexp)
+            if sexp >= 0.0 or sexp == int(sexp):
+                exponent += 1
+        else:
+            exponent = 0
+        scale = 2.0 ** (7 - exponent)
+        inv_scale = 1.0 / scale
+        return scale, inv_scale, float(unpacked[0, 0])
+
+    def test_c_ext_matches_python_reference_gradient(self):
+        unpacked = np.array(
+            [[1.0, 2.0, 3.0], [2.0, 4.0, 6.0], [3.0, 6.0, 9.0]],
+            dtype=np.float32,
+        )
+        scale, inv_scale, iv = self._args(unpacked)
+        np.testing.assert_array_equal(
+            _pack_core(unpacked, scale, inv_scale, iv),
+            _pack_core_python(unpacked, scale, inv_scale, iv),
+        )
+
+    def test_c_ext_matches_python_reference_signed(self):
+        unpacked = np.array([[-3.0, -1.0, 2.0], [4.0, 0.0, -4.0]], dtype=np.float32)
+        scale, inv_scale, iv = self._args(unpacked)
+        np.testing.assert_array_equal(
+            _pack_core(unpacked, scale, inv_scale, iv),
+            _pack_core_python(unpacked, scale, inv_scale, iv),
+        )
+
+    def test_c_ext_matches_python_reference_running_reconstructed(self):
+        """Field where simple diff diverges — validates feedback-loop correctness."""
+        unpacked = np.array(
+            [
+                [200.0, 208.25, 208.25, 208.25, 208.25, 208.25, 208.25, 208.25],
+                [
+                    231.7,
+                    232.0125,
+                    232.325,
+                    232.6375,
+                    232.95,
+                    233.2625,
+                    233.575,
+                    233.8875,
+                ],
+            ],
+            dtype=np.float32,
+        )
+        scale, inv_scale, iv = self._args(unpacked)
+        np.testing.assert_array_equal(
+            _pack_core(unpacked, scale, inv_scale, iv),
+            _pack_core_python(unpacked, scale, inv_scale, iv),
+        )

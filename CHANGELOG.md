@@ -6,6 +6,22 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- C extension `_pack` (`_pack.c`) implementing the ARL feedback-loop differential encoder; replaces the pure-Python inner loop in `pack()`
+- `TestPackCore` tests validating the C extension byte-for-byte against a Python reference implementation across gradient, signed-value, and running-reconstructed-value cases
+- `test_file_copy_is_byte_identical` end-to-end test: writes a synthetic ARL file, reads every record, rewrites to a copy, and asserts binary equality
+
+### Changed
+
+- `pack()` delegates the inner feedback loop to the C extension; `numba` dependency removed
+- `setup.py` added alongside `pyproject.toml` to declare the C extension with a dynamic `numpy.get_include()` path
+- `pyproject.toml` build-system now requires `numpy>=1.24` so the C extension can be compiled at install time
+
+### Removed
+
+- `numba` dependency and JIT-compiled `_pack_core` — eliminated ~1.4 s per-process warm-up with no change to correctness
+
 ### Fixed
 
 - Codecov uploads not running: replaced `!always()` condition with `!cancelled()`

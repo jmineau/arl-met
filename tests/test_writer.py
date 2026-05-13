@@ -296,6 +296,36 @@ class TestWriter:
         with pytest.raises(ValueError, match="must start with 'DIF'"):
             write_dataset(ds, written_path)
 
+    def test_file_copy_is_byte_identical(self, tmp_path):
+        """Read every record from a written file and rewrite it; the bytes must match."""
+        source = tmp_path / "source.arl"
+        copy = tmp_path / "copy.arl"
+
+        self.write_sample_file(source)
+
+        with (
+            File(source) as src,
+            File(
+                copy,
+                mode="w",
+                source=src.source,
+                grid=src.grid,
+                vertical_axis=src.vertical_axis,
+            ) as dst,
+        ):
+            for time in src.times:
+                src_rs = src[time]
+                dst_rs = dst.create_recordset(time, forecast=src_rs.forecast)
+                for record in src_rs:
+                    dst_rs.create_datarecord(
+                        variable=record.variable,
+                        level=record.level,
+                        forecast=record.header.forecast,
+                        data=np.asarray(record),
+                    )
+
+        assert source.read_bytes() == copy.read_bytes()
+
     def test_write_dataset_rejects_conflicting_diff_bindings(self, tmp_path):
         source_path = tmp_path / "source.arl"
         written_path = tmp_path / "written.arl"

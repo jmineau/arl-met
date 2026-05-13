@@ -3,6 +3,7 @@
 import numpy as np
 from numpy import typing as npt
 
+from arlmet._pack import pack_core as _pack_core
 from arlmet.grid import GridWindow
 
 
@@ -75,24 +76,11 @@ def pack(
     unpacked_arr[np.abs(unpacked_arr) < precision] = 0.0
     initial_value = float(unpacked_arr[0, 0])
 
-    packed = np.empty_like(unpacked_arr, dtype=np.uint8)
-    packed[0, 0] = 127
-
-    # ARL encodes each delta against the running reconstructed field, not the
-    # original neighboring value. That keeps quantization error bounded instead
-    # of letting it accumulate across the row.
-    previous_row0 = initial_value
-    for y in range(unpacked_arr.shape[0]):
-        if y > 0:
-            code = np.floor((unpacked_arr[y, 0] - previous_row0) * scale + 127.5)
-            packed[y, 0] = np.uint8(np.clip(code, 0, 255))
-            previous_row0 += (float(packed[y, 0]) - 127.0) * inv_scale
-
-        previous_value = previous_row0
-        for x in range(1, unpacked_arr.shape[1]):
-            code = np.floor((unpacked_arr[y, x] - previous_value) * scale + 127.5)
-            packed[y, x] = np.uint8(np.clip(code, 0, 255))
-            previous_value += (float(packed[y, x]) - 127.0) * inv_scale
+    # Feedback-loop encoder: each delta is computed against the *reconstructed*
+    # running value (what unpack's cumsum will reproduce), not the original float.
+    # This keeps per-cell quantisation error bounded to 0.5 * inv_scale regardless
+    # of grid width.  Implemented as a C extension (_pack.c) for native speed.
+    packed = _pack_core(unpacked_arr, scale, inv_scale, initial_value)
 
     return packed, precision, exponent, initial_value
 
