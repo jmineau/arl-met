@@ -6,6 +6,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0a2] - 2026-05-13
+
 ### Added
 
 - C extension `_pack` (`_pack.c`) implementing the ARL feedback-loop differential encoder; replaces the pure-Python inner loop in `pack()`

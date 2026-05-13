@@ -17,9 +17,10 @@ format used by HYSPLIT and related workflows. It supports:
 
 - low-level record-preserving reads and writes through `File`, `RecordSet`, and `DataRecord`
 - xarray Dataset reads and common-case writes through `open_dataset()` and `write_dataset()`
-- crop-before-unpack subset extraction with `extract_subset()`
 - NOAA source fetching helpers for common ARL archives
+- crop-before-unpack subset extraction with `extract_subset()`
 - vertical helper functions such as `pressure()`, `z_agl()`, and `z_msl()`
+- point sampling with `sample_points()`
 
 ## Alpha status
 
