@@ -9,6 +9,14 @@ from pathlib import Path
 from types import TracebackType
 from typing import TYPE_CHECKING, Any, BinaryIO, Literal, cast
 
+if TYPE_CHECKING:
+    from typing_extensions import override
+else:
+
+    def override(f: object) -> object:
+        return f
+
+
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
@@ -552,6 +560,28 @@ class File:
 
     def __len__(self) -> int:
         return len(self._recordsets)
+
+    def __contains__(self, key: object) -> bool:
+        try:
+            ts = ensure_timestamp(key)
+        except Exception:
+            return False
+        return ts in self._recordsets
+
+    @override
+    def __repr__(self) -> str:
+        grid_str = (
+            f"{self._grid.nx}\u00d7{self._grid.ny}"
+            if self._grid is not None
+            else "None"
+        )
+        levels_str = (
+            str(len(self._vaxis._levels)) if self._vaxis is not None else "None"
+        )
+        return (
+            f"File({self.path.name!r}, mode={self.mode!r}, "
+            f"times={len(self)}, grid={grid_str}, levels={levels_str})"
+        )
 
     def __enter__(self):
         return self

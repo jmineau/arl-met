@@ -6,6 +6,14 @@ import io
 import types
 from typing import TYPE_CHECKING, Any, Literal, cast
 
+if TYPE_CHECKING:
+    from typing_extensions import override
+else:
+
+    def override(f: object) -> object:
+        return f
+
+
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
@@ -340,6 +348,11 @@ class DataRecord:
         """Return the shape of the data grid."""
         grid = self.grid
         return (grid.ny, grid.nx)
+
+    @override
+    def __repr__(self) -> str:
+        t = self.time.strftime("%Y-%m-%d %H:%M")
+        return f"DataRecord({self.variable!r}, level={self.level}, time={t})"
 
     @property
     def data(self) -> npt.NDArray[Any]:

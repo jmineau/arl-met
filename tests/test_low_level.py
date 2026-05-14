@@ -924,6 +924,65 @@ class TestFileLowLevelBehavior:
             assert record._diff.variable == "DIFW"
 
 
+class TestReprs:
+    def test_datarecord_repr(self, tmp_path):
+        path = tmp_path / "repr.arl"
+        time, _ = write_single_record_file(path)
+        with File(path) as arl:
+            record = arl[time][(0, "TEMP")]
+            r = repr(record)
+        assert r == "DataRecord('TEMP', level=0, time=2024-07-18 00:00)"
+
+    def test_recordset_repr(self, tmp_path):
+        path = tmp_path / "repr.arl"
+        time, _ = write_single_record_file(path)
+        with File(path) as arl:
+            rs = arl[time]
+            r = repr(rs)
+        assert r == "RecordSet(time=2024-07-18 00:00, forecast=0, n=1)"
+
+    def test_recordset_contains_variable(self, tmp_path):
+        path = tmp_path / "repr.arl"
+        time, _ = write_single_record_file(path)
+        with File(path) as arl:
+            rs = arl[time]
+            assert "TEMP" in rs
+            assert "UWND" not in rs
+            assert 42 not in rs  # non-string returns False
+
+    def test_file_repr_read_mode(self, tmp_path):
+        path = tmp_path / "repr.arl"
+        write_single_record_file(path)
+        with File(path) as arl:
+            r = repr(arl)
+        assert r == "File('repr.arl', mode='r', times=1, grid=20×20, levels=1)"
+
+    def test_file_repr_write_mode_none_grid_and_levels(self, tmp_path):
+        path = tmp_path / "repr_w.arl"
+        arl = File(path, mode="w")
+        try:
+            r = repr(arl)
+        finally:
+            arl._manager.close()
+        assert r == "File('repr_w.arl', mode='w', times=0, grid=None, levels=None)"
+
+    def test_file_contains_timestamp(self, tmp_path):
+        path = tmp_path / "repr.arl"
+        write_single_record_file(path)
+        ts = pd.Timestamp("2024-07-18 00:00")
+        with File(path) as arl:
+            assert ts in arl
+            assert pd.Timestamp("2000-01-01") not in arl
+            assert "not-a-timestamp" not in arl
+
+    def test_variable_view_repr(self, tmp_path):
+        path = tmp_path / "vv.arl"
+        write_single_record_file(path)
+        with File(path) as arl:
+            r = repr(arl.variables["TEMP"])
+        assert r == "VariableView('TEMP', shape=(1, 1, 20, 20))"
+
+
 class TestXarrayBackendHelpers:
     def test_normalize_backend_indexer_supports_scalar_slice_and_array(self):
         scalar_idx, scalar = _normalize_backend_indexer(2, 5)

@@ -147,6 +147,28 @@ class VariableView:
         """Return the shape of the data cube (time, level, y, x)"""
         return self.data.shape
 
+    @property
+    def _lazy_shape(self) -> tuple[int, ...]:
+        """Shape as (time, level, y, x), from record metadata without loading data."""
+        if self._data is not None:
+            return self._data.shape
+        records = [r for r in self.source.records if r.variable == self.name]
+        if not records:
+            return (0, 0, self.source.grid.ny, self.source.grid.nx)
+        n_levels = len({r.level for r in records})
+        grid = self.source.grid
+        if self._is_file_view:
+            n_times: int = len(
+                self.source.times  # pyrefly: ignore[missing-attribute]
+            )
+        else:
+            n_times = 1
+        return (n_times, n_levels, grid.ny, grid.nx)
+
+    @override
+    def __repr__(self) -> str:
+        return f"VariableView({self.name!r}, shape={self._lazy_shape})"
+
     def __array__(
         self, dtype: np.dtype | None = None, copy: bool | None = None
     ) -> np.ndarray:

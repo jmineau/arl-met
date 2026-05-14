@@ -250,6 +250,13 @@ class Projection:
             and self.sync_lon == other.sync_lon
         )
 
+    @override
+    def __repr__(self) -> str:
+        proj = self.params.get("proj", "unknown")
+        if proj == "latlong":
+            proj = "latlon"
+        return f"Projection({proj})"
+
 
 @dataclass(frozen=True)
 class GridWindow:
@@ -718,7 +725,12 @@ class Grid:
 
     @override
     def __repr__(self) -> str:
-        return f"Grid(projection={self.projection}, nx={self.nx}, ny={self.ny})"
+        proj = self.projection.params.get("proj", "unknown")
+        if proj == "latlong":
+            proj = "latlon"
+        if self.projection.is_latlon:
+            return f"Grid({proj}, {self.nx}\u00d7{self.ny})"
+        return f"Grid({proj} {self.projection.grid_size:g}km, {self.nx}\u00d7{self.ny})"
 
     @override
     def __eq__(self, other: object) -> bool:

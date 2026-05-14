@@ -103,22 +103,29 @@ class TestSigmaToPressure:
 # Module-level xarray vertical helpers
 # ---------------------------------------------------------------------------
 
-import io  # noqa: E402
 
 import pandas as pd  # noqa: E402
 import xarray as xr  # noqa: E402
 
 import arlmet  # noqa: E402
 from arlmet import File  # noqa: E402
-from arlmet.grid import Grid, Projection  # noqa: E402
+from arlmet.grid import Grid  # noqa: E402
 from arlmet.xarray._vertical import R_D, G, _hypsometric_z_agl  # noqa: E402
 
 
 def _make_latlon_grid(nx: int = 20, ny: int = 20) -> Grid:
     proj = Projection(
-        pole_lat=90.0, pole_lon=0.0, tangent_lat=1.0, tangent_lon=1.0,
-        grid_size=0.0, orientation=0.0, cone_angle=0.0,
-        sync_x=1.0, sync_y=1.0, sync_lat=40.0, sync_lon=-110.0,
+        pole_lat=90.0,
+        pole_lon=0.0,
+        tangent_lat=1.0,
+        tangent_lon=1.0,
+        grid_size=0.0,
+        orientation=0.0,
+        cone_angle=0.0,
+        sync_x=1.0,
+        sync_y=1.0,
+        sync_lat=40.0,
+        sync_lon=-110.0,
     )
     return Grid(projection=proj, nx=nx, ny=ny)
 
@@ -141,7 +148,9 @@ def _write_pressure_file(path, *, prss_val, temp_val, shgt_val, pressure_levels)
             rs.create_datarecord("TEMP", level=k, forecast=0, data=temp)
 
 
-def _write_terrain_file(path, *, height_levels, with_pres: bool = False, with_hgts: bool = False):
+def _write_terrain_file(
+    path, *, height_levels, with_pres: bool = False, with_hgts: bool = False
+):
     """Write a minimal terrain-following (flag=3) ARL file."""
     grid = _make_latlon_grid()
     vaxis = VerticalAxis(flag=3, levels=[0.0] + list(height_levels))
@@ -202,8 +211,13 @@ class TestHypsometricZagl:
 class TestPressureHelper:
     def test_flag2_returns_pressure_coord(self, tmp_path):
         path = tmp_path / "test.arl"
-        _write_pressure_file(path, prss_val=1013.0, temp_val=280.0, shgt_val=0.0,
-                             pressure_levels=[1000.0, 850.0])
+        _write_pressure_file(
+            path,
+            prss_val=1013.0,
+            temp_val=280.0,
+            shgt_val=0.0,
+            pressure_levels=[1000.0, 850.0],
+        )
         ds = arlmet.open_dataset(path)
         p = arlmet.pressure(ds)
         assert "level" in p.dims
@@ -211,8 +225,13 @@ class TestPressureHelper:
 
     def test_flag2_returns_dataarray(self, tmp_path):
         path = tmp_path / "test.arl"
-        _write_pressure_file(path, prss_val=1013.0, temp_val=280.0, shgt_val=0.0,
-                             pressure_levels=[1000.0, 850.0])
+        _write_pressure_file(
+            path,
+            prss_val=1013.0,
+            temp_val=280.0,
+            shgt_val=0.0,
+            pressure_levels=[1000.0, 850.0],
+        )
         ds = arlmet.open_dataset(path)
         p = arlmet.pressure(ds)
         assert isinstance(p, xr.DataArray)
@@ -256,8 +275,13 @@ class TestZAglHelper:
 
     def test_flag2_hgts_preferred_over_hypsometric(self, tmp_path):
         path = tmp_path / "test.arl"
-        _write_pressure_file(path, prss_val=1013.0, temp_val=280.0, shgt_val=0.0,
-                             pressure_levels=[1000.0, 850.0])
+        _write_pressure_file(
+            path,
+            prss_val=1013.0,
+            temp_val=280.0,
+            shgt_val=0.0,
+            pressure_levels=[1000.0, 850.0],
+        )
         # Manually add HGTS to the dataset
         ds = arlmet.open_dataset(path)
         sentinel = xr.DataArray(
@@ -271,8 +295,13 @@ class TestZAglHelper:
 
     def test_flag2_hypsometric_increases_with_altitude(self, tmp_path):
         path = tmp_path / "test.arl"
-        _write_pressure_file(path, prss_val=1013.0, temp_val=280.0, shgt_val=0.0,
-                             pressure_levels=[1000.0, 850.0, 700.0])
+        _write_pressure_file(
+            path,
+            prss_val=1013.0,
+            temp_val=280.0,
+            shgt_val=0.0,
+            pressure_levels=[1000.0, 850.0, 700.0],
+        )
         ds = arlmet.open_dataset(path)
         z = arlmet.z_agl(ds)
         z_vals = z.isel(time=0, lat=0, lon=0).values  # select single point
@@ -282,38 +311,72 @@ class TestZAglHelper:
     def test_flag2_first_level_positive(self, tmp_path):
         path = tmp_path / "test.arl"
         # PRSS > p[0] → ln(PRSS/p[0]) > 0 → dz > 0
-        _write_pressure_file(path, prss_val=1013.0, temp_val=290.0, shgt_val=0.0,
-                             pressure_levels=[1000.0, 850.0])
+        _write_pressure_file(
+            path,
+            prss_val=1013.0,
+            temp_val=290.0,
+            shgt_val=0.0,
+            pressure_levels=[1000.0, 850.0],
+        )
         ds = arlmet.open_dataset(path)
         z = arlmet.z_agl(ds)
         assert float(z.isel(level=0).values.mean()) > 0.0
 
     def test_flag2_missing_temp_raises(self, tmp_path):
         path = tmp_path / "test.arl"
-        _write_pressure_file(path, prss_val=1013.0, temp_val=280.0, shgt_val=0.0,
-                             pressure_levels=[1000.0, 850.0])
+        _write_pressure_file(
+            path,
+            prss_val=1013.0,
+            temp_val=280.0,
+            shgt_val=0.0,
+            pressure_levels=[1000.0, 850.0],
+        )
         ds = arlmet.open_dataset(path).drop_vars("TEMP")
         with pytest.raises(ValueError, match="TEMP"):
             arlmet.z_agl(ds)
+
+
+class TestVerticalAxisRepr:
+    def test_repr_pressure(self):
+        ax = VerticalAxis(flag=2, levels=[1000.0, 850.0, 700.0])
+        assert repr(ax) == "VerticalAxis(pressure, n=3)"
+
+    def test_repr_sigma(self):
+        ax = VerticalAxis(flag=1, levels=[1.0, 0.9])
+        assert repr(ax) == "VerticalAxis(sigma, n=2)"
+
+    def test_len(self):
+        ax = VerticalAxis(flag=2, levels=[1000.0, 925.0, 850.0, 700.0])
+        assert len(ax) == 4
 
 
 class TestZMslHelper:
     def test_z_msl_equals_z_agl_plus_shgt(self, tmp_path):
         path = tmp_path / "test.arl"
         shgt_val = 150.0
-        _write_pressure_file(path, prss_val=1013.0, temp_val=280.0, shgt_val=shgt_val,
-                             pressure_levels=[1000.0, 850.0])
+        _write_pressure_file(
+            path,
+            prss_val=1013.0,
+            temp_val=280.0,
+            shgt_val=shgt_val,
+            pressure_levels=[1000.0, 850.0],
+        )
         ds = arlmet.open_dataset(path)
         z = arlmet.z_agl(ds)
         z_msl_expected = z + ds["SHGT"]
-        np.testing.assert_allclose(arlmet.z_msl(ds).values, z_msl_expected.values, rtol=1e-5)
+        np.testing.assert_allclose(
+            arlmet.z_msl(ds).values, z_msl_expected.values, rtol=1e-5
+        )
 
     def test_z_msl_missing_shgt_raises(self, tmp_path):
         path = tmp_path / "test.arl"
-        _write_pressure_file(path, prss_val=1013.0, temp_val=280.0, shgt_val=0.0,
-                             pressure_levels=[1000.0])
+        _write_pressure_file(
+            path,
+            prss_val=1013.0,
+            temp_val=280.0,
+            shgt_val=0.0,
+            pressure_levels=[1000.0],
+        )
         ds = arlmet.open_dataset(path).drop_vars("SHGT")
         with pytest.raises(ValueError, match="SHGT"):
             arlmet.z_msl(ds)
-
-

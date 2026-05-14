@@ -7,6 +7,14 @@ from collections import OrderedDict
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Literal
 
+if TYPE_CHECKING:
+    from typing_extensions import override
+else:
+
+    def override(f: object) -> object:
+        return f
+
+
 import numpy.typing as npt
 import pandas as pd
 
@@ -347,3 +355,13 @@ class RecordSet:
 
     def __len__(self) -> int:
         return len(self._datarecords)
+
+    def __contains__(self, key: object) -> bool:
+        if isinstance(key, str):
+            return key in {r.variable for r in self.records}
+        return False
+
+    @override
+    def __repr__(self) -> str:
+        t = self.time.strftime("%Y-%m-%d %H:%M")
+        return f"RecordSet(time={t}, forecast={self.forecast}, n={len(self)})"

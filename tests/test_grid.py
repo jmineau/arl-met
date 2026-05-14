@@ -327,3 +327,49 @@ class TestVerticalAxis:
         coords = axis.calculate_coords()
         assert set(coords.keys()) == {"level"}
         np.testing.assert_allclose(coords["level"], [1.0, 0.5])
+
+
+class TestReprs:
+    def _latlon_proj(self):
+        return Projection(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=1.0,
+            tangent_lon=1.0,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=-10.0,
+            sync_lon=20.0,
+        )
+
+    def _stere_proj(self):
+        return Projection(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=60.0,
+            tangent_lon=0.0,
+            grid_size=50.0,
+            orientation=0.0,
+            cone_angle=90.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=60.0,
+            sync_lon=0.0,
+        )
+
+    def test_projection_repr_latlon(self):
+        assert repr(self._latlon_proj()) == "Projection(latlon)"
+
+    def test_projection_repr_stere(self):
+        assert repr(self._stere_proj()) == "Projection(stere)"
+
+    def test_grid_repr_latlon(self):
+        grid = Grid(projection=self._latlon_proj(), nx=144, ny=73)
+        assert repr(grid) == "Grid(latlon, 144\u00d773)"
+
+    def test_grid_repr_projected_includes_spacing(self):
+        grid = Grid(projection=self._stere_proj(), nx=100, ny=80)
+        assert repr(grid) == "Grid(stere 50km, 100\u00d780)"

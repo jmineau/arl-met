@@ -146,3 +146,10 @@ class VerticalAxis:
 
     def __hash__(self) -> int:
         return hash((self.flag, self.offset, tuple(self._levels)))
+
+    def __len__(self) -> int:
+        return len(self._levels)
+
+    @override
+    def __repr__(self) -> str:
+        return f"VerticalAxis({self.coord_system}, n={len(self._levels)})"
