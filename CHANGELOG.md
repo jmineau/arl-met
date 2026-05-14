@@ -6,6 +6,19 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `__repr__` on `Projection`, `Grid`, `VerticalAxis`, `DataRecord`, `RecordSet`, `File`, and `VariableView` — compact, informative string representations for all core classes
+- `VerticalAxis.__len__`: `len(vaxis)` returns the number of levels
+- `RecordSet.__contains__`: `"UWND" in rs` tests variable membership by name
+- `File.__contains__`: `pd.Timestamp(...) in f` tests whether a time step is present
+- `VariableView._lazy_shape`: infers `(time, level, ny, nx)` shape from record metadata without loading data
+- pyrefly pre-commit hook (`facebook/pyrefly-pre-commit`) for static type checking
+
+### Changed
+
+- Type checker switched from pyright to pyrefly (`preset = "strict"`); typing improved across all source modules
+
 ## [0.1.0a2] - 2026-05-13
 
 ### Added
