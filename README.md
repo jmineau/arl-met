@@ -8,7 +8,7 @@
 [![Python Version](https://img.shields.io/pypi/pyversions/arlmet.svg)](https://pypi.org/project/arlmet/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Pyright](https://img.shields.io/badge/pyright-checked-brightgreen.svg)](https://github.com/microsoft/pyright)
+[![Pyrefly](https://img.shields.io/badge/pyrefly-checked-brightgreen.svg)](https://pyrefly.org)
 
 Read, write, subset, and sample NOAA ARL meteorological files.
 

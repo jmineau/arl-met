@@ -26,9 +26,9 @@ jobs:
     - name: Lint with ruff
       run: uv run --no-sync ruff check --output-format=github src/arlmet
 
-    - name: Type checking with pyright
+    - name: Type checking with pyrefly
       if: ${{ !cancelled() }}
-      run: uv run --no-sync pyright src/arlmet
+      run: uv run --no-sync pyrefly check src/arlmet
 
     - name: Check docstring coverage
       if: ${{ !cancelled() }}

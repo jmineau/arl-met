@@ -20,11 +20,10 @@ repos:
       # Run the formatter
       - id: ruff-format
 
-  - repo: https://github.com/facebook/pyrefly-pre-commit
-    rev: 1.0.0
+  - repo: local
     hooks:
       - id: pyrefly-check
-        name: Pyrefly via uv (type checking)
+        name: Pyrefly (type checking)
         entry: uv run pyrefly check
         language: system
         pass_filenames: false

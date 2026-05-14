@@ -35,7 +35,7 @@ Common development commands
 
    uv run pytest -q
    uv run ruff check .
-   uv run pyright src/arlmet
+   uv run pyrefly check src/arlmet
    uv run sphinx-build -M html docs docs/_build
    uv run docstr-coverage src/arlmet --skip-magic --skip-init --skip-property --fail-under 95
 
