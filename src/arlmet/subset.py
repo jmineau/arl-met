@@ -1,17 +1,24 @@
 """Subset extraction helpers for ARL meteorology files."""
 
+from __future__ import annotations
+
 from collections import OrderedDict
 from collections.abc import Iterable, Sequence
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from arlmet.file import File
-from arlmet.grid import GridWindow
+from arlmet.grid import Grid, GridWindow
 from arlmet.header import Header, record_length_from_grid, split_grid_component
 from arlmet.index import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
 from arlmet.packing import unpack
+from arlmet.record import DataRecord
 from arlmet.vertical import VerticalAxis
+
+if TYPE_CHECKING:
+    from arlmet.recordset import RecordSet
 
 
 def normalize_levels(
@@ -45,11 +52,11 @@ def resolve_window(
 
 
 def select_records(
-    records: Sequence,
+    records: Sequence[DataRecord],
     *,
     levels: set[int] | None = None,
     variables: set[str] | None = None,
-) -> list:
+) -> list[DataRecord]:
     """
     Filter records by ARL level index and variable name.
     """
@@ -62,11 +69,11 @@ def select_records(
 
 
 def _build_subset_index_record(
-    recordset,
+    recordset: RecordSet,
     *,
-    subset_grid,
+    subset_grid: Grid,
     subset_axis: VerticalAxis,
-    selected_records: Sequence,
+    selected_records: Sequence[DataRecord],
     level_map: dict[int, int],
 ) -> IndexRecord:
     """Build the destination index record for one subsetted time step."""
@@ -135,9 +142,9 @@ def _build_subset_index_record(
 
 
 def validate_subset_record_length(
-    selected_recordsets: Sequence[tuple],
+    selected_recordsets: Sequence[tuple[RecordSet, Sequence[DataRecord]]],
     *,
-    subset_grid,
+    subset_grid: Grid,
     subset_axis: VerticalAxis,
     level_map: dict[int, int],
 ) -> None:

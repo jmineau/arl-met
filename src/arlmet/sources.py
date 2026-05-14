@@ -36,7 +36,15 @@ import shutil
 import tempfile
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import BinaryIO, ClassVar, cast
+from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar, cast
+
+if TYPE_CHECKING:
+    from typing_extensions import override
+else:
+
+    def override(f: object) -> object:
+        return f
+
 
 import pandas as pd
 
@@ -251,19 +259,20 @@ class MeteorologySource(ABC):
             return f"{self.HTTP_BASE}/{key}"
         raise ValueError(f"Unknown backend {backend!r}. Choose 's3', 'ftp', or 'http'.")
 
-    def _storage_options(self, backend: str) -> dict:
+    def _storage_options(self, backend: str) -> dict[str, Any]:
         """Return fsspec storage options for the selected backend."""
         if backend == "s3":
             return {"anon": True}
         return {}
 
-    def _download(self, url: str, dest: Path, opts: dict) -> None:
+    def _download(self, url: str, dest: Path, opts: dict[str, Any]) -> None:
         """Download one ARL file to a temporary path and atomically move it into place."""
         import fsspec
 
         tmp = dest.with_suffix(dest.suffix + ".tmp")
         try:
             with fsspec.open(url, "rb", **opts) as src, open(tmp, "wb") as dst:
+                # fsspec.open() stubs return IO[Any]; "rb"/"wb" mode guarantees BinaryIO.
                 shutil.copyfileobj(
                     cast(BinaryIO, src),
                     cast(BinaryIO, dst),
@@ -279,7 +288,7 @@ class MeteorologySource(ABC):
         url: str,
         dest: Path,
         bbox: tuple[float, float, float, float],
-        opts: dict,
+        opts: dict[str, Any],
     ) -> None:
         """Download one ARL file, crop it to *bbox*, and write the cropped copy."""
         from arlmet.subset import extract_subset
@@ -292,6 +301,7 @@ class MeteorologySource(ABC):
         finally:
             tmp.unlink(missing_ok=True)
 
+    @override
     def __repr__(self) -> str:
         return f"{type(self).__name__}()"
 
@@ -328,6 +338,7 @@ class HRRRSource(MeteorologySource):
         end_h = start_h + self._HOURS_PER_FILE - 1
         return f"{time.strftime('%Y%m%d')}_{start_h:02d}-{end_h:02d}_hrrr"
 
+    @override
     def _s3_key(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the HRRR file covering *time*."""
         return f"hrrr/{time.year}/{time.month:02d}/{self._filename(time)}"
@@ -350,6 +361,7 @@ class NAMSource(MeteorologySource):
         """Return the daily NAM archive filename for *time*."""
         return f"{time.strftime('%Y%m%d')}_nam12"
 
+    @override
     def _s3_key(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the NAM file covering *time*."""
         return f"nam12/{time.year}/{time.month:02d}/{self._filename(time)}"
@@ -380,6 +392,7 @@ class GDASSource(MeteorologySource):
         year_2d = time.strftime("%y")
         return f"gdas1.{month}{year_2d}.w{self._week(time)}"
 
+    @override
     def _s3_key(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the GDAS file covering *time*."""
         return f"gdas1/{time.year}/{self._filename(time)}"
@@ -403,6 +416,7 @@ class GFSSource(MeteorologySource):
         """Return the daily GFS archive filename for *time*."""
         return f"{time.strftime('%Y%m%d')}_gfs0p25"
 
+    @override
     def _s3_key(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the GFS file covering *time*."""
         return f"gfs0p25/{time.year}/{time.month:02d}/{self._filename(time)}"
@@ -445,10 +459,12 @@ class NAMSSource(MeteorologySource):
         suffix = self._DOMAIN_SUFFIXES[self.domain]
         return f"{time.strftime('%Y%m%d')}_hysplit.t00z.namsa{suffix}"
 
+    @override
     def _s3_key(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the NAMS file covering *time*."""
         return f"nams/{time.year}/{time.month:02d}/{self._filename(time)}"
 
+    @override
     def __repr__(self) -> str:
         return f"NAMSSource(domain={self.domain!r})"
 
@@ -472,6 +488,7 @@ class ReanalysisSource(MeteorologySource):
         """Return the monthly reanalysis archive filename for *time*."""
         return f"RP{time.strftime('%Y%m')}.gbl"
 
+    @override
     def _s3_key(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the reanalysis file covering *time*."""
         return f"reanalysis/{time.year}/{self._filename(time)}"
@@ -498,6 +515,7 @@ class HRRRv1Source(MeteorologySource):
         start_h = (time.hour // self._HOURS_PER_FILE) * self._HOURS_PER_FILE
         return f"hysplit.{time.strftime('%Y%m%d')}.{start_h:02d}z.hrrra"
 
+    @override
     def _s3_key(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the HRRR v1 file covering *time*."""
         return f"hrrr.v1/{time.year}/{time.month:02d}/{self._filename(time)}"
@@ -521,6 +539,7 @@ class GDAS0p5Source(MeteorologySource):
         """Return the daily GDAS 0.5-degree archive filename for *time*."""
         return f"{time.strftime('%Y%m%d')}_gdas0p5"
 
+    @override
     def _s3_key(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the GDAS 0.5-degree file covering *time*."""
         return f"gdas0p5/{time.year}/{time.month:02d}/{self._filename(time)}"
@@ -545,6 +564,7 @@ class NARRSource(MeteorologySource):
         """Return the monthly NARR archive filename for *time*."""
         return f"NARR{time.strftime('%Y%m')}"
 
+    @override
     def _s3_key(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the NARR file covering *time*."""
         return f"narr/{time.year}/{self._filename(time)}"

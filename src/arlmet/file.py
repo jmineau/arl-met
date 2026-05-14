@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import os
 from collections import OrderedDict
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from pathlib import Path
+from types import TracebackType
 from typing import TYPE_CHECKING, Any, BinaryIO, Literal, cast
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from xarray.backends import CachingFileManager
 
@@ -15,7 +18,7 @@ from arlmet._time import ensure_timestamp
 from arlmet.grid import Grid, Projection
 from arlmet.header import record_length_from_grid
 from arlmet.index import IndexRecord
-from arlmet.record import DataRecord, require_mode
+from arlmet.record import DataRecord, _require_mode
 from arlmet.recordset import RecordSet, VariableAccessor
 from arlmet.sampling import sample_points_from_file
 from arlmet.vertical import VerticalAxis
@@ -81,7 +84,7 @@ class File:
 
     def __init__(
         self,
-        path: Path | str,
+        path: str | os.PathLike[str],
         mode: Literal["r", "w"] = "r",
         source: str | None = None,
         grid: Grid | None = None,
@@ -119,6 +122,8 @@ class File:
         if self._handle is None:
             # Hot record read/write paths hit this repeatedly, so keep one
             # acquired handle per File instead of reentering the manager.
+            # xarray's CachingFileManager.acquire() returns IO[Any]; opening in
+            # binary mode guarantees BinaryIO at runtime.
             self._handle = cast(BinaryIO, self._manager.acquire())
         return self._handle
 
@@ -133,8 +138,8 @@ class File:
         return self._source
 
     @source.setter
-    @require_mode("w")
     def source(self, value: str):
+        _require_mode(self, "w")
         self._source = value
 
     @property
@@ -144,8 +149,8 @@ class File:
         return self._grid
 
     @grid.setter
-    @require_mode("w")
     def grid(self, value: Grid):
+        _require_mode(self, "w")
         if not isinstance(value, Grid):
             raise TypeError("grid must be a Grid instance.")
         self._grid = value
@@ -157,8 +162,8 @@ class File:
         return self._vaxis
 
     @vertical_axis.setter
-    @require_mode("w")
     def vertical_axis(self, value: VerticalAxis):
+        _require_mode(self, "w")
         if not isinstance(value, VerticalAxis):
             raise TypeError("vertical_axis must be a VerticalAxis instance.")
         self._vaxis = value
@@ -181,7 +186,6 @@ class File:
     def record_length(self) -> int:
         return record_length_from_grid(self.grid)
 
-    @require_mode("w")
     def create_grid(
         self,
         nx: int,
@@ -228,6 +232,7 @@ class File:
         Grid
             The created grid instance, also stored on the file.
         """
+        _require_mode(self, "w")
         if self._grid is not None:
             raise ValueError("Grid has already been set for this File.")
 
@@ -254,7 +259,7 @@ class File:
 
     def _create_recordset(
         self,
-        position,
+        position: int,
         source: str | None,
         grid: Grid | None,
         time: pd.Timestamp,
@@ -275,8 +280,9 @@ class File:
         self._recordsets[time] = rs
         return rs
 
-    @require_mode("w")
-    def create_recordset(self, time, *, forecast: int | None = None) -> RecordSet:
+    def create_recordset(
+        self, time: pd.Timestamp | str, *, forecast: int | None = None
+    ) -> RecordSet:
         """
         Create a writable RecordSet for one valid time.
 
@@ -297,18 +303,20 @@ class File:
         RecordSet
             Writable record set associated with ``time``.
         """
+        _require_mode(self, "w")
         if self.source is None or self.grid is None:
             raise ValueError("Source and Grid must be set to create RecordSets.")
 
         position = -1  # New recordsets have no on-disk position yet
         source = grid = None  # skip checks in _create_recordset
+        ts = ensure_timestamp(time)
         return self._create_recordset(
-            position=position, source=source, grid=grid, time=time, forecast=forecast
+            position=position, source=source, grid=grid, time=ts, forecast=forecast
         )
 
-    @require_mode("w")
     def register_diff_binding(self, diff_name: str, parent_name: str) -> None:
         """Record and validate the explicit parent binding for a generated DIF name."""
+        _require_mode(self, "w")
         if not diff_name.startswith("DIF"):
             raise ValueError(
                 f"Generated diff record names must start with 'DIF', got '{diff_name}'."
@@ -323,17 +331,17 @@ class File:
 
         self._diff_parents[diff_name] = parent_name
 
-    @require_mode("w")
     def add_record(
         self,
-        time,
+        time: pd.Timestamp | str,
         variable: str,
         *,
         level: int,
         forecast: int | None = None,
-        data=None,
+        data: npt.ArrayLike | None = None,
     ) -> DataRecord:
         """Add one writable DataRecord, creating its RecordSet if needed."""
+        _require_mode(self, "w")
         time = ensure_timestamp(time)
 
         if time in self._recordsets:
@@ -466,7 +474,7 @@ class File:
 
     def sample_points(
         self,
-        points: Any,
+        points: pd.DataFrame | Mapping[str, Any],
         variables: str | Iterable[str],
         *,
         time: pd.Timestamp | str | None = None,
@@ -516,7 +524,7 @@ class File:
     def to_dataset(
         self,
         *,
-        drop_variables=None,
+        drop_variables: Sequence[str] | None = None,
         bbox: tuple[float, float, float, float] | None = None,
         levels: list[int] | tuple[int, ...] | None = None,
     ) -> xr.Dataset:
@@ -548,5 +556,10 @@ class File:
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         self.close()

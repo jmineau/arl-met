@@ -46,8 +46,8 @@ quality-check:
 	@echo "Running quality checks..."
 	@echo "Linting with ruff..."
 	uv run ruff check src/arlmet
-	@echo "Type checking with pyright..."
-	uv run pyright src/arlmet
+	@echo "Type checking with pyrefly..."
+	uv run pyrefly check src/arlmet
 	just test-no-network
 
 # Run ruff fixes and formatting

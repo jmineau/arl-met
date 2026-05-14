@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
 import pandas as pd
 
@@ -18,4 +18,4 @@ def ensure_timestamp(value: Any, *, floor: str | None = None) -> pd.Timestamp:
             raise ValueError(
                 f"Invalid timestamp value after floor({floor!r}): {value!r}"
             )
-    return cast(pd.Timestamp, ts)
+    return ts

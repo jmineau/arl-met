@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import os
 import warnings
 from collections import defaultdict
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -31,11 +33,11 @@ if TYPE_CHECKING:
 def _build_dataset_from_file(
     met: File,
     *,
-    drop_variables=None,
+    drop_variables: Sequence[str] | None = None,
     bbox: tuple[float, float, float, float] | None = None,
     levels: list[int] | tuple[int, ...] | None = None,
 ) -> xr.Dataset:
-    drop_variables = set(drop_variables or [])
+    drop_variables_set: set[str] = set(drop_variables or [])
     window = resolve_window(met, bbox)
     read_window = None if bbox is None else window
     selected_grid = met.grid if bbox is None else met.grid.subset(window)
@@ -52,7 +54,7 @@ def _build_dataset_from_file(
         selected_records = [
             record
             for record in select_records(recordset.records, levels=requested_level_set)
-            if record.variable not in drop_variables
+            if record.variable not in drop_variables_set
         ]
         if not selected_records:
             continue
@@ -156,8 +158,8 @@ def _build_dataset_from_file(
 
 
 def open_dataset(
-    filename_or_obj,
-    drop_variables=None,
+    filename_or_obj: str | os.PathLike[str],
+    drop_variables: Sequence[str] | None = None,
     bbox: tuple[float, float, float, float] | None = None,
     levels: list[int] | tuple[int, ...] | None = None,
 ) -> xr.Dataset:
@@ -203,7 +205,7 @@ def open_dataset(
 
 def write_dataset(
     ds: xr.Dataset,
-    filename_or_obj,
+    filename_or_obj: str | os.PathLike[str],
     *,
     vertical_axis: VerticalAxis | None = None,
 ) -> None:

@@ -1,10 +1,19 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
-from typing import Literal, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol
+
+if TYPE_CHECKING:
+    from typing_extensions import override
+else:
+
+    def override(f: object) -> object:
+        return f
+
 
 import numpy as np
 import numpy.typing as npt
+import pandas as pd
 
 from arlmet.grid import Grid
 from arlmet.record import DataRecord
@@ -84,17 +93,17 @@ class VariableView:
         # avoid importing File here (file.py imports recordset.py).
         self._is_file_view = hasattr(source, "times")
 
-        self._data: npt.NDArray | None = None
+        self._data: npt.NDArray[np.float32] | None = None
 
     @property
-    def data(self) -> npt.NDArray:
+    def data(self) -> npt.NDArray[np.float32]:
         """The array representing the full variable view, always as 4D."""
         if self._data is not None:
             return self._data
         self._data = self._build_array()
         return self._data
 
-    def _build_array(self) -> npt.NDArray:
+    def _build_array(self) -> npt.NDArray[np.float32]:
         """Read all records for this variable into a (time, level, y, x) array."""
         records = [r for r in self.source.records if r.variable == self.name]
         if not records:
@@ -102,10 +111,12 @@ class VariableView:
 
         grid = self.source.grid
         if self._is_file_view:
-            times = self.source.times  # type: ignore[attr-defined]
+            times: list[pd.Timestamp] = (
+                self.source.times  # pyrefly: ignore[missing-attribute]
+            )
             time_index = {t: i for i, t in enumerate(times)}
         else:
-            times = [self.source.time]  # type: ignore[attr-defined]
+            times = [self.source.time]  # pyrefly: ignore[missing-attribute]
             time_index = {times[0]: 0}
 
         levels = sorted({r.level for r in records})
@@ -132,20 +143,22 @@ class VariableView:
         return self.data.ndim
 
     @property
-    def shape(self) -> tuple:
+    def shape(self) -> tuple[int, ...]:
         """Return the shape of the data cube (time, level, y, x)"""
         return self.data.shape
 
-    def __array__(self, dtype=None, copy=None) -> np.ndarray:
+    def __array__(
+        self, dtype: np.dtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """Compute the array and return a numpy array."""
         return np.asarray(self.data, dtype=dtype, copy=copy)
 
-    def __getitem__(self, key) -> npt.ArrayLike:
+    def __getitem__(self, key: Any) -> npt.ArrayLike:
         """Slice the lazy array."""
         return self.data[key]
 
 
-class VariableAccessor(Mapping):
+class VariableAccessor(Mapping[str, VariableView]):
     """Dictionary-like accessor that returns VariableView objects by name."""
 
     def __init__(self, source: RecordCollection):
@@ -158,14 +171,18 @@ class VariableAccessor(Mapping):
             raise TypeError("Source must have a 'records' attribute.")
         return set(dr.variable for dr in self.source.records)
 
+    @override
     def __getitem__(self, name: str) -> VariableView:
         return VariableView(source=self.source, name=name)
 
+    @override
     def __iter__(self) -> Iterator[str]:
         return iter(self._names)
 
+    @override
     def __len__(self) -> int:
         return len(self._names)
 
+    @override
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({list(self.keys())})"

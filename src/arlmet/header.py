@@ -190,7 +190,7 @@ class Header:
 
         return cls(**parsed)
 
-    def __getitem__(self, key: Any) -> Any:
+    def __getitem__(self, key: str) -> int | float | tuple[int, int] | str:
         return getattr(self, key)
 
     @property

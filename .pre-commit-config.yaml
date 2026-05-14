@@ -20,8 +20,12 @@ repos:
       # Run the formatter
       - id: ruff-format
 
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.406
+  - repo: https://github.com/facebook/pyrefly-pre-commit
+    rev: 1.0.0
     hooks:
-      - id: pyright
-        additional_dependencies: [ "pyright[nodejs]" ]  # Ensure Node.js is installed in pyright venv
+      - id: pyrefly-check
+        name: Pyrefly via uv (type checking)
+        entry: uv run pyrefly check
+        language: system
+        pass_filenames: false
+        types: [python]

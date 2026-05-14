@@ -7,14 +7,14 @@ from collections import OrderedDict
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Literal
 
-import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 from arlmet.collection import VariableAccessor
 from arlmet.grid import Grid
 from arlmet.header import Header, split_grid_component
 from arlmet.index import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
-from arlmet.record import DataRecord, require_mode
+from arlmet.record import DataRecord, _require_mode
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
@@ -138,13 +138,12 @@ class RecordSet:
 
         return dr
 
-    @require_mode("w")
     def create_datarecord(
         self,
         variable: str,
         level: int,
         forecast: int,
-        data: np.ndarray | None = None,
+        data: npt.ArrayLike | None = None,
         diff: str | None = None,
     ) -> DataRecord:
         """
@@ -169,6 +168,7 @@ class RecordSet:
         DataRecord
             Writable data record for the requested variable and level.
         """
+        _require_mode(self, "w")
         if variable.startswith("DIF"):
             raise ValueError(
                 "Create DIF records through the parent record using diff='DIF...'."
@@ -303,9 +303,9 @@ class RecordSet:
             levels=levels,
         )
 
-    @require_mode("w")
     def _flush(self):
         """Write the index record and all pending data records to disk."""
+        _require_mode(self, "w")
         index = self._build_index_record()
         fh = self.file.handle
 
@@ -337,7 +337,7 @@ class RecordSet:
 
         raise KeyError(f"No writable record found for ({level}, {variable}).")
 
-    def __getitem__(self, key) -> DataRecord:
+    def __getitem__(self, key: tuple[int, str]) -> DataRecord:
         if not isinstance(key, tuple) or len(key) != 2:
             raise KeyError("Key must be a tuple of (level, variable).")
         return self._datarecords[(self.time, *key)]

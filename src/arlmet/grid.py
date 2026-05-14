@@ -7,7 +7,15 @@ coordinates live in ``arlmet.vertical``.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
+
+if TYPE_CHECKING:
+    from typing_extensions import override
+else:
+
+    def override(f: object) -> object:
+        return f
+
 
 import numpy as np
 import pyproj
@@ -224,7 +232,8 @@ class Projection:
             )
         )
 
-    def __eq__(self, other) -> bool:
+    @override
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Projection):
             return False
         return (
@@ -363,8 +372,8 @@ class Grid:
         self.nx = nx
         self.ny = ny
 
-        self._origin = None
-        self._crs = None
+        self._origin: tuple[float, float] | None = None
+        self._crs: pyproj.CRS | None = None
 
     @property
     def is_latlon(self) -> bool:
@@ -379,7 +388,7 @@ class Grid:
         return self.projection.is_latlon
 
     @property
-    def dims(self) -> tuple:
+    def dims(self) -> tuple[str, str]:
         """
         Get the dimension names for this grid.
 
@@ -707,10 +716,12 @@ class Grid:
         )
         return Grid(projection=subset_projection, nx=window.nx, ny=window.ny)
 
+    @override
     def __repr__(self) -> str:
         return f"Grid(projection={self.projection}, nx={self.nx}, ny={self.ny})"
 
-    def __eq__(self, other) -> bool:
+    @override
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Grid):
             return False
         return (

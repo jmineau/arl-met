@@ -1,5 +1,7 @@
 """Differential packing and unpacking routines for ARL data records."""
 
+import types
+
 import numpy as np
 from numpy import typing as npt
 
@@ -92,7 +94,7 @@ def unpack(
     precision: float,
     exponent: int,
     initial_value: float,
-    driver=None,
+    driver: types.ModuleType | None = None,
     window: GridWindow | None = None,
 ) -> npt.ArrayLike:
     """

@@ -3,7 +3,7 @@
 from collections import OrderedDict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, ClassVar
+from typing import Any, BinaryIO, ClassVar
 
 import pandas as pd
 
@@ -189,7 +189,7 @@ class IndexRecord:
     N_BYTES_FIXED: ClassVar[int] = 108
 
     @classmethod
-    def from_position(cls, file, position) -> "IndexRecord":
+    def from_position(cls, file: BinaryIO, position: int) -> "IndexRecord":
         """
         Create an IndexRecord by reading from a file at a specific position.
 

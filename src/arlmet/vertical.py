@@ -7,6 +7,15 @@ coordinates.
 """
 
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing_extensions import override
+else:
+
+    def override(f: object) -> object:
+        return f
+
 
 import numpy as np
 import numpy.typing as npt
@@ -125,7 +134,8 @@ class VerticalAxis:
             f"got flag={self.flag} ({self.coord_system})."
         )
 
-    def __eq__(self, other) -> bool:
+    @override
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, VerticalAxis):
             return False
         return (

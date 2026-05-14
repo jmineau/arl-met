@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -48,7 +48,7 @@ class HorizontalSamplePlan:
 
 
 def _normalize_points(
-    points: Any,
+    points: pd.DataFrame | Mapping[str, Any],
     *,
     require_time: bool,
     default_time: pd.Timestamp | None = None,
@@ -452,7 +452,7 @@ def _sample_variable(
 
 def sample_points_from_file(
     file: File,
-    points: Any,
+    points: pd.DataFrame | Mapping[str, Any],
     variables: str | Iterable[str],
     *,
     time: pd.Timestamp | str | None = None,
@@ -572,7 +572,7 @@ def _normalize_sources(source: File | Sequence[File]) -> tuple[File, ...]:
 
 def sample_points(
     source: File | Sequence[File],
-    points: Any,
+    points: pd.DataFrame | Mapping[str, Any],
     variables: str | Iterable[str],
     *,
     time: pd.Timestamp | str | None = None,

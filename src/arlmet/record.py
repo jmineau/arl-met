@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import io
-from functools import wraps
-from typing import TYPE_CHECKING, Any, Literal
+import types
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -21,38 +21,13 @@ if TYPE_CHECKING:
     from arlmet.recordset import RecordSet
 
 
-def require_mode(*allowed_modes):
-    """
-    Restrict a method to specific ARL read/write modes.
-
-    Parameters
-    ----------
-    *allowed_modes : str
-        One or more mode strings, typically ``"r"`` or ``"w"``.
-
-    Returns
-    -------
-    collections.abc.Callable
-        Decorator that raises :class:`io.UnsupportedOperation` when the bound
-        instance mode is not allowed.
-    """
-
-    def decorator(func):
-        """Wrap *func* with an ARL mode check."""
-
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            """Raise UnsupportedOperation when the instance mode is disallowed."""
-            if not hasattr(self, "mode") or self.mode not in allowed_modes:
-                raise io.UnsupportedOperation(
-                    f"'{func.__name__}' is only available in mode(s) {allowed_modes}, "
-                    f"not '{getattr(self, 'mode', 'unknown')}'."
-                )
-            return func(self, *args, **kwargs)
-
-        return wrapper
-
-    return decorator
+def _require_mode(obj: Any, *allowed_modes: str) -> None:
+    """Raise UnsupportedOperation when *obj.mode* is not in *allowed_modes*."""
+    if not hasattr(obj, "mode") or obj.mode not in allowed_modes:
+        raise io.UnsupportedOperation(
+            f"Operation only available in mode(s) {allowed_modes}, "
+            f"not '{getattr(obj, 'mode', 'unknown')}'."
+        )
 
 
 class DataRecord:
@@ -145,7 +120,12 @@ class DataRecord:
                 self._header = {"forecast": forecast}
 
     def _create_diff(
-        self, position, variable, forecast=None, checksum=None, reserved=None
+        self,
+        position: int,
+        variable: str,
+        forecast: int | None = None,
+        checksum: int | None = None,
+        reserved: str | None = None,
     ) -> DataRecord:
         """
         Create a DataRecord representing the difference between this record
@@ -311,7 +291,9 @@ class DataRecord:
         """
         Get the forecast hour for this data record.
         """
-        return self.header["forecast"]
+        # ARL format guarantees forecast is always an int; cast narrows the
+        # broad Header.__getitem__ return type.
+        return cast(int, self.header["forecast"])
 
     @property
     def checksum(self) -> int:
@@ -379,7 +361,9 @@ class DataRecord:
                 raise ValueError("No data to read.")
         return self._unpacked
 
-    def __array__(self, dtype=None, copy=None) -> npt.NDArray[Any]:
+    def __array__(
+        self, dtype: np.dtype | None = None, copy: bool | None = None
+    ) -> npt.NDArray[Any]:
         array = np.asarray(self.data)
         if dtype and np.dtype(dtype) != array.dtype:
             return array.astype(dtype)
@@ -387,10 +371,9 @@ class DataRecord:
             return array.copy()
         return array
 
-    def __getitem__(self, key) -> Any:
+    def __getitem__(self, key: Any) -> Any:
         return self.data[key]
 
-    @require_mode("r")
     def read(self, window: GridWindow | None = None) -> npt.NDArray[np.float32]:
         """
         Read and unpack this record eagerly.
@@ -406,6 +389,7 @@ class DataRecord:
             Unpacked ``float32`` array for the full field or the requested
             window.
         """
+        _require_mode(self, "r")
         if window is None and isinstance(self._unpacked, np.ndarray):
             return self._unpacked
 
@@ -478,8 +462,8 @@ class DataRecord:
         da.attrs["source"] = self.recordset.source
         return da.squeeze() if squeeze else da
 
-    @require_mode("w")
-    def __setitem__(self, key, value) -> None:
+    def __setitem__(self, key: Any, value: Any) -> None:
+        _require_mode(self, "w")
         if self._unpacked is None:
             is_full_slice = key == slice(None)
             if key is Ellipsis or is_full_slice:
@@ -514,11 +498,11 @@ class DataRecord:
             self._diff._bytes = None
             self._diff._checksum = None
 
-    @require_mode("r")
-    def _load_from_disk(self, driver=None) -> Any:
+    def _load_from_disk(self, driver: types.ModuleType | None = None) -> Any:
         """
         Loads data from disk, returning a numpy array.
         """
+        _require_mode(self, "r")
         # Get header (dont delay)
         header = self.header  # this will load the bytes from disk
 
@@ -540,9 +524,9 @@ class DataRecord:
 
         return unpacked
 
-    @require_mode("w")
     def _pack(self) -> npt.NDArray[np.uint8]:
         """Pack cached unpacked data and update header state for writing."""
+        _require_mode(self, "w")
         if self._packed is None:
             if not isinstance(self._unpacked, np.ndarray):
                 raise ValueError("Data to pack must be a numpy array.")
@@ -582,11 +566,11 @@ class DataRecord:
 
         return self._packed
 
-    @require_mode("w")
     def _flush(self) -> None:
         """
         Flush the packed data to disk.
         """
+        _require_mode(self, "w")
         raw = self.bytes
         fh = self.recordset.file.handle
         if self.position == -1:

@@ -46,13 +46,13 @@ def _hypsometric_z_agl(
     else:
         p_vals = p_levels.values
 
-    def _take(arr, i):
-        idx = [slice(None)] * arr.ndim
+    def _take(arr: np.ndarray, i: int) -> np.ndarray:
+        idx: list[int | slice] = [slice(None)] * arr.ndim
         idx[level_ax] = i
         return arr[tuple(idx)]
 
-    def _take_range(arr, start, stop):
-        idx = [slice(None)] * arr.ndim
+    def _take_range(arr: np.ndarray, start: int | None, stop: int | None) -> np.ndarray:
+        idx: list[int | slice | None] = [slice(None)] * arr.ndim
         idx[level_ax] = slice(start, stop)
         return arr[tuple(idx)]
 

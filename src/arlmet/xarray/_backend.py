@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from xarray.backends.common import BackendArray
 from xarray.core import indexing
 
 if TYPE_CHECKING:
+    from arlmet.grid import GridWindow
     from arlmet.record import DataRecord
 
 
@@ -18,14 +19,14 @@ class ArlVariableArray(BackendArray):
         *,
         records: dict[tuple[int, int], DataRecord],
         shape: tuple[int, int, int, int],
-        window=None,
+        window: GridWindow | None = None,
     ):
         self.records = records
         self.shape = shape
         self.dtype = np.dtype(np.float32)
         self.window = window
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: indexing.ExplicitIndexer) -> np.ndarray:
         return indexing.explicit_indexing_adapter(
             key,
             self.shape,
@@ -33,7 +34,7 @@ class ArlVariableArray(BackendArray):
             self._getitem,
         )
 
-    def _getitem(self, key):
+    def _getitem(self, key: tuple[Any, ...]) -> np.ndarray:
         """Materialize the requested outer-indexed slice from the backing records."""
         if len(key) != 4:
             raise IndexError(f"ARL variable arrays expect 4 indexers, got {len(key)}.")
@@ -64,7 +65,9 @@ class ArlVariableArray(BackendArray):
         return out
 
 
-def _normalize_backend_indexer(indexer, size: int) -> tuple[np.ndarray, bool]:
+def _normalize_backend_indexer(
+    indexer: slice | np.ndarray | int, size: int
+) -> tuple[np.ndarray, bool]:
     """Normalize one backend indexer to explicit integer indices and scalar status."""
     base = np.arange(size, dtype=int)
     if isinstance(indexer, slice):

@@ -164,7 +164,7 @@ class TestDataRecordModeGuards:
         with File(path) as arl:
             record = arl[time][(0, "TEMP")]
 
-            with pytest.raises(io.UnsupportedOperation, match="__setitem__"):
+            with pytest.raises(io.UnsupportedOperation):
                 record[:] = np.zeros_like(data)
 
     def test_writable_record_rejects_read(self, tmp_path):
@@ -187,7 +187,7 @@ class TestDataRecordModeGuards:
                 data=np.zeros((grid.ny, grid.nx), dtype=np.float32),
             )
 
-            with pytest.raises(io.UnsupportedOperation, match="'read'"):
+            with pytest.raises(io.UnsupportedOperation):
                 record.read()
 
     def test_writable_record_requires_full_initialization_before_slice_assignment(
@@ -539,7 +539,7 @@ class TestDataRecordModeGuards:
             first_position = record.position
             assert first_position >= 0
             assert record.mode == "r"
-            with pytest.raises(io.UnsupportedOperation, match="__setitem__"):
+            with pytest.raises(io.UnsupportedOperation):
                 record[:] = np.full((grid.ny, grid.nx), 2.0, dtype=np.float32)
         finally:
             arl._manager.close()
@@ -722,10 +722,10 @@ class TestFileLowLevelBehavior:
         time, _ = write_single_record_file(path)
 
         with File(path) as arl:
-            with pytest.raises(io.UnsupportedOperation, match="create_recordset"):
+            with pytest.raises(io.UnsupportedOperation):
                 arl.create_recordset(time)
 
-            with pytest.raises(io.UnsupportedOperation, match="source"):
+            with pytest.raises(io.UnsupportedOperation):
                 arl.source = "NEW"
 
     def test_create_grid_and_recordset_internal_validations(self, tmp_path):
