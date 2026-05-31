@@ -174,6 +174,66 @@ def test_extract_subset_preserves_diff_records(tmp_path):
         )
 
 
+def test_extract_subset_recomputes_diff_records_no_systematic_bias(tmp_path):
+    """
+    Cropping a diff-encoded record must not introduce a systematic value bias.
+
+    Regression test for the bug where ``extract_subset`` copied diff records
+    verbatim while repacking the parent with a new exponent + initial_value,
+    leaving the diff aligned with the old quantization grid. The result was a
+    small but non-zero-mean offset across the entire cropped grid that
+    compounded in downstream STILT trajectory integrations.
+
+    The fixture is engineered so the full grid's data range (driven by large
+    outside-window values) yields a parent exponent that differs from the
+    cropped subset's exponent — which is exactly the regime where the old
+    bug manifested. The diff record carries the high-frequency content that
+    only round-trips correctly if recomputed against the newly packed parent.
+    """
+    source = tmp_path / "diff_source.arl"
+    destination = tmp_path / "diff_subset.arl"
+    grid = make_test_grid(nx=60, ny=60)
+    vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+    time0 = pd.Timestamp("2024-07-18 00:00")
+
+    rng = np.random.default_rng(42)
+    data = (100.0 + 50.0 * rng.standard_normal((grid.ny, grid.nx))).astype(np.float32)
+    # Cropped window is approximately cells [5..50, 5..50].  Put small,
+    # smoothly-varying values there so the cropped exponent is much smaller
+    # than the full-grid exponent set by the surrounding noise.
+    yy, xx = np.mgrid[5:50, 5:50].astype(np.float32)
+    data[5:50, 5:50] = 0.001 * (np.sin(xx) + np.cos(yy)) + 0.0001 * rng.standard_normal(
+        (45, 45)
+    ).astype(np.float32)
+
+    with File(
+        source, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+    ) as arl:
+        rs = arl.create_recordset(time0)
+        rs.create_datarecord("WWND", level=0, forecast=0, data=data, diff="DIFW")
+
+    bbox = (25.0, -5.0, 70.0, 40.0)
+    extract_subset(source, destination, bbox=bbox)
+
+    with File(source) as original, File(destination) as subset:
+        source_window = original.grid.window_from_bbox(bbox)
+        source_record = original[time0][(0, "WWND")]
+        subset_record = subset[time0][(0, "WWND")]
+
+        diff_grid = subset_record.read() - source_record.read(window=source_window)
+        mean_signed_bias = float(diff_grid.mean())
+        precision = subset_record.header.precision
+
+        # Random per-cell quantization noise averages to ~0; a systematic
+        # bias on the order of the precision quantum indicates the diff
+        # record was not recomputed against the newly packed parent.
+        assert abs(mean_signed_bias) < precision * 0.01, (
+            f"Systematic bias {mean_signed_bias:+.3e} exceeds 1% of the "
+            f"packing precision {precision:.3e}; diff record likely not "
+            f"recomputed after repacking the parent."
+        )
+
+
 def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
     source = tmp_path / "source.arl"
     write_subset_source(source)

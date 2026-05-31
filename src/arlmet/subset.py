@@ -7,13 +7,10 @@ from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import numpy as np
-
 from arlmet.file import File
 from arlmet.grid import Grid, GridWindow
 from arlmet.header import Header, record_length_from_grid, split_grid_component
 from arlmet.index import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
-from arlmet.packing import unpack
 from arlmet.record import DataRecord
 from arlmet.vertical import VerticalAxis
 
@@ -252,45 +249,15 @@ def extract_subset(
                     forecast=src_recordset.forecast,
                 )
                 for record in selected_records:
-                    if record.diff is None:
-                        data = record.read(window=window)
-                        dst_recordset.create_datarecord(
-                            variable=record.variable,
-                            level=level_map[record.level],
-                            forecast=record.forecast,
-                            data=data,
-                        )
-                        continue
-
-                    parent_data = np.asarray(
-                        unpack(
-                            packed=record.bytes[Header.N_BYTES :],
-                            nx=source.grid.nx,
-                            ny=source.grid.ny,
-                            precision=record.header.precision,
-                            exponent=record.header.exponent,
-                            initial_value=record.header.initial_value,
-                            window=window,
-                            driver=np,
-                        ),
-                        dtype=np.float32,
-                    )
-                    diff_data = np.asarray(
-                        record.diff.read(window=window), dtype=np.float32
-                    )
-                    destination.register_diff_binding(
-                        diff_name=record.diff.variable,
-                        parent_name=record.variable,
-                    )
-                    dst_parent = dst_recordset.create_datarecord(
+                    # record.read() returns the full-precision value
+                    # (parent + diff when a diff is attached); the diff branch
+                    # below relies on this so that create_datarecord(diff=...)
+                    # can recompute the diff against the newly packed parent.
+                    data = record.read(window=window)
+                    dst_recordset.create_datarecord(
                         variable=record.variable,
                         level=level_map[record.level],
                         forecast=record.forecast,
-                        data=parent_data,
+                        data=data,
+                        diff=record.diff.variable if record.diff is not None else None,
                     )
-                    dst_diff = dst_parent._create_diff(
-                        position=-1,
-                        variable=record.diff.variable,
-                        forecast=record.diff.forecast,
-                    )
-                    dst_diff[:] = diff_data
