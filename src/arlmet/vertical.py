@@ -7,18 +7,11 @@ coordinates.
 """
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing_extensions import override
-else:
-
-    def override(f: object) -> object:
-        return f
-
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
+from typing_extensions import override
 
 
 class VerticalAxis:
@@ -88,10 +81,10 @@ class VerticalAxis:
         return self.FLAGS.get(self.flag, "unknown")
 
     @property
-    def levels(self) -> np.ndarray:
+    def levels(self) -> npt.NDArray[Any]:
         return self._levels.copy()
 
-    def calculate_coords(self) -> dict[str, np.ndarray]:
+    def calculate_coords(self) -> dict[str, npt.NDArray[Any]]:
         """Return the native level coordinate values stored in the file."""
         return {"level": self._levels.copy()}
 
@@ -99,7 +92,7 @@ class VerticalAxis:
         self,
         surface_pressure: npt.ArrayLike,
         levels: Sequence[int],
-    ) -> np.ndarray:
+    ) -> npt.NDArray[Any]:
         """
         Compute per-point pressure at each level for sigma or hybrid axes.
 

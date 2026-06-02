@@ -9,17 +9,10 @@ from pathlib import Path
 from types import TracebackType
 from typing import TYPE_CHECKING, Any, BinaryIO, Literal, cast
 
-if TYPE_CHECKING:
-    from typing_extensions import override
-else:
-
-    def override(f: object) -> object:
-        return f
-
-
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+from typing_extensions import override
 from xarray.backends import CachingFileManager
 
 from arlmet._time import ensure_timestamp

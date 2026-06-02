@@ -1,19 +1,14 @@
+"""RecordCollection protocol, VariableView, and VariableAccessor classes."""
+
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
-from typing import TYPE_CHECKING, Any, Literal, Protocol
-
-if TYPE_CHECKING:
-    from typing_extensions import override
-else:
-
-    def override(f: object) -> object:
-        return f
-
+from typing import Any, Literal, Protocol
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+from typing_extensions import override
 
 from arlmet.grid import Grid
 from arlmet.record import DataRecord
@@ -170,8 +165,8 @@ class VariableView:
         return f"VariableView({self.name!r}, shape={self._lazy_shape})"
 
     def __array__(
-        self, dtype: np.dtype | None = None, copy: bool | None = None
-    ) -> np.ndarray:
+        self, dtype: np.dtype[Any] | None = None, copy: bool | None = None
+    ) -> npt.NDArray[Any]:
         """Compute the array and return a numpy array."""
         return np.asarray(self.data, dtype=dtype, copy=copy)
 

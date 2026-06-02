@@ -1,8 +1,11 @@
+"""Lazy xarray BackendArray for ARL variable data."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
+import numpy.typing as npt
 from xarray.backends.common import BackendArray
 from xarray.core import indexing
 
@@ -26,7 +29,7 @@ class ArlVariableArray(BackendArray):
         self.dtype = np.dtype(np.float32)
         self.window = window
 
-    def __getitem__(self, key: indexing.ExplicitIndexer) -> np.ndarray:
+    def __getitem__(self, key: indexing.ExplicitIndexer) -> npt.NDArray[Any]:
         return indexing.explicit_indexing_adapter(
             key,
             self.shape,
@@ -34,7 +37,7 @@ class ArlVariableArray(BackendArray):
             self._getitem,
         )
 
-    def _getitem(self, key: tuple[Any, ...]) -> np.ndarray:
+    def _getitem(self, key: tuple[Any, ...]) -> npt.NDArray[Any]:
         """Materialize the requested outer-indexed slice from the backing records."""
         if len(key) != 4:
             raise IndexError(f"ARL variable arrays expect 4 indexers, got {len(key)}.")
@@ -66,8 +69,8 @@ class ArlVariableArray(BackendArray):
 
 
 def _normalize_backend_indexer(
-    indexer: slice | np.ndarray | int, size: int
-) -> tuple[np.ndarray, bool]:
+    indexer: slice | npt.NDArray[Any] | int, size: int
+) -> tuple[npt.NDArray[Any], bool]:
     """Normalize one backend indexer to explicit integer indices and scalar status."""
     base = np.arange(size, dtype=int)
     if isinstance(indexer, slice):

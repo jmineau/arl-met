@@ -1,3 +1,5 @@
+"""Encode and decode ARL grid and vertical axis as xarray coordinates."""
+
 from __future__ import annotations
 
 from typing import Any

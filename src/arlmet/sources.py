@@ -36,17 +36,10 @@ import shutil
 import tempfile
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar, cast
-
-if TYPE_CHECKING:
-    from typing_extensions import override
-else:
-
-    def override(f: object) -> object:
-        return f
-
+from typing import Any, BinaryIO, ClassVar, cast
 
 import pandas as pd
+from typing_extensions import override
 
 from arlmet._time import ensure_timestamp
 

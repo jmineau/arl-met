@@ -7,16 +7,9 @@ from collections import OrderedDict
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Literal
 
-if TYPE_CHECKING:
-    from typing_extensions import override
-else:
-
-    def override(f: object) -> object:
-        return f
-
-
 import numpy.typing as npt
 import pandas as pd
+from typing_extensions import override
 
 from arlmet.collection import VariableAccessor
 from arlmet.grid import Grid
@@ -213,6 +206,7 @@ class RecordSet:
         }
 
         def record_forecast(record: DataRecord) -> int:
+            """Return the forecast hour for a writable or on-disk DataRecord."""
             # Writable records may still hold raw header fields in a dict.
             # Read forecast directly from that state so index assembly does not
             # materialize a full Header object for every record.
@@ -330,6 +324,7 @@ class RecordSet:
                 self._lookup_flush_record(level.level, name)._flush()
 
     def _lookup_flush_record(self, level: int, variable: str) -> DataRecord:
+        """Look up a writable DataRecord (or diff record) by level and variable name."""
         key = (self.time, level, variable)
         record = self._datarecords.get(key)
         if record is not None:

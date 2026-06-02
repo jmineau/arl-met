@@ -1,6 +1,7 @@
 """Differential packing and unpacking routines for ARL data records."""
 
 import types
+from typing import Any
 
 import numpy as np
 from numpy import typing as npt
@@ -30,7 +31,7 @@ def calculate_checksum(packed: bytes | bytearray) -> int:
 
 
 def pack(
-    unpacked: np.ndarray,
+    unpacked: npt.NDArray[Any],
 ) -> tuple[npt.NDArray[np.uint8], float, int, float]:
     """
     Pack a 2D field using the ARL differential byte encoding.

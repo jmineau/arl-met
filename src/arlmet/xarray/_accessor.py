@@ -1,3 +1,5 @@
+"""xarray accessor for ARL-specific dataset metadata."""
+
 from __future__ import annotations
 
 import xarray as xr

@@ -6,6 +6,7 @@ from collections.abc import Hashable
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 import xarray as xr
 
 R_D = 287.05  # dry air gas constant [J/(kg·K)]
@@ -46,12 +47,16 @@ def _hypsometric_z_agl(
     else:
         p_vals = p_levels.values
 
-    def _take(arr: np.ndarray, i: int) -> np.ndarray:
+    def _take(arr: npt.NDArray[Any], i: int) -> npt.NDArray[Any]:
+        """Extract the slice at level index i along level_ax."""
         idx: list[int | slice] = [slice(None)] * arr.ndim
         idx[level_ax] = i
         return arr[tuple(idx)]
 
-    def _take_range(arr: np.ndarray, start: int | None, stop: int | None) -> np.ndarray:
+    def _take_range(
+        arr: npt.NDArray[Any], start: int | None, stop: int | None
+    ) -> npt.NDArray[Any]:
+        """Extract levels [start:stop] along level_ax."""
         idx: list[int | slice | None] = [slice(None)] * arr.ndim
         idx[level_ax] = slice(start, stop)
         return arr[tuple(idx)]

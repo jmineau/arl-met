@@ -6,17 +6,10 @@ import io
 import types
 from typing import TYPE_CHECKING, Any, Literal, cast
 
-if TYPE_CHECKING:
-    from typing_extensions import override
-else:
-
-    def override(f: object) -> object:
-        return f
-
-
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+from typing_extensions import override
 
 from arlmet.grid import Grid, GridWindow
 from arlmet.header import Header, record_length_from_grid, split_grid_component
@@ -375,7 +368,7 @@ class DataRecord:
         return self._unpacked
 
     def __array__(
-        self, dtype: np.dtype | None = None, copy: bool | None = None
+        self, dtype: np.dtype[Any] | None = None, copy: bool | None = None
     ) -> npt.NDArray[Any]:
         array = np.asarray(self.data)
         if dtype and np.dtype(dtype) != array.dtype:

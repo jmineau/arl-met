@@ -7,21 +7,15 @@ coordinates live in ``arlmet.vertical``.
 """
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, ClassVar
-
-if TYPE_CHECKING:
-    from typing_extensions import override
-else:
-
-    def override(f: object) -> object:
-        return f
-
+from typing import Any, ClassVar
 
 import numpy as np
+import numpy.typing as npt
 import pyproj
+from typing_extensions import override
 
 
-def wrap_lons(lons: np.ndarray) -> np.ndarray:
+def wrap_lons(lons: npt.NDArray[Any]) -> npt.NDArray[Any]:
     """
     Wrap longitude values to -180 to 180 degree range.
 
@@ -522,8 +516,8 @@ class Grid:
         return coords
 
     def fractional_indices(
-        self, lon: np.ndarray | float, lat: np.ndarray | float
-    ) -> tuple[np.ndarray, np.ndarray]:
+        self, lon: npt.NDArray[Any] | float, lat: npt.NDArray[Any] | float
+    ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
         """
         Convert geographic coordinates to zero-based fractional grid indices.
 

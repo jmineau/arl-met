@@ -8,6 +8,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `typing_extensions>=4.0` as a runtime dependency; `override` is now imported directly instead of via a `TYPE_CHECKING` shim in each module
+- Module-level docstrings and missing function docstrings across `collection.py`, `recordset.py`, `xarray/_accessor.py`, `xarray/_backend.py`, `xarray/_coords.py`, `xarray/_vertical.py`, and `xarray/dataset.py`; docstring coverage is now 100%
 - `__repr__` on `Projection`, `Grid`, `VerticalAxis`, `DataRecord`, `RecordSet`, `File`, and `VariableView` — compact, informative string representations for all core classes
 - `VerticalAxis.__len__`: `len(vaxis)` returns the number of levels
 - `RecordSet.__contains__`: `"UWND" in rs` tests variable membership by name
@@ -17,6 +19,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `__version__` simplified to `importlib.metadata.version("arlmet")`; the pyproject.toml fallback path has been removed
 - Type checker switched from pyright to pyrefly (`preset = "strict"`); typing improved across all source modules
 
 ## [0.1.0a2] - 2026-05-13

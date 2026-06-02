@@ -1,3 +1,5 @@
+"""Open and write ARL files as xarray Datasets."""
+
 from __future__ import annotations
 
 import os
@@ -37,6 +39,7 @@ def _build_dataset_from_file(
     bbox: tuple[float, float, float, float] | None = None,
     levels: list[int] | tuple[int, ...] | None = None,
 ) -> xr.Dataset:
+    """Build an xarray Dataset from an open ARL File handle."""
     drop_variables_set: set[str] = set(drop_variables or [])
     window = resolve_window(met, bbox)
     read_window = None if bbox is None else window

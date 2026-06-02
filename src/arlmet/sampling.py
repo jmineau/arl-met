@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 from arlmet._time import ensure_timestamp
@@ -38,13 +39,13 @@ class HorizontalSamplePlan:
 
     method: str
     window: GridWindow | None
-    inside: np.ndarray
-    x0: np.ndarray
-    x1: np.ndarray
-    y0: np.ndarray
-    y1: np.ndarray
-    wx: np.ndarray
-    wy: np.ndarray
+    inside: npt.NDArray[Any]
+    x0: npt.NDArray[Any]
+    x1: npt.NDArray[Any]
+    y0: npt.NDArray[Any]
+    y1: npt.NDArray[Any]
+    wx: npt.NDArray[Any]
+    wy: npt.NDArray[Any]
 
 
 def _normalize_points(
@@ -124,8 +125,8 @@ def _surface_record(recordset: RecordSet, variable: str) -> DataRecord | None:
 
 def _build_horizontal_plan(
     grid: Grid,
-    lon: np.ndarray,
-    lat: np.ndarray,
+    lon: npt.NDArray[Any],
+    lat: npt.NDArray[Any],
     *,
     method: str,
 ) -> HorizontalSamplePlan:
@@ -187,7 +188,9 @@ def _build_horizontal_plan(
     )
 
 
-def _sample_field(field: np.ndarray, plan: HorizontalSamplePlan) -> np.ndarray:
+def _sample_field(
+    field: npt.NDArray[Any], plan: HorizontalSamplePlan
+) -> npt.NDArray[Any]:
     """Bilinearly interpolate a pre-read windowed field to each point in *plan*."""
     result = np.full(plan.inside.shape, np.nan, dtype=np.float32)
     if plan.window is None or not plan.inside.any():
@@ -220,7 +223,7 @@ def _sample_field(field: np.ndarray, plan: HorizontalSamplePlan) -> np.ndarray:
     return result
 
 
-def _sample_record(record: DataRecord, plan: HorizontalSamplePlan) -> np.ndarray:
+def _sample_record(record: DataRecord, plan: HorizontalSamplePlan) -> npt.NDArray[Any]:
     """Read *record* from disk (windowed) and interpolate to each point in *plan*."""
     if plan.window is None:
         return np.full(plan.inside.shape, np.nan, dtype=np.float32)
@@ -229,7 +232,7 @@ def _sample_record(record: DataRecord, plan: HorizontalSamplePlan) -> np.ndarray
 
 
 def _interp_profile(
-    values: np.ndarray, coords: np.ndarray, target: float
+    values: npt.NDArray[Any], coords: npt.NDArray[Any], target: float
 ) -> np.float32:
     """1-D linear interpolation of *values* at *target* along *coords*. Returns NaN outside range."""
     mask = np.isfinite(values) & np.isfinite(coords)
@@ -255,10 +258,10 @@ def _interp_profile(
 
 
 def _interp_profiles(
-    values: np.ndarray,
-    coords: np.ndarray,
-    targets: np.ndarray,
-) -> np.ndarray:
+    values: npt.NDArray[Any],
+    coords: npt.NDArray[Any],
+    targets: npt.NDArray[Any],
+) -> npt.NDArray[Any]:
     """
     Vectorised _interp_profile over n_points rows.
 
@@ -280,7 +283,7 @@ def _sample_hgts_profiles(
     recordset: RecordSet,
     plan: HorizontalSamplePlan,
     levels: Sequence[int],
-) -> np.ndarray | None:
+) -> npt.NDArray[Any] | None:
     """Sample HGTS (geopotential height, m MSL) at *levels*. Returns (n_points, n_levels) or None if HGTS absent."""
     hgts_by_level = {r.level: r for r in recordset.records if r.variable == "HGTS"}
     if not hgts_by_level:
@@ -297,7 +300,7 @@ def _variable_profiles(
     recordset: RecordSet,
     variable: str,
     plan: HorizontalSamplePlan,
-) -> tuple[np.ndarray, tuple[int, ...]]:
+) -> tuple[npt.NDArray[Any], tuple[int, ...]]:
     """Sample *variable* at all its levels. Returns ((n_points, n_levels), level_indices)."""
     records = _record_levels(recordset, variable)
     levels = tuple(records.keys())
@@ -310,13 +313,13 @@ def _variable_profiles(
 def _sample_variable(
     recordset: RecordSet,
     variable: str,
-    targets: np.ndarray,
+    targets: npt.NDArray[Any],
     *,
     z_kind: str,
     plan: HorizontalSamplePlan,
-    surface_pressure: np.ndarray | None,
-    terrain: np.ndarray | None,
-) -> np.ndarray:
+    surface_pressure: npt.NDArray[Any] | None,
+    terrain: npt.NDArray[Any] | None,
+) -> npt.NDArray[Any]:
     """
     Interpolate *variable* to each point's target height.
 

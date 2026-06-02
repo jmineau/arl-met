@@ -216,6 +216,7 @@ dependencies = [
     { name = "pandas", version = "3.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pyproj", version = "3.7.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pyproj", version = "3.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "typing-extensions" },
     { name = "xarray", version = "2025.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "xarray", version = "2026.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
@@ -254,6 +255,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.0" },
     { name = "pyproj", specifier = ">=3.5" },
     { name = "s3fs", marker = "extra == 'sources'", specifier = ">=2024.2" },
+    { name = "typing-extensions", specifier = ">=4.0" },
     { name = "xarray", specifier = ">=2023.6" },
 ]
 provides-extras = ["sources"]
