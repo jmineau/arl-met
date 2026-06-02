@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arlmet"
-version = "0.1.0a2"
+version = "0.1.0a3"
 description = "Read and write ARL meteorological files."
 readme = "README.md"
 requires-python = ">=3.10"

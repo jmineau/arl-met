@@ -6,6 +6,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0a3] - 2026-06-01
+
 ### Added
 
 - `typing_extensions>=4.0` as a runtime dependency; `override` is now imported directly instead of via a `TYPE_CHECKING` shim in each module
@@ -21,6 +23,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `__version__` simplified to `importlib.metadata.version("arlmet")`; the pyproject.toml fallback path has been removed
 - Type checker switched from pyright to pyrefly (`preset = "strict"`); typing improved across all source modules
+
+### Fixed
+
+- `extract_subset()` copied diff (`DIF*`) records verbatim while repacking the parent with a new exponent and initial value tuned to the cropped window, leaving the diff aligned to the old quantization grid. This produced a small systematic value offset across the cropped subset (~3% of packing precision) that compounded in downstream STILT integrations. Diff records are now recomputed against the newly packed parent via `create_datarecord(diff=...)`, matching reference HYSPLIT behavior (#15, closes #14)
 
 ## [0.1.0a2] - 2026-05-13
 
