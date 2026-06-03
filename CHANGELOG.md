@@ -6,6 +6,30 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `sample_points()` now accepts paths in addition to open `File` objects, for a single source or a sequence (mix of paths and files allowed). Paths are opened in read mode and closed automatically; caller-opened files are left open. This removes the need for the caller to manage file lifecycles (e.g. `contextlib.ExitStack`) when sampling across multiple files
+- `File.extract_subset(destination, ...)` method, mirroring the module-level `extract_subset()` for callers that already hold an open file
+- `arlmet.vertical.hypsometric_z_agl()`: a pure-NumPy hypsometric height helper, usable without xarray. The xarray `z_agl()` helper and point sampling now share this single implementation
+- User guides for point sampling (`docs/sampling.rst`) and vertical coordinates (`docs/vertical.rst`); the vertical helpers `pressure()`, `z_agl()`, and `z_msl()` are now listed in the API reference
+- Polymorphic `VerticalAxis` subclasses: `SigmaAxis`, `PressureAxis`, `TerrainAxis`, `HybridAxis`. Each subclass owns its `to_pressure()` and `to_height_agl()` methods, mirroring HYSPLIT's `prfcom` flag dispatcher. Construct via `VerticalAxis.from_flag(flag, levels, offset=)` or use a subclass directly
+- New public exports: `arlmet.SigmaAxis`, `arlmet.PressureAxis`, `arlmet.TerrainAxis`, `arlmet.HybridAxis`
+
+### Changed
+
+- `sample_points(source, ...)`: `source` may now be a path, an open `File`, or a sequence of either (previously a single `File` or sequence of `File`)
+- `extract_subset()` now returns the newly written subset opened as a read-mode `File` (previously returned `None`), so it can be chained into analysis (`with extract_subset(...) as sub: ...`). Callers that only need the file on disk can ignore the return value
+- **`VerticalAxis` is now an abstract base class.** Direct `VerticalAxis(flag=..., levels=...)` construction no longer works; use `VerticalAxis.from_flag(...)` or a subclass constructor
+- Vertical coordinate dispatch in `pressure()`, `z_agl()`, `z_msl()`, and `sample_points()` now delegates to subclass methods instead of if/elif flag chains
+- `z_agl()` for pressure-level (flag=2) files now requires `HGTS` in the dataset, matching HYSPLIT `PRFPRS`. The previous hypsometric fallback for flag=2 files without HGTS has been removed
+- `z_agl()` for sigma/hybrid (flag=1/4) files now always uses hypsometric integration from `PRSS` and `TEMP`, matching HYSPLIT `PRFSIG`/`PRFECM`. These files never contain `HGTS` in practice
+
+### Removed
+
+- `VerticalAxis.sigma_to_pressure()` — replaced by `SigmaAxis.to_pressure()` and `HybridAxis.to_pressure()`
+- `VerticalAxis.FLAGS` dict and `VerticalAxis.coord_system` property — `coord_system` is now a class attribute on each subclass
+- Public `arlmet.sampling.sample_points_from_file`; single-file sampling is covered by `File.sample_points()` (method) and `sample_points()` (module function). The internal workhorse is now the private `_sample_points_from_file`
+
 ## [0.1.0a3] - 2026-06-01
 
 ### Added

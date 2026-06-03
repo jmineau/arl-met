@@ -15,7 +15,7 @@ from arlmet.index import LvlInfo, VarInfo
 from arlmet.packing import unpack
 from arlmet.record import DataRecord
 from arlmet.recordset import VariableAccessor
-from arlmet.vertical import VerticalAxis
+from arlmet.vertical import PressureAxis
 from arlmet.xarray._backend import ArlVariableArray, _normalize_backend_indexer
 
 
@@ -38,7 +38,7 @@ def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
 
 def write_single_record_file(path):
     grid = make_test_grid()
-    vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+    vertical_axis = PressureAxis(levels=[1000.0])
     time = pd.Timestamp("2024-07-18 00:00")
     data = np.arange(grid.nx * grid.ny, dtype=np.float32).reshape(grid.ny, grid.nx)
 
@@ -57,7 +57,7 @@ def write_single_record_file(path):
 
 def write_terrain_file(path, times: list[pd.Timestamp]):
     grid = make_test_grid()
-    vertical_axis = VerticalAxis(flag=2, levels=[0.0])
+    vertical_axis = PressureAxis(levels=[0.0])
     terrain = np.arange(grid.nx * grid.ny, dtype=np.float32).reshape(grid.ny, grid.nx)
 
     with File(
@@ -76,7 +76,7 @@ def write_terrain_file(path, times: list[pd.Timestamp]):
 
 def write_variable_view_file(path):
     grid = make_test_grid()
-    vertical_axis = VerticalAxis(flag=2, levels=[1000.0, 900.0])
+    vertical_axis = PressureAxis(levels=[1000.0, 900.0])
     times = [
         pd.Timestamp("2024-07-18 00:00"),
         pd.Timestamp("2024-07-18 03:00"),
@@ -129,7 +129,7 @@ class TestDataRecordModeGuards:
         time, _ = write_single_record_file(path)
 
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        vertical_axis = PressureAxis(levels=[1000.0])
         writable = File(
             tmp_path / "write_constructor.arl",
             mode="w",
@@ -170,7 +170,7 @@ class TestDataRecordModeGuards:
     def test_writable_record_rejects_read(self, tmp_path):
         path = tmp_path / "write_only.arl"
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        vertical_axis = PressureAxis(levels=[1000.0])
 
         with File(
             path,
@@ -195,7 +195,7 @@ class TestDataRecordModeGuards:
     ):
         path = tmp_path / "uninitialized.arl"
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        vertical_axis = PressureAxis(levels=[1000.0])
 
         arl = File(
             path,
@@ -217,7 +217,7 @@ class TestDataRecordModeGuards:
     def test_writable_record_header_validation_branches(self, tmp_path):
         path = tmp_path / "header_validation.arl"
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        vertical_axis = PressureAxis(levels=[1000.0])
         arl = File(
             path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
         )
@@ -284,7 +284,7 @@ class TestDataRecordModeGuards:
                 _ = record.checksum
 
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        vertical_axis = PressureAxis(levels=[1000.0])
         writable = File(
             tmp_path / "record_branches_write.arl",
             mode="w",
@@ -330,7 +330,7 @@ class TestDataRecordModeGuards:
     def test_write_roundtrip_with_generated_diff_record(self, tmp_path):
         path = tmp_path / "generated_diff.arl"
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        vertical_axis = PressureAxis(levels=[1000.0])
         time = pd.Timestamp("2024-07-18 00:00")
         base = (
             0.123
@@ -376,7 +376,7 @@ class TestDataRecordModeGuards:
     def test_write_rejects_conflicting_diff_bindings(self, tmp_path):
         path = tmp_path / "conflicting_diff.arl"
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        vertical_axis = PressureAxis(levels=[1000.0])
         data = np.ones((grid.ny, grid.nx), dtype=np.float32)
 
         with File(
@@ -396,7 +396,7 @@ class TestDataRecordModeGuards:
     def test_write_rejects_invalid_diff_name(self, tmp_path):
         path = tmp_path / "invalid_diff.arl"
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        vertical_axis = PressureAxis(levels=[1000.0])
         data = np.ones((grid.ny, grid.nx), dtype=np.float32)
 
         with File(
@@ -417,7 +417,7 @@ class TestDataRecordModeGuards:
     ):
         path = tmp_path / "mutable_header.arl"
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        vertical_axis = PressureAxis(levels=[1000.0])
         arl = File(
             path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
         )
@@ -512,7 +512,7 @@ class TestDataRecordModeGuards:
     ):
         path = tmp_path / "flush_record.arl"
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        vertical_axis = PressureAxis(levels=[1000.0])
         arl = File(
             path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
         )
@@ -551,7 +551,7 @@ class TestRecordCollectionForecasts:
     ):
         path = tmp_path / "derived_forecast.arl"
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        vertical_axis = PressureAxis(levels=[1000.0])
         zeros = np.zeros((grid.ny, grid.nx), dtype=np.float32)
 
         with File(
@@ -573,7 +573,7 @@ class TestRecordCollectionForecasts:
     ):
         path = tmp_path / "add_record.arl"
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[1000.0, 900.0])
+        vertical_axis = PressureAxis(levels=[1000.0, 900.0])
         zeros = np.zeros((grid.ny, grid.nx), dtype=np.float32)
         time0 = pd.Timestamp("2024-07-18 00:00")
         time1 = pd.Timestamp("2024-07-18 03:00")
@@ -601,7 +601,7 @@ class TestRecordCollectionForecasts:
     def test_file_add_record_respects_explicit_recordset_forecast(self, tmp_path):
         path = tmp_path / "add_record_explicit_forecast.arl"
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+        vertical_axis = PressureAxis(levels=[1000.0])
         zeros = np.zeros((grid.ny, grid.nx), dtype=np.float32)
         time0 = pd.Timestamp("2024-07-18 00:00")
 
@@ -696,7 +696,7 @@ class TestFileLowLevelBehavior:
             with pytest.raises(TypeError, match="vertical_axis must be a VerticalAxis"):
                 arl.vertical_axis = "bad"
 
-            axis = VerticalAxis(flag=2, levels=[1000.0])
+            axis = PressureAxis(levels=[1000.0])
             arl.vertical_axis = axis
             assert arl.vertical_axis == axis
         finally:
@@ -766,7 +766,7 @@ class TestFileLowLevelBehavior:
                 )
 
             time = pd.Timestamp("2024-07-18 00:00")
-            arl.vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+            arl.vertical_axis = PressureAxis(levels=[1000.0])
             arl._create_recordset(position=-1, source=None, grid=None, time=time)
 
             with pytest.raises(ValueError, match="already exists"):
@@ -821,7 +821,7 @@ class TestFileLowLevelBehavior:
         first = SimpleNamespace(
             source="TEST",
             grid=grid,
-            vertical_axis=VerticalAxis(flag=2, levels=[1000.0]),
+            vertical_axis=PressureAxis(levels=[1000.0]),
             time=pd.Timestamp("2024-07-18 00:00"),
             forecast=0,
             levels=[],
@@ -829,7 +829,7 @@ class TestFileLowLevelBehavior:
         second = SimpleNamespace(
             source="TEST",
             grid=grid,
-            vertical_axis=VerticalAxis(flag=2, levels=[900.0]),
+            vertical_axis=PressureAxis(levels=[900.0]),
             time=pd.Timestamp("2024-07-18 03:00"),
             forecast=0,
             levels=[],
@@ -853,7 +853,7 @@ class TestFileLowLevelBehavior:
         index = SimpleNamespace(
             source="TEST",
             grid=grid,
-            vertical_axis=VerticalAxis(flag=2, levels=[1000.0]),
+            vertical_axis=PressureAxis(levels=[1000.0]),
             time=pd.Timestamp("2024-07-18 00:00"),
             forecast=0,
             levels=[
@@ -893,7 +893,7 @@ class TestFileLowLevelBehavior:
         index = SimpleNamespace(
             source="TEST",
             grid=grid,
-            vertical_axis=VerticalAxis(flag=2, levels=[1000.0]),
+            vertical_axis=PressureAxis(levels=[1000.0]),
             time=pd.Timestamp("2024-07-18 00:00"),
             forecast=0,
             levels=[

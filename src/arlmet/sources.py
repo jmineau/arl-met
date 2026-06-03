@@ -290,7 +290,9 @@ class MeteorologySource(ABC):
             tmp = Path(f.name)
         try:
             self._download(url, tmp, opts)
-            extract_subset(tmp, dest, bbox=bbox)
+            # extract_subset returns the cropped file opened in read mode; we
+            # only need it on disk here, so close the handle immediately.
+            extract_subset(tmp, dest, bbox=bbox).close()
         finally:
             tmp.unlink(missing_ok=True)
 

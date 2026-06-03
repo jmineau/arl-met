@@ -6,7 +6,7 @@ import pytest
 
 from arlmet import File, extract_subset, open_dataset
 from arlmet.grid import Grid, Projection
-from arlmet.vertical import VerticalAxis
+from arlmet.vertical import PressureAxis
 
 
 def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
@@ -28,7 +28,7 @@ def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
 
 def write_subset_source(path):
     grid = make_test_grid()
-    vertical_axis = VerticalAxis(flag=2, levels=[0.0, 1000.0, 2000.0])
+    vertical_axis = PressureAxis(levels=[0.0, 1000.0, 2000.0])
     base = np.arange(grid.nx * grid.ny, dtype=np.float32).reshape(grid.ny, grid.nx)
 
     time0 = pd.Timestamp("2024-07-18 00:00")
@@ -82,6 +82,48 @@ def test_extract_subset_crops_bbox_and_compacts_levels(tmp_path):
         )
 
 
+def test_extract_subset_returns_open_subset_file(tmp_path):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+
+    result = extract_subset(
+        source,
+        destination,
+        bbox=(22.0, -8.0, 33.0, 3.0),
+        levels=[0, 2],
+        variables=["PRSS", "UWND"],
+    )
+    try:
+        assert isinstance(result, File)
+        assert result.path == destination
+        assert result.grid.nx == 12
+        assert result.grid.ny == 12
+    finally:
+        result.close()
+
+
+def test_file_extract_subset_method_matches_module_function(tmp_path):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+
+    with (
+        File(source) as met,
+        met.extract_subset(
+            destination,
+            bbox=(22.0, -8.0, 33.0, 3.0),
+            levels=[0, 2],
+            variables=["PRSS", "UWND"],
+        ) as subset,
+    ):
+        assert subset.grid.nx == 12
+        assert subset.vertical_axis.levels.tolist() == [0.0, 2000.0]
+        assert subset.times == met.times
+        ds = subset.to_dataset()
+        assert set(ds.data_vars) >= {"PRSS", "UWND"}
+
+
 def test_extract_subset_rejects_out_of_bounds_levels(tmp_path):
     source = tmp_path / "source.arl"
     destination = tmp_path / "subset.arl"
@@ -119,7 +161,7 @@ def test_extract_subset_allows_mixed_record_forecasts(tmp_path):
     source = tmp_path / "mixed_forecast_source.arl"
     destination = tmp_path / "mixed_forecast_subset.arl"
     grid = make_test_grid()
-    vertical_axis = VerticalAxis(flag=2, levels=[0.0, 1000.0])
+    vertical_axis = PressureAxis(levels=[0.0, 1000.0])
     data = np.ones((grid.ny, grid.nx), dtype=np.float32)
     time0 = pd.Timestamp("2025-09-01 00:00")
 
@@ -142,7 +184,7 @@ def test_extract_subset_preserves_diff_records(tmp_path):
     source = tmp_path / "diff_source.arl"
     destination = tmp_path / "diff_subset.arl"
     grid = make_test_grid()
-    vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+    vertical_axis = PressureAxis(levels=[1000.0])
     time0 = pd.Timestamp("2024-07-18 00:00")
     data = (
         0.123
@@ -193,7 +235,7 @@ def test_extract_subset_recomputes_diff_records_no_systematic_bias(tmp_path):
     source = tmp_path / "diff_source.arl"
     destination = tmp_path / "diff_subset.arl"
     grid = make_test_grid(nx=60, ny=60)
-    vertical_axis = VerticalAxis(flag=2, levels=[1000.0])
+    vertical_axis = PressureAxis(levels=[1000.0])
     time0 = pd.Timestamp("2024-07-18 00:00")
 
     rng = np.random.default_rng(42)

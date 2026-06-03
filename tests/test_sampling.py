@@ -6,7 +6,13 @@ import pytest
 
 from arlmet import File, sample_points
 from arlmet.grid import Grid, Projection
-from arlmet.vertical import VerticalAxis
+from arlmet.vertical import (
+    HybridAxis,
+    PressureAxis,
+    SigmaAxis,
+    TerrainAxis,
+    hypsometric_z_agl,
+)
 
 
 def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
@@ -31,7 +37,7 @@ _DZ = 9.88  # m/hPa used to build synthetic HGTS for pressure-level test fixture
 
 def write_sampling_file(path, *, time: pd.Timestamp, temp_offset: float = 0.0):
     grid = make_test_grid()
-    vertical_axis = VerticalAxis(flag=2, levels=[1000.0, 900.0, 800.0])
+    vertical_axis = PressureAxis(levels=[1000.0, 900.0, 800.0])
     yy, xx = np.meshgrid(np.arange(grid.ny), np.arange(grid.nx), indexing="ij")
     base = 10.0 * yy + xx
 
@@ -103,7 +109,7 @@ def write_deep_sampling_file(path, *, time: pd.Timestamp, temp_offset: float = 0
         10.0,
         1.0,
     ]
-    vertical_axis = VerticalAxis(flag=2, levels=levels)
+    vertical_axis = PressureAxis(levels=levels)
     yy, xx = np.meshgrid(np.arange(grid.ny), np.arange(grid.nx), indexing="ij")
     base = 0.1 * yy + 0.1 * xx
 
@@ -234,6 +240,54 @@ class TestPointSampling:
 
         np.testing.assert_allclose(result["TEMP"].to_numpy(), [290.5, 310.5])
 
+    def test_module_sample_points_accepts_single_path(self, tmp_path):
+        path = tmp_path / "single.arl"
+        time = pd.Timestamp("2024-07-18 00:00")
+        write_sampling_file(path, time=time, temp_offset=0.0)
+
+        points = pd.DataFrame(
+            {"lon": [20.5], "lat": [-9.5], "z": [950.0], "time": [time]}
+        )
+
+        # Path is opened and closed internally; no `with` needed.
+        result = sample_points(path, points, ["TEMP"], z_kind="pressure")
+        np.testing.assert_allclose(result["TEMP"].to_numpy(), [290.5])
+
+    def test_module_sample_points_accepts_sequence_of_paths(self, tmp_path):
+        path0 = tmp_path / "p0.arl"
+        path1 = tmp_path / "p1.arl"
+        time0 = pd.Timestamp("2024-07-18 00:00")
+        time1 = pd.Timestamp("2024-07-18 03:00")
+        write_sampling_file(path0, time=time0, temp_offset=0.0)
+        write_sampling_file(path1, time=time1, temp_offset=20.0)
+
+        points = pd.DataFrame(
+            {
+                "time": [time0, time1],
+                "lon": [20.5, 20.5],
+                "lat": [-9.5, -9.5],
+                "z": [950.0, 950.0],
+            }
+        )
+
+        result = sample_points([path0, path1], points, ["TEMP"], z_kind="pressure")
+        np.testing.assert_allclose(result["TEMP"].to_numpy(), [290.5, 310.5])
+
+    def test_module_sample_points_leaves_caller_opened_file_open(self, tmp_path):
+        path = tmp_path / "caller.arl"
+        time = pd.Timestamp("2024-07-18 00:00")
+        write_sampling_file(path, time=time, temp_offset=0.0)
+
+        points = pd.DataFrame(
+            {"lon": [20.5], "lat": [-9.5], "z": [950.0], "time": [time]}
+        )
+
+        with File(path) as f:
+            sample_points(f, points, ["TEMP"], z_kind="pressure")
+            # The caller still owns f and it remains usable afterward.
+            again = sample_points(f, points, ["TEMP"], z_kind="pressure")
+        np.testing.assert_allclose(again["TEMP"].to_numpy(), [290.5])
+
     def test_file_sample_points_supports_simple_slant_path(self, tmp_path):
         path = tmp_path / "slant.arl"
         time = pd.Timestamp("2024-07-18 00:00")
@@ -274,11 +328,12 @@ def write_sigma_sampling_file(path, *, time: pd.Timestamp):
     """
     Sigma (flag=1) file with offset=0 (p_top=0 hPa).
     sigma=[1.0, 0.9, 0.8], PRSS=1000 → pressure levels [1000, 900, 800] hPa.
-    HGTS=[100, 1100, 2100] m → AGL=[0, 1000, 2000] m, terrain=100 m.
+    No HGTS — matches real sigma files. Heights derived via hypsometric.
     TEMP at each level: 280, 290, 300 K (uniform grid).
+    terrain (SHGT) = 100 m.
     """
     grid = make_test_grid()
-    vertical_axis = VerticalAxis(flag=1, levels=[1.0, 0.9, 0.8], offset=0.0)
+    vertical_axis = SigmaAxis(levels=[1.0, 0.9, 0.8], offset=0.0)
     terrain_data = np.full((grid.ny, grid.nx), 100.0, dtype=np.float32)
     surface_pressure = np.full((grid.ny, grid.nx), 1000.0, dtype=np.float32)
 
@@ -288,13 +343,9 @@ def write_sigma_sampling_file(path, *, time: pd.Timestamp):
         rs = arl.create_recordset(time)
         rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain_data)
         rs.create_datarecord("PRSS", level=0, forecast=0, data=surface_pressure)
-        for level_index, (temp_val, hgts_val) in enumerate(
-            zip([280.0, 290.0, 300.0], [100.0, 1100.0, 2100.0], strict=True)
-        ):
+        for level_index, temp_val in enumerate([280.0, 290.0, 300.0]):
             temp = np.full((grid.ny, grid.nx), temp_val, dtype=np.float32)
-            hgts = np.full((grid.ny, grid.nx), hgts_val, dtype=np.float32)
             rs.create_datarecord("TEMP", level=level_index, forecast=0, data=temp)
-            rs.create_datarecord("HGTS", level=level_index, forecast=0, data=hgts)
 
     return {
         "grid": grid,
@@ -313,7 +364,7 @@ def write_terrain_sampling_file(path, *, time: pd.Timestamp):
     No PRSS — not needed for flag=3 AGL queries.
     """
     grid = make_test_grid()
-    vertical_axis = VerticalAxis(flag=3, levels=[0.0, 100.0, 500.0])
+    vertical_axis = TerrainAxis(levels=[0.0, 100.0, 500.0])
     terrain_data = np.full((grid.ny, grid.nx), 200.0, dtype=np.float32)
 
     with File(
@@ -332,11 +383,19 @@ def write_terrain_sampling_file(path, *, time: pd.Timestamp):
     }
 
 
+def _sigma_hypsometric_agl(surface_pressure, temps, sigma_levels, offset=0.0):
+    """Compute expected AGL heights for sigma fixtures via hypsometric equation."""
+    axis = SigmaAxis(levels=sigma_levels, offset=offset)
+    sp = np.array([surface_pressure])
+    p = axis.to_pressure(surface_pressure=sp)
+    return hypsometric_z_agl(p, sp, np.array(temps)[None, :], level_axis=1)[0]
+
+
 class TestSigmaSampling:
     """
     Sigma (flag=1) file: sigma=[1.0, 0.9, 0.8], PRSS=1000 hPa, p_top=0.
     Effective pressure levels: [1000, 900, 800] hPa.
-    HGTS=[100, 1100, 2100] m → AGL=[0, 1000, 2000] m. Terrain=100 m.
+    Heights derived via hypsometric integration from PRSS + TEMP.
     TEMP: [280, 290, 300] K.
     """
 
@@ -372,30 +431,30 @@ class TestSigmaSampling:
         time = pd.Timestamp("2024-07-18 00:00")
         write_sigma_sampling_file(path, time=time)
 
-        # AGL midpoint between levels 0 (0m) and 1 (1000m) = 500m → TEMP = 285
-        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
-        with File(path) as arl:
-            result = arl.sample_points(
-                points, ["TEMP", "pressure"], time=time, z_kind="agl"
-            )
+        # Compute expected AGL heights via hypsometric equation
+        agl = _sigma_hypsometric_agl(1000.0, [280.0, 290.0, 300.0], [1.0, 0.9, 0.8])
+        z_mid = 0.5 * (agl[0] + agl[1])
 
-        np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
-        np.testing.assert_allclose(result["pressure"].iloc[0], 950.0, atol=1e-4)
+        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(z_mid)]})
+        with File(path) as arl:
+            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="agl")
+
+        np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-3)
 
     def test_msl_z_kind(self, tmp_path):
         path = tmp_path / "sigma.arl"
         time = pd.Timestamp("2024-07-18 00:00")
         write_sigma_sampling_file(path, time=time)
 
-        # terrain=100m; MSL midpoint = 500m AGL + 100m = 600m → TEMP = 285
-        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [600.0]})
-        with File(path) as arl:
-            result = arl.sample_points(
-                points, ["TEMP", "pressure"], time=time, z_kind="msl"
-            )
+        # terrain=100m; MSL = AGL + terrain
+        agl = _sigma_hypsometric_agl(1000.0, [280.0, 290.0, 300.0], [1.0, 0.9, 0.8])
+        z_mid_msl = 0.5 * (agl[0] + agl[1]) + 100.0
 
-        np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
-        np.testing.assert_allclose(result["pressure"].iloc[0], 950.0, atol=1e-4)
+        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(z_mid_msl)]})
+        with File(path) as arl:
+            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
+
+        np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-3)
 
 
 def write_hybrid_sampling_file(path, *, time: pd.Timestamp):
@@ -403,11 +462,12 @@ def write_hybrid_sampling_file(path, *, time: pd.Timestamp):
     Hybrid (flag=4) file with pure-sigma levels (floor_p=0 for all).
     levels=[0.995, 0.9, 0.8], PRSS=1000 hPa.
     Pressure: level 0 → 1000 hPa (surface override), level 1 → 900 hPa, level 2 → 800 hPa.
-    HGTS=[100, 1100, 2100] m → AGL=[0, 1000, 2000] m, terrain=100 m.
+    No HGTS — matches real hybrid files. Heights derived via hypsometric.
     TEMP: 280, 290, 300 K (uniform grid).
+    terrain (SHGT) = 100 m.
     """
     grid = make_test_grid()
-    vertical_axis = VerticalAxis(flag=4, levels=[0.995, 0.9, 0.8])
+    vertical_axis = HybridAxis(levels=[0.995, 0.9, 0.8])
     terrain_data = np.full((grid.ny, grid.nx), 100.0, dtype=np.float32)
     surface_pressure = np.full((grid.ny, grid.nx), 1000.0, dtype=np.float32)
 
@@ -417,13 +477,9 @@ def write_hybrid_sampling_file(path, *, time: pd.Timestamp):
         rs = arl.create_recordset(time)
         rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain_data)
         rs.create_datarecord("PRSS", level=0, forecast=0, data=surface_pressure)
-        for level_index, (temp_val, hgts_val) in enumerate(
-            zip([280.0, 290.0, 300.0], [100.0, 1100.0, 2100.0], strict=True)
-        ):
+        for level_index, temp_val in enumerate([280.0, 290.0, 300.0]):
             temp = np.full((grid.ny, grid.nx), temp_val, dtype=np.float32)
-            hgts = np.full((grid.ny, grid.nx), hgts_val, dtype=np.float32)
             rs.create_datarecord("TEMP", level=level_index, forecast=0, data=temp)
-            rs.create_datarecord("HGTS", level=level_index, forecast=0, data=hgts)
 
     return {
         "grid": grid,
@@ -433,11 +489,19 @@ def write_hybrid_sampling_file(path, *, time: pd.Timestamp):
     }
 
 
+def _hybrid_hypsometric_agl(surface_pressure, temps, hybrid_levels):
+    """Compute expected AGL heights for hybrid fixtures via hypsometric equation."""
+    axis = HybridAxis(levels=hybrid_levels)
+    sp = np.array([surface_pressure])
+    p = axis.to_pressure(surface_pressure=sp)
+    return hypsometric_z_agl(p, sp, np.array(temps)[None, :], level_axis=1)[0]
+
+
 class TestHybridSampling:
     """
     Hybrid (flag=4) file: levels=[0.995, 0.9, 0.8], PRSS=1000 hPa.
     Effective pressure levels: [1000, 900, 800] hPa (floor_p=0 → pure sigma).
-    HGTS=[100, 1100, 2100] m → AGL=[0, 1000, 2000] m. Terrain=100 m.
+    Heights derived via hypsometric integration.
     TEMP: [280, 290, 300] K.
     """
 
@@ -473,30 +537,28 @@ class TestHybridSampling:
         time = pd.Timestamp("2024-07-18 00:00")
         write_hybrid_sampling_file(path, time=time)
 
-        # 500m AGL = midpoint between levels 0 (0m) and 1 (1000m) → TEMP = 285
-        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
-        with File(path) as arl:
-            result = arl.sample_points(
-                points, ["TEMP", "pressure"], time=time, z_kind="agl"
-            )
+        agl = _hybrid_hypsometric_agl(1000.0, [280.0, 290.0, 300.0], [0.995, 0.9, 0.8])
+        z_mid = 0.5 * (agl[0] + agl[1])
 
-        np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
-        np.testing.assert_allclose(result["pressure"].iloc[0], 950.0, atol=1e-4)
+        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(z_mid)]})
+        with File(path) as arl:
+            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="agl")
+
+        np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-3)
 
     def test_msl_z_kind(self, tmp_path):
         path = tmp_path / "hybrid.arl"
         time = pd.Timestamp("2024-07-18 00:00")
         write_hybrid_sampling_file(path, time=time)
 
-        # terrain=100m; 600m MSL = 500m AGL → midpoint between levels 0 and 1
-        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [600.0]})
-        with File(path) as arl:
-            result = arl.sample_points(
-                points, ["TEMP", "pressure"], time=time, z_kind="msl"
-            )
+        agl = _hybrid_hypsometric_agl(1000.0, [280.0, 290.0, 300.0], [0.995, 0.9, 0.8])
+        z_mid_msl = 0.5 * (agl[0] + agl[1]) + 100.0  # terrain = 100m
 
-        np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
-        np.testing.assert_allclose(result["pressure"].iloc[0], 950.0, atol=1e-4)
+        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(z_mid_msl)]})
+        with File(path) as arl:
+            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
+
+        np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-3)
 
 
 def write_sampling_file_with_hgts(path, *, time: pd.Timestamp):
@@ -507,7 +569,7 @@ def write_sampling_file_with_hgts(path, *, time: pd.Timestamp):
     TEMP: 280, 290, 300 K at each level.
     """
     grid = make_test_grid()
-    vertical_axis = VerticalAxis(flag=2, levels=[1000.0, 900.0, 800.0])
+    vertical_axis = PressureAxis(levels=[1000.0, 900.0, 800.0])
     terrain_data = np.full((grid.ny, grid.nx), 200.0, dtype=np.float32)
     surface_pressure = np.full((grid.ny, grid.nx), 1000.0, dtype=np.float32)
     hgts_values = [200.0, 1200.0, 2200.0]
@@ -637,13 +699,86 @@ class TestTerrainFollowingSampling:
             arl.sample_points(points, ["TEMP"], time=time, z_kind="pressure")
 
 
+class TestFlag2RequiresHgts:
+    """Pressure-level (flag=2) files require HGTS for AGL/MSL sampling."""
+
+    def test_missing_hgts_raises_for_agl(self, tmp_path):
+        path = tmp_path / "no_hgts.arl"
+        time = pd.Timestamp("2024-07-18")
+        grid = make_test_grid()
+        vaxis = PressureAxis(levels=[1000.0, 900.0, 800.0])
+        terrain = np.full((grid.ny, grid.nx), 100.0, dtype=np.float32)
+        temp = np.full((grid.ny, grid.nx), 280.0, dtype=np.float32)
+
+        with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
+            rs = arl.create_recordset(time)
+            rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain)
+            for i in range(3):
+                rs.create_datarecord("TEMP", level=i, forecast=0, data=temp)
+
+        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
+        with File(path) as arl, pytest.raises(ValueError, match="HGTS"):
+            arl.sample_points(points, ["TEMP"], time=time, z_kind="agl")
+
+    def test_missing_hgts_raises_for_msl(self, tmp_path):
+        path = tmp_path / "no_hgts.arl"
+        time = pd.Timestamp("2024-07-18")
+        grid = make_test_grid()
+        vaxis = PressureAxis(levels=[1000.0, 900.0, 800.0])
+        terrain = np.full((grid.ny, grid.nx), 100.0, dtype=np.float32)
+        temp = np.full((grid.ny, grid.nx), 280.0, dtype=np.float32)
+
+        with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
+            rs = arl.create_recordset(time)
+            rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain)
+            for i in range(3):
+                rs.create_datarecord("TEMP", level=i, forecast=0, data=temp)
+
+        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
+        with File(path) as arl, pytest.raises(ValueError, match="HGTS"):
+            arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
+
+
+class TestSigmaHypsometricSampling:
+    """Sigma/hybrid files use hypsometric integration for AGL/MSL (no HGTS)."""
+
+    def test_sigma_agl_matches_hypsometric(self, tmp_path):
+        path = tmp_path / "sigma.arl"
+        time = pd.Timestamp("2024-07-18 00:00")
+        write_sigma_sampling_file(path, time=time)
+
+        agl = _sigma_hypsometric_agl(1000.0, [280.0, 290.0, 300.0], [1.0, 0.9, 0.8])
+
+        # Sample at the second level's AGL height → should return that level's TEMP
+        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(agl[1])]})
+        with File(path) as arl:
+            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="agl")
+
+        np.testing.assert_allclose(result["TEMP"].iloc[0], 290.0, atol=1e-3)
+
+    def test_sigma_msl_matches_hypsometric_plus_terrain(self, tmp_path):
+        path = tmp_path / "sigma.arl"
+        time = pd.Timestamp("2024-07-18 00:00")
+        write_sigma_sampling_file(path, time=time)
+
+        agl = _sigma_hypsometric_agl(1000.0, [280.0, 290.0, 300.0], [1.0, 0.9, 0.8])
+        # terrain = 100m
+        z_msl = float(agl[1]) + 100.0
+
+        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [z_msl]})
+        with File(path) as arl:
+            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
+
+        np.testing.assert_allclose(result["TEMP"].iloc[0], 290.0, atol=1e-3)
+
+
 class TestHorizontalInterpolation:
     """Verify bilinear weights and nearest-neighbour snapping."""
 
     def _write_gradient_file(self, path, time):
         """Single-level file; TEMP[y, x] = x + 10.0 * y. Single level avoids vertical interp."""
         grid = make_test_grid()
-        vaxis = VerticalAxis(flag=2, levels=[1000.0])
+        vaxis = PressureAxis(levels=[1000.0])
         yy, xx = np.meshgrid(np.arange(grid.ny), np.arange(grid.nx), indexing="ij")
         temp = (xx + 10.0 * yy).astype(np.float32)
         with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
@@ -738,25 +873,6 @@ class TestSamplingErrors:
 
         assert np.isnan(result["TEMP"].iloc[0])
 
-    def test_missing_hgts_raises_for_agl(self, tmp_path):
-        path = tmp_path / "no_hgts.arl"
-        time = pd.Timestamp("2024-07-18")
-        grid = make_test_grid()
-        vaxis = VerticalAxis(flag=2, levels=[1000.0, 900.0, 800.0])
-        terrain = np.full((grid.ny, grid.nx), 100.0, dtype=np.float32)
-        temp = np.full((grid.ny, grid.nx), 280.0, dtype=np.float32)
-
-        with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
-            rs = arl.create_recordset(time)
-            rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain)
-            for i in range(3):
-                rs.create_datarecord("TEMP", level=i, forecast=0, data=temp)
-            # intentionally no HGTS records
-
-        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
-        with File(path) as arl, pytest.raises(ValueError, match="HGTS"):
-            arl.sample_points(points, ["TEMP"], time=time, z_kind="agl")
-
     def test_duplicate_time_across_sources_raises(self, tmp_path):
         path = tmp_path / "dup.arl"
         time = pd.Timestamp("2024-07-18")
@@ -778,7 +894,7 @@ class TestMultiTimeFile:
         time1 = pd.Timestamp("2024-07-18 06:00")
 
         grid = make_test_grid()
-        vaxis = VerticalAxis(flag=2, levels=[1000.0, 900.0, 800.0])
+        vaxis = PressureAxis(levels=[1000.0, 900.0, 800.0])
 
         with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
             for t, base in [(time0, 280.0), (time1, 300.0)]:

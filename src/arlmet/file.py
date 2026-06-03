@@ -21,7 +21,7 @@ from arlmet.header import record_length_from_grid
 from arlmet.index import IndexRecord
 from arlmet.record import DataRecord, _require_mode
 from arlmet.recordset import RecordSet, VariableAccessor
-from arlmet.sampling import sample_points_from_file
+from arlmet.sampling import _sample_points_from_file
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
@@ -72,6 +72,10 @@ class File:
         Create a writable RecordSet for one valid time.
     sample_points(points, variables, ...)
         Interpolate fields at arbitrary lon/lat/z sample points.
+    extract_subset(destination, ...)
+        Write a spatial/vertical subset to a new ARL file and return it.
+    to_dataset(...)
+        Project the file into the simplified analysis xarray Dataset.
     close()
         Flush pending writes and release the file handle.
 
@@ -513,7 +517,7 @@ class File:
         >>> with arlmet.File("met.arl") as met:
         ...     met.sample_points(pts, ["UWND", "VWND"])
         """
-        return sample_points_from_file(
+        return _sample_points_from_file(
             self,
             points,
             variables,
@@ -537,6 +541,52 @@ class File:
             drop_variables=drop_variables,
             bbox=bbox,
             levels=levels,
+        )
+
+    def extract_subset(
+        self,
+        destination_path: str | os.PathLike[str],
+        *,
+        bbox: tuple[float, float, float, float] | None = None,
+        levels: Iterable[int] | None = None,
+        variables: Iterable[str] | None = None,
+    ) -> File:
+        """
+        Write a spatial/vertical subset of this file to a new ARL file.
+
+        Parameters
+        ----------
+        destination_path : path-like
+            Output ARL file path.
+        bbox : tuple[float, float, float, float], optional
+            Geographic bounding box ``(west, south, east, north)`` in degrees.
+        levels : iterable of int, optional
+            ARL level indices to keep. Output levels are compacted and
+            renumbered from zero while preserving the selected level heights.
+        variables : iterable of str, optional
+            Variable names to keep. All variables are included by default.
+
+        Returns
+        -------
+        File
+            The newly written subset, opened in read mode. Close it when done
+            (or use it as a context manager).
+
+        Examples
+        --------
+        >>> import arlmet
+        >>> with arlmet.File("met.arl") as met:
+        ...     with met.extract_subset("subset.arl", bbox=(-114, 39, -110, 42)) as sub:
+        ...         ds = sub.to_dataset()
+        """
+        from arlmet.subset import extract_subset
+
+        return extract_subset(
+            self.path,
+            destination_path,
+            bbox=bbox,
+            levels=levels,
+            variables=variables,
         )
 
     def __getitem__(self, key: str | int | pd.Timestamp) -> RecordSet:

@@ -579,6 +579,7 @@ class TestFetchHelpers:
     def test_fetch_and_crop_cleans_up_temp_input(self, tmp_path, monkeypatch):
         downloaded = []
         cropped = []
+        closed = []
 
         def fake_download(url, dest, opts):
             downloaded.append((url, dest, opts))
@@ -587,6 +588,8 @@ class TestFetchHelpers:
         def fake_extract_subset(src, dst, bbox):
             cropped.append((Path(src), Path(dst), bbox))
             Path(dst).write_bytes(Path(src).read_bytes() + b"-cropped")
+            # extract_subset returns the cropped file opened in read mode.
+            return types.SimpleNamespace(close=lambda: closed.append(True))
 
         monkeypatch.setattr(self.src, "_download", fake_download)
         monkeypatch.setitem(
@@ -602,6 +605,8 @@ class TestFetchHelpers:
 
         assert downloaded[0][0] == "s3://bucket/test"
         assert dest.read_bytes() == b"raw-cropped"
+        # The returned handle is closed by _fetch_and_crop.
+        assert closed == [True]
         assert not cropped[0][0].exists()
 
     def test_fetch_uses_cache_and_dispatches_crop_download_and_overwrite(

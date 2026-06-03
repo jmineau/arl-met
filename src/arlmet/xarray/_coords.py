@@ -139,7 +139,7 @@ def vaxis_from_coord(
     levels[0] = surface
     for idx, phys in zip(level_ints, phys_values, strict=True):
         levels[idx] = phys
-    return VerticalAxis(flag=flag, levels=levels, offset=offset)
+    return VerticalAxis.from_flag(flag, levels=levels, offset=offset)
 
 
 def _extract_dataset_vertical_axis(

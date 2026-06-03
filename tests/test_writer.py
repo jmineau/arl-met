@@ -9,7 +9,7 @@ from arlmet import File, open_dataset, write_dataset
 from arlmet.grid import Grid, Projection
 from arlmet.index import IndexRecord
 from arlmet.packing import pack, unpack
-from arlmet.vertical import VerticalAxis
+from arlmet.vertical import PressureAxis
 
 
 def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
@@ -32,7 +32,7 @@ def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
 class TestWriter:
     def write_sample_file(self, path):
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[0.0, 1000.0])
+        vertical_axis = PressureAxis(levels=[0.0, 1000.0])
 
         prss0 = (
             1000.0
@@ -78,7 +78,7 @@ class TestWriter:
 
     def write_surface_only_file(self, path):
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[0.0])
+        vertical_axis = PressureAxis(levels=[0.0])
         time0 = pd.Timestamp("2024-07-18 00:00")
         time1 = pd.Timestamp("2024-07-18 03:00")
         data0 = np.ones((grid.ny, grid.nx), dtype=np.float32)
@@ -183,7 +183,7 @@ class TestWriter:
         """
         path = tmp_path / "mixed_forecast.arl"
         grid = make_test_grid()
-        vertical_axis = VerticalAxis(flag=2, levels=[0.0, 1000.0])
+        vertical_axis = PressureAxis(levels=[0.0, 1000.0])
         time0 = pd.Timestamp("2025-09-01 00:00")
         data = np.ones((grid.ny, grid.nx), dtype=np.float32)
 
@@ -242,9 +242,7 @@ class TestWriter:
         ):
             write_dataset(ds, written_path)
 
-        write_dataset(
-            ds, written_path, vertical_axis=VerticalAxis(flag=2, levels=[0.0])
-        )
+        write_dataset(ds, written_path, vertical_axis=PressureAxis(levels=[0.0]))
         reopened = open_dataset(written_path)
         np.testing.assert_allclose(reopened["PRSS"].values, ds["PRSS"].values)
 

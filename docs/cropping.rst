@@ -52,6 +52,26 @@ Use :func:`arlmet.extract_subset` when you want a new ARL file on disk.
        bbox=(-114.0, 39.0, -110.0, 42.0),
    )
 
+``extract_subset()`` returns the new file opened in read mode, so you can chain
+straight into analysis. Use it as a context manager (or call ``.close()``) when
+you keep the return value; ignore it if you only need the file on disk.
+
+.. code-block:: python
+
+   with arlmet.extract_subset(
+       "input.arl", "cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0)
+   ) as cropped:
+       ds = cropped.to_dataset()
+
+When you already hold an open :class:`arlmet.File`, the same operation is
+available as a method:
+
+.. code-block:: python
+
+   with arlmet.File("input.arl") as met:
+       with met.extract_subset("cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0)) as cropped:
+           ds = cropped.to_dataset()
+
 Keep only the levels and variables you need
 -------------------------------------------
 

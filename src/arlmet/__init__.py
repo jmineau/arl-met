@@ -16,7 +16,7 @@ from .record import DataRecord
 from .recordset import RecordSet
 from .sampling import sample_points
 from .subset import extract_subset
-from .vertical import VerticalAxis
+from .vertical import HybridAxis, PressureAxis, SigmaAxis, TerrainAxis, VerticalAxis
 from .xarray import open_dataset, pressure, write_dataset, z_agl, z_msl
 
 __version__ = importlib.metadata.version("arlmet")
@@ -35,6 +35,10 @@ __all__ = [
     "Projection",
     "Grid",
     "VerticalAxis",
+    "SigmaAxis",
+    "PressureAxis",
+    "TerrainAxis",
+    "HybridAxis",
     "Header",
     "IndexRecord",
     "calculate_checksum",

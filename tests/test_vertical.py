@@ -3,48 +3,81 @@
 import numpy as np
 import pytest
 
-from arlmet.grid import Projection
-from arlmet.vertical import VerticalAxis
+from arlmet.vertical import (
+    HybridAxis,
+    PressureAxis,
+    SigmaAxis,
+    TerrainAxis,
+    VerticalAxis,
+)
+
+
+class TestFromFlag:
+    def test_returns_sigma_axis(self):
+        ax = VerticalAxis.from_flag(1, levels=[1.0, 0.9], offset=100.0)
+        assert isinstance(ax, SigmaAxis)
+        assert ax.flag == 1
+        assert ax.coord_system == "sigma"
+
+    def test_returns_pressure_axis(self):
+        ax = VerticalAxis.from_flag(2, levels=[1000.0, 900.0])
+        assert isinstance(ax, PressureAxis)
+        assert ax.flag == 2
+        assert ax.coord_system == "pressure"
+
+    def test_returns_terrain_axis(self):
+        ax = VerticalAxis.from_flag(3, levels=[0.0, 100.0])
+        assert isinstance(ax, TerrainAxis)
+        assert ax.flag == 3
+        assert ax.coord_system == "terrain"
+
+    def test_returns_hybrid_axis(self):
+        ax = VerticalAxis.from_flag(4, levels=[0.995, 0.9])
+        assert isinstance(ax, HybridAxis)
+        assert ax.flag == 4
+        assert ax.coord_system == "hybrid"
+
+    def test_unknown_flag_raises(self):
+        with pytest.raises(ValueError, match="Unsupported vertical flag 99"):
+            VerticalAxis.from_flag(99, levels=[1.0])
 
 
 class TestCalculateCoords:
     def test_pressure_axis_returns_native_hpa_values(self):
-        ax = VerticalAxis(flag=2, levels=[1000.0, 900.0, 850.0])
+        ax = PressureAxis(levels=[1000.0, 900.0, 850.0])
         coords = ax.calculate_coords()
         assert set(coords.keys()) == {"level"}
         np.testing.assert_allclose(coords["level"], [1000.0, 900.0, 850.0])
 
     def test_sigma_axis_returns_native_sigma_fractions(self):
-        ax = VerticalAxis(flag=1, levels=[1.0, 0.9, 0.8], offset=100.0)
+        ax = SigmaAxis(levels=[1.0, 0.9, 0.8], offset=100.0)
         coords = ax.calculate_coords()
         np.testing.assert_allclose(coords["level"], [1.0, 0.9, 0.8])
 
     def test_terrain_axis_returns_native_agl_heights(self):
-        ax = VerticalAxis(flag=3, levels=[0.0, 100.0, 500.0])
+        ax = TerrainAxis(levels=[0.0, 100.0, 500.0])
         coords = ax.calculate_coords()
         np.testing.assert_allclose(coords["level"], [0.0, 100.0, 500.0])
 
     def test_returns_copy_not_reference(self):
-        ax = VerticalAxis(flag=2, levels=[1000.0, 900.0])
+        ax = PressureAxis(levels=[1000.0, 900.0])
         c1 = ax.calculate_coords()
         c2 = ax.calculate_coords()
         c1["level"][0] = 9999.0
         np.testing.assert_allclose(c2["level"][0], 1000.0)
 
-    def test_coord_system_unknown_and_levels_property_returns_copy(self):
-        ax = VerticalAxis(flag=99, levels=[1.0, 2.0])
+    def test_levels_property_returns_copy(self):
+        ax = PressureAxis(levels=[1000.0, 900.0])
         levels = ax.levels
-
-        assert ax.coord_system == "unknown"
         levels[0] = -1.0
-        np.testing.assert_allclose(ax.levels, [1.0, 2.0])
+        np.testing.assert_allclose(ax.levels, [1000.0, 900.0])
 
 
 class TestVerticalAxisEquality:
     def test_equality_hash_and_non_axis_comparison(self):
-        left = VerticalAxis(flag=2, levels=[1000.0, 900.0], offset=5.0)
-        right = VerticalAxis(flag=2, levels=[1000.0, 900.0], offset=5.0)
-        different = VerticalAxis(flag=1, levels=[1.0, 0.9], offset=0.0)
+        left = PressureAxis(levels=[1000.0, 900.0], offset=5.0)
+        right = PressureAxis(levels=[1000.0, 900.0], offset=5.0)
+        different = SigmaAxis(levels=[1.0, 0.9], offset=0.0)
 
         assert left == right
         assert left != different
@@ -52,51 +85,63 @@ class TestVerticalAxisEquality:
         assert hash(left) == hash(right)
 
 
-class TestSigmaToPressure:
-    def test_sigma_flag1_single_point(self):
+class TestToPressure:
+    def test_sigma_single_point(self):
         # p = p_top + (sp - p_top) * sigma
-        ax = VerticalAxis(flag=1, levels=[1.0, 0.9, 0.8], offset=100.0)
+        ax = SigmaAxis(levels=[1.0, 0.9, 0.8], offset=100.0)
         sp = np.array([1000.0])
-        result = ax.sigma_to_pressure(sp, [0, 1, 2])
+        result = ax.to_pressure(surface_pressure=sp)
         expected = 100.0 + (1000.0 - 100.0) * np.array([1.0, 0.9, 0.8])
         np.testing.assert_allclose(result, expected[None, :])
 
-    def test_sigma_flag1_multiple_points(self):
-        ax = VerticalAxis(flag=1, levels=[1.0, 0.9], offset=100.0)
+    def test_sigma_multiple_points(self):
+        ax = SigmaAxis(levels=[1.0, 0.9], offset=100.0)
         sp = np.array([1000.0, 900.0])
-        result = ax.sigma_to_pressure(sp, [0, 1])
+        result = ax.to_pressure(surface_pressure=sp)
         assert result.shape == (2, 2)
         # point 0: sigma=1 → 1000; sigma=0.9 → 100 + 900*0.9 = 910
         np.testing.assert_allclose(result[0], [1000.0, 910.0])
         # point 1: sigma=1 → 900; sigma=0.9 → 100 + 800*0.9 = 820
         np.testing.assert_allclose(result[1], [900.0, 820.0])
 
-    def test_sigma_subset_of_levels(self):
-        ax = VerticalAxis(flag=1, levels=[1.0, 0.9, 0.8], offset=0.0)
-        sp = np.array([1013.0])
-        result = ax.sigma_to_pressure(sp, [1, 2])
-        expected = np.array([1013.0 * 0.9, 1013.0 * 0.8])
-        np.testing.assert_allclose(result, expected[None, :])
+    def test_pressure_returns_stored_levels(self):
+        ax = PressureAxis(levels=[1000.0, 900.0, 850.0])
+        result = ax.to_pressure()
+        np.testing.assert_allclose(result, [1000.0, 900.0, 850.0])
 
-    def test_hybrid_flag4_surface_level(self):
+    def test_hybrid_surface_level(self):
         # hybrid: heights encoded as floor_pressure + sigma_fraction
         # level 0 (first) always returns surface pressure
-        ax = VerticalAxis(flag=4, levels=[0.995, 975.5, 950.3])
+        ax = HybridAxis(levels=[0.995, 975.5, 950.3])
         sp = np.array([1010.0])
-        result = ax.sigma_to_pressure(sp, [0, 1, 2])
+        result = ax.to_pressure(surface_pressure=sp)
         assert result.shape == (1, 3)
         np.testing.assert_allclose(result[0, 0], sp[0])  # first level = surface
 
-    def test_invalid_flag_raises(self):
-        ax = VerticalAxis(flag=2, levels=[1000.0, 900.0])
-        with pytest.raises(ValueError, match="flag=1.*flag=4"):
-            ax.sigma_to_pressure(np.array([1013.0]), [0, 1])
+    def test_terrain_raises(self):
+        ax = TerrainAxis(levels=[0.0, 100.0, 500.0])
+        with pytest.raises(ValueError, match="Terrain-following"):
+            ax.to_pressure()
 
-    def test_returns_2d_array(self):
-        ax = VerticalAxis(flag=1, levels=[1.0, 0.9], offset=0.0)
-        result = ax.sigma_to_pressure(np.array([1000.0, 900.0, 800.0]), [0, 1])
+    def test_sigma_returns_2d_array(self):
+        ax = SigmaAxis(levels=[1.0, 0.9], offset=0.0)
+        result = ax.to_pressure(surface_pressure=np.array([1000.0, 900.0, 800.0]))
         assert result.ndim == 2
         assert result.shape == (3, 2)
+
+
+class TestToHeightAgl:
+    def test_pressure_uses_hgts(self):
+        ax = PressureAxis(levels=[1000.0, 900.0])
+        hgts = np.array([[200.0, 1200.0], [300.0, 1300.0]])
+        terrain = np.array([[200.0], [300.0]])
+        result = ax.to_height_agl(hgts=hgts, terrain=terrain)
+        np.testing.assert_allclose(result, [[0.0, 1000.0], [0.0, 1000.0]])
+
+    def test_terrain_returns_stored_levels(self):
+        ax = TerrainAxis(levels=[0.0, 100.0, 500.0])
+        result = ax.to_height_agl()
+        np.testing.assert_allclose(result, [0.0, 100.0, 500.0])
 
 
 # ---------------------------------------------------------------------------
@@ -109,8 +154,9 @@ import xarray as xr  # noqa: E402
 
 import arlmet  # noqa: E402
 from arlmet import File  # noqa: E402
-from arlmet.grid import Grid  # noqa: E402
-from arlmet.xarray._vertical import R_D, G, _hypsometric_z_agl  # noqa: E402
+from arlmet.grid import Grid, Projection  # noqa: E402
+from arlmet.vertical import R_D, G  # noqa: E402
+from arlmet.xarray._vertical import _hypsometric_z_agl  # noqa: E402
 
 
 def _make_latlon_grid(nx: int = 20, ny: int = 20) -> Grid:
@@ -130,11 +176,19 @@ def _make_latlon_grid(nx: int = 20, ny: int = 20) -> Grid:
     return Grid(projection=proj, nx=nx, ny=ny)
 
 
-def _write_pressure_file(path, *, prss_val, temp_val, shgt_val, pressure_levels):
-    """Write a minimal 2-level pressure-coordinate ARL file."""
+def _write_pressure_file(
+    path,
+    *,
+    prss_val,
+    temp_val,
+    shgt_val,
+    pressure_levels,
+    with_hgts: bool = False,
+    hgts_values=None,
+):
+    """Write a minimal pressure-coordinate ARL file."""
     grid = _make_latlon_grid()
-    # levels[0] = surface placeholder (0 hPa), levels[1..] = actual pressure levels
-    vaxis = VerticalAxis(flag=2, levels=[0.0] + list(pressure_levels))
+    vaxis = PressureAxis(levels=[0.0] + list(pressure_levels))
     ny, nx = grid.ny, grid.nx
     prss = np.full((ny, nx), prss_val, dtype=np.float32)
     shgt = np.full((ny, nx), shgt_val, dtype=np.float32)
@@ -143,7 +197,27 @@ def _write_pressure_file(path, *, prss_val, temp_val, shgt_val, pressure_levels)
         rs = f.create_recordset(pd.Timestamp("2024-01-01"))
         rs.create_datarecord("PRSS", level=0, forecast=0, data=prss)
         rs.create_datarecord("SHGT", level=0, forecast=0, data=shgt)
-        for k, _ in enumerate(pressure_levels, start=1):
+        for k, _p_lev in enumerate(pressure_levels, start=1):
+            temp = np.full((ny, nx), temp_val, dtype=np.float32)
+            rs.create_datarecord("TEMP", level=k, forecast=0, data=temp)
+            if with_hgts and hgts_values is not None:
+                hgts = np.full((ny, nx), hgts_values[k - 1], dtype=np.float32)
+                rs.create_datarecord("HGTS", level=k, forecast=0, data=hgts)
+
+
+def _write_sigma_file(path, *, prss_val, temp_val, shgt_val, sigma_levels, offset=0.0):
+    """Write a minimal sigma-coordinate ARL file (no HGTS)."""
+    grid = _make_latlon_grid()
+    vaxis = SigmaAxis(levels=[0.0] + list(sigma_levels), offset=offset)
+    ny, nx = grid.ny, grid.nx
+    prss = np.full((ny, nx), prss_val, dtype=np.float32)
+    shgt = np.full((ny, nx), shgt_val, dtype=np.float32)
+
+    with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as f:
+        rs = f.create_recordset(pd.Timestamp("2024-01-01"))
+        rs.create_datarecord("PRSS", level=0, forecast=0, data=prss)
+        rs.create_datarecord("SHGT", level=0, forecast=0, data=shgt)
+        for k in range(1, len(sigma_levels) + 1):
             temp = np.full((ny, nx), temp_val, dtype=np.float32)
             rs.create_datarecord("TEMP", level=k, forecast=0, data=temp)
 
@@ -153,7 +227,7 @@ def _write_terrain_file(
 ):
     """Write a minimal terrain-following (flag=3) ARL file."""
     grid = _make_latlon_grid()
-    vaxis = VerticalAxis(flag=3, levels=[0.0] + list(height_levels))
+    vaxis = TerrainAxis(levels=[0.0] + list(height_levels))
     ny, nx = grid.ny, grid.nx
     prss = np.full((ny, nx), 1013.0, dtype=np.float32)
 
@@ -261,19 +335,37 @@ class TestZAglHelper:
         assert "level" in z.dims
         np.testing.assert_allclose(z.values, [100.0, 500.0])
 
-    def test_hgts_field_used_when_present(self, tmp_path):
+    def test_flag3_hgts_field_used_when_present(self, tmp_path):
+        """flag=3 with HGTS still returns the height coord (not HGTS)."""
         path = tmp_path / "test.arl"
         _write_terrain_file(path, height_levels=[100.0, 500.0], with_hgts=True)
         ds = arlmet.open_dataset(path)
         z = arlmet.z_agl(ds)
-        # Should return HGTS data variable directly, not the height coord
-        assert "HGTS" in ds
+        # Terrain-following uses stored height coord, not HGTS
+        np.testing.assert_allclose(z.values, [100.0, 500.0])
+
+    def test_flag2_uses_hgts(self, tmp_path):
+        """flag=2 requires HGTS for z_agl."""
+        path = tmp_path / "test.arl"
+        _write_pressure_file(
+            path,
+            prss_val=1013.0,
+            temp_val=280.0,
+            shgt_val=100.0,
+            pressure_levels=[1000.0, 850.0],
+            with_hgts=True,
+            hgts_values=[100.0, 1500.0],
+        )
+        ds = arlmet.open_dataset(path)
+        z = arlmet.z_agl(ds)
+        # HGTS - SHGT: [100-100, 1500-100] = [0, 1400]
         np.testing.assert_allclose(
             z.isel(time=0, lat=0, lon=0).values,
-            [100.0, 500.0],
+            [0.0, 1400.0],
         )
 
-    def test_flag2_hgts_preferred_over_hypsometric(self, tmp_path):
+    def test_flag2_missing_hgts_raises(self, tmp_path):
+        """flag=2 without HGTS raises ValueError."""
         path = tmp_path / "test.arl"
         _write_pressure_file(
             path,
@@ -282,54 +374,34 @@ class TestZAglHelper:
             shgt_val=0.0,
             pressure_levels=[1000.0, 850.0],
         )
-        # Manually add HGTS to the dataset
         ds = arlmet.open_dataset(path)
-        sentinel = xr.DataArray(
-            np.full_like(ds["TEMP"].values, 999.0),
-            dims=ds["TEMP"].dims,
-            coords=ds["TEMP"].coords,
-        )
-        ds = ds.assign(HGTS=sentinel)
-        z = arlmet.z_agl(ds)
-        assert float(z.isel(time=0, lat=0, lon=0, level=0).values) == 999.0
+        with pytest.raises(ValueError, match="HGTS"):
+            arlmet.z_agl(ds)
 
-    def test_flag2_hypsometric_increases_with_altitude(self, tmp_path):
+    def test_sigma_hypsometric_increases_with_altitude(self, tmp_path):
+        """flag=1 uses hypsometric integration (no HGTS needed)."""
         path = tmp_path / "test.arl"
-        _write_pressure_file(
+        _write_sigma_file(
             path,
             prss_val=1013.0,
             temp_val=280.0,
             shgt_val=0.0,
-            pressure_levels=[1000.0, 850.0, 700.0],
+            sigma_levels=[0.9, 0.8, 0.7],
+            offset=0.0,
         )
         ds = arlmet.open_dataset(path)
         z = arlmet.z_agl(ds)
-        z_vals = z.isel(time=0, lat=0, lon=0).values  # select single point
-        # Height should increase with level (decreasing pressure)
+        z_vals = z.isel(time=0, lat=0, lon=0).values
         assert z_vals[0] < z_vals[1] < z_vals[2]
 
-    def test_flag2_first_level_positive(self, tmp_path):
+    def test_sigma_missing_temp_raises(self, tmp_path):
         path = tmp_path / "test.arl"
-        # PRSS > p[0] → ln(PRSS/p[0]) > 0 → dz > 0
-        _write_pressure_file(
-            path,
-            prss_val=1013.0,
-            temp_val=290.0,
-            shgt_val=0.0,
-            pressure_levels=[1000.0, 850.0],
-        )
-        ds = arlmet.open_dataset(path)
-        z = arlmet.z_agl(ds)
-        assert float(z.isel(level=0).values.mean()) > 0.0
-
-    def test_flag2_missing_temp_raises(self, tmp_path):
-        path = tmp_path / "test.arl"
-        _write_pressure_file(
+        _write_sigma_file(
             path,
             prss_val=1013.0,
             temp_val=280.0,
             shgt_val=0.0,
-            pressure_levels=[1000.0, 850.0],
+            sigma_levels=[0.9, 0.8],
         )
         ds = arlmet.open_dataset(path).drop_vars("TEMP")
         with pytest.raises(ValueError, match="TEMP"):
@@ -338,15 +410,15 @@ class TestZAglHelper:
 
 class TestVerticalAxisRepr:
     def test_repr_pressure(self):
-        ax = VerticalAxis(flag=2, levels=[1000.0, 850.0, 700.0])
-        assert repr(ax) == "VerticalAxis(pressure, n=3)"
+        ax = PressureAxis(levels=[1000.0, 850.0, 700.0])
+        assert repr(ax) == "PressureAxis(n=3)"
 
     def test_repr_sigma(self):
-        ax = VerticalAxis(flag=1, levels=[1.0, 0.9])
-        assert repr(ax) == "VerticalAxis(sigma, n=2)"
+        ax = SigmaAxis(levels=[1.0, 0.9])
+        assert repr(ax) == "SigmaAxis(n=2)"
 
     def test_len(self):
-        ax = VerticalAxis(flag=2, levels=[1000.0, 925.0, 850.0, 700.0])
+        ax = PressureAxis(levels=[1000.0, 925.0, 850.0, 700.0])
         assert len(ax) == 4
 
 
@@ -360,6 +432,8 @@ class TestZMslHelper:
             temp_val=280.0,
             shgt_val=shgt_val,
             pressure_levels=[1000.0, 850.0],
+            with_hgts=True,
+            hgts_values=[150.0, 1500.0],
         )
         ds = arlmet.open_dataset(path)
         z = arlmet.z_agl(ds)
@@ -376,6 +450,8 @@ class TestZMslHelper:
             temp_val=280.0,
             shgt_val=0.0,
             pressure_levels=[1000.0],
+            with_hgts=True,
+            hgts_values=[100.0],
         )
         ds = arlmet.open_dataset(path).drop_vars("SHGT")
         with pytest.raises(ValueError, match="SHGT"):

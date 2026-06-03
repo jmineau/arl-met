@@ -4,7 +4,13 @@ import numpy as np
 import pytest
 
 from arlmet.grid import Grid, GridWindow, Projection, wrap_lons
-from arlmet.vertical import VerticalAxis
+from arlmet.vertical import (
+    HybridAxis,
+    PressureAxis,
+    SigmaAxis,
+    TerrainAxis,
+    VerticalAxis,
+)
 
 
 class TestWrapLons:
@@ -290,40 +296,39 @@ class TestVerticalAxis:
     def test_sigma_coordinate(self):
         """Test sigma vertical coordinate."""
         levels = [1.0, 0.9, 0.8, 0.7]
-        axis = VerticalAxis(flag=1, levels=levels)
+        axis = SigmaAxis(levels=levels)
         assert axis.coord_system == "sigma"
         np.testing.assert_array_equal(axis.levels, levels)
 
     def test_pressure_coordinate(self):
         """Test pressure vertical coordinate."""
         levels = [1000, 925, 850, 700, 500]
-        axis = VerticalAxis(flag=2, levels=levels)
+        axis = PressureAxis(levels=levels)
         assert axis.coord_system == "pressure"
         np.testing.assert_array_equal(axis.levels, levels)
 
     def test_terrain_coordinate(self):
         """Test terrain vertical coordinate."""
         levels = [0.0, 0.25, 0.5, 0.75, 1.0]
-        axis = VerticalAxis(flag=3, levels=levels)
+        axis = TerrainAxis(levels=levels)
         assert axis.coord_system == "terrain"
         np.testing.assert_array_equal(axis.levels, levels)
 
     def test_hybrid_coordinate(self):
         """Test hybrid vertical coordinate."""
         levels = [1000.0, 925.5, 850.0]
-        axis = VerticalAxis(flag=4, levels=levels)
+        axis = HybridAxis(levels=levels)
         assert axis.coord_system == "hybrid"
         np.testing.assert_array_equal(axis.levels, levels)
 
-    def test_unknown_coordinate(self):
-        """Test unknown vertical coordinate."""
-        levels = [1.0, 0.5]
-        axis = VerticalAxis(flag=99, levels=levels)
-        assert axis.coord_system == "unknown"
+    def test_unknown_flag_raises(self):
+        """Test unknown vertical flag raises ValueError."""
+        with pytest.raises(ValueError, match="Unsupported vertical flag 99"):
+            VerticalAxis.from_flag(99, levels=[1.0, 0.5])
 
     def test_sigma_coordinate_calculates_native_coords(self):
         """Test sigma coordinate returns native sigma fractions as level coord."""
-        axis = VerticalAxis(flag=1, levels=[1.0, 0.5], offset=0.0)
+        axis = SigmaAxis(levels=[1.0, 0.5], offset=0.0)
         coords = axis.calculate_coords()
         assert set(coords.keys()) == {"level"}
         np.testing.assert_allclose(coords["level"], [1.0, 0.5])

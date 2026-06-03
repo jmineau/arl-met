@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import os
 from collections import OrderedDict
 from collections.abc import Iterable, Sequence
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from arlmet.file import File
@@ -170,13 +170,13 @@ def validate_subset_record_length(
 
 
 def extract_subset(
-    source_path: str | Path,
-    destination_path: str | Path,
+    source_path: str | os.PathLike[str],
+    destination_path: str | os.PathLike[str],
     *,
     bbox: tuple[float, float, float, float] | None = None,
     levels: Iterable[int] | None = None,
     variables: Iterable[str] | None = None,
-) -> None:
+) -> File:
     """
     Extract a spatial/vertical subset from an ARL file into a new ARL file.
 
@@ -192,15 +192,23 @@ def extract_subset(
     variables : iterable of str, optional
         Variable names to keep. All variables are included by default.
 
+    Returns
+    -------
+    File
+        The newly written subset, opened in read mode. Close it when done
+        (or use it as a context manager). Callers that only need the file on
+        disk may ignore the return value.
+
     Examples
     --------
     >>> import arlmet
-    >>> arlmet.extract_subset(
+    >>> with arlmet.extract_subset(
     ...     "met.arl",
     ...     "subset.arl",
     ...     bbox=(-114.0, 39.0, -110.0, 42.0),
     ...     levels=[0, 1, 2],
-    ... )
+    ... ) as subset:
+    ...     ds = subset.to_dataset()
     """
     variable_names = None if variables is None else set(variables)
 
@@ -213,8 +221,8 @@ def extract_subset(
         }
 
         subset_grid = source.grid.subset(window)
-        subset_axis = VerticalAxis(
-            flag=source.vertical_axis.flag,
+        subset_axis = VerticalAxis.from_flag(
+            source.vertical_axis.flag,
             levels=source.vertical_axis.levels[list(selected_levels)].tolist(),
             offset=source.vertical_axis.offset,
         )
@@ -261,3 +269,5 @@ def extract_subset(
                         data=data,
                         diff=record.diff.variable if record.diff is not None else None,
                     )
+
+    return File(destination_path)

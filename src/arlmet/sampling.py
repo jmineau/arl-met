@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from collections import OrderedDict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -13,6 +14,13 @@ import pandas as pd
 
 from arlmet._time import ensure_timestamp
 from arlmet.grid import Grid, GridWindow
+from arlmet.vertical import (
+    HybridAxis,
+    PressureAxis,
+    SigmaAxis,
+    TerrainAxis,
+    hypsometric_z_agl,
+)
 
 if TYPE_CHECKING:
     from arlmet.file import File
@@ -21,6 +29,9 @@ if TYPE_CHECKING:
 
 
 SURFACE_VARIABLES = {"PRSS", "SHGT"}
+
+# A single sampling source: an open File or a path to an ARL file.
+SourceLike = Union["File", str, "os.PathLike[str]"]
 
 
 @dataclass(frozen=True)
@@ -310,6 +321,140 @@ def _variable_profiles(
     return samples, levels
 
 
+def _vertical_coords(
+    recordset: RecordSet,
+    levels: Sequence[int],
+    *,
+    z_kind: str,
+    plan: HorizontalSamplePlan,
+    surface_pressure: npt.NDArray[Any] | None,
+    terrain: npt.NDArray[Any] | None,
+) -> npt.NDArray[Any]:
+    """
+    Per-point vertical coordinate at each *level*, expressed in the *z_kind* system.
+
+    Returns an ``(n_points, n_levels)`` array giving the coordinate that a target
+    *z* (in the same *z_kind* units) is interpolated against.
+
+    Dispatches to the vertical axis subclass methods, matching HYSPLIT:
+
+    - flag=2 (pressure): stored levels for pressure; HGTS for heights.
+    - flag=1/4 (sigma/hybrid): sigma-to-pressure conversion; hypsometric for heights.
+    - flag=3 (terrain): stored level heights are AGL; no pressure coordinate.
+    """
+    axis = recordset.vertical_axis
+    level_list = list(levels)
+    n_points = len(plan.inside)
+
+    def _broadcast(values_1d: npt.NDArray[Any]) -> npt.NDArray[Any]:
+        return np.broadcast_to(values_1d[None, :], (n_points, len(level_list))).copy()
+
+    if z_kind == "native":
+        return _broadcast(np.asarray(level_list, dtype=float))
+
+    if z_kind == "pressure":
+        if isinstance(axis, PressureAxis):
+            return _broadcast(axis.to_pressure()[level_list])
+        if isinstance(axis, (SigmaAxis, HybridAxis)):
+            if surface_pressure is None:
+                raise ValueError(
+                    "surface_pressure (PRSS) is required for sigma/hybrid pressure sampling."
+                )
+            return axis.to_pressure(surface_pressure=surface_pressure)[:, level_list]
+        if isinstance(axis, TerrainAxis):
+            raise ValueError(
+                "z_kind='pressure' is not supported for terrain-following (flag=3) vertical axes."
+            )
+        raise NotImplementedError(
+            f"z_kind='pressure' not implemented for {type(axis).__name__}."
+        )
+
+    # z_kind in {"agl", "msl"}
+    if isinstance(axis, TerrainAxis):
+        coords = _broadcast(axis.to_height_agl()[level_list])
+        if z_kind == "msl":
+            if terrain is None:
+                raise ValueError("terrain (SHGT) is required to sample z_kind='msl'.")
+            coords = coords + terrain[:, None]
+        return coords
+
+    if isinstance(axis, PressureAxis):
+        # HYSPLIT PRFPRS: heights come from HGTS (geopotential height MSL).
+        hgts = _sample_hgts_profiles(recordset, plan, level_list)
+        if hgts is None:
+            raise ValueError(
+                "Pressure-level (flag=2) files require HGTS records for AGL/MSL sampling."
+            )
+        if z_kind == "msl":
+            return hgts
+        return np.maximum(
+            hgts - _resolve_terrain(recordset, plan, terrain)[:, None], 0.0
+        )
+
+    if isinstance(axis, (SigmaAxis, HybridAxis)):
+        # HYSPLIT PRFSIG/PRFECM: hypsometric integration from PRSS + TEMP.
+        assert surface_pressure is not None  # guaranteed by need_surface_pressure
+        agl = _hypsometric_agl_profiles(
+            recordset, plan, level_list, axis=axis, surface_pressure=surface_pressure
+        )
+        if z_kind == "agl":
+            return agl
+        return agl + _resolve_terrain(recordset, plan, terrain)[:, None]
+
+    raise NotImplementedError(
+        f"z_kind='{z_kind}' not implemented for {type(axis).__name__}."
+    )
+
+
+def _resolve_terrain(
+    recordset: RecordSet,
+    plan: HorizontalSamplePlan,
+    terrain: npt.NDArray[Any] | None,
+) -> npt.NDArray[Any]:
+    """Return per-point terrain height (SHGT, m); sample it if not precomputed."""
+    if terrain is not None:
+        return terrain
+    shgt_records = [r for r in recordset.records if r.variable == "SHGT"]
+    if not shgt_records:
+        raise ValueError("terrain (SHGT) is required to compute AGL/MSL heights.")
+    return _sample_record(min(shgt_records, key=lambda r: r.level), plan)
+
+
+def _hypsometric_agl_profiles(
+    recordset: RecordSet,
+    plan: HorizontalSamplePlan,
+    levels: Sequence[int],
+    *,
+    axis: SigmaAxis | HybridAxis,
+    surface_pressure: npt.NDArray[Any],
+) -> npt.NDArray[Any]:
+    """
+    Per-point AGL heights ``(n_points, n_levels)`` via the hypsometric equation.
+
+    Used for sigma/hybrid files (flags 1/4). Requires pre-sampled surface
+    pressure and TEMP records in the file.
+    """
+    level_list = list(levels)
+    n_points = len(plan.inside)
+
+    temp_records = {r.level: r for r in recordset.records if r.variable == "TEMP"}
+    if not temp_records:
+        raise ValueError(
+            f"{axis.coord_system} (flag={axis.flag}) files require TEMP "
+            "for AGL/MSL sampling."
+        )
+    temp = np.full((n_points, len(level_list)), np.nan, dtype=np.float32)
+    for pos, level in enumerate(level_list):
+        if level in temp_records:
+            temp[:, pos] = _sample_record(temp_records[level], plan)
+
+    p = axis.to_pressure(surface_pressure=surface_pressure)[:, level_list]
+    return np.asarray(
+        hypsometric_z_agl(p, surface_pressure, temp, level_axis=1),
+        dtype=np.float32,
+    )
+
+
 def _sample_variable(
     recordset: RecordSet,
     variable: str,
@@ -350,50 +495,32 @@ def _sample_variable(
     # --- virtual "pressure" variable ---
     if variable == "pressure":
         if z_kind == "pressure":
+            # Pressure sampled in pressure space is the requested target itself.
             return targets.astype(np.float32, copy=False)
-
-        level_values = np.asarray(axis.levels, dtype=float)
-        n = len(targets)
-
-        if z_kind == "native":
-            return _interp_profiles(
-                np.broadcast_to(level_values[None, :], (n, len(level_values))),
-                np.arange(len(axis.levels), dtype=float),
-                targets,
-            )
-
-        # z_kind in {"agl", "msl"}: need HGTS to map pressure → height
-        if axis.flag == 3:
+        if isinstance(axis, TerrainAxis):
             # Terrain-following files have no pressure coordinate.
-            return np.full(n, np.nan, dtype=np.float32)
+            return np.full(len(targets), np.nan, dtype=np.float32)
 
-        hgts = _sample_hgts_profiles(recordset, plan, list(range(len(axis.levels))))
-        if hgts is None:
-            raise ValueError(
-                "HGTS records are required to compute AGL/MSL heights. "
-                "Ensure the ARL file contains HGTS at each level."
-            )
-        if axis.flag == 2:
-            pressure_values = np.broadcast_to(
-                level_values[None, :], (n, len(level_values))
-            )
-        else:  # flag=1 (sigma) or flag=4 (hybrid)
-            if surface_pressure is None:
-                raise ValueError(
-                    "surface_pressure (PRSS) is required for sigma/hybrid axes."
-                )
-            pressure_values = axis.sigma_to_pressure(
-                surface_pressure, list(range(len(axis.levels)))
-            )
-
-        if z_kind == "msl":
-            height_coords = hgts
-        else:
-            if terrain is None:
-                raise ValueError("terrain (SHGT) is required to compute AGL heights.")
-            height_coords = np.maximum(hgts - terrain[:, None], 0.0)
-
-        return _interp_profiles(pressure_values, height_coords, targets)
+        # Treat pressure as a virtual field whose per-level values are the
+        # pressures themselves, interpolated over the requested z system.
+        all_levels = tuple(range(len(axis.levels)))
+        values = _vertical_coords(
+            recordset,
+            all_levels,
+            z_kind="pressure",
+            plan=plan,
+            surface_pressure=surface_pressure,
+            terrain=terrain,
+        )
+        coords = _vertical_coords(
+            recordset,
+            all_levels,
+            z_kind=z_kind,
+            plan=plan,
+            surface_pressure=surface_pressure,
+            terrain=terrain,
+        )
+        return _interp_profiles(values, coords, targets)
 
     # --- data variable ---
     samples, levels = _variable_profiles(recordset, variable, plan)
@@ -401,59 +528,18 @@ def _sample_variable(
         # Single-level or surface field — return directly without vertical interpolation.
         return samples[:, 0]
 
-    if z_kind == "native":
-        return _interp_profiles(samples, np.asarray(levels, dtype=float), targets)
-
-    if z_kind == "pressure":
-        if axis.flag == 2:
-            coords = np.asarray(axis.levels, dtype=float)[list(levels)]
-        elif axis.flag in {1, 4}:
-            if surface_pressure is None:
-                raise ValueError(
-                    "surface_pressure (PRSS) is required for sigma/hybrid pressure sampling."
-                )
-            coords = axis.sigma_to_pressure(surface_pressure, levels)
-        elif axis.flag == 3:
-            raise ValueError(
-                "z_kind='pressure' is not supported for terrain-following (flag=3) vertical axes."
-            )
-        else:
-            raise NotImplementedError(
-                f"z_kind='pressure' not implemented for flag={axis.flag}."
-            )
-        return _interp_profiles(samples, coords, targets)
-
-    # z_kind in {"agl", "msl"}
-    if axis.flag == 3:
-        # Terrain-following: stored level heights are already AGL metres.
-        coords = np.broadcast_to(
-            np.asarray(axis.levels, dtype=float)[list(levels)],
-            (len(targets), len(levels)),
-        ).copy()
-        if z_kind == "msl":
-            if terrain is None:
-                raise ValueError("terrain (SHGT) is required to sample z_kind='msl'.")
-            coords = coords + terrain[:, None]
-    else:
-        # Flags 1, 2, 4: use HGTS (geopotential height, m MSL) from the file.
-        # Matches HYSPLIT PRFPRS: ZTOP = Z(KZ) - ZSFC.
-        hgts = _sample_hgts_profiles(recordset, plan, levels)
-        if hgts is None:
-            raise ValueError(
-                "HGTS records are required to compute AGL/MSL heights. "
-                "Ensure the ARL file contains HGTS at each level."
-            )
-        if z_kind == "msl":
-            coords = hgts
-        else:
-            if terrain is None:
-                raise ValueError("terrain (SHGT) is required to compute AGL heights.")
-            coords = np.maximum(hgts - terrain[:, None], 0.0)
-
+    coords = _vertical_coords(
+        recordset,
+        levels,
+        z_kind=z_kind,
+        plan=plan,
+        surface_pressure=surface_pressure,
+        terrain=terrain,
+    )
     return _interp_profiles(samples, coords, targets)
 
 
-def sample_points_from_file(
+def _sample_points_from_file(
     file: File,
     points: pd.DataFrame | Mapping[str, Any],
     variables: str | Iterable[str],
@@ -482,8 +568,10 @@ def sample_points_from_file(
 
         - ``'native'`` — fractional level index
         - ``'pressure'`` — hPa
-        - ``'agl'`` — metres above ground level (requires HGTS and SHGT in file)
-        - ``'msl'`` — metres above mean sea level (requires HGTS in file)
+        - ``'agl'`` — metres above ground level (uses HGTS and SHGT when present,
+          otherwise integrated hypsometrically from PRSS and TEMP)
+        - ``'msl'`` — metres above mean sea level (uses HGTS when present,
+          otherwise hypsometric AGL from PRSS and TEMP plus SHGT terrain)
     method :
         Horizontal interpolation: ``'linear'`` (bilinear) or ``'nearest'``.
 
@@ -509,13 +597,14 @@ def sample_points_from_file(
         raise ValueError("z_kind must be one of 'native', 'pressure', 'agl', or 'msl'.")
 
     axis = file.vertical_axis
-    # PRSS only needed for sigma/hybrid when computing per-point pressure values.
-    need_surface_pressure = axis.flag in {1, 4} and (
-        z_kind == "pressure" or "pressure" in variable_names
+    # Sigma/hybrid need PRSS for pressure conversion and hypsometric heights.
+    need_surface_pressure = (
+        isinstance(axis, (SigmaAxis, HybridAxis)) and z_kind != "native"
     )
-    # AGL (flags 1/2/4) needs terrain for HGTS - SHGT; MSL (flag=3) needs it for AGL + SHGT.
-    need_terrain = (z_kind == "agl" and axis.flag in {1, 2, 4}) or (
-        z_kind == "msl" and axis.flag == 3
+    # flag=2 AGL needs terrain for HGTS - SHGT; flag=3 MSL needs terrain;
+    # flag=1/4 MSL needs terrain for hypsometric AGL + SHGT.
+    need_terrain = (z_kind == "agl" and isinstance(axis, PressureAxis)) or (
+        z_kind == "msl" and isinstance(axis, (TerrainAxis, SigmaAxis, HybridAxis))
     )
 
     result = normalized.copy()
@@ -564,17 +653,44 @@ def sample_points_from_file(
     return result
 
 
-def _normalize_sources(source: File | Sequence[File]) -> tuple[File, ...]:
-    """Normalize one File or a sequence of Files to a tuple."""
+def _open_sources(
+    source: SourceLike | Sequence[SourceLike],
+) -> tuple[tuple[File, ...], list[File]]:
+    """
+    Normalize *source* to a tuple of open read-mode Files.
+
+    Accepts a single open :class:`~arlmet.file.File` or path, or a sequence of
+    them. Paths are opened here; already-open Files are passed through. Returns
+    ``(files, opened)`` where *opened* lists only the Files this function
+    created and is therefore responsible for closing.
+    """
     from arlmet.file import File
 
-    if isinstance(source, File):
-        return (source,)  # single File
-    return tuple(source)
+    if isinstance(source, (File, str, os.PathLike)):
+        items: list[SourceLike] = [source]
+    else:
+        items = list(source)
+
+    files: list[File] = []
+    opened: list[File] = []
+    try:
+        for item in items:
+            if isinstance(item, File):
+                files.append(item)
+            else:
+                handle = File(item)  # read mode
+                files.append(handle)
+                opened.append(handle)
+    except Exception:
+        for handle in opened:
+            handle.close()
+        raise
+
+    return tuple(files), opened
 
 
 def sample_points(
-    source: File | Sequence[File],
+    source: SourceLike | Sequence[SourceLike],
     points: pd.DataFrame | Mapping[str, Any],
     variables: str | Iterable[str],
     *,
@@ -585,25 +701,26 @@ def sample_points(
     """
     Sample meteorological variables at arbitrary (lon, lat, z, time) points.
 
-    Accepts one file or a sequence of files spanning different time periods.
-    For single-file sampling prefer :func:`sample_points_from_file` to avoid
-    the overhead of building a time-to-file map.
+    Accepts a single ARL file or a sequence of files spanning different time
+    periods. Each source may be an open :class:`~arlmet.file.File` or a path to
+    an ARL file; paths are opened (read mode) and closed automatically, while
+    already-open Files are left open for the caller to manage.
 
     Parameters
     ----------
     source :
-        A single :class:`~arlmet.file.File` or a sequence of files. Each
-        timestamp must appear in at most one file.
+        A single open :class:`~arlmet.file.File` or path, or a sequence of
+        Files and/or paths. Each timestamp must appear in at most one source.
     points :
         DataFrame or dict with columns ``lon``, ``lat``, ``z``, and ``time``.
-        ``time`` may be omitted when *source* is a single-time file.
+        ``time`` may be omitted when *source* resolves to a single-time file.
     variables :
         One or more ARL field names, or ``'pressure'`` for the virtual pressure variable.
     time :
         Override or supply a single timestamp when *points* has no ``time`` column.
     z_kind :
         Vertical coordinate for *z*: ``'native'``, ``'pressure'``, ``'agl'``, or ``'msl'``.
-        See :func:`sample_points_from_file` for details.
+        See :meth:`arlmet.File.sample_points` for details.
     method :
         Horizontal interpolation: ``'linear'`` (bilinear) or ``'nearest'``.
 
@@ -619,51 +736,58 @@ def sample_points(
     >>> points = pd.DataFrame(
     ...     {"lon": [-111.9], "lat": [40.7], "z": [850.0], "time": ["2024-07-18 00:00"]}
     ... )
-    >>> with arlmet.File("met.arl") as met:
-    ...     arlmet.sample_points(met, points, ["UWND", "VWND"])
+    >>> arlmet.sample_points("met.arl", points, ["UWND", "VWND"])
+
+    Sample across files spanning different times by passing their paths:
+
+    >>> arlmet.sample_points(["met_00.arl", "met_06.arl"], points, ["UWND", "VWND"])
     """
-    files = _normalize_sources(source)
-    if len(files) == 1:
-        return sample_points_from_file(
-            files[0],
+    files, opened = _open_sources(source)
+    try:
+        if len(files) == 1:
+            return _sample_points_from_file(
+                files[0],
+                points,
+                variables,
+                time=time,
+                z_kind=z_kind,
+                method=method,
+            )
+
+        normalized = _normalize_points(
             points,
-            variables,
-            time=time,
-            z_kind=z_kind,
-            method=method,
+            require_time=True,
+            default_time=ensure_timestamp(time) if time is not None else None,
         )
+        time_map: dict[pd.Timestamp, File] = {}
+        for file in files:
+            for sample_time in file.times:
+                if sample_time in time_map:
+                    raise ValueError(
+                        f"Multiple sources contain meteorology for time {sample_time}."
+                    )
+                time_map[ensure_timestamp(sample_time)] = file
 
-    normalized = _normalize_points(
-        points,
-        require_time=True,
-        default_time=ensure_timestamp(time) if time is not None else None,
-    )
-    time_map: dict[pd.Timestamp, File] = {}
-    for file in files:
-        for sample_time in file.times:
-            if sample_time in time_map:
-                raise ValueError(
-                    f"Multiple sources contain meteorology for time {sample_time}."
-                )
-            time_map[ensure_timestamp(sample_time)] = file
+        missing_times = sorted(set(normalized["time"]) - set(time_map))
+        if missing_times:
+            raise ValueError(
+                "No source contains the requested point times: "
+                + ", ".join(str(ensure_timestamp(t)) for t in missing_times)
+            )
 
-    missing_times = sorted(set(normalized["time"]) - set(time_map))
-    if missing_times:
-        raise ValueError(
-            "No source contains the requested point times: "
-            + ", ".join(str(ensure_timestamp(t)) for t in missing_times)
-        )
+        pieces: list[pd.DataFrame] = []
+        for sample_time, index in normalized.groupby("time").groups.items():
+            piece = _sample_points_from_file(
+                time_map[ensure_timestamp(sample_time)],
+                normalized.loc[index],
+                variables,
+                time=ensure_timestamp(sample_time),
+                z_kind=z_kind,
+                method=method,
+            )
+            pieces.append(piece)
 
-    pieces: list[pd.DataFrame] = []
-    for sample_time, index in normalized.groupby("time").groups.items():
-        piece = sample_points_from_file(
-            time_map[ensure_timestamp(sample_time)],
-            normalized.loc[index],
-            variables,
-            time=ensure_timestamp(sample_time),
-            z_kind=z_kind,
-            method=method,
-        )
-        pieces.append(piece)
-
-    return pd.concat(pieces).reindex(normalized.index)
+        return pd.concat(pieces).reindex(normalized.index)
+    finally:
+        for handle in opened:
+            handle.close()

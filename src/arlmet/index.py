@@ -427,8 +427,8 @@ class IndexRecord:
     @property
     def vertical_axis(self) -> VerticalAxis:
         """Construct the vertical axis definition from the index record."""
-        return VerticalAxis(
-            flag=self.vertical_flag,
+        return VerticalAxis.from_flag(
+            self.vertical_flag,
             levels=[lvl.height for lvl in self.levels],
             offset=self.reserved,
         )

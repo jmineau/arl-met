@@ -28,6 +28,20 @@ Cropping And Sampling
    extract_subset
    sample_points
 
+Vertical Coordinates
+--------------------
+
+Derive pressure and height coordinates from an open Dataset. See the
+:doc:`vertical` guide for coordinate-system details and limitations.
+
+.. autosummary::
+   :toctree: _autosummary
+   :nosignatures:
+
+   pressure
+   z_agl
+   z_msl
+
 Low-Level File Model
 --------------------
 
