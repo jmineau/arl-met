@@ -7,6 +7,7 @@ packed meteorological data files used by HYSPLIT and other atmospheric transport
 
 import importlib.metadata
 
+from .concat import concat, concat_by_time
 from .file import File
 from .grid import Grid, Projection
 from .header import Header
@@ -46,4 +47,6 @@ __all__ = [
     "unpack",
     "extract_subset",
     "sample_points",
+    "concat",
+    "concat_by_time",
 ]
