@@ -55,7 +55,7 @@ the API reference for the full object model.
        <a class="arlmet-card" href="user-guides.html">
           <div class="arlmet-card__eyebrow">User Guides</div>
           <h2 class="arlmet-card__title">Download, crop, sample, and write ARL data</h2>
-          <p class="arlmet-card__body">Use task-focused guides for NOAA archive downloads, spatial cropping, level selection, point sampling, vertical coordinates, and writing datasets back to ARL files.</p>
+          <p class="arlmet-card__body">Use task-focused guides for NOAA archive downloads, spatial cropping, level selection, point sampling, vertical coordinates, concatenating files, and writing datasets back to ARL files.</p>
        </a>
        <a class="arlmet-card" href="api.html">
           <div class="arlmet-card__eyebrow">API Reference</div>

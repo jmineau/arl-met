@@ -18,8 +18,11 @@ High-Level I/O
    open_dataset
    write_dataset
 
-Cropping And Sampling
----------------------
+File Operations
+---------------
+
+Transform ARL files: crop a subset, sample at points, or join files together.
+See the :doc:`cropping`, :doc:`sampling`, and :doc:`concatenating` guides.
 
 .. autosummary::
    :toctree: _autosummary
@@ -27,6 +30,8 @@ Cropping And Sampling
 
    extract_subset
    sample_points
+   concat
+   concat_by_time
 
 Vertical Coordinates
 --------------------
