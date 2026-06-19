@@ -11,6 +11,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `concat(sources, destination, *, sort=True)`: concatenate multiple ARL files into one via a byte-level append. Inputs are first scanned to ensure they share a grid and vertical axis and do not repeat valid times, then joined in valid-time order (`sort=True`, the default) or in the order given. New public export `arlmet.concat`
 - `concat_by_time(directory, output_directory, freq="1D", *, pattern, time_range, template, sort)`: batch form of `concat` that groups a directory of ARL files into time-binned chunks — e.g. 6-hourly HRRR files into daily files. Each file is assigned to a bin by its first valid time, read from the index record rather than parsed from the filename. New public export `arlmet.concat_by_time`
 
+### Changed
+
+- Internal layout: the file operations now live under an `arlmet.ops` subpackage. `arlmet.subset` → `arlmet.ops.subset`, `arlmet.sampling` → `arlmet.ops.sample` (module renamed for consistency with `concat`/`subset`), and `arlmet.concat` → `arlmet.ops.concat`. The public top-level API is unchanged — `arlmet.extract_subset`, `arlmet.sample_points`, `arlmet.concat`, and `arlmet.concat_by_time` all still import from `arlmet` directly. Only code importing the submodules by path is affected
+
 ## [0.1.0a4] - 2026-06-03
 
 ### Added

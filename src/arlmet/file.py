@@ -21,7 +21,6 @@ from arlmet.header import record_length_from_grid
 from arlmet.index import IndexRecord
 from arlmet.record import DataRecord, _require_mode
 from arlmet.recordset import RecordSet, VariableAccessor
-from arlmet.sampling import _sample_points_from_file
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
@@ -517,6 +516,10 @@ class File:
         >>> with arlmet.File("met.arl") as met:
         ...     met.sample_points(pts, ["UWND", "VWND"])
         """
+        # Delayed import: ops sit on top of file, so file's use of the sampling
+        # op is lazy to avoid a file <-> ops import cycle (see File.extract_subset).
+        from arlmet.ops.sample import _sample_points_from_file
+
         return _sample_points_from_file(
             self,
             points,
@@ -579,7 +582,7 @@ class File:
         ...     with met.extract_subset("subset.arl", bbox=(-114, 39, -110, 42)) as sub:
         ...         ds = sub.to_dataset()
         """
-        from arlmet.subset import extract_subset
+        from arlmet.ops.subset import extract_subset
 
         return extract_subset(
             self.path,
