@@ -315,10 +315,8 @@ class HRRRSource(MeteorologySource):
 
     S3: ``s3://noaa-oar-arl-hysplit-pds/hrrr/{year}/{month:02d}/{YYYYMMDD}_{HH}-{HH}_hrrr``
 
-    Note
-    ----
-    The earliest June 2019 files may exist at the bucket root rather than
-    under the year subdirectory. This edge case is not currently handled.
+    The archive begins at the 2019-06-12 00Z block; every file, including the
+    earliest, lives under the ``{year}/{month:02d}/`` layout above.
     """
 
     name = "hrrr"
