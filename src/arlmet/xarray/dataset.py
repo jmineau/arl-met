@@ -14,7 +14,7 @@ import xarray as xr
 from xarray.core import indexing
 
 from arlmet._time import ensure_timestamp
-from arlmet.subset import normalize_levels, resolve_window, select_records
+from arlmet.ops.subset import normalize_levels, resolve_window, select_records
 from arlmet.vertical import VerticalAxis
 
 from ._backend import ArlVariableArray

@@ -7,16 +7,14 @@ packed meteorological data files used by HYSPLIT and other atmospheric transport
 
 import importlib.metadata
 
-from .concat import concat, concat_by_time
 from .file import File
 from .grid import Grid, Projection
 from .header import Header
 from .index import IndexRecord
+from .ops import concat, concat_by_time, extract_subset, sample_points
 from .packing import calculate_checksum, pack, unpack
 from .record import DataRecord
 from .recordset import RecordSet
-from .sampling import sample_points
-from .subset import extract_subset
 from .vertical import HybridAxis, PressureAxis, SigmaAxis, TerrainAxis, VerticalAxis
 from .xarray import open_dataset, pressure, write_dataset, z_agl, z_msl
 

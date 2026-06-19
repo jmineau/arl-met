@@ -284,7 +284,7 @@ class MeteorologySource(ABC):
         opts: dict[str, Any],
     ) -> None:
         """Download one ARL file, crop it to *bbox*, and write the cropped copy."""
-        from arlmet.subset import extract_subset
+        from arlmet.ops.subset import extract_subset
 
         with tempfile.NamedTemporaryFile(suffix=".arl", delete=False) as f:
             tmp = Path(f.name)
