@@ -4,7 +4,7 @@ All notable changes to arl-met are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0a6] - 2026-09-21
 
 ### Added
 
@@ -14,6 +14,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `DataRecord.read()` no longer caches the full field on the record: each call reads from disk and returns a new array. Use `DataRecord.data` for a cached copy. Lazy `open_dataset()` Datasets therefore re-read from disk on each access, like other xarray backends; call `.load()` to keep the data in memory
 - `extract_subset()` and `concat()` docs no longer say the returned `File` may be ignored; close it (`extract_subset(...).close()`) if you only need the file on disk, since an unclosed `File` keeps its file handle open until it is garbage collected
+- Development tooling: the pre-commit ruff hook now matches the ruff pinned in `uv.lock` (0.15.10), so `ruff format --check` and the hook agree; docstring coverage is back to 100% (the Code Quality workflow requires 95%)
 
 ### Fixed
 
