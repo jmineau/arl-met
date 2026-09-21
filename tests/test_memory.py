@@ -95,6 +95,21 @@ def test_write_dataset_peak_memory_is_one_time_step(tmp_path):
     assert peak < destination.stat().st_size
 
 
+def test_write_dataset_from_lazy_dataset_does_not_cache_source(tmp_path):
+    # A lazy open_dataset() Dataset keeps its source records alive. Reads
+    # used to cache each full field on its record (and each DIF record its
+    # own copy), so writing it out held the whole source file in memory.
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "written.arl"
+    write_multistep_source(source)
+    ds = open_dataset(source)  # lazy: each slice is read from disk while writing
+    ds["WWND"].attrs["diff"] = "DIFW"
+
+    peak = traced_peak(lambda: write_dataset(ds, destination))
+
+    assert peak < destination.stat().st_size
+
+
 def test_extract_subset_releases_buffers_without_gc(tmp_path):
     # File, RecordSet, and DataRecord reference each other, so after
     # extract_subset returns they are freed only by the cycle collector,

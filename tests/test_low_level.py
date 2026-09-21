@@ -358,6 +358,9 @@ class TestDataRecordModeGuards:
             assert record.diff is not None
             assert record.diff.variable == "DIFW"
             combined = record.read()
+            # Reading a parent + DIF pair caches neither field.
+            assert record._unpacked is None
+            assert record.diff._unpacked is None
             parent_only = unpack(
                 packed=record.bytes[Header.N_BYTES :],
                 nx=grid.nx,
@@ -482,7 +485,12 @@ class TestDataRecordModeGuards:
             assert record.dtype == np.float32
             first = record.read()
             second = record.read()
-            assert second is first
+            # read() is uncached: a new array each call, nothing kept on the
+            # record. .data is the cached accessor.
+            assert second is not first
+            np.testing.assert_array_equal(second, first)
+            assert record._unpacked is None
+            assert record.data is record.data
             subset = record.read(window=GridWindow(0, 2, 0, 2))
             np.testing.assert_allclose(subset, data[:2, :2])
             assert record[0, 0] == data[0, 0]

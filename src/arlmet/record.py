@@ -352,8 +352,9 @@ class DataRecord:
         """
         Get the data for this record.
 
-        If the data has already been loaded, returns the cached data.
-        Otherwise, reads and unpacks the record eagerly as a NumPy array.
+        The first access reads and unpacks the full grid and caches it on the
+        record; later accesses return the cached array. Use :meth:`read` for
+        an uncached read.
 
         Returns
         -------
@@ -382,7 +383,11 @@ class DataRecord:
 
     def read(self, window: GridWindow | None = None) -> npt.NDArray[np.float32]:
         """
-        Read and unpack this record eagerly.
+        Read and unpack this record from disk.
+
+        Each call returns a new array and nothing is cached on the record, so
+        reading many records does not accumulate memory. Use :attr:`data` for
+        a cached full-grid copy.
 
         Parameters
         ----------
@@ -396,9 +401,6 @@ class DataRecord:
             window.
         """
         _require_mode(self, "r")
-        if window is None and isinstance(self._unpacked, np.ndarray):
-            return self._unpacked
-
         fh = self.recordset.file.handle
         fh.seek(self.position)
         raw = fh.read(self.n_bytes)
@@ -429,8 +431,6 @@ class DataRecord:
         if self._diff is not None:
             unpacked_array = unpacked_array + self._diff.read(window=window)
 
-        if window is None:
-            self._unpacked = unpacked_array
         return unpacked_array
 
     def to_xarray(self, squeeze: bool = True) -> xr.DataArray:

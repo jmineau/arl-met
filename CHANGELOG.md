@@ -10,15 +10,17 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `File.flush()`: write pending record sets to disk and release their in-memory data. When writing many time steps with the low-level `File` API, call it after filling each one so memory stays bounded by a single time step
 
+### Changed
+
+- `DataRecord.read()` no longer caches the full field on the record: each call reads from disk and returns a new array. Use `DataRecord.data` for a cached copy. Lazy `open_dataset()` Datasets therefore re-read from disk on each access, like other xarray backends; call `.load()` to keep the data in memory
+- `extract_subset()` and `concat()` docs no longer say the returned `File` may be ignored; close it (`extract_subset(...).close()`) if you only need the file on disk, since an unclosed `File` keeps its file handle open until it is garbage collected
+
 ### Fixed
 
 - Writers held every record in memory until the file was closed, keeping float32, packed, and byte copies of each field (~6x the output size). Worse, `File`, `RecordSet`, and `DataRecord` reference each other, so those buffers outlived the call until Python's cycle collector ran, and memory piled up across repeated calls (e.g. `extract_subset()` in a loop). Records now drop their buffers once written, and `extract_subset()` and `write_dataset()` write one time step at a time. Peak memory for a 12-time-step `extract_subset()` fell from ~6x to ~0.6x the output size, and memory still held after it returns fell from ~6x to ~0.05x
 - Closing a write-mode `File` twice truncated the written file to 0 bytes: the second close reopened it with mode `"wb"`. Writers now reopen in append mode
 - A `File` whose handle was closed by xarray's global file cache (which keeps at most `file_cache_maxsize`, default 128, files open) raised `ValueError: seek of closed file` on the next read or write. The handle is now reopened when needed
-
-### Changed
-
-- `extract_subset()` and `concat()` docs no longer say the returned `File` may be ignored; close it (`extract_subset(...).close()`) if you only need the file on disk, since an unclosed `File` keeps its file handle open until it is garbage collected
+- Reading a lazy `open_dataset()` Dataset (opened without `bbox`) cached every full field it touched on the source records, plus a second copy for each DIF record, so it gradually held the whole file in memory. `write_dataset(open_dataset(path), ...)` peaked at ~5x the output size; it now peaks at ~0.6x
 
 ## [0.1.0a5] - 2026-06-19
 
