@@ -7,7 +7,8 @@ import os
 import re
 import sys
 import warnings
-from importlib.metadata import PackageNotFoundError, version as package_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as package_version
 from pathlib import Path
 
 sys.path.insert(0, os.path.abspath("../src"))

@@ -106,9 +106,7 @@ class VariableView:
 
         grid = self.source.grid
         if self._is_file_view:
-            times: list[pd.Timestamp] = (
-                self.source.times  # pyrefly: ignore[missing-attribute]
-            )
+            times: list[pd.Timestamp] = self.source.times  # pyrefly: ignore[missing-attribute]
             time_index = {t: i for i, t in enumerate(times)}
         else:
             times = [self.source.time]  # pyrefly: ignore[missing-attribute]
