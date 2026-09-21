@@ -347,6 +347,7 @@ def _vertical_coords(
     n_points = len(plan.inside)
 
     def _broadcast(values_1d: npt.NDArray[Any]) -> npt.NDArray[Any]:
+        """Repeat per-level values for every point: ``(n_points, n_levels)``."""
         return np.broadcast_to(values_1d[None, :], (n_points, len(level_list))).copy()
 
     if z_kind == "native":
