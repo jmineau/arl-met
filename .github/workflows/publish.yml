@@ -22,6 +22,10 @@ jobs:
           CIBW_BUILD: "cp310-* cp311-* cp312-*"
           CIBW_SKIP: "*-musllinux_*"
           CIBW_ARCHS_LINUX: "x86_64"
+          # manylinux2014 (cibuildwheel 2.x default) ships GCC 10.2, but NumPy
+          # 2.5 has no manylinux2014 wheels and needs GCC >= 10.3 to build from
+          # source. manylinux_2_28 (glibc >= 2.28) matches NumPy's own wheels.
+          CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
           CIBW_ARCHS_MACOS: "x86_64 arm64"
           CIBW_ARCHS_WINDOWS: "AMD64"
 
