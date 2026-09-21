@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 import pytest
+import xarray as xr
 
 from arlmet import File
 from arlmet.grid import Grid, GridWindow, Projection
@@ -922,6 +923,146 @@ class TestFileLowLevelBehavior:
             record = arl[pd.Timestamp("2024-07-18 00:00")][(0, "TEMP")]
             assert record._diff is not None
             assert record._diff.variable == "DIFW"
+
+
+def assert_buffers_released(record: DataRecord) -> None:
+    assert record.mode == "r"
+    assert record._unpacked is None
+    assert record._packed is None
+    assert record._bytes is None
+
+
+class TestFileFlushAndHandle:
+    def test_flush_writes_time_step_and_releases_record_buffers(self, tmp_path):
+        path = tmp_path / "flush.arl"
+        grid = make_test_grid()
+        vertical_axis = PressureAxis(levels=[1000.0])
+        time0 = pd.Timestamp("2024-07-18 00:00")
+        time1 = pd.Timestamp("2024-07-18 01:00")
+        temp = np.linspace(270.0, 290.0, grid.nx * grid.ny, dtype=np.float32).reshape(
+            grid.ny, grid.nx
+        )
+        wwnd = np.linspace(-0.3, 0.3, grid.nx * grid.ny, dtype=np.float32).reshape(
+            grid.ny, grid.nx
+        )
+
+        with File(
+            path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+        ) as arl:
+            rs0 = arl.create_recordset(time0, forecast=0)
+            temp0 = rs0.create_datarecord("TEMP", level=0, forecast=0, data=temp)
+            wwnd0 = rs0.create_datarecord(
+                "WWND", level=0, forecast=0, data=wwnd, diff="DIFW"
+            )
+            arl.flush()
+
+            # The first time step is on disk and no longer held in memory.
+            assert rs0.position == 0
+            for record in (temp0, wwnd0, wwnd0.diff):
+                assert_buffers_released(record)
+            with pytest.raises(io.UnsupportedOperation):
+                rs0.create_datarecord("UWND", level=0, forecast=0, data=temp)
+
+            rs1 = arl.create_recordset(time1, forecast=0)
+            temp1 = rs1.create_datarecord("TEMP", level=0, forecast=0, data=temp + 1)
+            wwnd1 = rs1.create_datarecord(
+                "WWND", level=0, forecast=0, data=wwnd, diff="DIFW"
+            )
+
+        # close() flushes the remaining time step the same way.
+        for record in (temp1, wwnd1, wwnd1.diff):
+            assert_buffers_released(record)
+
+        with File(path) as arl:
+            assert arl.times == [time0, time1]
+            for time, expected_temp in ((time0, temp), (time1, temp + 1)):
+                temp_record = arl[time][(0, "TEMP")]
+                wwnd_record = arl[time][(0, "WWND")]
+                np.testing.assert_allclose(
+                    temp_record.read(),
+                    expected_temp,
+                    atol=temp_record.header.precision,
+                )
+                np.testing.assert_allclose(
+                    wwnd_record.read(), wwnd, atol=wwnd_record.header.precision
+                )
+
+    def test_closing_writer_twice_keeps_written_data(self, tmp_path):
+        path = tmp_path / "twice.arl"
+        grid = make_test_grid()
+        time = pd.Timestamp("2024-07-18 00:00")
+        arl = File(
+            path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=PressureAxis(levels=[1000.0]),
+        )
+        rs = arl.create_recordset(time)
+        rs.create_datarecord(
+            "TEMP", level=0, forecast=0, data=np.ones((grid.ny, grid.nx), np.float32)
+        )
+        arl.close()
+        size = path.stat().st_size
+
+        # The second close used to reopen the file with "wb", truncating it.
+        arl.close()
+
+        assert path.stat().st_size == size
+        with File(path) as reread:
+            assert reread.times == [time]
+
+    def test_reader_survives_file_cache_eviction(self, tmp_path):
+        first = tmp_path / "first.arl"
+        second = tmp_path / "second.arl"
+        _, data = write_single_record_file(first)
+        write_single_record_file(second)
+
+        with (
+            xr.set_options(file_cache_maxsize=1),
+            File(first) as a,
+            File(second) as b,
+        ):
+            # Opening `b` evicted `a` from xarray's global file cache,
+            # which closes a's handle; reads must reopen it.
+            np.testing.assert_allclose(a[0].records[0].read(), data)
+            np.testing.assert_allclose(b[0].records[0].read(), data)
+
+    def test_writer_survives_file_cache_eviction(self, tmp_path):
+        path = tmp_path / "writer.arl"
+        other = tmp_path / "other.arl"
+        write_single_record_file(other)
+        grid = make_test_grid()
+        time0 = pd.Timestamp("2024-07-18 00:00")
+        time1 = pd.Timestamp("2024-07-18 01:00")
+        data = np.ones((grid.ny, grid.nx), dtype=np.float32)
+
+        with (
+            xr.set_options(file_cache_maxsize=1),
+            File(
+                path,
+                mode="w",
+                source="TEST",
+                grid=grid,
+                vertical_axis=PressureAxis(levels=[1000.0]),
+            ) as arl,
+        ):
+            rs0 = arl.create_recordset(time0)
+            rs0.create_datarecord("TEMP", level=0, forecast=0, data=data)
+            arl.flush()
+
+            # Evicts the writer's handle. It must reopen in append mode:
+            # "wb" would truncate the time step already written.
+            with File(other):
+                pass
+
+            rs1 = arl.create_recordset(time1)
+            rs1.create_datarecord("TEMP", level=0, forecast=0, data=data * 2)
+
+        with File(path) as reread:
+            assert reread.times == [time0, time1]
+            np.testing.assert_allclose(reread[time0][(0, "TEMP")].read(), data)
+            np.testing.assert_allclose(reread[time1][(0, "TEMP")].read(), data * 2)
 
 
 class TestReprs:

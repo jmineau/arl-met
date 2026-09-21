@@ -4,6 +4,22 @@ All notable changes to arl-met are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `File.flush()`: write pending record sets to disk and release their in-memory data. When writing many time steps with the low-level `File` API, call it after filling each one so memory stays bounded by a single time step
+
+### Fixed
+
+- Writers held every record in memory until the file was closed, keeping float32, packed, and byte copies of each field (~6x the output size). Worse, `File`, `RecordSet`, and `DataRecord` reference each other, so those buffers outlived the call until Python's cycle collector ran, and memory piled up across repeated calls (e.g. `extract_subset()` in a loop). Records now drop their buffers once written, and `extract_subset()` and `write_dataset()` write one time step at a time. Peak memory for a 12-time-step `extract_subset()` fell from ~6x to ~0.6x the output size, and memory still held after it returns fell from ~6x to ~0.05x
+- Closing a write-mode `File` twice truncated the written file to 0 bytes: the second close reopened it with mode `"wb"`. Writers now reopen in append mode
+- A `File` whose handle was closed by xarray's global file cache (which keeps at most `file_cache_maxsize`, default 128, files open) raised `ValueError: seek of closed file` on the next read or write. The handle is now reopened when needed
+
+### Changed
+
+- `extract_subset()` and `concat()` docs no longer say the returned `File` may be ignored; close it (`extract_subset(...).close()`) if you only need the file on disk, since an unclosed `File` keeps its file handle open until it is garbage collected
+
 ## [0.1.0a5] - 2026-06-19
 
 ### Added

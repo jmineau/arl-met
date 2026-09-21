@@ -156,6 +156,23 @@ disk.
 This low-level path is the recommended workflow whenever different variables at
   the same time need different forecast hours or explicit record-level control.
 
+Records are held in memory until the file is flushed or closed. When writing
+many time steps, call :meth:`arlmet.File.flush` after filling each one so memory
+stays bounded by a single time step instead of the whole file.
+:func:`arlmet.write_dataset` and :func:`arlmet.extract_subset` already do this.
+Flushed record sets are on disk and can no longer be modified.
+
+.. code-block:: python
+
+   with arlmet.File(
+       "long.arl", mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+   ) as arl:
+       for time, fields in steps:  # fields: {("PRSS", 0): prss, ("TEMP", 1): temp}
+           rs = arl.create_recordset(time, forecast=0)
+           for (name, level), data in fields.items():
+               rs.create_datarecord(name, level=level, forecast=0, data=data)
+           arl.flush()  # write this time step and free its memory
+
 Contributing ideas
 ------------------
 

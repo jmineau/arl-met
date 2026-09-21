@@ -95,7 +95,7 @@ arlmet.extract_subset(
     "subset.arl",
     bbox=(-114.0, 39.0, -110.0, 42.0),
     levels=[0, 1, 2],
-)
+).close()  # returns the new file opened for reading
 ```
 
 Join short files into longer ones (HYSPLIT accepts at most 12 met files per run):
@@ -104,7 +104,7 @@ Join short files into longer ones (HYSPLIT accepts at most 12 met files per run)
 import arlmet
 
 # join a list of files into one (ordered by valid time)
-arlmet.concat(["20240101_00_hrrr", "20240101_06_hrrr"], "20240101_hrrr")
+arlmet.concat(["20240101_00_hrrr", "20240101_06_hrrr"], "20240101_hrrr").close()
 
 # or batch a whole directory into daily files
 arlmet.concat_by_time(
@@ -147,6 +147,10 @@ with arlmet.File("custom.arl", mode="w", source="TEST", grid=grid, vertical_axis
     rs.create_datarecord("PRSS", level=0, forecast=0, data=prss)
     rs.create_datarecord("WWND", level=1, forecast=0, data=wwnd, diff="DIFW")
 ```
+
+Records are held in memory until the file is flushed or closed. When writing
+many time steps, call `arl.flush()` after filling each one so memory stays
+bounded by a single time step.
 
 ## Resources
 
