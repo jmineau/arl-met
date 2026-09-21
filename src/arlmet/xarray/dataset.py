@@ -361,3 +361,7 @@ def write_dataset(
                         data=data,
                         diff=diff_names.get(var_name),
                     )
+
+            # Write each time step as soon as it is filled so peak memory is
+            # one time step, not the whole file.
+            arl.flush()

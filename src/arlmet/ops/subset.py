@@ -196,8 +196,9 @@ def extract_subset(
     -------
     File
         The newly written subset, opened in read mode. Close it when done
-        (or use it as a context manager). Callers that only need the file on
-        disk may ignore the return value.
+        (or use it as a context manager). If you only need the file on disk,
+        close it right away (``extract_subset(...).close()``); an unclosed
+        File keeps its file handle open until it is garbage collected.
 
     Examples
     --------
@@ -269,5 +270,8 @@ def extract_subset(
                         data=data,
                         diff=record.diff.variable if record.diff is not None else None,
                     )
+                # Write each time step as soon as it is filled so peak memory
+                # is one time step, not the whole output.
+                destination.flush()
 
     return File(destination_path)

@@ -28,11 +28,12 @@ order you list them in.
    arlmet.concat(
        ["20240101_00_hrrr", "20240101_06_hrrr", "20240101_12_hrrr"],
        "20240101_hrrr",
-   )
+   ).close()
 
 ``concat()`` returns the new file opened in read mode, so you can chain straight
-into analysis. Use it as a context manager (or call ``.close()``) when you keep
-the return value; ignore it if you only need the file on disk.
+into analysis. Use it as a context manager when you keep the return value, or
+call ``.close()`` right away (as above) if you only need the file on disk. An
+unclosed file keeps its file handle open until Python garbage-collects it.
 
 .. code-block:: python
 

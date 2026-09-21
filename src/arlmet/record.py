@@ -574,7 +574,7 @@ class DataRecord:
 
     def _flush(self) -> None:
         """
-        Flush the packed data to disk.
+        Flush the packed data to disk and release the in-memory copies.
         """
         _require_mode(self, "w")
         raw = self.bytes
@@ -586,3 +586,10 @@ class DataRecord:
         elif fh.tell() != self.position:
             fh.seek(self.position)
         fh.write(raw)
+
+        # The record now lives on disk (mode "r"), so drop the unpacked,
+        # packed, and byte copies. Otherwise a written File holds ~6x its
+        # size in memory until it is garbage collected.
+        self._unpacked = None
+        self._packed = None
+        self._bytes = None

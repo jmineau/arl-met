@@ -50,11 +50,16 @@ Use :func:`arlmet.extract_subset` when you want a new ARL file on disk.
        "input.arl",
        "cropped.arl",
        bbox=(-114.0, 39.0, -110.0, 42.0),
-   )
+   ).close()
 
 ``extract_subset()`` returns the new file opened in read mode, so you can chain
-straight into analysis. Use it as a context manager (or call ``.close()``) when
-you keep the return value; ignore it if you only need the file on disk.
+straight into analysis. Use it as a context manager when you keep the return
+value, or call ``.close()`` right away (as above) if you only need the file on
+disk. An unclosed file keeps its file handle open until Python garbage-collects
+it.
+
+The subset is written one time step at a time, so memory use is bounded by a
+single cropped time step rather than the whole output file.
 
 .. code-block:: python
 

@@ -27,6 +27,18 @@ if TYPE_CHECKING:
     import xarray as xr
 
 
+def _open_binary(path: str | os.PathLike[str], mode: str) -> BinaryIO:
+    """
+    Open ``path`` in binary ``mode`` ("r", "w", or "a").
+
+    CachingFileManager switches mode "w" to "a" after the first open so that
+    reopening a writer appends instead of truncating. It only recognizes the
+    bare letter, so the manager gets "r"/"w" and the "b" is added here.
+    """
+    # open() only narrows to BinaryIO for literal modes.
+    return cast(BinaryIO, open(path, mode + "b"))
+
+
 class File:
     """
     Read or write an ARL meteorology file.
@@ -69,6 +81,8 @@ class File:
         Build and attach a Grid when writing a new file.
     create_recordset(time, forecast=None)
         Create a writable RecordSet for one valid time.
+    flush()
+        Write pending record sets to disk and release their in-memory data.
     sample_points(points, variables, ...)
         Interpolate fields at arbitrary lon/lat/z sample points.
     extract_subset(destination, ...)
@@ -102,8 +116,7 @@ class File:
             raise ValueError("Mode must be 'r' (read) or 'w' (write).")
 
         # Open the binary file handle
-        bmode = self.mode + "b"
-        self._manager = CachingFileManager(open, self.path, mode=bmode)
+        self._manager = CachingFileManager(_open_binary, self.path, mode=self.mode)
         self._handle: BinaryIO | None = None
 
         # Must be consistent throughout the file
@@ -123,11 +136,14 @@ class File:
 
     @property
     def handle(self) -> BinaryIO:
-        if self._handle is None:
-            # Hot record read/write paths hit this repeatedly, so keep one
-            # acquired handle per File instead of reentering the manager.
-            # xarray's CachingFileManager.acquire() returns IO[Any]; opening in
-            # binary mode guarantees BinaryIO at runtime.
+        # Hot record read/write paths hit this repeatedly, so keep one
+        # acquired handle per File instead of reentering the manager. xarray's
+        # global file cache closes the least recently used file once it holds
+        # `file_cache_maxsize` (128) files, so reacquire when that happens; the
+        # manager reopens the file (in append mode for writers).
+        if self._handle is None or self._handle.closed:
+            # CachingFileManager.acquire() returns IO[Any]; _open_binary
+            # guarantees BinaryIO at runtime.
             self._handle = cast(BinaryIO, self._manager.acquire())
         return self._handle
 
@@ -460,16 +476,37 @@ class File:
             # Move file pointer to the start of the next index record
             fh.seek(position)
 
+    def flush(self) -> None:
+        """
+        Write pending record sets to disk and release their in-memory data.
+
+        Record sets are held in memory until the file is flushed or closed.
+        When writing many time steps, call ``flush()`` after filling each one
+        so memory stays bounded by one time step instead of the whole file.
+        Flushed record sets cannot be modified.
+
+        Examples
+        --------
+        >>> with arlmet.File(
+        ...     "out.arl", mode="w", source="TEST", grid=grid, vertical_axis=vaxis
+        ... ) as arl:
+        ...     for time, fields in steps:  # fields: {(name, level): array}
+        ...         rs = arl.create_recordset(time, forecast=0)
+        ...         for (name, level), data in fields.items():
+        ...             rs.create_datarecord(name, level=level, forecast=0, data=data)
+        ...         arl.flush()
+        """
+        _require_mode(self, "w")
+        for rs in self._recordsets.values():
+            if rs.position == -1 and len(rs) > 0:
+                rs._flush()
+        self.handle.flush()
+
     def close(self) -> None:
         """Flush pending writes and close the managed binary file handle."""
         try:
             if self.mode == "w":
-                for rs in self._recordsets.values():
-                    if rs.position == -1:
-                        if len(rs) == 0:
-                            continue
-                        rs._flush()
-                self.handle.flush()
+                self.flush()
         finally:
             # Close the file manager — this releases the underlying file handle.
             # Any mmap objects created from it become invalid and are GC'd automatically.

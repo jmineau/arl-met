@@ -60,8 +60,9 @@ def concat(
     -------
     File
         The newly written file, opened in read mode. Close it when done (or use
-        it as a context manager). Callers that only need the file on disk may
-        ignore the return value.
+        it as a context manager). If you only need the file on disk, close it
+        right away (``concat(...).close()``); an unclosed File keeps its file
+        handle open until it is garbage collected.
 
     Raises
     ------
