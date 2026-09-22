@@ -7,6 +7,7 @@
 [![PyPI version](https://badge.fury.io/py/arlmet.svg)](https://badge.fury.io/py/arlmet)
 [![Python Version](https://img.shields.io/pypi/pyversions/arlmet.svg)](https://pypi.org/project/arlmet/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22900754.svg)](https://doi.org/10.5281/zenodo.22900754)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Pyrefly](https://img.shields.io/badge/pyrefly-checked-brightgreen.svg)](https://pyrefly.org)
 
