@@ -564,6 +564,76 @@ class Grid:
         y = np.asarray(proj_y, dtype=float) / step
         return x, y
 
+    def meridian_convergence(
+        self, lon: npt.NDArray[Any] | float, lat: npt.NDArray[Any] | float
+    ) -> npt.NDArray[Any]:
+        """
+        Angle from grid north to true north at each point, in degrees.
+
+        Positive where true north lies clockwise of the grid y-axis. Zero
+        everywhere on a lat/lon grid.
+
+        Parameters
+        ----------
+        lon, lat : array-like or float
+            Geographic coordinates in degrees.
+
+        Returns
+        -------
+        np.ndarray
+            Convergence angle in degrees with the broadcast shape of the inputs.
+        """
+        lon_arr, lat_arr = np.broadcast_arrays(
+            np.asarray(lon, dtype=float),
+            np.asarray(lat, dtype=float),
+        )
+        if self.is_latlon:
+            return np.zeros(lon_arr.shape, dtype=float)
+        factors = pyproj.Proj(self.crs).get_factors(lon_arr, lat_arr)
+        return np.asarray(factors.meridian_convergence, dtype=float).reshape(
+            lon_arr.shape
+        )
+
+    def rotate_winds(
+        self,
+        u: npt.NDArray[Any] | float,
+        v: npt.NDArray[Any] | float,
+        lon: npt.NDArray[Any] | float,
+        lat: npt.NDArray[Any] | float,
+    ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+        """
+        Rotate grid-relative wind components to earth-relative ones.
+
+        Winds in ARL files on projected grids are stored relative to the grid
+        axes, which is what HYSPLIT expects. This rotates them by the meridian
+        convergence at each point so that ``u`` points east and ``v`` north.
+        Lat/lon grids are returned unchanged.
+
+        Parameters
+        ----------
+        u, v : array-like or float
+            Grid-relative wind components.
+        lon, lat : array-like or float
+            Geographic coordinates of each wind, in degrees.
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray]
+            Earth-relative ``(u, v)`` with the broadcast shape of the inputs.
+        """
+        u_arr, v_arr, lon_arr, lat_arr = np.broadcast_arrays(
+            np.asarray(u, dtype=float),
+            np.asarray(v, dtype=float),
+            np.asarray(lon, dtype=float),
+            np.asarray(lat, dtype=float),
+        )
+        if self.is_latlon:
+            return u_arr.copy(), v_arr.copy()
+        angle = np.radians(self.meridian_convergence(lon_arr, lat_arr))
+        cos = np.cos(angle)
+        sin = np.sin(angle)
+        return cos * u_arr + sin * v_arr, cos * v_arr - sin * u_arr
+
     def full_window(self) -> GridWindow:
         """
         Return a GridWindow spanning the full horizontal domain.

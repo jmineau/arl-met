@@ -917,3 +917,140 @@ class TestMultiTimeFile:
             result = arl.sample_points(points, ["TEMP"], z_kind="pressure")
 
         np.testing.assert_allclose(result["TEMP"].to_numpy(), [285.0, 305.0], atol=1e-3)
+
+
+# --- earth-relative winds on projected grids ---
+
+
+def make_lambert_grid(nx: int = 30, ny: int = 30) -> Grid:
+    """HRRR-like Lambert conformal grid over the western US."""
+    projection = Projection(
+        pole_lat=90.0,
+        pole_lon=0.0,
+        tangent_lat=38.5,
+        tangent_lon=-97.5,
+        grid_size=30.0,
+        orientation=0.0,
+        cone_angle=38.5,
+        sync_x=1.0,
+        sync_y=1.0,
+        sync_lat=36.0,
+        sync_lon=-118.0,
+    )
+    return Grid(projection=projection, nx=nx, ny=ny)
+
+
+def write_wind_file(path, grid: Grid, *, time: pd.Timestamp, u: float, v: float):
+    """Single-level file with uniform grid-relative winds on *grid*."""
+    vertical_axis = PressureAxis(levels=[1000.0, 850.0])  # level 0 holds surface fields
+    shape = (grid.ny, grid.nx)
+    with File(
+        path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+    ) as arl:
+        rs = arl.create_recordset(time)
+        for name, value in (("UWND", u), ("VWND", v), ("U10M", u), ("V10M", v)):
+            rs.create_datarecord(
+                name,
+                level=1 if name in {"UWND", "VWND"} else 0,
+                forecast=0,
+                data=np.full(shape, value, dtype=np.float32),
+            )
+
+
+def _lambert_points(grid: Grid) -> pd.DataFrame:
+    coords = grid.calculate_coords()
+    lons = coords["lon"][1]  # projected grids return (dims, array)
+    lats = coords["lat"][1]
+    rows = [(5, 5), (10, 20), (25, 12)]
+    return pd.DataFrame(
+        {
+            "lon": [float(lons[j, i]) for j, i in rows],
+            "lat": [float(lats[j, i]) for j, i in rows],
+            "z": [850.0] * len(rows),
+        }
+    )
+
+
+def test_sample_points_earth_relative_rotates_lambert_winds(tmp_path):
+    grid = make_lambert_grid()
+    time = pd.Timestamp("2024-07-01T00:00")
+    path = tmp_path / "lcc.arl"
+    write_wind_file(path, grid, time=time, u=3.0, v=4.0)
+    points = _lambert_points(grid)
+
+    stored = sample_points(path, points, ["UWND", "VWND"])
+    rotated = sample_points(path, points, ["UWND", "VWND"], earth_relative=True)
+
+    np.testing.assert_allclose(stored["UWND"], 3.0, rtol=1e-5)
+    np.testing.assert_allclose(stored["VWND"], 4.0, rtol=1e-5)
+
+    # HRRR's documented rotation: angle = sin(lat_1) * (lon - lon_0)
+    angle = np.radians(np.sin(np.radians(38.5)) * (points["lon"].to_numpy() + 97.5))
+    expected_u = np.cos(angle) * 3.0 + np.sin(angle) * 4.0
+    expected_v = -np.sin(angle) * 3.0 + np.cos(angle) * 4.0
+    np.testing.assert_allclose(rotated["UWND"], expected_u, rtol=1e-5)
+    np.testing.assert_allclose(rotated["VWND"], expected_v, rtol=1e-5)
+    # Rotation preserves speed.
+    np.testing.assert_allclose(
+        np.hypot(rotated["UWND"], rotated["VWND"]), 5.0, rtol=1e-5
+    )
+    # The rotation is not a no-op away from the central meridian.
+    assert np.all(np.abs(rotated["UWND"] - 3.0) > 0.1)
+
+
+def test_sample_points_earth_relative_rotates_10m_winds(tmp_path):
+    grid = make_lambert_grid()
+    time = pd.Timestamp("2024-07-01T00:00")
+    path = tmp_path / "lcc.arl"
+    write_wind_file(path, grid, time=time, u=3.0, v=4.0)
+    points = _lambert_points(grid)
+
+    upper = sample_points(path, points, ["UWND", "VWND"], earth_relative=True)
+    surface = sample_points(path, points, ["U10M", "V10M"], earth_relative=True)
+    np.testing.assert_allclose(surface["U10M"], upper["UWND"], rtol=1e-6)
+    np.testing.assert_allclose(surface["V10M"], upper["VWND"], rtol=1e-6)
+
+
+def test_sample_points_earth_relative_requires_both_components(tmp_path):
+    grid = make_lambert_grid()
+    time = pd.Timestamp("2024-07-01T00:00")
+    path = tmp_path / "lcc.arl"
+    write_wind_file(path, grid, time=time, u=3.0, v=4.0)
+    points = _lambert_points(grid)
+
+    with pytest.raises(ValueError, match="'UWND' was requested without 'VWND'"):
+        sample_points(path, points, ["UWND"], earth_relative=True)
+    # Without the flag a lone component is fine.
+    assert "UWND" in sample_points(path, points, ["UWND"]).columns
+
+
+def test_sample_points_earth_relative_no_op_on_latlon(tmp_path):
+    grid = make_test_grid()
+    time = pd.Timestamp("2024-07-01T00:00")
+    path = tmp_path / "latlon.arl"
+    write_wind_file(path, grid, time=time, u=3.0, v=4.0)
+    coords = grid.calculate_coords()
+    points = pd.DataFrame(
+        {
+            "lon": coords["lon"][[2, 7]],
+            "lat": coords["lat"][[3, 9]],
+            "z": [850.0, 850.0],
+        }
+    )
+
+    rotated = sample_points(path, points, ["UWND", "VWND"], earth_relative=True)
+    np.testing.assert_allclose(rotated["UWND"], 3.0, rtol=1e-6)
+    np.testing.assert_allclose(rotated["VWND"], 4.0, rtol=1e-6)
+
+
+def test_file_sample_points_passes_earth_relative(tmp_path):
+    grid = make_lambert_grid()
+    time = pd.Timestamp("2024-07-01T00:00")
+    path = tmp_path / "lcc.arl"
+    write_wind_file(path, grid, time=time, u=3.0, v=4.0)
+    points = _lambert_points(grid)
+
+    with File(path) as met:
+        via_method = met.sample_points(points, ["UWND", "VWND"], earth_relative=True)
+    via_function = sample_points(path, points, ["UWND", "VWND"], earth_relative=True)
+    pd.testing.assert_frame_equal(via_method, via_function)

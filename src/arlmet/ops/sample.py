@@ -30,6 +30,9 @@ if TYPE_CHECKING:
 
 SURFACE_VARIABLES = {"PRSS", "SHGT"}
 
+#: Wind component pairs that are stored grid-relative on projected grids.
+WIND_PAIRS: tuple[tuple[str, str], ...] = (("UWND", "VWND"), ("U10M", "V10M"))
+
 # A single sampling source: an open File or a path to an ARL file.
 SourceLike = Union["File", str, "os.PathLike[str]"]
 
@@ -108,6 +111,44 @@ def _normalize_variables(variables: str | Iterable[str]) -> tuple[str, ...]:
     if not names:
         raise ValueError("variables must include at least one variable name.")
     return names
+
+
+def _check_wind_pairs(variable_names: Sequence[str]) -> list[tuple[str, str]]:
+    """Return the wind pairs present in *variable_names*; raise if a component lacks its partner."""
+    requested = set(variable_names)
+    pairs: list[tuple[str, str]] = []
+    for u_name, v_name in WIND_PAIRS:
+        has_u = u_name in requested
+        has_v = v_name in requested
+        if has_u != has_v:
+            missing = v_name if has_u else u_name
+            present = u_name if has_u else v_name
+            raise ValueError(
+                f"earth_relative=True needs both wind components: '{present}' "
+                f"was requested without '{missing}'."
+            )
+        if has_u:
+            pairs.append((u_name, v_name))
+    return pairs
+
+
+def _rotate_wind_columns(
+    result: pd.DataFrame, grid: Grid, pairs: Sequence[tuple[str, str]]
+) -> None:
+    """Rotate each sampled wind pair in *result* from grid- to earth-relative, in place."""
+    if grid.is_latlon or not pairs:
+        return
+    lon = result["lon"].to_numpy(dtype=float)
+    lat = result["lat"].to_numpy(dtype=float)
+    for u_name, v_name in pairs:
+        u_earth, v_earth = grid.rotate_winds(
+            result[u_name].to_numpy(dtype=float),
+            result[v_name].to_numpy(dtype=float),
+            lon,
+            lat,
+        )
+        result[u_name] = u_earth.astype(np.float32)
+        result[v_name] = v_earth.astype(np.float32)
 
 
 def _record_levels(recordset: RecordSet, variable: str) -> OrderedDict[int, DataRecord]:
@@ -548,6 +589,7 @@ def _sample_points_from_file(
     time: pd.Timestamp | str | None = None,
     z_kind: str = "pressure",
     method: str = "linear",
+    earth_relative: bool = False,
 ) -> pd.DataFrame:
     """
     Sample meteorological variables at arbitrary (lon, lat, z, time) points from one file.
@@ -575,6 +617,11 @@ def _sample_points_from_file(
           otherwise hypsometric AGL from PRSS and TEMP plus SHGT terrain)
     method :
         Horizontal interpolation: ``'linear'`` (bilinear) or ``'nearest'``.
+    earth_relative :
+        Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``) from
+        the grid axes to east/north. Winds in ARL files on projected grids are
+        stored grid-relative, as HYSPLIT expects. Both components of a pair
+        must be requested. No effect on lat/lon grids.
 
     Returns
     -------
@@ -582,6 +629,7 @@ def _sample_points_from_file(
         Copy of *points* with one column added per requested variable.
     """
     variable_names = _normalize_variables(variables)
+    wind_pairs = _check_wind_pairs(variable_names) if earth_relative else []
     require_time = time is None and len(file.times) != 1
     default_time = (
         ensure_timestamp(time)
@@ -651,6 +699,7 @@ def _sample_points_from_file(
             )
             result.loc[index, variable] = sampled
 
+    _rotate_wind_columns(result, file.grid, wind_pairs)
     return result
 
 
@@ -698,6 +747,7 @@ def sample_points(
     time: pd.Timestamp | str | None = None,
     z_kind: str = "pressure",
     method: str = "linear",
+    earth_relative: bool = False,
 ) -> pd.DataFrame:
     """
     Sample meteorological variables at arbitrary (lon, lat, z, time) points.
@@ -724,6 +774,11 @@ def sample_points(
         See :meth:`arlmet.File.sample_points` for details.
     method :
         Horizontal interpolation: ``'linear'`` (bilinear) or ``'nearest'``.
+    earth_relative :
+        Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``) from
+        the grid axes to east/north, using the meridian convergence of each
+        file's grid. Both components of a pair must be requested. No effect on
+        lat/lon grids.
 
     Returns
     -------
@@ -753,6 +808,7 @@ def sample_points(
                 time=time,
                 z_kind=z_kind,
                 method=method,
+                earth_relative=earth_relative,
             )
 
         normalized = _normalize_points(
@@ -785,6 +841,7 @@ def sample_points(
                 time=ensure_timestamp(sample_time),
                 z_kind=z_kind,
                 method=method,
+                earth_relative=earth_relative,
             )
             pieces.append(piece)
 

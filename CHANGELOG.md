@@ -10,6 +10,13 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Zenodo citation metadata (`CITATION.cff`, `.zenodo.json`) so releases are archived on Zenodo and mint a citable DOI
 
+## [Unreleased]
+
+### Added
+
+- `sample_points(..., earth_relative=True)` (also on `File.sample_points`): rotate sampled `UWND`/`VWND` and `U10M`/`V10M` from grid-relative to east/north using the meridian convergence of the file's grid, so sampled winds can be compared with observations. Winds in ARL files on projected grids are stored grid-relative, as HYSPLIT expects. Both components of a pair must be requested; lat/lon grids are unaffected
+- `Grid.meridian_convergence(lon, lat)` and `Grid.rotate_winds(u, v, lon, lat)`: the angle from grid north to true north, and the rotation itself, for any projected grid. On the HRRR grid this reproduces the rotation in NOAA's HRRR FAQ (`0.622515 * (lon + 97.5)` degrees)
+
 ## [0.1.0a6] - 2026-09-21
 
 ### Added

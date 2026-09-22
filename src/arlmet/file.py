@@ -521,6 +521,7 @@ class File:
         time: pd.Timestamp | str | None = None,
         z_kind: str = "pressure",
         method: str = "linear",
+        earth_relative: bool = False,
     ) -> pd.DataFrame:
         """
         Sample fields from this file at arbitrary lon/lat/z points.
@@ -539,6 +540,9 @@ class File:
             Interpretation of the ``z`` coordinate.
         method : {"linear", "nearest"}, default "linear"
             Horizontal interpolation method.
+        earth_relative : bool, default False
+            Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``)
+            from the grid axes to east/north. Both components must be requested.
 
         Returns
         -------
@@ -564,6 +568,7 @@ class File:
             time=time,
             z_kind=z_kind,
             method=method,
+            earth_relative=earth_relative,
         )
 
     def to_dataset(

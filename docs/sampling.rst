@@ -93,6 +93,30 @@ Horizontal interpolation
 
    result = arlmet.sample_points(met, points, ["TEMP"], method="nearest")
 
+Earth-relative winds
+--------------------
+
+Winds in ARL files on projected grids (Lambert conformal, polar
+stereographic, Mercator) are stored relative to the grid axes, which is what
+HYSPLIT expects. Sampled ``UWND``/``VWND`` and ``U10M``/``V10M`` are therefore
+not directly comparable with observed winds. Pass ``earth_relative=True`` to
+rotate each pair so that ``u`` points east and ``v`` north, using the meridian
+convergence of the file's grid at each point. Both components of a pair must
+be requested. Lat/lon grids are unaffected.
+
+.. code-block:: python
+
+   result = arlmet.sample_points(
+       "hrrr.arl", points, ["UWND", "VWND"], earth_relative=True
+   )
+
+The same rotation is available on the grid for winds you obtained another way,
+for example from :func:`arlmet.open_dataset`:
+
+.. code-block:: python
+
+   u_earth, v_earth = met.grid.rotate_winds(u, v, lon, lat)
+
 Single-time files
 -----------------
 

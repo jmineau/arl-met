@@ -378,3 +378,92 @@ class TestReprs:
     def test_grid_repr_projected_includes_spacing(self):
         grid = Grid(projection=self._stere_proj(), nx=100, ny=80)
         assert repr(grid) == "Grid(stere 50km, 100\u00d780)"
+
+
+class TestWindRotation:
+    def _lambert(self) -> Grid:
+        proj = Projection(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=38.5,
+            tangent_lon=-97.5,
+            grid_size=3.0,
+            orientation=0.0,
+            cone_angle=38.5,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=21.138,
+            sync_lon=-122.72,
+        )
+        return Grid(projection=proj, nx=1799, ny=1059)
+
+    def test_lambert_convergence_matches_cone_constant(self):
+        grid = self._lambert()
+        lon = np.array([-111.9, -97.5, -80.0, -120.0])
+        lat = np.array([40.7, 30.0, 45.0, 25.0])
+        expected = np.sin(np.radians(38.5)) * (lon + 97.5)
+        np.testing.assert_allclose(
+            grid.meridian_convergence(lon, lat), expected, atol=1e-6
+        )
+
+    def test_lambert_rotation_matches_hrrr_formula(self):
+        grid = self._lambert()
+        lon = np.array([-111.9, -80.0])
+        lat = np.array([40.7, 45.0])
+        u = np.array([3.0, -2.0])
+        v = np.array([4.0, 1.0])
+        angle = np.radians(0.622515 * (lon + 97.5))  # NOAA HRRR FAQ constants
+        expected_u = np.cos(angle) * u + np.sin(angle) * v
+        expected_v = -np.sin(angle) * u + np.cos(angle) * v
+        u_out, v_out = grid.rotate_winds(u, v, lon, lat)
+        np.testing.assert_allclose(u_out, expected_u, atol=1e-6)
+        np.testing.assert_allclose(v_out, expected_v, atol=1e-6)
+
+    def test_rotation_broadcasts_scalars(self):
+        grid = self._lambert()
+        u_out, v_out = grid.rotate_winds(1.0, 0.0, [-111.9, -80.0], 40.0)
+        assert u_out.shape == (2,)
+        np.testing.assert_allclose(np.hypot(u_out, v_out), 1.0, atol=1e-12)
+
+    def test_polar_stereographic_convergence_is_longitude_offset(self):
+        proj = Projection(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=60.0,
+            tangent_lon=-105.0,
+            grid_size=100.0,
+            orientation=0.0,
+            cone_angle=90.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=30.0,
+            sync_lon=-140.0,
+        )
+        grid = Grid(projection=proj, nx=50, ny=50)
+        lon = np.array([-105.0, -95.0, -125.0])
+        lat = np.array([45.0, 50.0, 55.0])
+        np.testing.assert_allclose(
+            grid.meridian_convergence(lon, lat), lon + 105.0, atol=1e-6
+        )
+
+    def test_latlon_grid_is_unchanged(self):
+        proj = Projection(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=1.0,
+            tangent_lon=1.0,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=-10.0,
+            sync_lon=20.0,
+        )
+        grid = Grid(projection=proj, nx=10, ny=10)
+        lon = np.array([25.0, 30.0])
+        lat = np.array([-5.0, 0.0])
+        np.testing.assert_array_equal(grid.meridian_convergence(lon, lat), 0.0)
+        u_out, v_out = grid.rotate_winds([1.0, 2.0], [3.0, 4.0], lon, lat)
+        np.testing.assert_array_equal(u_out, [1.0, 2.0])
+        np.testing.assert_array_equal(v_out, [3.0, 4.0])
