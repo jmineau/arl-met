@@ -2,8 +2,20 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 title: "arl-met"
-version: 0.1.0a6
+version: 0.1.0a7
+date-released: "2026-09-22"
+# Concept DOI (always resolves to the latest release) — same convention as
+# pandas/astropy/xarray. `doi` is the shorthand GitHub's "Cite this
+# repository" popup actually renders in APA/BibTeX (it ignores
+# `identifiers`, per citation-file-format/ruby-cff's formatters);
+# `identifiers` is kept too for tools that prefer that form. Deliberately
+# not tracking the per-version DOI here — none of the above do either.
+doi: "10.5281/zenodo.22900754"
 abstract: "arl-met reads, writes, and manipulates NOAA ARL binary meteorology files, the format used by HYSPLIT and PYSTILT."
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.22900754"
+    description: "The concept DOI for all versions of arl-met."
 authors:
   - family-names: Mineau
     given-names: James K.
