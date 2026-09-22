@@ -4,6 +4,12 @@ All notable changes to arl-met are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0a7] - 2026-09-22
+
+### Added
+
+- Zenodo citation metadata (`CITATION.cff`, `.zenodo.json`) so releases are archived on Zenodo and mint a citable DOI
+
 ## [0.1.0a6] - 2026-09-21
 
 ### Added
