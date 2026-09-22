@@ -1,0 +1,14 @@
+{
+  "title": "arl-met",
+  "description": "arl-met reads, writes, and manipulates NOAA ARL binary meteorology files, the format used by HYSPLIT and PYSTILT.",
+  "creators": [
+    {
+      "name": "Mineau, James K.",
+      "affiliation": "University of Utah",
+      "orcid": "0000-0002-2289-2252"
+    }
+  ],
+  "license": "MIT",
+  "upload_type": "software",
+  "keywords": ["arl", "hysplit", "meteorology", "atmospheric-science", "xarray"]
+}

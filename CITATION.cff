@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "arl-met"
+version: 0.1.0a6
+abstract: "arl-met reads, writes, and manipulates NOAA ARL binary meteorology files, the format used by HYSPLIT and PYSTILT."
+authors:
+  - family-names: Mineau
+    given-names: James K.
+    email: jameskmineau@gmail.com
+    orcid: "https://orcid.org/0000-0002-2289-2252"
+    affiliation: "University of Utah"
+repository-code: "https://github.com/jmineau/arl-met"
+license: MIT
+keywords:
+  - arl
+  - hysplit
+  - meteorology
+  - atmospheric-science
+  - xarray
