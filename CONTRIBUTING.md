@@ -2,6 +2,11 @@
 
 Thank you for considering contributing to arl-met! We welcome contributions from the community.
 
+This project is developed with the help of AI coding agents, directed and
+reviewed by the maintainer, who owns the design and the science. If you
+contribute with an agent, [AGENTS.md](AGENTS.md) at the repository root is
+the orientation file it should read.
+
 ## Getting Started
 
 1. Fork the repository on GitHub

@@ -177,6 +177,11 @@ See [CHANGELOG.md](CHANGELOG.md) for release history.
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for development
 setup and contribution guidelines.
 
+## Use of AI coding agents
+
+This project is developed with the help of AI coding agents, directed and
+reviewed by the maintainer, who owns the design and the science.
+
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE).
