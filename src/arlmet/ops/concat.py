@@ -25,7 +25,6 @@ import pandas as pd
 
 from arlmet.errors import ARLFormatError
 from arlmet.file import File
-from arlmet.index import IndexRecord
 
 __all__ = ["concat", "concat_by_time"]
 
@@ -193,11 +192,12 @@ def concat_by_time(
     """
     Group every ARL file in a directory by valid time and concatenate each group.
 
-    Each input is assigned to a time bin from its first valid time — read from
-    the file's index record, not parsed from its name — floored to ``freq``. All
+    Each input is assigned to a time bin from its valid times — read from the
+    file's index records, not parsed from its name — floored to ``freq``. All
     files in a bin are concatenated into one output file. This is the batch form
     of :func:`concat`: e.g. turning a directory of 6-hourly HRRR files into one
-    file per day.
+    file per day. Files are never split, so every input must fall entirely
+    within one bin.
 
     Parameters
     ----------
@@ -209,8 +209,8 @@ def concat_by_time(
     freq : str, default "1D"
         Fixed-frequency pandas offset alias giving the size of each output
         chunk: ``"1D"`` = one file per day, ``"6h"`` = one per six hours, etc.
-        Each input is binned by its first valid time floored to this frequency,
-        so ``freq`` should be at least as long as any single input file's span.
+        Each input must fit entirely within one bin: a file whose first and
+        last valid times floor to different bins raises ``ValueError``.
     pattern : str, default "*"
         Glob (relative to ``directory``) selecting input files. Scope it to ARL
         files; every match must be a readable ARL file.
@@ -220,7 +220,8 @@ def concat_by_time(
     template : str, default "{time:%Y%m%d}_arl"
         ``str.format`` template for output filenames, given the bin start time
         as ``time`` (a ``pandas.Timestamp``), e.g. ``"{time:%Y%m%d}_hrrr"``. It
-        must encode enough resolution to keep bins distinct at ``freq``.
+        must encode enough resolution to keep bins distinct at ``freq``; two
+        bins that format to the same filename raise ``ValueError``.
     sort : bool, default True
         Passed through to :func:`concat` for each group.
 
@@ -232,9 +233,11 @@ def concat_by_time(
     Raises
     ------
     ValueError
-        If ``pattern`` matches no files, or a matched file cannot be read as
-        ARL. :func:`concat`'s grid/axis and duplicate-time checks also apply
-        within each group.
+        If ``pattern`` matches no files, a matched file cannot be read as ARL,
+        a file's valid times straddle a ``freq`` bin boundary, or ``template``
+        formats two bins to the same filename. :func:`concat`'s grid/axis and
+        duplicate-time checks also apply within each group. All checks run
+        before any output is written.
 
     Examples
     --------
@@ -262,18 +265,40 @@ def concat_by_time(
 
     groups: dict[pd.Timestamp, list[Path]] = defaultdict(list)
     for path in candidates:
-        first_time = _peek_first_time(path)
+        first_time, last_time = _read_time_span(path)
         if time_filter is not None and not (
             time_filter[0] <= first_time <= time_filter[1]
         ):
             continue
-        groups[first_time.floor(freq)].append(path)
+        bin_start = first_time.floor(freq)
+        if last_time.floor(freq) != bin_start:
+            raise ValueError(
+                f"{path} spans {first_time} to {last_time}, which straddles a "
+                f"{freq!r} bin boundary. concat_by_time does not split files; "
+                "use a freq at least as long as each input file's span, aligned "
+                "so no file crosses a bin edge."
+            )
+        groups[bin_start].append(path)
+
+    out_paths = {
+        bin_start: output_directory / template.format(time=bin_start)
+        for bin_start in sorted(groups)
+    }
+    owner: dict[Path, pd.Timestamp] = {}
+    for bin_start, out_path in out_paths.items():
+        if out_path in owner:
+            raise ValueError(
+                f"template {template!r} gives the same filename {out_path.name!r} "
+                f"for the bins starting {owner[out_path]} and {bin_start}. Add "
+                f"enough time resolution to the template to keep {freq!r} bins "
+                "distinct, e.g. '{time:%Y%m%d_%H}'."
+            )
+        owner[out_path] = bin_start
 
     output_directory.mkdir(parents=True, exist_ok=True)
 
     outputs: list[Path] = []
-    for bin_start in sorted(groups):
-        out_path = output_directory / template.format(time=bin_start)
+    for bin_start, out_path in out_paths.items():
         # concat returns an open File; we only need it written, so close it.
         with concat(groups[bin_start], out_path, sort=sort):
             pass
@@ -281,18 +306,16 @@ def concat_by_time(
     return outputs
 
 
-def _peek_first_time(path: Path) -> pd.Timestamp:
-    """
-    Read only the first index record to get a file's earliest valid time.
-
-    Much cheaper than ``File(path).times`` on large multi-time files: it reads
-    one index record instead of seeking to every index record in the file.
-    """
-    with open(path, "rb") as handle:
-        try:
-            return IndexRecord.from_position(handle, 0).time
-        except (EOFError, ARLFormatError) as exc:
-            raise ARLFormatError(
-                f"Could not read an ARL index record from {path}: {exc}. "
-                "Scope `pattern` so it only matches ARL files."
-            ) from exc
+def _read_time_span(path: Path) -> tuple[pd.Timestamp, pd.Timestamp]:
+    """Return a file's first and last valid times, read from its index records."""
+    try:
+        with File(path) as src:
+            times = src.times
+    except (EOFError, ARLFormatError) as exc:
+        raise ARLFormatError(
+            f"Could not read an ARL index record from {path}: {exc}. "
+            "Scope `pattern` so it only matches ARL files."
+        ) from exc
+    if not times:
+        raise ValueError(f"Source file {path} contains no records.")
+    return times[0], times[-1]
