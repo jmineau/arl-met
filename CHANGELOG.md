@@ -10,6 +10,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Support for Python 3.13 and 3.14: tested in CI and built as wheels for Linux, macOS, and Windows
 
+### Removed
+
+- **Breaking:** Python 3.10 support. arlmet now requires Python 3.11 or newer (3.10 reaches end-of-life in October 2026, and current NumPy no longer supports it)
+
 ### Changed
 
 - Wheels are built with cibuildwheel 4 and smoke-tested (the C packer must import and round-trip) before publishing. The wheel build also runs on pull requests that touch the build configuration, so a broken build is caught before a release is tagged
