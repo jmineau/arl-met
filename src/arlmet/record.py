@@ -178,9 +178,7 @@ class DataRecord:
         """
         if self._bytes is None:
             if self.mode == "r":
-                fh = self.recordset.file.handle
-                fh.seek(self.position)
-                self._bytes = fh.read(self.n_bytes)
+                self._bytes = self.recordset.file._read_at(self.position, self.n_bytes)
             else:
                 # Pack data to get bytes
                 packed = self._pack()
@@ -199,9 +197,9 @@ class DataRecord:
     def header(self) -> Header:
         if not isinstance(self._header, Header):
             if self.mode == "r":
-                fh = self.recordset.file.handle
-                fh.seek(self.position)
-                header = Header.from_bytes(fh.read(Header.N_BYTES))
+                header = Header.from_bytes(
+                    self.recordset.file._read_at(self.position, Header.N_BYTES)
+                )
 
                 if header.variable != self.variable or header.level != self.level:
                     raise ARLFormatError(
@@ -320,9 +318,9 @@ class DataRecord:
             True if the checksum matches, False otherwise.
         """
         if self.mode == "r":
-            fh = self.recordset.file.handle
-            fh.seek(self.position + Header.N_BYTES)
-            packed = fh.read(self.n_bytes - Header.N_BYTES)
+            packed = self.recordset.file._read_at(
+                self.position + Header.N_BYTES, self.n_bytes - Header.N_BYTES
+            )
         else:
             packed = self._pack().tobytes()
 
@@ -401,9 +399,7 @@ class DataRecord:
             window.
         """
         _require_mode(self, "r")
-        fh = self.recordset.file.handle
-        fh.seek(self.position)
-        raw = fh.read(self.n_bytes)
+        raw = self.recordset.file._read_at(self.position, self.n_bytes)
 
         header = self._header
         if not isinstance(header, Header):

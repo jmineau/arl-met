@@ -14,6 +14,7 @@ import numpy.typing as npt
 import pandas as pd
 from typing_extensions import override
 from xarray.backends import CachingFileManager
+from xarray.backends.locks import SerializableLock
 
 from arlmet._time import ensure_timestamp
 from arlmet.collection import VariableAccessor
@@ -130,6 +131,10 @@ class File:
         # Open the binary file handle
         self._manager = CachingFileManager(_open_binary, self.path, mode=self.mode)
         self._handle: BinaryIO | None = None
+        # Record reads are a seek followed by a read on the one shared handle;
+        # this lock keeps the pair atomic when threads read concurrently (e.g.
+        # dask chunks). SerializableLock pickles, unlike threading.Lock.
+        self._lock = SerializableLock()
 
         # Must be consistent throughout the file
         self._source: str | None = source
@@ -158,6 +163,13 @@ class File:
             # guarantees BinaryIO at runtime.
             self._handle = cast(BinaryIO, self._manager.acquire())
         return self._handle
+
+    def _read_at(self, position: int, n_bytes: int) -> bytes:
+        """Read ``n_bytes`` starting at byte ``position``; safe to call from several threads."""
+        with self._lock:
+            fh = self.handle
+            fh.seek(position)
+            return fh.read(n_bytes)
 
     @property
     def size(self) -> int:
