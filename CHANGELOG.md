@@ -15,6 +15,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `GridWindow` is exported from `arlmet` (it appears in `DataRecord.read(window=)`, `Grid.window_from_bbox()`, `Grid.subset()`, and `Grid.full_window()`), and it and the `VerticalAxis` subclasses (`SigmaAxis`, `PressureAxis`, `TerrainAxis`, `HybridAxis`) are in the API reference
 - Every public module defines `__all__`
 - `File.add_record()` is documented and tested, and accepts `diff=` like `RecordSet.create_datarecord()`
+- xarray backend: `xr.open_dataset(path, engine="arl")` opens ARL files, with the same `bbox`, `levels`, and `drop_variables` options as `arlmet.open_dataset()` plus xarray's own (e.g. `chunks=` for dask). ARL files are recognized by their first record, so `engine=` can usually be omitted (#22)
 
 ### Changed
 

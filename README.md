@@ -17,7 +17,7 @@ Read, write, subset, and sample NOAA ARL meteorological files.
 format used by HYSPLIT and related workflows. It supports:
 
 - low-level record-preserving reads and writes through `File`, `RecordSet`, and `DataRecord`
-- xarray Dataset reads and common-case writes through `open_dataset()` and `write_dataset()`
+- xarray Dataset reads and common-case writes through `open_dataset()` and `write_dataset()`, plus an xarray backend (`xr.open_dataset(path, engine="arl")`)
 - downloading from NOAA's ARL archives (HRRR, NAM, GDAS, GFS, ...) with optional crop-on-download
 - crop-before-unpack subset extraction with `extract_subset()`
 - vertical helper functions such as `pressure()`, `z_agl()`, and `z_msl()`
@@ -77,6 +77,10 @@ import arlmet
 
 ds = arlmet.open_dataset("met.arl")
 print(ds)
+
+# or through xarray, e.g. to get dask-backed arrays
+import xarray as xr
+ds = xr.open_dataset("met.arl", engine="arl", chunks={"time": 1})
 ```
 
 Modify a Dataset and write it back:

@@ -133,6 +133,7 @@ src/arlmet/
   xarray/          open_dataset(), write_dataset(), vertical helpers
     __init__.py    re-exports all public xarray symbols
     _backend.py    ArlVariableArray (xarray BackendArray)
+    _entrypoint.py ARLBackendEntrypoint — xr.open_dataset(path, engine="arl")
     _coords.py     arl_grid coord codec + Dataset vertical-axis helpers
     _accessor.py   ARLDatasetAccessor (ds.arl.grid, .vertical_axis, .source)
     _vertical.py   pressure(), z_agl(), z_msl()
@@ -296,6 +297,7 @@ import arlmet
 # Read — analysis view
 ds = arlmet.open_dataset("file.arl")
 ds = arlmet.open_dataset("file.arl", bbox=(-112, 40, -111, 41), levels=[0, 1, 2])
+ds = xr.open_dataset("file.arl", engine="arl", chunks={"time": 1})  # xarray backend
 
 # Read/write — common-case Dataset path
 ds = arlmet.open_dataset("file.arl")
@@ -433,10 +435,6 @@ exactly one line of `uv.lock`.
 - **Flag 5 (WRF) vertical axes are not implemented.** Flags 1–4 are fully
   supported via polymorphic `VerticalAxis` subclasses. Adding flag 5 means
   adding a `WrfAxis` subclass with `to_pressure` and `to_height_agl` methods.
-- **No xarray `BackendEntrypoint`.** The current `ArlVariableArray` is
-  backend-style but is not registered as a proper xarray engine. This is
-  intentional until the subset path matures enough to support lazy slice
-  indexing efficiently.
 - **No `bbox_crs` support yet.** The parameter should be accepted and raise on
   non-EPSG:4326 inputs as a future extension point.
 - **DIFF variable handling is partial.** Read/rewrite/subset preservation is
