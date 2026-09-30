@@ -8,6 +8,7 @@ from typing import Any, BinaryIO, ClassVar
 import pandas as pd
 
 from arlmet._time import ensure_timestamp
+from arlmet.errors import ARLFormatError
 from arlmet.grid import Grid, Projection
 from arlmet.header import Header, format_fixed_width_float
 from arlmet.vertical import VerticalAxis
@@ -188,6 +189,14 @@ class IndexRecord:
 
     N_BYTES_FIXED: ClassVar[int] = 108
 
+    # Only the longitude fields of the 12 projection values are wrapped to
+    # [-180, 180]. HYSPLIT reads all 12 raw (metset.f: `12F7.0`); wrapping
+    # others such as sync_x/sync_y (grid indices) or grid_size (km) would
+    # corrupt legitimate values above 180.
+    _LONGITUDE_FIELDS: ClassVar[frozenset[str]] = frozenset(
+        {"pole_lon", "tangent_lon", "sync_lon"}
+    )
+
     @classmethod
     def from_position(cls, file: BinaryIO, position: int) -> "IndexRecord":
         """
@@ -204,6 +213,13 @@ class IndexRecord:
         -------
         IndexRecord
             The parsed IndexRecord object.
+
+        Raises
+        ------
+        EOFError
+            If ``position`` is at the end of the file.
+        ARLFormatError
+            If the bytes at ``position`` are not a valid index record.
         """
         file.seek(position)
 
@@ -212,16 +228,23 @@ class IndexRecord:
             raise EOFError(
                 f"Reached end of file while reading header at position {position}"
             )
-        header = Header.from_bytes(header_bytes)
 
-        if header.variable != "INDX":
-            raise ValueError(
-                f"Expected 'INDX' record at position {position}, found '{header.variable}'"
-            )
+        try:
+            header = Header.from_bytes(header_bytes)
 
-        fixed = IndexRecord.parse_fixed(data=file.read(IndexRecord.N_BYTES_FIXED))
-        extended = file.read(fixed["index_length"] - IndexRecord.N_BYTES_FIXED)
-        levels = IndexRecord.parse_extended(data=extended, nz=fixed["nz"])
+            if header.variable != "INDX":
+                raise ARLFormatError(
+                    f"Expected 'INDX' record, found '{header.variable}'"
+                )
+
+            fixed = IndexRecord.parse_fixed(data=file.read(IndexRecord.N_BYTES_FIXED))
+            extended = file.read(fixed["index_length"] - IndexRecord.N_BYTES_FIXED)
+            levels = IndexRecord.parse_extended(data=extended, nz=fixed["nz"])
+        except ARLFormatError as exc:
+            # Add the byte position; File._scan adds the file path on top.
+            raise ARLFormatError(
+                f"Invalid index record at byte {position}: {exc}"
+            ) from exc
         return IndexRecord(header=header, **fixed, levels=levels)
 
     def serialize_fixed(self, index_length: int | None = None) -> bytes:
@@ -306,13 +329,22 @@ class IndexRecord:
             Parsed fields as a dictionary.
         """
         if len(data) < IndexRecord.N_BYTES_FIXED:
-            raise ValueError(
+            raise ARLFormatError(
                 f"IndexRecord fixed portion must be at least {IndexRecord.N_BYTES_FIXED} bytes, "
                 f"got {len(data)}"
             )
 
         fixed = data[: IndexRecord.N_BYTES_FIXED].decode("ascii", errors="ignore")
+        try:
+            return IndexRecord._parse_fixed_fields(fixed)
+        except ValueError as exc:
+            raise ARLFormatError(
+                f"Cannot parse fixed index-record fields from {fixed!r}: {exc}"
+            ) from exc
 
+    @staticmethod
+    def _parse_fixed_fields(fixed: str) -> dict[str, Any]:
+        """Decode the fixed index-record fields; raises ValueError on bad text."""
         fields: dict[str, Any] = {}
         fields["source"] = fixed[:4].strip()
         fields["forecast"] = int(fixed[4:7].strip())
@@ -337,7 +369,7 @@ class IndexRecord:
             start = i * 7
             end = start + 7
             val = float(proj_section[start:end].strip())
-            if val > 180:
+            if proj_names[i] in IndexRecord._LONGITUDE_FIELDS and val > 180:
                 val = -(360 - val)
             fields[proj_names[i]] = val
 
@@ -369,7 +401,16 @@ class IndexRecord:
             List of LvlInfo objects for each vertical level.
         """
         extended = data.decode("ascii", errors="ignore")
+        try:
+            return IndexRecord._parse_levels(extended, nz)
+        except ValueError as exc:
+            raise ARLFormatError(
+                f"Cannot parse level/variable manifest of index record: {exc}"
+            ) from exc
 
+    @staticmethod
+    def _parse_levels(extended: str, nz: int) -> list[LvlInfo]:
+        """Decode the per-level manifests; raises ValueError on bad text."""
         lvls = []
         cursor = 0
         for i in range(nz):

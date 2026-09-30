@@ -9,6 +9,7 @@ from typing import Any, ClassVar
 import pandas as pd
 
 from arlmet._time import ensure_timestamp
+from arlmet.errors import ARLFormatError
 from arlmet.grid import Grid
 
 # ---------------------------------------------------------------------------
@@ -170,9 +171,16 @@ class Header:
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "Header":
-        """Parse header from raw bytes."""
+        """
+        Parse header from raw bytes.
+
+        Raises
+        ------
+        ARLFormatError
+            If ``data`` is not exactly 50 bytes or a field cannot be parsed.
+        """
         if len(data) != cls.N_BYTES:
-            raise ValueError(
+            raise ARLFormatError(
                 f"{cls.__name__} must be exactly {cls.N_BYTES} bytes, got {len(data)}"
             )
 
@@ -181,7 +189,13 @@ class Header:
         parsed = {}
         for name, (start, end, type_converter) in cls.FIELDS.items():
             field_str = header[start:end]
-            parsed[name] = type_converter(field_str)
+            try:
+                parsed[name] = type_converter(field_str)
+            except ValueError as exc:
+                raise ARLFormatError(
+                    f"Invalid ARL record header: cannot parse {name} "
+                    f"from {field_str!r} (bytes {start}-{end})"
+                ) from exc
 
         parsed["grid"] = (
             letter_to_thousands(parsed["grid"][0]),

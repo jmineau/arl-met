@@ -47,6 +47,21 @@ must fit in exactly one record block (`50 + nx*ny` bytes). If a cropped grid is
 too small, the index record overflows. `validate_subset_record_size()` in
 `subset.py` checks this before writing.
 
+Of the 12 projection fields, only the longitudes (`pole_lon`, `tangent_lon`,
+`sync_lon`) are wrapped from 0-360 to [-180, 180] on read. HYSPLIT reads all 12
+raw (`metset.f`, `12F7.0`); `sync_x`/`sync_y` are grid indices and can
+legitimately exceed 180, so never wrap them.
+
+### Malformed files
+`File._scan` raises `ARLFormatError` (a `ValueError` subclass, `errors.py`)
+for bad file content: unparseable headers/index records, a size that is not a
+whole number of records, an index record declaring more data records than
+remain, inconsistent index metadata. Keep programmer errors (bad arguments) as
+plain `ValueError`/`TypeError`. Some NOAA HRRR archive files repeat a whole
+time step byte for byte (#16): read-mode scanning skips a byte-identical repeat
+with an `ARLFormatWarning` and raises `ARLFormatError` if the repeat differs.
+Write-mode `create_recordset` for an existing time still raises.
+
 ### Differential records
 Some variable names begin with `DIF` (e.g., `DIFZ`). These are in-stream
 correction fields. The documented behavior is in the HYSPLIT user guide. Do not
@@ -100,6 +115,7 @@ src/arlmet/
   grid.py          Grid, GridWindow, Projection — horizontal geometry only
   vertical.py      VerticalAxis (ABC), SigmaAxis, PressureAxis, TerrainAxis, HybridAxis
   header.py        Header, helper functions — 50-byte record header codec
+  errors.py        ARLFormatError, ARLFormatWarning — malformed file content
   index.py         IndexRecord, VarInfo, LvlInfo — index record codec
   packing.py       pack(), unpack(), calculate_checksum()
   xarray/          open_dataset(), write_dataset(), vertical helpers
@@ -124,6 +140,7 @@ tests/
   test_pkg.py
   test_sample.py
   test_concat.py
+  test_format_errors.py
   test_sources.py
   test_subset.py
   test_vertical.py
@@ -140,21 +157,21 @@ data/              real ARL sample files (not committed — local only)
 Arrows show runtime imports. TYPE_CHECKING-only imports are not shown.
 
 ```
-grid, packing                       ← leaf nodes
-header → grid
-index  → grid, header, vertical
+grid, packing, errors               ← leaf nodes
+header → errors, grid
+index  → errors, grid, header, vertical
 vertical  (no imports — leaf node)
-record    → grid, header, packing, vertical
+record    → errors, grid, header, packing, vertical
 recordset → grid, header, index, record, vertical
              (delayed import: xarray, inside VariableView.to_xarray only)
-file      → grid, header, index, record, recordset, vertical
+file      → errors, grid, header, index, record, recordset, vertical
              (delayed: ops.subset in File.extract_subset, ops.sample in
               File.sample_points — ops sits on top of file, so file's use of
               ops is lazy to keep the file↔ops dependency one-way at import time)
 ops/__init__ → ops.concat, ops.subset, ops.sample   (re-exports the public ops)
 ops.subset   → file, grid, header, index, vertical
 ops.sample   → grid, vertical   (TYPE_CHECKING: file, record, recordset)
-ops.concat   → file, index
+ops.concat   → errors, file, index
 xarray/   → file, grid, ops.subset, vertical  (TYPE_CHECKING: record, recordset)
 sources   → ops.subset
 ```

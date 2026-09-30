@@ -50,8 +50,8 @@ record stream. ``concat()`` raises ``ValueError`` when:
 
 - the inputs disagree on grid or vertical axis (different grids produce different
   record lengths, which would corrupt the stream)
-- the same valid time appears in more than one input (arl-met cannot read a file
-  with duplicate times, and HYSPLIT behaviour on repeats is undefined)
+- the same valid time appears in more than one input (HYSPLIT behaviour on
+  repeated times is undefined)
 - a source file is empty, or the output path is also one of the inputs
 
 Batch concatenation by time
@@ -106,4 +106,4 @@ Limitations
   be no shorter than a single input file's span (e.g. use ``freq="1D"`` for
   6-hourly inputs, not ``freq="1h"``).
 - ``pattern`` should match only ARL files; a matched file that cannot be read as
-  ARL raises ``ValueError``.
+  ARL raises :class:`arlmet.ARLFormatError` (a ``ValueError``).

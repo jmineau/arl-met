@@ -11,6 +11,7 @@ import numpy.typing as npt
 import pandas as pd
 from typing_extensions import override
 
+from arlmet.errors import ARLFormatError
 from arlmet.grid import Grid, GridWindow
 from arlmet.header import Header, record_length_from_grid, split_grid_component
 from arlmet.packing import calculate_checksum, pack, unpack
@@ -202,7 +203,7 @@ class DataRecord:
                 header = Header.from_bytes(fh.read(Header.N_BYTES))
 
                 if header.variable != self.variable or header.level != self.level:
-                    raise ValueError(
+                    raise ARLFormatError(
                         f"DataRecord header mismatch at position {self.position}: "
                         f"expected variable '{self.variable}' level {self.level}, "
                         f"got variable '{header.variable}' level '{header.level}'"
@@ -409,7 +410,7 @@ class DataRecord:
         if not isinstance(header, Header):
             header = Header.from_bytes(raw[: Header.N_BYTES])
             if header.variable != self.variable or header.level != self.level:
-                raise ValueError(
+                raise ARLFormatError(
                     f"DataRecord header mismatch at position {self.position}: "
                     f"expected variable '{self.variable}' level {self.level}, "
                     f"got variable '{header.variable}' level '{header.level}'"

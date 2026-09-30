@@ -104,6 +104,24 @@ The packing process::
        ↓                    ↓                  ↓              ↓
    [Real Array]    [Δ from neighbors]    [Scale to 0-255]  [1 byte/point]
 
+Malformed files
+~~~~~~~~~~~~~~~
+
+Opening a file scans its index records. :class:`arlmet.ARLFormatError` (a
+``ValueError`` subclass) is raised when the content is not valid ARL:
+
+- a record header or index record cannot be parsed (e.g. a non-ARL file)
+- the file size is not a whole number of records, or an index record declares
+  more data records than remain in the file (a truncated download)
+- index records disagree on source, grid, or vertical axis, or a ``DIF*``
+  record has no preceding parent record
+- a valid time is repeated with different content
+
+Some NOAA archive files (e.g. HRRR) repeat a whole time step, index record and
+data records, byte for byte. arl-met keeps the first copy, ignores the repeat,
+and emits an :class:`arlmet.ARLFormatWarning`. Rewriting such a file (e.g. with
+:func:`arlmet.extract_subset`) produces a clean file without the repeat.
+
 Variable Organization
 ---------------------
 
