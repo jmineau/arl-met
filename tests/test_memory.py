@@ -1,10 +1,12 @@
 """Memory use of the ARL writers: peak during a write and what is held after."""
 
 import gc
+import io
 import tracemalloc
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from arlmet import File, extract_subset, open_dataset, write_dataset
 from arlmet.grid import Grid, Projection
@@ -72,14 +74,34 @@ def traced_peak(func) -> int:
 # bounds the peak by one time step (~6/N_TIMES of the output).
 
 
-def test_extract_subset_peak_memory_is_one_time_step(tmp_path):
+# No bbox takes the byte-copy path; a crop unpacks and re-packs every record.
+CROP_BBOX = (-118.0, 22.0, -102.0, 38.0)
+
+
+@pytest.mark.parametrize("bbox", [None, CROP_BBOX], ids=["byte-copy", "repack"])
+def test_extract_subset_peak_memory_is_one_time_step(tmp_path, bbox):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_multistep_source(source)
+
+    peak = traced_peak(lambda: extract_subset(source, destination, bbox=bbox))
+
+    assert peak < destination.stat().st_size
+
+
+def test_extract_subset_byte_copy_peak_memory_is_below_one_time_step(tmp_path):
+    # The byte-copy path holds a few record-sized buffers (the record being
+    # copied and the index record), not a whole time step (8 records here).
     source = tmp_path / "source.arl"
     destination = tmp_path / "subset.arl"
     write_multistep_source(source)
 
     peak = traced_peak(lambda: extract_subset(source, destination))
 
-    assert peak < destination.stat().st_size
+    # Plus the input and output files' fixed I/O buffers, which do not grow
+    # with the data (128 KiB each from Python 3.14, 8 KiB before).
+    io_buffers = 2 * io.DEFAULT_BUFFER_SIZE
+    assert peak < destination.stat().st_size / N_TIMES + io_buffers
 
 
 def test_write_dataset_peak_memory_is_one_time_step(tmp_path):
@@ -110,7 +132,8 @@ def test_write_dataset_from_lazy_dataset_does_not_cache_source(tmp_path):
     assert peak < destination.stat().st_size
 
 
-def test_extract_subset_releases_buffers_without_gc(tmp_path):
+@pytest.mark.parametrize("bbox", [None, CROP_BBOX], ids=["byte-copy", "repack"])
+def test_extract_subset_releases_buffers_without_gc(tmp_path, bbox):
     # File, RecordSet, and DataRecord reference each other, so after
     # extract_subset returns they are freed only by the cycle collector,
     # which can run long after the call. Their record buffers must not
@@ -125,7 +148,7 @@ def test_extract_subset_releases_buffers_without_gc(tmp_path):
     tracemalloc.start()
     try:
         baseline = tracemalloc.get_traced_memory()[0]
-        extract_subset(source, destination)
+        extract_subset(source, destination, bbox=bbox)
         retained = tracemalloc.get_traced_memory()[0] - baseline
     finally:
         tracemalloc.stop()
