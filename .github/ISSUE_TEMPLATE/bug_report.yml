@@ -1,0 +1,32 @@
+name: Bug report
+description: Something in arlmet raises, crashes, or gives wrong results
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal example
+      description: The shortest code that shows the problem. Include the full traceback if there is one.
+      render: python
+    validations:
+      required: true
+  - type: input
+    id: met
+    attributes:
+      label: Meteorology file
+      description: Which ARL product (e.g. HRRR, NAM12, GDAS1, a custom file) and where it came from, if the problem depends on a specific file.
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions
+      description: Output of `python -c "import arlmet, numpy, xarray, sys; print(arlmet.__version__, numpy.__version__, xarray.__version__, sys.version)"` and your OS.
+      render: text
+    validations:
+      required: true
