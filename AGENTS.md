@@ -269,24 +269,31 @@ ds["TEMP"] -= 273.15
 ds["WWND"].attrs["diff"] = "DIFW"
 arlmet.write_dataset(ds, "out.arl")
 
-# Direct subset extraction (fast, crop-before-unpack)
-# (returns the new File opened for reading — close it; an unclosed File holds
-# its file handle until garbage collection)
-arlmet.extract_subset("in.arl", "out.arl", bbox=(-130, 20, -60, 60)).close()
-arlmet.extract_subset("in.arl", "out.arl", levels=[0, 1, 2], variables=["UWND", "VWND"]).close()
+# Path-parameter naming (all ops): inputs are `path` / `paths`, outputs are
+# `dest` (a file) / `dest_dir` (a directory). `source` means only the ARL
+# 4-character source ID (File.source, ds.attrs["source"]) and arlmet.sources.
+# open_dataset/write_dataset keep xarray's `filename_or_obj`.
 
-# Point sampling
+# Direct subset extraction (fast, crop-before-unpack); returns Path(dest)
+out = arlmet.extract_subset("in.arl", "out.arl", bbox=(-130, 20, -60, 60))
+arlmet.extract_subset("in.arl", "out.arl", levels=[0, 1, 2], variables=["UWND", "VWND"])
+
+# Point sampling: files = path, File, or a sequence of either. The result is a
+# copy of `points` (all columns + index kept) plus one column per variable.
+# Point time: `time` column, else time=, else the inputs' single valid time;
+# a `time` column plus time= raises ValueError.
 import pandas as pd
 points = pd.DataFrame({"lon": [-111.9], "lat": [40.7], "z": [850.0]})
 result = arlmet.sample_points("file.arl", points, ["UWND", "VWND"], z_kind="pressure")
 # Grid-relative -> east/north winds on projected grids (both components required)
 result = arlmet.sample_points("file.arl", points, ["UWND", "VWND"], earth_relative=True)
 
-# Concatenate ARL files into one (byte-level append; orders by valid time)
+# Concatenate ARL files into one (byte-level append; orders by valid time);
+# returns Path(dest)
 arlmet.concat(["20240101_00_hrrr", "20240101_06_hrrr"], "20240101_hrrr")
 
 # Batch concat: group a directory of files into chunks by valid time
-# (time read from each file's index record, not its name)
+# (time read from each file's index record, not its name); freq is keyword-only
 arlmet.concat_by_time("hrrr/", "daily/", freq="1D", pattern="*_hrrr",
                         template="{time:%Y%m%d}_hrrr")
 

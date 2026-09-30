@@ -1,5 +1,7 @@
 """Tests for concatenating ARL files into a single file."""
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -94,21 +96,20 @@ def test_concat_preserves_record_values(tmp_path):
                     )
 
 
-def test_concat_returns_open_file(tmp_path):
+def test_concat_returns_output_path(tmp_path):
     a = write_arl(tmp_path / "a.arl", ["2024-01-01 00:00"])
     b = write_arl(tmp_path / "b.arl", ["2024-01-01 06:00"])
     out = tmp_path / "ab.arl"
 
-    result = concat([a, b], out)
-    try:
-        assert isinstance(result, File)
-        assert result.path == out
-        assert len(result.times) == 2
-    finally:
-        result.close()
+    result = concat([a, b], str(out))
+
+    assert isinstance(result, Path)
+    assert result == out
+    with File(result) as merged:
+        assert len(merged.times) == 2
 
 
-def test_concat_single_source_acts_as_copy(tmp_path):
+def test_concat_single_path_acts_as_copy(tmp_path):
     a = write_arl(tmp_path / "a.arl", ["2024-01-01 00:00", "2024-01-01 06:00"])
     out = tmp_path / "copy.arl"
 
@@ -152,7 +153,7 @@ def test_concat_rejects_duplicate_times(tmp_path):
         concat([a, b], out)
 
 
-def test_concat_rejects_bare_string_source(tmp_path):
+def test_concat_rejects_bare_string_path(tmp_path):
     a = write_arl(tmp_path / "a.arl", ["2024-01-01 00:00"])
     out = tmp_path / "out.arl"
 
@@ -160,19 +161,26 @@ def test_concat_rejects_bare_string_source(tmp_path):
         concat(str(a), out)
 
 
-def test_concat_rejects_empty_sources(tmp_path):
-    with pytest.raises(ValueError, match="at least one source"):
+def test_concat_rejects_empty_paths(tmp_path):
+    with pytest.raises(ValueError, match="at least one input file"):
         concat([], tmp_path / "out.arl")
 
 
-def test_concat_rejects_destination_in_sources(tmp_path):
+def test_concat_rejects_dest_in_paths(tmp_path):
     a = write_arl(tmp_path / "a.arl", ["2024-01-01 00:00"])
 
-    with pytest.raises(ValueError, match="also one of the sources"):
+    with pytest.raises(ValueError, match="also one of the input paths"):
         concat([a], a)
 
 
-def test_concat_rejects_empty_source_file(tmp_path):
+def test_concat_keyword_names(tmp_path):
+    a = write_arl(tmp_path / "a.arl", ["2024-01-01 00:00"])
+    out = tmp_path / "out.arl"
+
+    assert concat(paths=[a], dest=out) == out
+
+
+def test_concat_rejects_empty_input_file(tmp_path):
     a = write_arl(tmp_path / "a.arl", ["2024-01-01 00:00"])
     empty = tmp_path / "empty.arl"
     empty.write_bytes(b"")
@@ -272,6 +280,17 @@ def test_concat_by_time_creates_output_dir(tmp_path):
 
     assert out.is_dir()
     assert all(p.exists() for p in written)
+
+
+def test_concat_by_time_freq_is_keyword_only(tmp_path):
+    src = tmp_path / "hrrr"
+    populate_hrrr_dir(src)
+
+    with pytest.raises(TypeError):
+        concat_by_time(src, tmp_path / "daily", "1D")  # type: ignore[misc]
+
+    written = concat_by_time(directory=src, dest_dir=tmp_path / "daily")
+    assert [p.name for p in written] == ["20240101_arl", "20240102_arl"]
 
 
 def test_concat_by_time_raises_on_no_matches(tmp_path):

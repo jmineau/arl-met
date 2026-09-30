@@ -389,9 +389,8 @@ class MeteorologySource(ABC):
         try:
             self._download(url, raw, opts)
             # extract_subset writes the crop to a temp file and renames it onto
-            # dest only once complete. It returns the crop opened in read mode;
-            # we only need it on disk, so close the handle immediately.
-            extract_subset(raw, dest, bbox=bbox, levels=levels).close()
+            # dest only once complete.
+            extract_subset(raw, dest, bbox=bbox, levels=levels)
         finally:
             raw.unlink(missing_ok=True)
 

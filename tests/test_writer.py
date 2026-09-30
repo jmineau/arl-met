@@ -332,7 +332,7 @@ class TestWriter:
         size = source_path.stat().st_size
         ds = open_dataset(source_path)
 
-        with pytest.raises(ValueError, match="same file as the source"):
+        with pytest.raises(ValueError, match="same file as the input"):
             write_dataset(ds, source_path)
         assert source_path.stat().st_size == size
 

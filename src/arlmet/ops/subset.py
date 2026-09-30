@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from collections import OrderedDict
 from collections.abc import Iterable, Sequence
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from arlmet._io import atomic_output, reject_same_file
@@ -74,7 +75,7 @@ def _build_subset_index_record(
     selected_records: Sequence[DataRecord],
     level_map: dict[int, int],
 ) -> IndexRecord:
-    """Build the destination index record for one subsetted time step."""
+    """Build the output index record for one subsetted time step."""
     forecast = _derive_index_forecast(
         (record.forecast for record in selected_records),
         recordset.forecast,
@@ -171,20 +172,22 @@ def validate_subset_record_length(
 
 
 def extract_subset(
-    source_path: str | os.PathLike[str],
-    destination_path: str | os.PathLike[str],
+    path: str | os.PathLike[str],
+    dest: str | os.PathLike[str],
     *,
     bbox: tuple[float, float, float, float] | None = None,
     levels: Iterable[int] | None = None,
     variables: Iterable[str] | None = None,
-) -> File:
+) -> Path:
     """
     Extract a spatial/vertical subset from an ARL file into a new ARL file.
 
     Parameters
     ----------
-    source_path, destination_path : path-like
-        Input and output ARL file paths.
+    path : path-like
+        Input ARL file.
+    dest : path-like
+        Output ARL file. Overwrites any existing file. Must not be ``path``.
     bbox : tuple[float, float, float, float], optional
         Geographic bounding box ``(west, south, east, north)`` in degrees.
     levels : iterable of int, optional
@@ -195,55 +198,53 @@ def extract_subset(
 
     Returns
     -------
-    File
-        The newly written subset, opened in read mode. Close it when done
-        (or use it as a context manager). If you only need the file on disk,
-        close it right away (``extract_subset(...).close()``); an unclosed
-        File keeps its file handle open until it is garbage collected.
+    pathlib.Path
+        The output path, ``Path(dest)``. Open it with :class:`~arlmet.File`
+        or :func:`~arlmet.open_dataset` to read the subset.
 
     Raises
     ------
     ValueError
-        If ``destination_path`` is the same file as ``source_path``, or the
-        cropped grid is too small to hold the ARL index record.
+        If ``dest`` is the same file as ``path``, or the cropped grid is too
+        small to hold the ARL index record.
 
     Notes
     -----
-    The subset is written to a temporary file next to ``destination_path``
-    and renamed into place once complete, so an interrupted run never leaves
-    a truncated file under the final name.
+    The subset is written to a temporary file next to ``dest`` and renamed
+    into place once complete, so an interrupted run never leaves a truncated
+    file under the final name.
 
     Examples
     --------
     >>> import arlmet
-    >>> with arlmet.extract_subset(
+    >>> out = arlmet.extract_subset(
     ...     "met.arl",
     ...     "subset.arl",
     ...     bbox=(-114.0, 39.0, -110.0, 42.0),
     ...     levels=[0, 1, 2],
-    ... ) as subset:
-    ...     ds = subset.to_dataset()
+    ... )
+    >>> ds = arlmet.open_dataset(out)
     """
-    reject_same_file(source_path, destination_path)
+    reject_same_file(path, dest)
     variable_names = None if variables is None else set(variables)
 
-    with File(source_path) as source:
-        window = resolve_window(source, bbox)
-        selected_levels = normalize_levels(source.vertical_axis, levels)
+    with File(path) as src:
+        window = resolve_window(src, bbox)
+        selected_levels = normalize_levels(src.vertical_axis, levels)
         selected_level_set = set(selected_levels)
         level_map = {
             old_level: new_level for new_level, old_level in enumerate(selected_levels)
         }
 
-        subset_grid = source.grid.subset(window)
+        subset_grid = src.grid.subset(window)
         subset_axis = VerticalAxis.from_flag(
-            source.vertical_axis.flag,
-            levels=source.vertical_axis.levels[list(selected_levels)].tolist(),
-            offset=source.vertical_axis.offset,
+            src.vertical_axis.flag,
+            levels=src.vertical_axis.levels[list(selected_levels)].tolist(),
+            offset=src.vertical_axis.offset,
         )
         selected_recordsets = []
-        for time in source.times:
-            src_recordset = source[time]
+        for time in src.times:
+            src_recordset = src[time]
             selected_records = select_records(
                 src_recordset.records,
                 levels=selected_level_set,
@@ -259,20 +260,20 @@ def extract_subset(
             level_map=level_map,
         )
 
-        # Write to a temporary file that replaces destination_path only once
+        # Write to a temporary file that replaces dest only once
         # complete, so an interrupted run never leaves a truncated output.
         with (
-            atomic_output(destination_path) as tmp_path,
+            atomic_output(dest) as tmp_path,
             File(
                 tmp_path,
                 mode="w",
-                source=source.source,
+                source=src.source,
                 grid=subset_grid,
                 vertical_axis=subset_axis,
-            ) as destination,
+            ) as out,
         ):
             for src_recordset, selected_records in selected_recordsets:
-                dst_recordset = destination.create_recordset(
+                dst_recordset = out.create_recordset(
                     src_recordset.time,
                     forecast=src_recordset.forecast,
                 )
@@ -291,6 +292,6 @@ def extract_subset(
                     )
                 # Write each time step as soon as it is filled so peak memory
                 # is one time step, not the whole output.
-                destination.flush()
+                out.flush()
 
-    return File(destination_path)
+    return Path(dest)

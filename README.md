@@ -96,7 +96,7 @@ arlmet.extract_subset(
     "subset.arl",
     bbox=(-114.0, 39.0, -110.0, 42.0),
     levels=[0, 1, 2],
-).close()  # returns the new file opened for reading
+)  # returns the output path (a pathlib.Path)
 ```
 
 Join short files into longer ones (HYSPLIT accepts at most 12 met files per run):
@@ -105,7 +105,7 @@ Join short files into longer ones (HYSPLIT accepts at most 12 met files per run)
 import arlmet
 
 # join a list of files into one (ordered by valid time)
-arlmet.concat(["20240101_00_hrrr", "20240101_06_hrrr"], "20240101_hrrr").close()
+arlmet.concat(["20240101_00_hrrr", "20240101_06_hrrr"], "20240101_hrrr")
 
 # or batch a whole directory into daily files
 arlmet.concat_by_time(

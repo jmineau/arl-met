@@ -105,7 +105,7 @@ Use :func:`arlmet.sample_points` for trajectory or receptor-style sampling.
            "time": ["2024-07-18 00:00"],
        }
    )
-   samples = arlmet.sample_points(arlmet.File("path/to/file.arl"), points, ["UWND", "VWND"])
+   samples = arlmet.sample_points("path/to/file.arl", points, ["UWND", "VWND"])
 
 Where to go next
 ----------------

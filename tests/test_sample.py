@@ -873,7 +873,7 @@ class TestSamplingErrors:
 
         assert np.isnan(result["TEMP"].iloc[0])
 
-    def test_duplicate_time_across_sources_raises(self, tmp_path):
+    def test_duplicate_time_across_files_raises(self, tmp_path):
         path = tmp_path / "dup.arl"
         time = pd.Timestamp("2024-07-18")
         write_sampling_file(path, time=time)
@@ -881,7 +881,7 @@ class TestSamplingErrors:
         points = pd.DataFrame(
             {"lon": [20.0], "lat": [-10.0], "z": [950.0], "time": [time]}
         )
-        with File(path) as f, pytest.raises(ValueError, match="Multiple sources"):
+        with File(path) as f, pytest.raises(ValueError, match="Multiple input files"):
             sample_points([f, f], points, ["TEMP"], z_kind="pressure")
 
 
@@ -917,6 +917,184 @@ class TestMultiTimeFile:
             result = arl.sample_points(points, ["TEMP"], z_kind="pressure")
 
         np.testing.assert_allclose(result["TEMP"].to_numpy(), [285.0, 305.0], atol=1e-3)
+
+
+# --- result shape, time resolution, and argument validation ---
+
+TIME0 = pd.Timestamp("2024-07-18 00:00")
+TIME1 = pd.Timestamp("2024-07-18 06:00")
+
+
+def write_two_time_file(path):
+    """Write uniform TEMP that samples to 285 K (TIME0) and 305 K (TIME1) at 950 hPa."""
+    grid = make_test_grid()
+    vaxis = PressureAxis(levels=[1000.0, 900.0, 800.0])
+    with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
+        for t, base in [(TIME0, 280.0), (TIME1, 300.0)]:
+            rs = arl.create_recordset(t)
+            for i, val in enumerate([base, base + 10.0, base + 20.0]):
+                data = np.full((grid.ny, grid.nx), val, dtype=np.float32)
+                rs.create_datarecord("TEMP", level=i, forecast=0, data=data)
+    return path
+
+
+class TestSampleResult:
+    def test_preserves_caller_columns_and_index(self, tmp_path):
+        path = write_two_time_file(tmp_path / "multi.arl")
+        points = pd.DataFrame(
+            {
+                "site": ["a", "b", "c"],
+                "time": [TIME1, TIME0, TIME1],
+                "lon": [20, 20, 20],  # ints stay ints: the result is a copy
+                "lat": [-10.0, -10.0, -10.0],
+                "z": [950.0, 950.0, 950.0],
+                "obs": [1.0, 2.0, 3.0],
+            },
+            index=pd.Index([7, 3, 7], name="id"),  # non-default, duplicated
+        )
+
+        result = sample_points(path, points, ["TEMP"])
+
+        assert list(result.columns) == [*points.columns, "TEMP"]
+        pd.testing.assert_index_equal(result.index, points.index)
+        pd.testing.assert_frame_equal(result[points.columns], points)
+        np.testing.assert_allclose(result["TEMP"], [305.0, 285.0, 305.0], atol=1e-3)
+        assert "TEMP" not in points.columns  # input is not modified
+
+    def test_multi_file_preserves_columns_and_order(self, tmp_path):
+        f0, f1 = tmp_path / "t0.arl", tmp_path / "t1.arl"
+        write_sampling_file(f0, time=TIME0, temp_offset=0.0)
+        write_sampling_file(f1, time=TIME1, temp_offset=10.0)
+        points = pd.DataFrame(
+            {
+                "time": [TIME1, TIME0, TIME1],
+                "lon": [20.0, 20.0, 20.0],
+                "lat": [-10.0, -10.0, -10.0],
+                "z": [1000.0, 1000.0, 1000.0],
+                "tag": ["x", "y", "z"],
+            },
+            index=["p", "q", "r"],
+        )
+
+        result = sample_points([f0, f1], points, ["TEMP"])
+
+        assert list(result.index) == ["p", "q", "r"]
+        assert list(result["tag"]) == ["x", "y", "z"]
+        np.testing.assert_allclose(result["TEMP"], [290.0, 280.0, 290.0], atol=0.1)
+
+    def test_accepts_mapping_points(self, tmp_path):
+        path = tmp_path / "met.arl"
+        write_sampling_file(path, time=TIME0)
+        points = {"lon": [20.0], "lat": [-10.0], "z": [1000.0], "note": ["n"]}
+
+        result = sample_points(path, points, "TEMP")
+
+        assert list(result.columns) == ["lon", "lat", "z", "note", "TEMP"]
+
+    def test_variable_colliding_with_column_raises(self, tmp_path):
+        path = tmp_path / "met.arl"
+        write_sampling_file(path, time=TIME0)
+        points = pd.DataFrame(
+            {"lon": [20.0], "lat": [-10.0], "z": [1000.0], "TEMP": [1.0]}
+        )
+
+        with pytest.raises(ValueError, match="collide with existing columns"):
+            sample_points(path, points, ["TEMP"])
+
+
+class TestSampleTimeResolution:
+    POINTS = {"lon": [20.0], "lat": [-10.0], "z": [950.0]}
+
+    def test_time_column_and_time_argument_is_ambiguous(self, tmp_path):
+        path = write_two_time_file(tmp_path / "multi.arl")
+        points = pd.DataFrame({**self.POINTS, "time": [TIME0]})
+
+        with pytest.raises(ValueError, match="pass only one"):
+            sample_points(path, points, ["TEMP"], time=TIME0)
+        with File(path) as arl, pytest.raises(ValueError, match="pass only one"):
+            arl.sample_points(points, ["TEMP"], time=TIME0)
+
+    def test_time_argument_applies_to_every_point(self, tmp_path):
+        path = write_two_time_file(tmp_path / "multi.arl")
+
+        result = sample_points(path, self.POINTS, ["TEMP"], time="2024-07-18 06:00")
+
+        np.testing.assert_allclose(result["TEMP"], [305.0], atol=1e-3)
+        assert "time" not in result.columns
+
+    def test_time_argument_dispatches_across_files(self, tmp_path):
+        f0, f1 = tmp_path / "t0.arl", tmp_path / "t1.arl"
+        write_sampling_file(f0, time=TIME0, temp_offset=0.0)
+        write_sampling_file(f1, time=TIME1, temp_offset=10.0)
+        points = {"lon": [20.0], "lat": [-10.0], "z": [1000.0]}
+
+        result = sample_points([f0, f1], points, ["TEMP"], time=TIME1)
+
+        np.testing.assert_allclose(result["TEMP"], [290.0], atol=0.1)
+
+    def test_single_time_input_is_implied(self, tmp_path):
+        path = tmp_path / "met.arl"
+        write_sampling_file(path, time=TIME0)
+        points = {"lon": [20.0], "lat": [-10.0], "z": [1000.0]}
+
+        result = sample_points(path, points, ["TEMP"])
+
+        np.testing.assert_allclose(result["TEMP"], [280.0], atol=0.1)
+
+    def test_no_time_for_multi_time_input_raises(self, tmp_path):
+        path = write_two_time_file(tmp_path / "multi.arl")
+
+        with pytest.raises(ValueError, match="needs a time"):
+            sample_points(path, self.POINTS, ["TEMP"])
+
+    def test_missing_time_raises_same_error_for_one_or_many_files(self, tmp_path):
+        f0, f1 = tmp_path / "t0.arl", tmp_path / "t1.arl"
+        write_sampling_file(f0, time=TIME0)
+        write_sampling_file(f1, time=TIME1)
+        points = pd.DataFrame({**self.POINTS, "time": [pd.Timestamp("2030-01-01")]})
+
+        match = "No input file contains the requested point times: 2030-01-01"
+        with pytest.raises(ValueError, match=match):
+            sample_points(f0, points, ["TEMP"])
+        with File(f0) as arl, pytest.raises(ValueError, match=match):
+            arl.sample_points(points, ["TEMP"])
+        with pytest.raises(ValueError, match=match):
+            sample_points([f0, f1], points, ["TEMP"])
+
+    def test_nat_time_raises(self, tmp_path):
+        path = write_two_time_file(tmp_path / "multi.arl")
+        points = pd.DataFrame({**self.POINTS, "time": [pd.NaT]})
+
+        with pytest.raises(ValueError, match="NaT"):
+            sample_points(path, points, ["TEMP"])
+
+
+class TestSampleArguments:
+    POINTS = {"lon": [20.0], "lat": [-10.0], "z": [950.0]}
+
+    def test_invalid_z_kind_and_method_raise(self, tmp_path):
+        path = tmp_path / "met.arl"
+        write_sampling_file(path, time=TIME0)
+
+        with pytest.raises(ValueError, match="z_kind"):
+            sample_points(path, self.POINTS, ["TEMP"], z_kind="height")  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="method"):
+            sample_points(path, self.POINTS, ["TEMP"], method="cubic")  # type: ignore[arg-type]
+        with File(path) as arl, pytest.raises(ValueError, match="z_kind"):
+            arl.sample_points(self.POINTS, ["TEMP"], z_kind="height")  # type: ignore[arg-type]
+
+    def test_files_keyword_and_keyword_only_options(self, tmp_path):
+        path = tmp_path / "met.arl"
+        write_sampling_file(path, time=TIME0)
+
+        result = sample_points(files=path, points=self.POINTS, variables=["TEMP"])
+        assert "TEMP" in result.columns
+        with pytest.raises(TypeError):
+            sample_points(path, self.POINTS, ["TEMP"], TIME0)  # type: ignore[misc]
+
+    def test_empty_file_sequence_raises(self):
+        with pytest.raises(ValueError, match="at least one input file"):
+            sample_points([], self.POINTS, ["TEMP"])
 
 
 # --- earth-relative winds on projected grids ---

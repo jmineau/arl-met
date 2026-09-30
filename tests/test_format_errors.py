@@ -175,7 +175,7 @@ class TestDuplicateTimeSteps:
         repeat_first_step(source)
 
         with pytest.warns(ARLFormatWarning):
-            extract_subset(source, destination).close()
+            extract_subset(source, destination)
 
         assert destination.stat().st_size == 2 * STEP_LENGTH
         with warnings.catch_warnings():
