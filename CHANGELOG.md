@@ -10,6 +10,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Support for Python 3.13 and 3.14: tested in CI and built as wheels for Linux, macOS, and Windows
 - `ARLFormatError` (subclass of `ValueError`, so existing `except ValueError` handlers still catch it) and `ARLFormatWarning`, new public exports. `ARLFormatError` is raised for malformed file content: unparseable record headers or index records, truncated files, inconsistent index records, and `DIF*` records without a parent. Messages name the file and byte position where known
+- `GridWindow` is exported from `arlmet` (it appears in `DataRecord.read(window=)`, `Grid.window_from_bbox()`, `Grid.subset()`, and `Grid.full_window()`), and it and the `VerticalAxis` subclasses (`SigmaAxis`, `PressureAxis`, `TerrainAxis`, `HybridAxis`) are in the API reference
+- Every public module defines `__all__`
+- `File.add_record()` is documented and tested, and accepts `diff=` like `RecordSet.create_datarecord()`
 
 ### Changed
 
@@ -25,10 +28,23 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `extract_subset()` and `write_dataset()` write to a temporary file next to the output and rename it into place when complete, so an interrupted run never leaves a truncated file under the final name (which a later run could mistake for a finished output, e.g. a cached crop)
 - `write_dataset()` renumbers upper-air levels `1..N` in `level` coordinate order, so a Dataset holding a subset of a file's levels (from `open_dataset(levels=...)` or `ds.sel(level=...)`) is written as a compact file, as `extract_subset()` does. An explicit `vertical_axis=` must have one level per `level` coordinate value plus the surface
 - `open_dataset()` records the input path in `ds.encoding["source"]`, as xarray's own backends do
+- **Breaking:** options are keyword-only: `open_dataset(path, *, drop_variables=, bbox=, levels=)`, `File(path, mode="r", *, source=, grid=, vertical_axis=)`, `RecordSet.create_datarecord(variable, level, *, forecast, data=None, diff=None)`, `File.add_record(time, variable, level, *, forecast, data=None, diff=None)` (`level` is now positional-or-keyword, `forecast` is required), and `DataRecord.to_xarray(*, squeeze=True)`. `open_dataset(levels=)` and `File.to_dataset(levels=)` accept any iterable of ints
+- **Breaking:** `VerticalAxis.to_pressure()` and `to_height_agl()` take explicit keyword-only inputs instead of `**kwargs`: `to_pressure(*, surface_pressure=None)` and `to_height_agl(*, surface_pressure=None, temperature=None, hgts=None, terrain=None)`. Each axis uses only the inputs it needs; a missing one raises `ValueError` naming it instead of a bare `KeyError: 'surface_pressure'`
+- **Breaking:** `Projection`, `Grid`, `Header`, and `IndexRecord` are frozen dataclasses, and `VerticalAxis` attributes cannot be reassigned (`FrozenInstanceError`); `VerticalAxis.levels` is a read-only array (no longer a copy per access). Mutating a `Projection` or `Grid` used to leave its cached CRS stale. Use `dataclasses.replace()` or build a new axis. `Grid.crs`/`Grid.origin` are cached properties, and `Projection.params` is computed on access (a new dict each time) instead of being a dataclass field
+- **Breaking:** `Grid.calculate_coords()` returns `name -> (dims, values)` for every grid (lat/lon grids used to return bare arrays, projected grids tuples), ready for `xr.Dataset(coords=...)`
+- **Breaking:** `IndexRecord.nx`/`ny` are the full grid size (they were the remainder below 1000, with the real size in `total_nx`/`total_ny`); the remainder is derived when serializing, and a `header.grid` that does not match raises `ValueError`. `IndexRecord.index_length` is a computed property, so `tobytes()` no longer mutates the record
+- **Breaking:** `unpack()` returns `numpy.ndarray[float32]` and its `window` argument is keyword-only; the six leading arguments stay positional
+- **Breaking:** `File[int]`, `iter(File)`, and `File.records` follow the sorted `File.times` instead of on-disk order
+- `(level, variable) in recordset` now works like `recordset[(level, variable)]` (it was always `False`); `"TEMP" in recordset` still means the variable exists at any level. `File.__contains__` returns `False` only for keys that are not timestamps instead of swallowing every exception
+- `NAMSSource(domain=)` is typed `Literal["conus", "ak", "hi"]` and `MeteorologySource.fetch(backend=)` `Literal["s3", "ftp", "http"]`; `File.__enter__` returns `Self`; `ds.arl.grid`/`ds.arl.vertical_axis` and `DataRecord.__getitem__` have return types
 
 ### Removed
 
 - **Breaking:** Python 3.10 support. arlmet now requires Python 3.11 or newer (3.10 reaches end-of-life in October 2026, and current NumPy no longer supports it)
+- **Breaking:** `unpack(driver=)` (only NumPy was ever used) and the dead `DataRecord._load_from_disk()`
+- **Breaking:** `Grid.coords` (a duplicate of `Grid.calculate_coords()`), `VerticalAxis.calculate_coords()` (a duplicate of `.levels`), `IndexRecord.total_nx`/`total_ny` (now `nx`/`ny`), and `Header.__getitem__` (use attributes)
+- **Breaking:** internal helpers are private: `File.register_diff_binding()` → `_register_diff_binding()`, and `IndexRecord.parse_fixed()`/`parse_extended()`/`serialize_fixed()`/`serialize_extended()` → underscored
+- `File.add_record()` no longer special-cases empty or all-NaN `data` (it set `forecast=-1`, but such a record then failed when the time step was flushed); `forecast` is always required
 
 ### Fixed
 

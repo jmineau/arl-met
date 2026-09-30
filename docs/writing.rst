@@ -158,12 +158,20 @@ disk.
        vertical_axis=vertical_axis,
    ) as arl:
        rs = arl.create_recordset(time, forecast=0)
-       rs.create_datarecord("PRSS", level=0, forecast=0, data=prss)
-    rs.create_datarecord("TEMP", level=1, forecast=3, data=temp)
-    rs.create_datarecord("WWND", level=1, forecast=3, data=temp, diff="DIFW")
+       rs.create_datarecord("PRSS", 0, forecast=0, data=prss)
+       rs.create_datarecord("TEMP", 1, forecast=3, data=temp)
+       rs.create_datarecord("WWND", 1, forecast=3, data=temp, diff="DIFW")
 
 This low-level path is the recommended workflow whenever different variables at
-  the same time need different forecast hours or explicit record-level control.
+the same time need different forecast hours or explicit record-level control.
+``File`` metadata (``source``, ``grid``, ``vertical_axis``) and the record
+options (``forecast``, ``data``, ``diff``) are keyword-only.
+:meth:`arlmet.File.add_record` is a shorthand that creates the time step's
+record set on first use:
+
+.. code-block:: python
+
+   arl.add_record(time, "TEMP", 1, forecast=3, data=temp)
 
 Records are held in memory until the file is flushed or closed. When writing
 many time steps, call :meth:`arlmet.File.flush` after filling each one so memory

@@ -1,6 +1,5 @@
 """Differential packing and unpacking routines for ARL data records."""
 
-import types
 from typing import Any
 
 import numpy as np
@@ -8,6 +7,8 @@ from numpy import typing as npt
 
 from arlmet._pack import pack_core as _pack_core
 from arlmet.grid import GridWindow
+
+__all__ = ["pack", "unpack", "calculate_checksum"]
 
 
 def calculate_checksum(packed: bytes | bytearray) -> int:
@@ -95,9 +96,9 @@ def unpack(
     precision: float,
     exponent: int,
     initial_value: float,
-    driver: types.ModuleType | None = None,
+    *,
     window: GridWindow | None = None,
-) -> npt.ArrayLike:
+) -> npt.NDArray[np.float32]:
     """
     Unpack an ARL differential byte stream into a 2D field.
 
@@ -118,17 +119,14 @@ def unpack(
         The packing scaling exponent.
     initial_value : float
         The initial real value at the grid position (0,0).
-    driver : module, optional
-        The array library to use for computations. If None, numpy is used by
-        default.
     window : GridWindow, optional
         Rectangular grid window to unpack. When provided, only the requested
         subset is reconstructed.
 
     Returns
     -------
-    array-like
-        Unpacked 2D array with shape ``(ny, nx)`` or the requested windowed
+    numpy.ndarray
+        Unpacked ``float32`` 2D array with shape ``(ny, nx)`` or the requested windowed
         shape when ``window`` is provided.
     """
     if window is not None:
@@ -141,9 +139,6 @@ def unpack(
             initial_value=initial_value,
             window=window,
         )
-
-    if driver is None:
-        driver = np
 
     # Convert packed bytes to an eager NumPy array for unpacking.
     packed_arr = np.frombuffer(packed, dtype=np.uint8)
@@ -170,11 +165,11 @@ def unpack(
     # running state is restored, the rest of each row can be recovered with a
     # standard cumulative sum across x.
     diffs = (packed_arr - 127.0) * scexp
-    diffs[:, 0] = driver.cumsum(diffs[:, 0], axis=0) + initial_arr
-    unpacked = driver.cumsum(diffs, axis=1)
+    diffs[:, 0] = np.cumsum(diffs[:, 0], axis=0) + initial_arr
+    unpacked = np.cumsum(diffs, axis=1)
 
     # Apply the precision check to the final grid.
-    unpacked = driver.where(driver.abs(unpacked) < precision, 0.0, unpacked)
+    unpacked = np.where(np.abs(unpacked) < precision, 0.0, unpacked)
 
     # Force float32 (4 bytes per value)
     return unpacked.astype(np.float32)

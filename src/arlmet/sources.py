@@ -39,7 +39,7 @@ import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, BinaryIO, ClassVar, cast
+from typing import Any, BinaryIO, ClassVar, Literal, cast
 
 import pandas as pd
 from typing_extensions import override
@@ -212,7 +212,7 @@ class MeteorologySource(ABC):
         end: pd.Timestamp | str,
         *,
         local_dir: Path | str,
-        backend: str = "s3",
+        backend: Literal["s3", "ftp", "http"] = "s3",
         bbox: tuple[float, float, float, float] | None = None,
         levels: Iterable[int] | None = None,
         overwrite: bool = False,
@@ -538,7 +538,7 @@ class NAMSSource(MeteorologySource):
         "hi": ".HI",
     }
 
-    def __init__(self, domain: str = "conus") -> None:
+    def __init__(self, domain: Literal["conus", "ak", "hi"] = "conus") -> None:
         if domain not in self._DOMAIN_SUFFIXES:
             raise ValueError(
                 f"domain must be one of {list(self._DOMAIN_SUFFIXES)!r}, got {domain!r}"

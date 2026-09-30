@@ -78,6 +78,11 @@ bytes. Do not modify `pack`/`unpack` without pack/unpack round-trip test coverag
 ### Large-grid letter codes
 When `nx` or `ny` exceeds 999, ARL encodes the overflow digit as a letter (`A`=1,
 `B`=2, ...). `split_grid_component` and the inverse in `header.py` handle this.
+`Header.grid` holds the thousands; the index record's fixed portion stores only
+the remainder, but `IndexRecord.nx`/`ny` are always the **full** sizes (the
+remainder is derived in `tobytes()`, and `IndexRecord.__post_init__` rejects a
+`header.grid` that does not match). `IndexRecord.index_length` is computed from
+the fields, never stored.
 
 ### Vertical flag and the polymorphic axis model
 `VerticalAxis` is an **abstract base class**. The ARL vertical flag determines
@@ -86,7 +91,7 @@ the subclass, constructed via `VerticalAxis.from_flag(flag, levels, offset=)`:
 | Flag | Subclass | `to_pressure` | `to_height_agl` |
 |------|----------|---------------|-----------------|
 | 1 | `SigmaAxis` | sigma → pressure formula | hypsometric integration (PRSS + TEMP) |
-| 2 | `PressureAxis` | returns stored levels | HGTS − terrain (requires HGTS) |
+| 2 | `PressureAxis` | returns stored levels | HGTS − terrain (requires HGTS + SHGT) |
 | 3 | `TerrainAxis` | raises ValueError | returns stored levels (already AGL) |
 | 4 | `HybridAxis` | hybrid → pressure formula | hypsometric integration (PRSS + TEMP) |
 | 5 | (not implemented) | raises NotImplementedError | raises NotImplementedError |
@@ -104,13 +109,20 @@ Direct `VerticalAxis(...)` construction is not allowed (abstract). Use
 `VerticalAxis.from_flag(...)` or a subclass constructor directly (e.g.
 `PressureAxis(levels=[...])`).
 
+The conversion inputs are explicit keyword-only parameters shared by every
+subclass: `to_pressure(*, surface_pressure=None)` and
+`to_height_agl(*, surface_pressure=None, temperature=None, hgts=None,
+terrain=None)`. Each subclass uses only what its coordinate system needs and
+raises `ValueError` naming a missing input (`_require` in `vertical.py`).
+
 ## Module Layout
 
 ```
 src/arlmet/
   __init__.py      public exports
-  record.py        require_mode decorator + DataRecord (single 2D packed field)
-  recordset.py     RecordCollection, VariableView, VariableAccessor, RecordSet
+  record.py        _require_mode helper + DataRecord (single 2D packed field)
+  collection.py    RecordCollection protocol, VariableView, VariableAccessor
+  recordset.py     RecordSet — the records for one valid time
   file.py          File — top-level file handle, scan, factories
   grid.py          Grid, GridWindow, Projection — horizontal geometry only
   vertical.py      VerticalAxis (ABC), SigmaAxis, PressureAxis, TerrainAxis, HybridAxis
@@ -130,7 +142,7 @@ src/arlmet/
     subset.py      extract_subset(), resolve_window(), normalize_levels()
     sample.py      sample_points()
     concat.py      concat(), concat_by_time() — join ARL files into one
-  sources.py       HrrrSource, NamSource, GdasSource, GfsSource — NOAA S3 downloads
+  sources.py       MeteorologySource + HRRRSource, NAMSource, GDASSource, ... — NOAA downloads
 tests/
   test_grid.py
   test_low_level.py
@@ -162,9 +174,10 @@ header → errors, grid
 index  → errors, grid, header, vertical
 vertical  (no imports — leaf node)
 record    → errors, grid, header, packing, vertical
-recordset → grid, header, index, record, vertical
-             (delayed import: xarray, inside VariableView.to_xarray only)
-file      → errors, grid, header, index, record, recordset, vertical
+             (delayed import: xarray, inside DataRecord.to_xarray only)
+collection → grid, record, vertical
+recordset → collection, grid, header, index, record, vertical
+file      → collection, errors, grid, header, index, record, recordset, vertical
              (delayed: ops.subset in File.extract_subset, ops.sample in
               File.sample_points — ops sits on top of file, so file's use of
               ops is lazy to keep the file↔ops dependency one-way at import time)
@@ -176,8 +189,7 @@ xarray/   → file, grid, ops.subset, vertical  (TYPE_CHECKING: record, recordse
 sources   → ops.subset
 ```
 
-Delayed (in-function-body) imports: `VariableView.to_xarray()` → `xarray/`
-(xarray imports from recordset); `File.extract_subset()` → `ops.subset` and
+Delayed (in-function-body) imports: `DataRecord.to_xarray()` → `xarray`; `File.extract_subset()` → `ops.subset` and
 `File.sample_points()` → `ops.sample` (ops depends on file, so file imports ops
 lazily to avoid a cycle). All other inter-module dependencies are explicit
 top-level imports.
@@ -254,6 +266,29 @@ top-level imports.
     `File.handle` reacquires when xarray's global LRU cache
     (`file_cache_maxsize`, default 128) has closed the cached handle.
 
+14. **Metadata types are immutable values.** `Projection`, `Grid`,
+    `GridWindow`, `Header`, and `IndexRecord` are frozen dataclasses;
+    `VerticalAxis` blocks attribute assignment and stores `levels` as a
+    read-only array. Equality and hashing follow the defining fields only, so
+    a Grid can key a dict. Derived values are either computed on access
+    (`Projection.params` returns a new dict) or cached with
+    `functools.cached_property` (`Grid.crs`, `Grid.origin`), which is safe
+    only because nothing they depend on can change. Never mutate these; build
+    a new one (`dataclasses.replace`, `Grid.subset`, a new axis).
+
+15. **Public API is explicit.** Every public module defines `__all__`.
+    Options after the obvious leading arguments are keyword-only (`File`
+    metadata, `create_datarecord`/`add_record` record options,
+    `open_dataset`/`to_dataset` options, `DataRecord.to_xarray(squeeze=)`,
+    `VerticalAxis` conversion inputs). `unpack` keeps its six positional
+    arguments (the CI wheel smoke test calls it positionally); only `window`
+    is keyword-only.
+
+16. **Containers follow `File.times`.** `File[int]`, `iter(File)`, and
+    `File.records` use sorted valid-time order, not on-disk order.
+    `key in rs` accepts every key `rs[key]` accepts (`(level, variable)`),
+    plus a bare variable name meaning "present at any level".
+
 ## Public API Summary
 
 ```python
@@ -264,7 +299,7 @@ ds = arlmet.open_dataset("file.arl")
 ds = arlmet.open_dataset("file.arl", bbox=(-112, 40, -111, 41), levels=[0, 1, 2])
 
 # Read/write — common-case Dataset path
-ds = arlmet.open_dataset("file.arl", squeeze=False)
+ds = arlmet.open_dataset("file.arl")
 ds["TEMP"] -= 273.15
 ds["WWND"].attrs["diff"] = "DIFW"
 arlmet.write_dataset(ds, "out.arl")
@@ -302,20 +337,27 @@ p = arlmet.pressure(ds)           # DataArray of pressure levels
 h_agl = arlmet.z_agl(ds)         # height above ground
 h_msl = arlmet.z_msl(ds)         # height above MSL
 
+# Same conversions on NumPy arrays (keyword-only inputs; ValueError if missing)
+p = vaxis.to_pressure(surface_pressure=prss)                 # sigma/hybrid
+z = vaxis.to_height_agl(surface_pressure=prss, temperature=temp)
+z = paxis.to_height_agl(hgts=hgts, terrain=shgt[..., None])  # pressure levels
+
 # Low-level
 with arlmet.File("file.arl") as f:
     print(f.grid, f.vertical_axis, f.times)
-    rs = f[f.times[0]]          # RecordSet
-    rec = rs.records[0]         # DataRecord
+    rs = f[f.times[0]]          # RecordSet (f[0] is the same: sorted times)
+    rec = rs[(1, "TEMP")]       # DataRecord; (1, "TEMP") in rs tests for it
+    coords = f.grid.calculate_coords()  # {name: (dims, values)}
     arr = rec.read()            # np.ndarray (full grid)
     arr = rec.read(window=...)  # np.ndarray (cropped tile)
 
 # Low-level writing for irregular files
 with arlmet.File("out.arl", mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as f:
   rs = f.create_recordset(times[0], forecast=0)
-  rs.create_datarecord("PRSS", level=0, forecast=0, data=prss)
-  rs.create_datarecord("TEMP", level=1, forecast=3, data=temp)
-  rs.create_datarecord("WWND", level=1, forecast=3, data=wwnd, diff="DIFW")
+  rs.create_datarecord("PRSS", 0, forecast=0, data=prss)
+  rs.create_datarecord("TEMP", 1, forecast=3, data=temp)
+  rs.create_datarecord("WWND", 1, forecast=3, data=wwnd, diff="DIFW")
+  f.add_record(times[1], "PRSS", 0, forecast=0, data=prss)  # creates the RecordSet
   f.flush()  # write this time step and free its buffers; call once per time step
 ```
 

@@ -1,5 +1,8 @@
 """Tests for VerticalAxis and coordinate helpers."""
 
+import pickle
+from dataclasses import FrozenInstanceError
+
 import numpy as np
 import pytest
 
@@ -42,35 +45,75 @@ class TestFromFlag:
             VerticalAxis.from_flag(99, levels=[1.0])
 
 
-class TestCalculateCoords:
-    def test_pressure_axis_returns_native_hpa_values(self):
-        ax = PressureAxis(levels=[1000.0, 900.0, 850.0])
-        coords = ax.calculate_coords()
-        assert set(coords.keys()) == {"level"}
-        np.testing.assert_allclose(coords["level"], [1000.0, 900.0, 850.0])
-
-    def test_sigma_axis_returns_native_sigma_fractions(self):
-        ax = SigmaAxis(levels=[1.0, 0.9, 0.8], offset=100.0)
-        coords = ax.calculate_coords()
-        np.testing.assert_allclose(coords["level"], [1.0, 0.9, 0.8])
-
-    def test_terrain_axis_returns_native_agl_heights(self):
-        ax = TerrainAxis(levels=[0.0, 100.0, 500.0])
-        coords = ax.calculate_coords()
-        np.testing.assert_allclose(coords["level"], [0.0, 100.0, 500.0])
-
-    def test_returns_copy_not_reference(self):
+class TestImmutability:
+    def test_levels_are_read_only(self):
         ax = PressureAxis(levels=[1000.0, 900.0])
-        c1 = ax.calculate_coords()
-        c2 = ax.calculate_coords()
-        c1["level"][0] = 9999.0
-        np.testing.assert_allclose(c2["level"][0], 1000.0)
-
-    def test_levels_property_returns_copy(self):
-        ax = PressureAxis(levels=[1000.0, 900.0])
-        levels = ax.levels
-        levels[0] = -1.0
+        with pytest.raises(ValueError, match="read-only"):
+            ax.levels[0] = -1.0
         np.testing.assert_allclose(ax.levels, [1000.0, 900.0])
+
+    def test_levels_are_copied_from_input(self):
+        source = np.array([1000.0, 900.0])
+        ax = PressureAxis(levels=source)
+        source[0] = -1.0
+        np.testing.assert_allclose(ax.levels, [1000.0, 900.0])
+
+    @pytest.mark.parametrize("name", ["levels", "offset", "new_attr"])
+    def test_attribute_assignment_raises(self, name):
+        ax = SigmaAxis(levels=[1.0, 0.9], offset=5.0)
+        with pytest.raises(FrozenInstanceError):
+            setattr(ax, name, 1.0)
+        with pytest.raises(FrozenInstanceError):
+            delattr(ax, name)
+
+    def test_hash_is_stable_and_usable_as_key(self):
+        ax = HybridAxis(levels=[0.995, 975.5])
+        first = hash(ax)
+        _ = ax.to_pressure(surface_pressure=[1000.0])
+        assert hash(ax) == first
+        assert {ax: "x"}[HybridAxis(levels=[0.995, 975.5])] == "x"
+
+    def test_levels_must_be_1d(self):
+        with pytest.raises(ValueError, match="1-D"):
+            PressureAxis(levels=[[1000.0, 900.0]])
+
+    def test_pickle_roundtrip(self):
+        ax = SigmaAxis(levels=[1.0, 0.9], offset=5.0)
+        assert pickle.loads(pickle.dumps(ax)) == ax
+
+
+class TestMissingInputs:
+    @pytest.mark.parametrize("axis_cls", [SigmaAxis, HybridAxis])
+    def test_sigma_hybrid_pressure_requires_surface_pressure(self, axis_cls):
+        ax = axis_cls(levels=[0.995, 0.9])
+        with pytest.raises(ValueError, match="surface_pressure="):
+            ax.to_pressure()
+
+    @pytest.mark.parametrize("axis_cls", [SigmaAxis, HybridAxis])
+    def test_sigma_hybrid_height_requires_temperature(self, axis_cls):
+        ax = axis_cls(levels=[0.995, 0.9])
+        with pytest.raises(ValueError, match="surface_pressure="):
+            ax.to_height_agl(temperature=[[280.0, 275.0]])
+        with pytest.raises(ValueError, match="temperature="):
+            ax.to_height_agl(surface_pressure=[1000.0])
+
+    def test_pressure_height_requires_hgts_and_terrain(self):
+        ax = PressureAxis(levels=[1000.0, 900.0])
+        with pytest.raises(ValueError, match="hgts="):
+            ax.to_height_agl(terrain=[0.0])
+        with pytest.raises(ValueError, match="terrain="):
+            ax.to_height_agl(hgts=[100.0, 1000.0])
+
+    def test_sigma_height_matches_hypsometric(self):
+        ax = SigmaAxis(levels=[1.0, 0.9])
+        z = ax.to_height_agl(surface_pressure=[1000.0], temperature=[[280.0, 280.0]])
+        assert z.shape == (1, 2)
+        np.testing.assert_allclose(z[0, 0], 0.0, atol=1e-9)
+        assert z[0, 1] > 0.0
+
+    def test_options_are_keyword_only(self):
+        with pytest.raises(TypeError):
+            SigmaAxis(levels=[1.0]).to_pressure([1000.0])  # type: ignore[misc]
 
 
 class TestVerticalAxisEquality:

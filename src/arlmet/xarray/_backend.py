@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from arlmet.grid import GridWindow
     from arlmet.record import DataRecord
 
+__all__ = ["ArlVariableArray"]
+
 
 class ArlVariableArray(BackendArray):
     """Backend-style lazy array for a single ARL variable."""

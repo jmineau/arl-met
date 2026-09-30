@@ -10,23 +10,25 @@ from pathlib import Path
 from types import TracebackType
 from typing import TYPE_CHECKING, Any, BinaryIO, Literal, cast
 
-import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from typing_extensions import override
+from typing_extensions import Self, override
 from xarray.backends import CachingFileManager
 
 from arlmet._time import ensure_timestamp
+from arlmet.collection import VariableAccessor
 from arlmet.errors import ARLFormatError, ARLFormatWarning
 from arlmet.grid import Grid, Projection
 from arlmet.header import record_length_from_grid
 from arlmet.index import IndexRecord
 from arlmet.record import DataRecord, _require_mode
-from arlmet.recordset import RecordSet, VariableAccessor
+from arlmet.recordset import RecordSet
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
     import xarray as xr
+
+__all__ = ["File"]
 
 
 def _open_binary(path: str | os.PathLike[str], mode: str) -> BinaryIO:
@@ -79,10 +81,17 @@ class File:
 
     Methods
     -------
+    __getitem__(key)
+        Get a RecordSet by valid time (Timestamp or string), or by position
+        in ``times`` (int).
+    __iter__()
+        Iterate over valid times in ``times`` order (sorted).
     create_grid(...)
         Build and attach a Grid when writing a new file.
-    create_recordset(time, forecast=None)
+    create_recordset(time, *, forecast=None)
         Create a writable RecordSet for one valid time.
+    add_record(time, variable, level, *, forecast, data=None, diff=None)
+        Add one writable DataRecord, creating its RecordSet if needed.
     flush()
         Write pending record sets to disk and release their in-memory data.
     sample_points(points, variables, ...)
@@ -106,6 +115,7 @@ class File:
         self,
         path: str | os.PathLike[str],
         mode: Literal["r", "w"] = "r",
+        *,
         source: str | None = None,
         grid: Grid | None = None,
         vertical_axis: VerticalAxis | None = None,
@@ -197,11 +207,9 @@ class File:
 
     @property
     def records(self) -> list[DataRecord]:
-        """List of all DataRecords in the file across all RecordSets."""
+        """All DataRecords in the file, in ``times`` order."""
         return [
-            record
-            for recordset in self._recordsets.values()
-            for record in recordset.records
+            record for time in self.times for record in self._recordsets[time].records
         ]
 
     @property
@@ -336,7 +344,7 @@ class File:
             position=position, source=source, grid=grid, time=ts, forecast=forecast
         )
 
-    def register_diff_binding(self, diff_name: str, parent_name: str) -> None:
+    def _register_diff_binding(self, diff_name: str, parent_name: str) -> None:
         """Record and validate the explicit parent binding for a generated DIF name."""
         _require_mode(self, "w")
         if not diff_name.startswith("DIF"):
@@ -357,44 +365,48 @@ class File:
         self,
         time: pd.Timestamp | str,
         variable: str,
-        *,
         level: int,
-        forecast: int | None = None,
+        *,
+        forecast: int,
         data: npt.ArrayLike | None = None,
+        diff: str | None = None,
     ) -> DataRecord:
-        """Add one writable DataRecord, creating its RecordSet if needed."""
+        """
+        Add one writable DataRecord, creating its RecordSet if needed.
+
+        Shorthand for ``create_recordset(time)`` (when ``time`` has no record
+        set yet) followed by :meth:`RecordSet.create_datarecord`. A record set
+        created here derives its index-record forecast from its records; call
+        :meth:`create_recordset` first to set it explicitly.
+
+        Parameters
+        ----------
+        time : pandas.Timestamp or str
+            Valid time of the record.
+        variable : str
+            Four-character ARL variable name.
+        level : int
+            ARL level index for the record.
+        forecast : int
+            Forecast hour to write into the record header.
+        data : array-like, optional
+            ``(ny, nx)`` field values. When omitted, assign the whole field
+            later with ``record[:] = values``.
+        diff : str, optional
+            Name of a trailing DIF record to derive from the parent field.
+
+        Returns
+        -------
+        DataRecord
+            Writable data record for ``variable`` at ``level`` and ``time``.
+        """
         _require_mode(self, "w")
-        time = ensure_timestamp(time)
-
-        if time in self._recordsets:
-            recordset = self._recordsets[time]
-        else:
-            recordset = self.create_recordset(time)
-
-        # Check if data is missing or effectively empty
-        is_empty = data is None
-        if not is_empty:
-            # Convert to numpy to handle xarray, pandas, or lists uniformly
-            arr = np.asanyarray(data)
-            # Check if array is empty or all elements are NaN
-            if arr.size == 0 or np.all(pd.isna(arr)):
-                is_empty = True
-
-        if is_empty:
-            if forecast is None:
-                forecast = -1
-            elif forecast != -1:
-                # Warn if a forecast hour is provided for missing data, since it will be ignored
-                raise ValueError("Forecast must be -1 for missing data.")
-        elif forecast is None:
-            # Raise if data is valid but no forecast was supplied
-            raise ValueError("forecast must be supplied when data is present")
-
+        ts = ensure_timestamp(time)
+        recordset = self._recordsets.get(ts)
+        if recordset is None:
+            recordset = self.create_recordset(ts)
         return recordset.create_datarecord(
-            variable=variable,
-            level=level,
-            forecast=forecast,
-            data=data,
+            variable, level, forecast=forecast, data=data, diff=diff
         )
 
     def _scan(self) -> None:
@@ -699,9 +711,25 @@ class File:
         *,
         drop_variables: Sequence[str] | None = None,
         bbox: tuple[float, float, float, float] | None = None,
-        levels: list[int] | tuple[int, ...] | None = None,
+        levels: Iterable[int] | None = None,
     ) -> xr.Dataset:
-        """Project this file into the simplified analysis Dataset representation."""
+        """
+        Project this file into the simplified analysis Dataset representation.
+
+        Parameters
+        ----------
+        drop_variables : sequence of str, optional
+            Variable names to omit.
+        bbox : tuple[float, float, float, float], optional
+            Geographic bounding box ``(west, south, east, north)`` in degrees.
+        levels : iterable of int, optional
+            ARL level indices to keep.
+
+        Returns
+        -------
+        xarray.Dataset
+            See :func:`arlmet.open_dataset` for the layout.
+        """
         from arlmet.xarray.dataset import _build_dataset_from_file
 
         return _build_dataset_from_file(
@@ -762,15 +790,15 @@ class File:
 
     def __getitem__(self, key: str | int | pd.Timestamp) -> RecordSet:
         if isinstance(key, str):
-            # Allow lookup by string/int time representation
+            # Allow lookup by string time representation
             key = ensure_timestamp(key)
         elif isinstance(key, int):
-            # Allow lookup by positional index
-            key = list(self._recordsets.keys())[key]
+            # Positional lookup follows the sorted `times`, not file order
+            key = self.times[key]
         return self._recordsets[key]
 
     def __iter__(self) -> Iterator[pd.Timestamp]:
-        return iter(self._recordsets)
+        return iter(self.times)
 
     def __len__(self) -> int:
         return len(self._recordsets)
@@ -778,7 +806,8 @@ class File:
     def __contains__(self, key: object) -> bool:
         try:
             ts = ensure_timestamp(key)
-        except Exception:
+        except (TypeError, ValueError, OverflowError):
+            # Not interpretable as a timestamp
             return False
         return ts in self._recordsets
 
@@ -789,15 +818,13 @@ class File:
             if self._grid is not None
             else "None"
         )
-        levels_str = (
-            str(len(self._vaxis._levels)) if self._vaxis is not None else "None"
-        )
+        levels_str = str(len(self._vaxis.levels)) if self._vaxis is not None else "None"
         return (
             f"File({self.path.name!r}, mode={self.mode!r}, "
             f"times={len(self)}, grid={grid_str}, levels={levels_str})"
         )
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(

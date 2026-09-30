@@ -1137,7 +1137,7 @@ def write_wind_file(path, grid: Grid, *, time: pd.Timestamp, u: float, v: float)
 
 def _lambert_points(grid: Grid) -> pd.DataFrame:
     coords = grid.calculate_coords()
-    lons = coords["lon"][1]  # projected grids return (dims, array)
+    lons = coords["lon"][1]  # coords are (dims, array) pairs
     lats = coords["lat"][1]
     rows = [(5, 5), (10, 20), (25, 12)]
     return pd.DataFrame(
@@ -1210,8 +1210,8 @@ def test_sample_points_earth_relative_no_op_on_latlon(tmp_path):
     coords = grid.calculate_coords()
     points = pd.DataFrame(
         {
-            "lon": coords["lon"][[2, 7]],
-            "lat": coords["lat"][[3, 9]],
+            "lon": coords["lon"][1][[2, 7]],
+            "lat": coords["lat"][1][[3, 9]],
             "z": [850.0, 850.0],
         }
     )

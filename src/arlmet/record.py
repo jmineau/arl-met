@@ -1,10 +1,9 @@
-"""DataRecord and require_mode for ARL meteorology binary I/O."""
+"""DataRecord: one packed 2-D field of an ARL meteorology file."""
 
 from __future__ import annotations
 
 import io
-import types
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -21,6 +20,8 @@ if TYPE_CHECKING:
     import xarray as xr
 
     from arlmet.recordset import RecordSet
+
+__all__ = ["DataRecord"]
 
 
 def _require_mode(obj: Any, *allowed_modes: str) -> None:
@@ -293,9 +294,7 @@ class DataRecord:
         """
         Get the forecast hour for this data record.
         """
-        # ARL format guarantees forecast is always an int; cast narrows the
-        # broad Header.__getitem__ return type.
-        return cast(int, self.header["forecast"])
+        return self.header.forecast
 
     @property
     def checksum(self) -> int:
@@ -379,7 +378,7 @@ class DataRecord:
             return array.copy()
         return array
 
-    def __getitem__(self, key: Any) -> Any:
+    def __getitem__(self, key: Any) -> npt.NDArray[Any] | np.generic:
         return self.data[key]
 
     def read(self, window: GridWindow | None = None) -> npt.NDArray[np.float32]:
@@ -425,16 +424,14 @@ class DataRecord:
             exponent=header.exponent,
             initial_value=header.initial_value,
             window=window,
-            driver=np,
         )
-        unpacked_array = np.asarray(unpacked, dtype=np.float32)
 
         if self._diff is not None:
-            unpacked_array = unpacked_array + self._diff.read(window=window)
+            unpacked = unpacked + self._diff.read(window=window)
 
-        return unpacked_array
+        return unpacked
 
-    def to_xarray(self, squeeze: bool = True) -> xr.DataArray:
+    def to_xarray(self, *, squeeze: bool = True) -> xr.DataArray:
         """
         Convert this DataRecord to an xarray.DataArray.
 
@@ -458,13 +455,9 @@ class DataRecord:
         )
 
         da = da.expand_dims(("time", "level"))
-
-        z_coords = self.recordset.vertical_axis.calculate_coords()
-        level_value = z_coords["level"][self.level]
-
         da = da.assign_coords(
             time=[self.time],
-            level=[level_value],
+            level=[float(self.vertical_axis.levels[self.level])],
         )
         da.attrs["source"] = self.recordset.source
         return da.squeeze() if squeeze else da
@@ -505,32 +498,6 @@ class DataRecord:
             self._diff._bytes = None
             self._diff._checksum = None
 
-    def _load_from_disk(self, driver: types.ModuleType | None = None) -> Any:
-        """
-        Loads data from disk, returning a numpy array.
-        """
-        _require_mode(self, "r")
-        # Get header (dont delay)
-        header = self.header  # this will load the bytes from disk
-
-        # Unpack the packed field bytes.
-        ny, nx = self.shape
-        unpacked = unpack(
-            packed=self.bytes[Header.N_BYTES :],
-            nx=nx,
-            ny=ny,
-            precision=header.precision,
-            exponent=header.exponent,
-            initial_value=header.initial_value,
-            driver=driver,
-        )
-
-        # Handle diff record if present
-        if self._diff is not None:
-            unpacked = unpacked + self._diff._load_from_disk(driver=driver)
-
-        return unpacked
-
     def _pack(self) -> npt.NDArray[np.uint8]:
         """Pack cached unpacked data and update header state for writing."""
         _require_mode(self, "w")
@@ -550,17 +517,13 @@ class DataRecord:
             self._checksum = calculate_checksum(self._packed.tobytes())
 
             if isinstance(self._diff, DataRecord) and self._derive_diff_on_pack:
-                reconstructed = np.asarray(
-                    unpack(
-                        packed=self._packed.tobytes(),
-                        nx=self.grid.nx,
-                        ny=self.grid.ny,
-                        precision=precision,
-                        exponent=exponent,
-                        initial_value=initial_value,
-                        driver=np,
-                    ),
-                    dtype=np.float32,
+                reconstructed = unpack(
+                    packed=self._packed.tobytes(),
+                    nx=self.grid.nx,
+                    ny=self.grid.ny,
+                    precision=precision,
+                    exponent=exponent,
+                    initial_value=initial_value,
                 )
                 self._diff._unpacked = np.asarray(
                     self._unpacked - reconstructed,

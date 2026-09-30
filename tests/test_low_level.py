@@ -10,12 +10,12 @@ import pytest
 import xarray as xr
 
 from arlmet import ARLFormatError, File
+from arlmet.collection import VariableAccessor
 from arlmet.grid import Grid, GridWindow, Projection
 from arlmet.header import Header
 from arlmet.index import LvlInfo, VarInfo
 from arlmet.packing import unpack
 from arlmet.record import DataRecord
-from arlmet.recordset import VariableAccessor
 from arlmet.vertical import PressureAxis
 from arlmet.xarray._backend import ArlVariableArray, _normalize_backend_indexer
 
@@ -116,9 +116,6 @@ class StubDiff:
         self.field = field
 
     def read(self, window=None):
-        return self.field
-
-    def _load_from_disk(self, driver=None):
         return self.field
 
 
@@ -368,7 +365,6 @@ class TestDataRecordModeGuards:
                 precision=record.header.precision,
                 exponent=record.header.exponent,
                 initial_value=record.header.initial_value,
-                driver=np,
             )
             np.testing.assert_allclose(combined, base, atol=record.header.precision)
             np.testing.assert_allclose(
@@ -459,9 +455,7 @@ class TestDataRecordModeGuards:
         finally:
             arl._manager.close()
 
-    def test_read_and_load_from_disk_handle_diff_header_mismatch_and_array_copy(
-        self, tmp_path
-    ):
+    def test_read_handles_diff_header_mismatch_and_array_copy(self, tmp_path):
         path = tmp_path / "read_behaviors.arl"
         time, data = write_single_record_file(path)
 
@@ -470,7 +464,7 @@ class TestDataRecordModeGuards:
             diff = np.ones_like(data)
             record._diff = StubDiff(diff)
 
-            loaded = record._load_from_disk()
+            loaded = record.read()
             np.testing.assert_allclose(loaded, data + diff)
 
             arr = np.array(record, dtype=np.float64, copy=True)
@@ -1166,3 +1160,145 @@ class TestXarrayBackendHelpers:
 
         with pytest.raises(IndexError, match="expect 4 indexers"):
             array._getitem((slice(None),))
+
+
+class TestContainerSemantics:
+    def test_recordset_contains_accepts_getitem_keys(self, tmp_path):
+        path = tmp_path / "contains.arl"
+        time, _ = write_single_record_file(path)
+
+        with File(path) as arl:
+            rs = arl[time]
+            assert (0, "TEMP") in rs
+            assert rs[(0, "TEMP")] is not None
+            assert (1, "TEMP") not in rs
+            assert (0, "UWND") not in rs
+            assert "TEMP" in rs
+            assert (0, ["TEMP"]) not in rs  # unhashable parts: False, no error
+            assert (0, "TEMP", 1) not in rs
+
+    def test_int_indexing_and_iteration_follow_sorted_times(self, tmp_path):
+        path = tmp_path / "unsorted.arl"
+        grid = make_test_grid()
+        zeros = np.zeros((grid.ny, grid.nx), dtype=np.float32)
+        late = pd.Timestamp("2024-07-18 06:00")
+        early = pd.Timestamp("2024-07-18 00:00")
+
+        with File(
+            path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=PressureAxis(levels=[1000.0]),
+        ) as arl:
+            for time in (late, early):  # written out of time order
+                arl.add_record(time, "TEMP", 0, forecast=0, data=zeros)
+
+        with File(path) as arl:
+            assert arl.times == [early, late]
+            assert list(arl) == [early, late]
+            assert arl[0].time == early
+            assert arl[-1].time == late
+            assert [r.time for r in arl.records] == [early, late]
+
+    def test_file_contains_rejects_non_timestamps(self, tmp_path):
+        path = tmp_path / "contains_file.arl"
+        time, _ = write_single_record_file(path)
+
+        with File(path) as arl:
+            assert time in arl
+            assert object() not in arl
+            assert "garbage" not in arl
+            assert 10**30 not in arl
+
+
+class TestKeywordOnlyOptions:
+    def test_open_dataset_options_are_keyword_only(self, tmp_path):
+        import arlmet
+
+        path = tmp_path / "open.arl"
+        write_variable_view_file(path)
+        with pytest.raises(TypeError):
+            arlmet.open_dataset(path, ["UWND"])  # type: ignore[misc]
+        # levels accepts any iterable of ints
+        ds = arlmet.open_dataset(path, levels=iter([0]), drop_variables=["UWND"])
+        assert "UWND" not in ds
+        assert "TEMP" in ds
+
+    def test_file_metadata_is_keyword_only(self, tmp_path):
+        with pytest.raises(TypeError):
+            File(tmp_path / "x.arl", "w", "TEST")  # type: ignore[misc]
+
+    def test_create_datarecord_forecast_is_keyword_only(self, tmp_path):
+        grid = make_test_grid()
+        with File(
+            tmp_path / "kw.arl",
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=PressureAxis(levels=[1000.0]),
+        ) as arl:
+            rs = arl.create_recordset(pd.Timestamp("2024-07-18"))
+            with pytest.raises(TypeError):
+                rs.create_datarecord("TEMP", 0, 0)  # type: ignore[misc]
+            rs.create_datarecord(
+                "TEMP", 0, forecast=0, data=np.zeros((grid.ny, grid.nx))
+            )
+
+    def test_datarecord_to_xarray_squeeze_is_keyword_only(self, tmp_path):
+        path = tmp_path / "xr.arl"
+        time, data = write_single_record_file(path)
+        with File(path) as arl:
+            record = arl[time][(0, "TEMP")]
+            with pytest.raises(TypeError):
+                record.to_xarray(False)  # type: ignore[misc]
+            da = record.to_xarray(squeeze=False)
+            assert da.dims == ("time", "level", "lat", "lon")
+            assert da.coords["level"].values.tolist() == [1000.0]
+            np.testing.assert_allclose(da.values[0, 0], data)
+
+
+class TestAddRecord:
+    def test_add_record_supports_diff(self, tmp_path):
+        path = tmp_path / "add_record_diff.arl"
+        grid = make_test_grid()
+        rng = np.random.default_rng(0)
+        data = (rng.normal(size=(grid.ny, grid.nx)) * 1e-2).astype(np.float32)
+        time = pd.Timestamp("2024-07-18 00:00")
+
+        with File(
+            path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=PressureAxis(levels=[1000.0]),
+        ) as arl:
+            record = arl.add_record(time, "WWND", 0, forecast=3, data=data, diff="DIFW")
+            assert record.diff is not None
+
+        with File(path) as arl:
+            record = arl[time][(0, "WWND")]
+            assert record.forecast == 3
+            assert record.diff is not None
+            assert record.diff.variable == "DIFW"
+
+    def test_add_record_requires_forecast(self, tmp_path):
+        grid = make_test_grid()
+        with File(
+            tmp_path / "add_record_forecast.arl",
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=PressureAxis(levels=[1000.0]),
+        ) as arl:
+            with pytest.raises(TypeError, match="forecast"):
+                arl.add_record("2024-07-18", "TEMP", 0)  # type: ignore[call-arg]
+            arl.add_record(
+                "2024-07-18", "TEMP", 0, forecast=0, data=np.zeros((grid.ny, grid.nx))
+            )
+
+    def test_add_record_requires_write_mode(self, tmp_path):
+        path = tmp_path / "add_record_read.arl"
+        time, data = write_single_record_file(path)
+        with File(path) as arl, pytest.raises(io.UnsupportedOperation):
+            arl.add_record(time, "UWND", 0, forecast=0, data=data)
