@@ -26,6 +26,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `sample_points()` returned NaN for every point more than 180° east of a lat/lon grid's origin, so on global grids starting at 0°E (GDAS, GFS, Reanalysis) the whole western hemisphere, all of the Americas, sampled as NaN, whether given as `-90` or `270`. Longitudes are now measured eastward from the origin in [0, 360), and on grids spanning all 360° points between the last and first columns interpolate across the seam. New `Grid.wraps_lon` property
 - `extract_subset(p, p)` and `write_dataset(open_dataset(p), p)` truncated the input file before reading it, destroying it on multi-time files. Both now raise `ValueError` when the output is the input (including through a symlink or hard link)
 - `open_dataset()` followed by `write_dataset()` failed on files with a variable stored on only some levels: `open_dataset()` fills those levels with NaN (its docstring wrongly said it never NaN-pads), and `write_dataset()` rejected any NaN. An all-NaN slice is now written as no record; a partly-NaN slice still raises
 - `open_dataset(levels=[0, 2])` (and `ds.sel(level=...)`) rebuilt the vertical axis with 0.0 filled in for every level left out, so `ds.arl.vertical_axis` was wrong (`[0, 0, 2000]`) and `write_dataset()` wrote bogus levels. The axis is now the surface plus the Dataset's levels (`[0, 2000]`)

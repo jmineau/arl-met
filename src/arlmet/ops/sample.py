@@ -192,24 +192,29 @@ def _build_horizontal_plan(
         raise ValueError("method must be 'linear' or 'nearest'.")
 
     x, y = grid.fractional_indices(lon, lat)
+    # On a global lat/lon grid, x in [nx - 1, nx) lies between the last and
+    # first columns and interpolates across the seam.
+    wraps = grid.wraps_lon
+    x_max = float(grid.nx) if wraps else float(grid.nx - 1)
     inside = (
         np.isfinite(x)
         & np.isfinite(y)
         & (x >= 0.0)
-        & (x <= grid.nx - 1)
+        & ((x < x_max) if wraps else (x <= x_max))
         & (y >= 0.0)
         & (y <= grid.ny - 1)
     )
 
-    x_safe = np.clip(x, 0.0, max(grid.nx - 1, 0))
-    y_safe = np.clip(y, 0.0, max(grid.ny - 1, 0))
-    x0 = np.floor(x_safe).astype(int)
+    x_safe = np.clip(np.nan_to_num(x), 0.0, max(x_max, 0.0))
+    y_safe = np.clip(np.nan_to_num(y), 0.0, max(grid.ny - 1, 0))
+    x0 = np.minimum(np.floor(x_safe).astype(int), max(grid.nx - 1, 0))
     y0 = np.floor(y_safe).astype(int)
-    x1 = np.clip(x0 + 1, 0, grid.nx - 1)
+    x1 = (x0 + 1) % grid.nx if wraps else np.clip(x0 + 1, 0, grid.nx - 1)
     y1 = np.clip(y0 + 1, 0, grid.ny - 1)
 
     if method == "nearest":
-        x0 = x1 = np.rint(x_safe).astype(int)
+        x_near = np.rint(x_safe).astype(int)
+        x0 = x1 = (x_near % grid.nx) if wraps else x_near
         y0 = y1 = np.rint(y_safe).astype(int)
         wx = np.zeros_like(x_safe, dtype=float)
         wy = np.zeros_like(y_safe, dtype=float)

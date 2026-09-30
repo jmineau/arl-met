@@ -515,6 +515,18 @@ class Grid:
 
         return coords
 
+    @property
+    def wraps_lon(self) -> bool:
+        """
+        Whether the grid is lat/lon and its columns span all 360 degrees of longitude.
+
+        On such a global grid the last column is adjacent to the first, so
+        points between them interpolate across the seam.
+        """
+        if not self.is_latlon:
+            return False
+        return bool(np.isclose(self.nx * abs(self.projection.tangent_lon), 360.0))
+
     def fractional_indices(
         self, lon: npt.NDArray[Any] | float, lat: npt.NDArray[Any] | float
     ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
@@ -546,7 +558,11 @@ class Grid:
                     "Lat/lon grids require non-zero tangent_lon and tangent_lat spacing."
                 )
 
-            lon_offset = ((lon_arr - lon_0 + 180.0) % 360.0) - 180.0
+            # Longitudes are periodic: measure each point eastward from the
+            # grid origin, in [0, 360). (Wrapping to [-180, 180) instead put
+            # every point more than 180 degrees east of the origin, e.g. the
+            # whole western hemisphere on a global 0-360 grid, off the grid.)
+            lon_offset = (lon_arr - lon_0) % 360.0
             x = lon_offset / dlon
             y = (lat_arr - lat_0) / dlat
             return x.astype(float, copy=False), y.astype(float, copy=False)

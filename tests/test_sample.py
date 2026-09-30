@@ -1054,3 +1054,81 @@ def test_file_sample_points_passes_earth_relative(tmp_path):
         via_method = met.sample_points(points, ["UWND", "VWND"], earth_relative=True)
     via_function = sample_points(path, points, ["UWND", "VWND"], earth_relative=True)
     pd.testing.assert_frame_equal(via_method, via_function)
+
+
+def write_global_file(path, time):
+    """Write a 10-degree global lat/lon file whose TEMP equals the column longitude."""
+    projection = Projection(
+        pole_lat=90.0,
+        pole_lon=0.0,
+        tangent_lat=10.0,
+        tangent_lon=10.0,
+        grid_size=0.0,
+        orientation=0.0,
+        cone_angle=0.0,
+        sync_x=1.0,
+        sync_y=1.0,
+        sync_lat=-90.0,
+        sync_lon=0.0,
+    )
+    grid = Grid(projection=projection, nx=36, ny=19)
+    lons = np.arange(36, dtype=np.float32) * 10.0  # 0, 10, ..., 350
+    field = np.broadcast_to(lons, (19, 36)).copy()
+    with File(
+        path,
+        mode="w",
+        source="TEST",
+        grid=grid,
+        vertical_axis=PressureAxis(levels=[0.0, 1000.0]),
+    ) as arl:
+        rs = arl.create_recordset(time, forecast=0)
+        rs.create_datarecord("TEMP", level=1, forecast=0, data=field)
+    return path
+
+
+def test_sample_points_global_grid_western_hemisphere(tmp_path):
+    time = pd.Timestamp("2024-01-01 00:00")
+    path = write_global_file(tmp_path / "global.arl", time)
+    # -90 and 270 are the same meridian; both used to fall off a 0-360 grid.
+    points = pd.DataFrame(
+        {
+            "lon": [-90.0, 270.0, 45.0, -175.0],
+            "lat": [30.0, 30.0, 30.0, 30.0],
+            "z": [1.0, 1.0, 1.0, 1.0],
+            "time": [time] * 4,
+        }
+    )
+
+    result = sample_points(path, points, ["TEMP"], z_kind="native")
+
+    np.testing.assert_allclose(result["TEMP"], [270.0, 270.0, 45.0, 185.0])
+
+
+def test_sample_points_global_grid_interpolates_across_seam(tmp_path):
+    time = pd.Timestamp("2024-01-01 00:00")
+    path = write_global_file(tmp_path / "global.arl", time)
+    # 355 E lies between the last column (350) and the first (0 == 360).
+    points = pd.DataFrame(
+        {"lon": [355.0, -5.0], "lat": [0.0, 0.0], "z": [1.0, 1.0], "time": [time] * 2}
+    )
+
+    linear = sample_points(path, points, ["TEMP"], z_kind="native")
+    nearest = sample_points(path, points, ["TEMP"], z_kind="native", method="nearest")
+
+    # Halfway between TEMP=350 (x=35) and TEMP=0 (x=0, wrapped).
+    np.testing.assert_allclose(linear["TEMP"], [175.0, 175.0])
+    assert set(nearest["TEMP"]) <= {350.0, 0.0}
+
+
+def test_sample_points_regional_latlon_grid_still_masks_outside(tmp_path):
+    time = pd.Timestamp("2024-01-01 00:00")
+    path = tmp_path / "regional.arl"
+    write_sampling_file(path, time=time)
+    # make_test_grid spans lon 20-39: 10 E (west of it) and 200 E are outside.
+    points = pd.DataFrame(
+        {"lon": [10.0, 200.0], "lat": [0.0, 0.0], "z": [1.0, 1.0], "time": [time] * 2}
+    )
+
+    result = sample_points(path, points, ["TEMP"], z_kind="native")
+
+    assert result["TEMP"].isna().all()
