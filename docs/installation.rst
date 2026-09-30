@@ -42,7 +42,7 @@ Common development commands
 Requirements
 ------------
 
-- Python 3.10 or newer
+- Python 3.11 or newer
 - ``uv`` for development workflows
 
 Installing From Source With pip

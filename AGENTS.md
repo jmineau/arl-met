@@ -321,7 +321,7 @@ uv run ruff format .
 pre-commit run --all-files
 ```
 
-Python ≥ 3.10 required. Runtime dependencies: `numpy`, `pandas`, `pyproj`,
+Python ≥ 3.11 required. Runtime dependencies: `numpy`, `pandas`, `pyproj`,
 `xarray`.
 
 **Keep `uv.lock` in sync.** `arlmet` is an editable install, so its own
