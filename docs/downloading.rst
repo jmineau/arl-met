@@ -76,6 +76,23 @@ before it is cached locally.
 This uses :func:`arlmet.extract_subset` internally after the raw file is
 downloaded.
 
+Pass ``levels=`` to keep only some vertical levels, counted from 0 at the
+surface. It works with or without ``bbox``.
+
+.. code-block:: python
+
+   files = source.fetch(
+       "2024-07-18 00:00",
+       "2024-07-19 00:00",
+       local_dir="./met",
+       bbox=(-114.0, 39.0, -110.0, 42.0),
+       levels=range(20),   # the lowest 20 levels
+   )
+
+The crop is part of each cached file's name (for example
+``...crop_-114.00_39.00_-110.00_42.00.levels_0-19``), so files cropped
+differently are cached separately.
+
 Choose a backend
 ----------------
 
