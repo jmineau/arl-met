@@ -256,6 +256,10 @@ def write_dataset(
         ``level`` coordinates. Required for surface-only Datasets; otherwise it
         must have one level per ``level`` coordinate value plus the surface.
 
+    Returns
+    -------
+    None
+
     Raises
     ------
     ValueError
