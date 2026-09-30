@@ -536,6 +536,14 @@ class TestFetchHelpers:
         assert plain == tmp_path / "file.arl"
         assert cropped == tmp_path / "file.arl.crop_-111.50_40.50_-110.00_41.00"
 
+    def test_dest_path_adds_levels_tag(self, tmp_path):
+        bbox = (-111.5, 40.5, -110.0, 41.0)
+        both = self.src._dest_path(tmp_path, "file.arl", bbox, list(range(20)))
+        levels_only = self.src._dest_path(tmp_path, "file.arl", None, [5, 0, 1, 2])
+
+        assert both.name == "file.arl.crop_-111.50_40.50_-110.00_41.00.levels_0-19"
+        assert levels_only.name == "file.arl.levels_0-2_5"
+
     def test_download_copies_bytes_and_renames_tmp_file(self, tmp_path, monkeypatch):
         class FakeOpen:
             def __init__(self, data: bytes):
@@ -585,8 +593,8 @@ class TestFetchHelpers:
             downloaded.append((url, dest, opts))
             Path(dest).write_bytes(b"raw")
 
-        def fake_extract_subset(src, dst, bbox):
-            cropped.append((Path(src), Path(dst), bbox))
+        def fake_extract_subset(src, dst, bbox, levels):
+            cropped.append((Path(src), Path(dst), bbox, levels))
             Path(dst).write_bytes(Path(src).read_bytes() + b"-cropped")
             # extract_subset returns the cropped file opened in read mode.
             return types.SimpleNamespace(close=lambda: closed.append(True))
@@ -600,10 +608,15 @@ class TestFetchHelpers:
 
         dest = tmp_path / "cropped.arl"
         self.src._fetch_and_crop(
-            "s3://bucket/test", dest, (-112.0, 40.0, -111.0, 41.0), {}
+            "s3://bucket/test",
+            dest,
+            {},
+            bbox=(-112.0, 40.0, -111.0, 41.0),
+            levels=[0, 1, 2],
         )
 
         assert downloaded[0][0] == "s3://bucket/test"
+        assert cropped[0][2:] == ((-112.0, 40.0, -111.0, 41.0), [0, 1, 2])
         assert dest.read_bytes() == b"raw-cropped"
         # The returned handle is closed by _fetch_and_crop.
         assert closed == [True]
@@ -628,8 +641,8 @@ class TestFetchHelpers:
             downloads.append((url, Path(dest), opts))
             Path(dest).write_text("downloaded")
 
-        def fake_crop(url, dest, bbox, opts):
-            crops.append((url, Path(dest), bbox, opts))
+        def fake_crop(url, dest, opts, *, bbox, levels):
+            crops.append((url, Path(dest), bbox, levels, opts))
             Path(dest).write_text("cropped")
 
         monkeypatch.setattr(self.src, "_download", fake_download)
@@ -662,6 +675,18 @@ class TestFetchHelpers:
             "a.crop_-112.00_40.00_-111.00_41.00",
             "b.crop_-112.00_40.00_-111.00_41.00",
         ]
+
+        # Levels alone also crop, and are passed sorted and unique.
+        crops.clear()
+        results = self.src.fetch(
+            "2024-07-18", "2024-07-19", local_dir=tmp_path, levels=range(2, -1, -1)
+        )
+        assert downloads == []
+        assert [(entry[1].name, entry[2], entry[3]) for entry in crops] == [
+            ("a.levels_0-2", None, [0, 1, 2]),
+            ("b.levels_0-2", None, [0, 1, 2]),
+        ]
+        assert results == [tmp_path / "a.levels_0-2", tmp_path / "b.levels_0-2"]
 
 
 # ---------------------------------------------------------------------------

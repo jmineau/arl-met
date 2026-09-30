@@ -4,6 +4,12 @@ All notable changes to arl-met are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `MeteorologySource.fetch(..., levels=...)`: keep only the given vertical levels of each downloaded file, with or without `bbox`. The levels are part of the cached file's name (`.levels_0-19`), so files cropped to different levels are cached separately
+
 ## [0.1.0a8] - 2026-09-22
 
 ### Added

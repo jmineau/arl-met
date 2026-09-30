@@ -35,6 +35,7 @@ import logging
 import shutil
 import tempfile
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, BinaryIO, ClassVar, cast
 
@@ -59,6 +60,19 @@ _MONTH_CODES: tuple[str, ...] = (
     "nov",
     "dec",
 )
+
+
+def _level_ranges(levels: list[int]) -> str:
+    """Return sorted level indices as runs, e.g. ``[0, 1, 2, 5]`` → ``"0-2_5"``."""
+    runs: list[list[int]] = []
+    for level in sorted(set(levels)):
+        if runs and level == runs[-1][-1] + 1:
+            runs[-1].append(level)
+        else:
+            runs.append([level])
+    return "_".join(
+        str(run[0]) if len(run) == 1 else f"{run[0]}-{run[-1]}" for run in runs
+    )
 
 
 class MeteorologySource(ABC):
@@ -152,6 +166,7 @@ class MeteorologySource(ABC):
         local_dir: Path | str,
         backend: str = "s3",
         bbox: tuple[float, float, float, float] | None = None,
+        levels: Iterable[int] | None = None,
         overwrite: bool = False,
     ) -> list[Path]:
         """
@@ -170,6 +185,11 @@ class MeteorologySource(ABC):
             ``(west, south, east, north)`` in degrees. When provided, each
             file is cropped with :func:`arlmet.extract_subset` before
             caching. Strongly recommended for global products (GFS, GDAS).
+        levels :
+            ARL level indices to keep, counted from 0 at the surface. When
+            provided, each file keeps only these levels, cropped with
+            :func:`arlmet.extract_subset` like *bbox*. All levels are kept
+            by default.
         overwrite :
             Re-download even if a matching local file already exists.
 
@@ -200,11 +220,12 @@ class MeteorologySource(ABC):
 
         local_dir = Path(local_dir)
         local_dir.mkdir(parents=True, exist_ok=True)
+        keep = None if levels is None else sorted({int(level) for level in levels})
 
         results: list[Path] = []
         for key in self.keys_for_range(start, end):
             filename = Path(key).name
-            dest = self._dest_path(local_dir, filename, bbox)
+            dest = self._dest_path(local_dir, filename, bbox, keep)
 
             if not overwrite and dest.exists():
                 logger.debug("Using cached %s", dest.name)
@@ -215,8 +236,8 @@ class MeteorologySource(ABC):
             opts = self._storage_options(backend)
             logger.info("Fetching %s → %s", url, dest.name)
 
-            if bbox is not None:
-                self._fetch_and_crop(url, dest, bbox, opts)
+            if bbox is not None or keep is not None:
+                self._fetch_and_crop(url, dest, opts, bbox=bbox, levels=keep)
             else:
                 self._download(url, dest, opts)
 
@@ -233,12 +254,21 @@ class MeteorologySource(ABC):
         local_dir: Path,
         filename: str,
         bbox: tuple[float, float, float, float] | None,
+        levels: list[int] | None = None,
     ) -> Path:
-        """Return the local cache path for a downloaded file and optional crop."""
-        if bbox is None:
-            return local_dir / filename
-        w, s, e, n = bbox
-        tag = f".crop_{w:.2f}_{s:.2f}_{e:.2f}_{n:.2f}"
+        """
+        Return the local cache path for a downloaded file and optional crop.
+
+        A bbox adds ``.crop_<west>_<south>_<east>_<north>`` to the name, and
+        levels add ``.levels_<ranges>`` (``[0, 1, 2, 5]`` is ``.levels_0-2_5``),
+        so files cropped differently never share a path.
+        """
+        tag = ""
+        if bbox is not None:
+            w, s, e, n = bbox
+            tag += f".crop_{w:.2f}_{s:.2f}_{e:.2f}_{n:.2f}"
+        if levels is not None:
+            tag += f".levels_{_level_ranges(levels)}"
         return local_dir / f"{filename}{tag}"
 
     def _url(self, key: str, backend: str) -> str:
@@ -280,10 +310,12 @@ class MeteorologySource(ABC):
         self,
         url: str,
         dest: Path,
-        bbox: tuple[float, float, float, float],
         opts: dict[str, Any],
+        *,
+        bbox: tuple[float, float, float, float] | None,
+        levels: list[int] | None,
     ) -> None:
-        """Download one ARL file, crop it to *bbox*, and write the cropped copy."""
+        """Download one ARL file, crop it to *bbox* and *levels*, and write the cropped copy."""
         from arlmet.ops.subset import extract_subset
 
         with tempfile.NamedTemporaryFile(suffix=".arl", delete=False) as f:
@@ -292,7 +324,7 @@ class MeteorologySource(ABC):
             self._download(url, tmp, opts)
             # extract_subset returns the cropped file opened in read mode; we
             # only need it on disk here, so close the handle immediately.
-            extract_subset(tmp, dest, bbox=bbox).close()
+            extract_subset(tmp, dest, bbox=bbox, levels=levels).close()
         finally:
             tmp.unlink(missing_ok=True)
 
