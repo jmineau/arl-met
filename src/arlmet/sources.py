@@ -32,8 +32,10 @@ Install with: ``pip install arlmet[sources]``
 from __future__ import annotations
 
 import logging
+import math
+import os
 import shutil
-import tempfile
+import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
@@ -60,6 +62,37 @@ _MONTH_CODES: tuple[str, ...] = (
     "nov",
     "dec",
 )
+
+
+def _bbox_value_tag(value: float) -> str:
+    """
+    Return one bbox coordinate as it appears in a cached file's name.
+
+    Values with at most two decimals keep the original ``.2f`` form
+    (``-112.0`` → ``"-112.00"``), so caches named before finer bboxes were
+    supported still match. Anything finer uses the shortest exact repr
+    (``40.125`` → ``"40.125"``), so bboxes that differ past the second
+    decimal never share a cache file. Differences under 1e-9 degrees are
+    treated as float noise, not a different bbox.
+    """
+    value = float(value)
+    # Tolerate float noise from arithmetic like 40.1 - 0.05 (40.050000000000004)
+    # so those bboxes keep their old two-decimal name.
+    if math.isclose(value, round(value, 2), rel_tol=0.0, abs_tol=1e-9):
+        return f"{value:.2f}"
+    return repr(value)
+
+
+def _partial_path(dest: Path) -> Path:
+    """
+    Return a unique hidden temp path next to *dest*, ``.<name>.<random>.partial``.
+
+    Files are written here first and moved onto *dest* with :func:`os.replace`
+    once complete, so an interrupted fetch never leaves a truncated file under
+    the cached name. The random part keeps concurrent fetches of the same file
+    from writing to the same temp path.
+    """
+    return dest.with_name(f".{dest.name}.{uuid.uuid4().hex[:12]}.partial")
 
 
 def _level_ranges(levels: list[int]) -> str:
@@ -141,11 +174,26 @@ class MeteorologySource(ABC):
         -------
         list[str]
             Unique archive keys in chronological order.
+
+        Raises
+        ------
+        ValueError
+            If the range begins before the source's ``start_date``.
         """
         t0 = ensure_timestamp(start, floor="h")
         t1 = ensure_timestamp(end, floor="h")
         if t0 > t1:
             t0, t1 = t1, t0
+
+        start_date = self.start_date
+        if t0.tzinfo is not None:
+            # start_date is naive UTC; match it to a tz-aware request.
+            start_date = start_date.tz_localize("UTC")
+        if t0 < start_date:
+            raise ValueError(
+                f"{type(self).__name__} archive begins {start_date:%Y-%m-%d}, "
+                f"but the requested range starts at {t0}."
+            )
 
         seen: set[str] = set()
         keys: list[str] = []
@@ -203,6 +251,16 @@ class MeteorologySource(ABC):
         ------
         ImportError
             If ``fsspec`` is not installed.
+        ValueError
+            If the range begins before the source's ``start_date``.
+
+        Notes
+        -----
+        Files are written to a hidden ``.<name>.<random>.partial`` file in
+        *local_dir* and renamed into place only once complete, so an
+        interrupted fetch never leaves a truncated file that a later call
+        would reuse. When cropping, the full download is also staged in
+        *local_dir* (not the system temp directory) and removed afterwards.
 
         Examples
         --------
@@ -261,12 +319,13 @@ class MeteorologySource(ABC):
 
         A bbox adds ``.crop_<west>_<south>_<east>_<north>`` to the name, and
         levels add ``.levels_<ranges>`` (``[0, 1, 2, 5]`` is ``.levels_0-2_5``),
-        so files cropped differently never share a path.
+        so files cropped differently never share a path. Bbox values are
+        written with two decimals (``-112.00``) unless they have more, which
+        are kept in full (``-111.925``).
         """
         tag = ""
         if bbox is not None:
-            w, s, e, n = bbox
-            tag += f".crop_{w:.2f}_{s:.2f}_{e:.2f}_{n:.2f}"
+            tag += ".crop_" + "_".join(_bbox_value_tag(v) for v in bbox)
         if levels is not None:
             tag += f".levels_{_level_ranges(levels)}"
         return local_dir / f"{filename}{tag}"
@@ -292,7 +351,7 @@ class MeteorologySource(ABC):
         """Download one ARL file to a temporary path and atomically move it into place."""
         import fsspec
 
-        tmp = dest.with_suffix(dest.suffix + ".tmp")
+        tmp = _partial_path(dest)
         try:
             with fsspec.open(url, "rb", **opts) as src, open(tmp, "wb") as dst:
                 # fsspec.open() stubs return IO[Any]; "rb"/"wb" mode guarantees BinaryIO.
@@ -301,10 +360,10 @@ class MeteorologySource(ABC):
                     cast(BinaryIO, dst),
                     length=8 * 1024 * 1024,
                 )
-            tmp.rename(dest)
-        except Exception:
+            os.replace(tmp, dest)
+        finally:
+            # Only left behind if the download failed before the replace.
             tmp.unlink(missing_ok=True)
-            raise
 
     def _fetch_and_crop(
         self,
@@ -315,18 +374,26 @@ class MeteorologySource(ABC):
         bbox: tuple[float, float, float, float] | None,
         levels: list[int] | None,
     ) -> None:
-        """Download one ARL file, crop it to *bbox* and *levels*, and write the cropped copy."""
+        """
+        Download one ARL file, crop it to *bbox* and *levels*, and write the cropped copy.
+
+        The full download is staged next to *dest* rather than in the system
+        temp directory, which may be too small for multi-GB files (HRRR is
+        ~3 GB each). The crop is written to its own temp file and moved onto
+        *dest* only once complete (by :func:`arlmet.extract_subset`). The download
+        is removed either way.
+        """
         from arlmet.ops.subset import extract_subset
 
-        with tempfile.NamedTemporaryFile(suffix=".arl", delete=False) as f:
-            tmp = Path(f.name)
+        raw = _partial_path(dest)
         try:
-            self._download(url, tmp, opts)
-            # extract_subset returns the cropped file opened in read mode; we
-            # only need it on disk here, so close the handle immediately.
-            extract_subset(tmp, dest, bbox=bbox, levels=levels).close()
+            self._download(url, raw, opts)
+            # extract_subset writes the crop to a temp file and renames it onto
+            # dest only once complete. It returns the crop opened in read mode;
+            # we only need it on disk, so close the handle immediately.
+            extract_subset(raw, dest, bbox=bbox, levels=levels).close()
         finally:
-            tmp.unlink(missing_ok=True)
+            raw.unlink(missing_ok=True)
 
     @override
     def __repr__(self) -> str:
@@ -371,7 +438,7 @@ class HRRRSource(MeteorologySource):
 
 class NAMSource(MeteorologySource):
     """
-    NAM 12 km analysis (North America, May 2007–present).
+    NAM 12 km analysis (North America, May 26, 2007–present).
 
     One file per calendar day.
 
@@ -380,7 +447,7 @@ class NAMSource(MeteorologySource):
 
     name = "nam12"
     description = "NAM 12 km analysis"
-    start_date = ensure_timestamp("2007-05-01")
+    start_date = ensure_timestamp("2007-05-26")
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the daily NAM archive filename for *time*."""
@@ -425,7 +492,7 @@ class GDASSource(MeteorologySource):
 
 class GFSSource(MeteorologySource):
     """
-    GFS 0.25-degree global analysis (June 2019–present).
+    GFS 0.25-degree global analysis (June 13, 2019–present).
 
     One file per calendar day, approximately 2.7 GB each.
     Cropping with ``bbox=`` on fetch is strongly recommended.
@@ -435,7 +502,7 @@ class GFSSource(MeteorologySource):
 
     name = "gfs0p25"
     description = "GFS 0.25-degree global analysis"
-    start_date = ensure_timestamp("2019-06-01")
+    start_date = ensure_timestamp("2019-06-13")
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the daily GFS archive filename for *time*."""
@@ -449,7 +516,7 @@ class GFSSource(MeteorologySource):
 
 class NAMSSource(MeteorologySource):
     """
-    NAMS hybrid sigma-pressure analysis (CONUS/Alaska/Hawaii, 2010–present).
+    NAMS hybrid sigma-pressure analysis (CONUS/Alaska/Hawaii, March 2009–present).
 
     One file per calendar day. Uses hybrid sigma-pressure vertical coordinates
     (flag=4), making it suitable for high-accuracy boundary-layer transport.
@@ -464,7 +531,7 @@ class NAMSSource(MeteorologySource):
 
     name = "nams"
     description = "NAMS hybrid sigma-pressure analysis"
-    start_date = ensure_timestamp("2010-01-01")
+    start_date = ensure_timestamp("2009-03-22")
 
     _DOMAIN_SUFFIXES: ClassVar[dict[str, str]] = {
         "conus": "",
@@ -521,7 +588,7 @@ class ReanalysisSource(MeteorologySource):
 
 class HRRRv1Source(MeteorologySource):
     """
-    HRRR 3 km analysis, version 1 (CONUS, June 2015–2019).
+    HRRR 3 km analysis, version 1 (CONUS, June 15, 2015–2019).
 
     Files cover 6-hour UTC blocks (00z, 06z, 12z, 18z).
     Superseded by :class:`HRRRSource` from June 2019 onward.
@@ -531,7 +598,7 @@ class HRRRv1Source(MeteorologySource):
 
     name = "hrrr.v1"
     description = "HRRR 3 km analysis v1"
-    start_date = ensure_timestamp("2015-06-01")
+    start_date = ensure_timestamp("2015-06-15")
 
     _HOURS_PER_FILE: ClassVar[int] = 6
 

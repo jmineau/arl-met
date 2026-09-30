@@ -544,6 +544,26 @@ class TestFetchHelpers:
         assert both.name == "file.arl.crop_-111.50_40.50_-110.00_41.00.levels_0-19"
         assert levels_only.name == "file.arl.levels_0-2_5"
 
+    def test_dest_path_two_decimal_bbox_keeps_legacy_tag(self, tmp_path):
+        # Caches written before finer bboxes were supported (e.g. by PYSTILT)
+        # must keep matching, including float noise from bbox arithmetic.
+        dest = self.src._dest_path(
+            tmp_path, "file", (-112.0, 40.25, -111.1 - 0.2, 40.1 - 0.05)
+        )
+        assert dest.name == "file.crop_-112.00_40.25_-111.30_40.05"
+
+    def test_dest_path_bboxes_differing_past_two_decimals_do_not_collide(
+        self, tmp_path
+    ):
+        a = self.src._dest_path(tmp_path, "file", (-111.925, 40.5, -110.0, 41.0))
+        b = self.src._dest_path(tmp_path, "file", (-111.924, 40.5, -110.0, 41.0))
+        c = self.src._dest_path(tmp_path, "file", (-111.92, 40.5, -110.0, 41.0))
+
+        assert len({a, b, c}) == 3
+        assert a.name == "file.crop_-111.925_40.50_-110.00_41.00"
+        assert b.name == "file.crop_-111.924_40.50_-110.00_41.00"
+        assert c.name == "file.crop_-111.92_40.50_-110.00_41.00"
+
     def test_download_copies_bytes_and_renames_tmp_file(self, tmp_path, monkeypatch):
         class FakeOpen:
             def __init__(self, data: bytes):
@@ -563,7 +583,8 @@ class TestFetchHelpers:
         self.src._download("s3://bucket/test", dest, {"anon": True})
 
         assert dest.read_bytes() == b"arl-bytes"
-        assert not Path(str(dest) + ".tmp").exists()
+        # The hidden temp file was renamed onto dest.
+        assert list(tmp_path.iterdir()) == [dest]
 
     def test_download_cleans_up_tmp_file_on_failure(self, tmp_path, monkeypatch):
         monkeypatch.setitem(
@@ -582,7 +603,30 @@ class TestFetchHelpers:
             self.src._download("s3://bucket/test", dest, {})
 
         assert not dest.exists()
-        assert not Path(str(dest) + ".tmp").exists()
+        assert list(tmp_path.iterdir()) == []
+
+    def test_download_writes_to_hidden_partial_file(self, tmp_path, monkeypatch):
+        monkeypatch.setitem(
+            sys.modules,
+            "fsspec",
+            types.SimpleNamespace(open=lambda url, mode, **opts: io.BytesIO(b"bytes")),
+        )
+        written = []
+
+        def record(src, dst, length):
+            written.append(Path(dst.name))
+            dst.write(src.read())
+
+        monkeypatch.setattr("arlmet.sources.shutil.copyfileobj", record)
+        dest = tmp_path / "file.arl"
+        self.src._download("s3://bucket/test", dest, {})
+
+        # Never written under the final name, so an interrupted download
+        # can't be mistaken for a cached file.
+        assert written[0].parent == tmp_path
+        assert written[0].name.startswith(".file.arl.")
+        assert written[0].name.endswith(".partial")
+        assert dest.read_bytes() == b"bytes"
 
     def test_fetch_and_crop_cleans_up_temp_input(self, tmp_path, monkeypatch):
         downloaded = []
@@ -620,7 +664,47 @@ class TestFetchHelpers:
         assert dest.read_bytes() == b"raw-cropped"
         # The returned handle is closed by _fetch_and_crop.
         assert closed == [True]
-        assert not cropped[0][0].exists()
+        # The raw download is staged as a hidden file in the destination
+        # directory, not the system temp dir, and cleaned up. The crop goes
+        # straight to dest: extract_subset itself writes atomically.
+        raw, out = cropped[0][0], cropped[0][1]
+        assert raw.parent == tmp_path
+        assert raw.name.startswith(".cropped.arl.")
+        assert raw.name.endswith(".partial")
+        assert out == dest
+        assert list(tmp_path.iterdir()) == [dest]
+
+    @pytest.mark.parametrize("fail_in", ["download", "crop"])
+    def test_fetch_and_crop_cleans_up_on_failure(self, tmp_path, monkeypatch, fail_in):
+        def fake_download(url, dest, opts):
+            Path(dest).write_bytes(b"raw")
+            if fail_in == "download":
+                raise RuntimeError("download failed")
+
+        def fake_extract_subset(src, dst, bbox, levels):
+            # The real extract_subset leaves nothing at dst when it fails
+            # (tested in test_subset.py).
+            raise RuntimeError("crop failed")
+
+        monkeypatch.setattr(self.src, "_download", fake_download)
+        monkeypatch.setitem(
+            sys.modules,
+            "arlmet.ops.subset",
+            types.SimpleNamespace(extract_subset=fake_extract_subset),
+        )
+
+        dest = tmp_path / "cropped.arl"
+        with pytest.raises(RuntimeError, match=f"{fail_in} failed"):
+            self.src._fetch_and_crop(
+                "s3://bucket/test",
+                dest,
+                {},
+                bbox=(-112.0, 40.0, -111.0, 41.0),
+                levels=None,
+            )
+
+        # No truncated file under the cached name, and no leftover temp files.
+        assert list(tmp_path.iterdir()) == []
 
     def test_fetch_uses_cache_and_dispatches_crop_download_and_overwrite(
         self, tmp_path, monkeypatch
@@ -687,6 +771,64 @@ class TestFetchHelpers:
             ("b.levels_0-2", None, [0, 1, 2]),
         ]
         assert results == [tmp_path / "a.levels_0-2", tmp_path / "b.levels_0-2"]
+
+
+# ---------------------------------------------------------------------------
+# start_date validation
+# ---------------------------------------------------------------------------
+
+
+_ALL_SOURCES = [
+    HRRRSource(),
+    HRRRv1Source(),
+    NAMSource(),
+    NAMSSource(),
+    GDASSource(),
+    GDAS0p5Source(),
+    GFSSource(),
+    NARRSource(),
+    ReanalysisSource(),
+]
+
+
+class TestStartDate:
+    @pytest.mark.parametrize("src", _ALL_SOURCES, ids=repr)
+    def test_range_starting_at_start_date_is_allowed(self, src):
+        assert src.keys_for_range(src.start_date, src.start_date) == [
+            src._s3_key(src.start_date)
+        ]
+
+    @pytest.mark.parametrize("src", _ALL_SOURCES, ids=repr)
+    def test_range_before_start_date_raises(self, src):
+        before = src.start_date - pd.Timedelta(hours=1)
+        with pytest.raises(ValueError, match="archive begins"):
+            src.keys_for_range(before, src.start_date + pd.Timedelta(days=1))
+
+    def test_backward_range_before_start_date_raises(self):
+        # start > end (backward trajectory): the earlier end is what matters.
+        src = HRRRSource()
+        with pytest.raises(ValueError, match="HRRRSource archive begins 2019-06-12"):
+            src.keys_for_range("2019-06-12 06:00", "2019-06-11 18:00")
+
+    def test_tz_aware_range_is_compared_in_utc(self):
+        src = HRRRSource()
+        keys = src.keys_for_range("2019-06-12 00:00+00:00", "2019-06-12 03:00+00:00")
+        assert keys == ["hrrr/2019/06/20190612_00-05_hrrr"]
+        with pytest.raises(ValueError, match="archive begins"):
+            src.keys_for_range("2019-06-11 23:00+00:00", "2019-06-12 03:00+00:00")
+
+    def test_fetch_raises_before_downloading(self, tmp_path, monkeypatch):
+        src = HRRRSource()
+        monkeypatch.setitem(
+            sys.modules, "fsspec", types.SimpleNamespace(open=lambda *a, **k: None)
+        )
+
+        def no_download(*args, **kwargs):
+            raise AssertionError("should not download")
+
+        monkeypatch.setattr(src, "_download", no_download)
+        with pytest.raises(ValueError, match="archive begins"):
+            src.fetch("2019-06-01", "2019-06-13", local_dir=tmp_path)
 
 
 # ---------------------------------------------------------------------------
