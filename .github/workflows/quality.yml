@@ -33,3 +33,7 @@ jobs:
     - name: Check docstring coverage
       if: ${{ !cancelled() }}
       run: uv run --no-sync docstr-coverage src/arlmet --skip-magic --skip-init --skip-property --fail-under 95
+
+    - name: Build documentation (warnings are errors)
+      if: ${{ !cancelled() }}
+      run: uv run --no-sync sphinx-build -q -W --keep-going -b html docs docs/_build/html

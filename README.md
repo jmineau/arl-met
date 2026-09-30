@@ -24,23 +24,27 @@ format used by HYSPLIT and related workflows. It supports:
 - point sampling with `sample_points()`
 - joining files with `concat()` and `concat_by_time()` (e.g. 6-hourly into daily)
 
-## Alpha status
+## Status and stability
 
-This is an alpha release. The core read/write/subset APIs are usable, but the
-package is still tightening its high-level contracts and release surface.
+arl-met is in **beta**: the public API (everything in `arlmet.__all__`, the
+`arlmet.sources` module, the `ds.arl` accessor, and the `engine="arl"` xarray
+backend) is frozen, and breaking changes are rare and always flagged in the
+[changelog](CHANGELOG.md). See the
+[API stability policy](https://jmineau.github.io/arl-met/stability.html) for
+what counts as public and how versions change.
 
-Current strengths:
+Strengths:
 
 - low-level ARL fidelity, including preservation of trailing `DIF*` records
 - xarray-native analysis workflow for common ARL files
 - direct subset extraction and point sampling
 - tested support for Python 3.11 through 3.14
 
-Current limitations:
+Known limitations:
 
 - `write_dataset()` is intentionally conservative and targets the flat common-case Dataset contract
 - complex multi-record DIFF chains are not tested
-- WRF vertical flag 5 is not implemented
+- WRF vertical flag 5 and rotated grids are not implemented
 
 ## Installation
 
