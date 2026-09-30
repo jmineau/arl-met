@@ -18,6 +18,13 @@ The public API is:
   coordinate, and attribute names) and the names of files cached by
   :meth:`arlmet.sources.MeteorologySource.fetch`.
 
+One exception: how Datasets represent forecast hours (today the
+``forecast_hour(time)`` variable, which holds only each time step's
+index-record forecast) is **provisional** and may change during beta. ARL
+records carry their own forecast hours, which differ within a time step for
+accumulated fields such as precipitation, and the Dataset API does not yet
+represent them (`#40 <https://github.com/jmineau/arl-met/issues/40>`_).
+
 Anything else is internal and may change in any release: submodules and names
 not listed in their module's ``__all__``, names starting with an underscore,
 and the ``arlmet.ops`` and ``arlmet.xarray`` subpackage paths (import from
