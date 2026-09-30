@@ -107,19 +107,26 @@ subclasses ``ValueError``, so ``except ValueError`` also catches it.
 Remote Archive Sources
 ----------------------
 
-.. currentmodule:: arlmet.sources
+.. currentmodule:: arlmet.archives
 
 .. autosummary::
    :toctree: _autosummary
    :nosignatures:
 
-   MeteorologySource
-   HRRRSource
-   HRRRv1Source
-   NAMSource
-   NAMSSource
-   GDASSource
-   GDAS0p5Source
-   GFSSource
-   NARRSource
-   ReanalysisSource
+   get_archive
+   Archive
+   HRRRArchive
+   HRRRv1Archive
+   NAMArchive
+   NAMSArchive
+   GDASArchive
+   GDAS0p5Archive
+   GFSArchive
+   NARRArchive
+   ReanalysisArchive
+
+.. data:: ARCHIVES
+   :no-index:
+
+   Every registered source class by name (read-only mapping). See
+   :func:`get_archive`.

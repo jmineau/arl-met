@@ -1,32 +1,41 @@
 """
-Remote meteorological data sources for NOAA ARL archives.
+NOAA ARL meteorology archives: download ARL files by product and date.
 
-Each source class encodes the filename convention, S3 path layout, and
+Each archive class encodes the filename convention, path layout, and
 approximate spatial extent for one ARL-formatted met product hosted on
 the NOAA ARL public archives.
 
-Storage backends
-----------------
+Mirrors
+-------
 "s3"   : AWS S3 (noaa-oar-arl-hysplit-pds, anonymous) — recommended
 "ftp"  : NOAA ARL FTP (ftp.arl.noaa.gov, anonymous, 2-connection limit)
 "http" : NOAA READY web (www.ready.noaa.gov/data/archives)
 
+Every archive is registered by its short name in :data:`ARCHIVES`, and
+:func:`get_archive` builds one by name, which suits config files and CLIs::
+
+    >>> from arlmet.archives import ARCHIVES, get_archive
+    >>> sorted(ARCHIVES)[:3]
+    ['gdas0p5', 'gdas1', 'gfs0p25']
+    >>> get_archive("nams", domain="ak")
+    NAMSArchive(domain='ak')
+
 Example
 -------
->>> from arlmet.sources import HRRRSource
->>> source = HRRRSource()
->>> files = source.fetch("2024-07-18", "2024-07-19", local_dir="./met/")
+>>> from arlmet.archives import HRRRArchive
+>>> archive = HRRRArchive()
+>>> files = archive.fetch("2024-07-18", "2024-07-19", local_dir="./met/")
 
 >>> # Crop to domain on download (recommended due to large file sizes)
->>> files = source.fetch(
+>>> files = archive.fetch(
 ...     "2024-07-18",
 ...     "2024-07-19",
 ...     local_dir="./met/",
 ...     bbox=(-114.0, 39.0, -110.0, 42.0),
 ... )
 
-Requires ``fsspec`` (and ``s3fs`` for the S3 backend).
-Install with: ``pip install arlmet[sources]``
+Requires ``fsspec`` (and ``s3fs`` for the S3 mirror).
+Install with: ``pip install arlmet[archives]``
 """
 
 from __future__ import annotations
@@ -37,8 +46,9 @@ import os
 import shutil
 import uuid
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, BinaryIO, ClassVar, Literal, cast
 
 import pandas as pd
@@ -108,21 +118,74 @@ def _level_ranges(levels: list[int]) -> str:
     )
 
 
-class MeteorologySource(ABC):
-    """
-    Abstract base class for NOAA ARL meteorological archive sources.
+_REGISTRY: dict[str, type[Archive]] = {}
 
-    Subclasses set class-level metadata and implement ``_s3_key()`` to
-    encode the filename convention for their product.
+#: Every registered archive class by its :attr:`Archive.name`
+#: (read-only). Subclasses of :class:`Archive` that set ``name``
+#: are added when they are defined, including ones defined outside arlmet.
+ARCHIVES: Mapping[str, type[Archive]] = MappingProxyType(_REGISTRY)
+
+
+def get_archive(name: str, **options: Any) -> Archive:
+    """
+    Build a meteorology archive from its short name.
+
+    Parameters
+    ----------
+    name : str
+        A key of :data:`ARCHIVES`, e.g. ``"hrrr"``, ``"nam12"``, ``"gdas1"``.
+    **options
+        Passed to the archive's constructor, e.g. ``domain="ak"`` for
+        ``"nams"``.
+
+    Returns
+    -------
+    Archive
+        A new instance of the named archive.
+
+    Raises
+    ------
+    ValueError
+        If ``name`` is not a registered archive.
+    TypeError
+        If the archive does not accept ``options``.
+
+    Examples
+    --------
+    >>> from arlmet.archives import get_archive
+    >>> files = get_archive("hrrr").fetch(
+    ...     "2024-07-18", "2024-07-19", local_dir="./met/"
+    ... )
+    """
+    try:
+        cls = ARCHIVES[name]
+    except KeyError:
+        raise ValueError(
+            f"Unknown meteorology archive {name!r}. Available: {sorted(ARCHIVES)}."
+        ) from None
+    return cls(**options)
+
+
+class Archive(ABC):
+    """
+    Abstract base class for NOAA ARL meteorology archives.
+
+    An archive is one ARL-formatted product in NOAA's archive (e.g. HRRR 3 km):
+    its filename convention, path layout, and start date. Download files with
+    :meth:`fetch`, choosing the ``mirror`` (server) to download from.
+
+    Subclasses set class-level metadata and implement ``_archive_path()`` to
+    encode the filename convention for their product. A subclass that sets
+    ``name`` is registered in :data:`ARCHIVES` under that name.
 
     Attributes
     ----------
     name : str
-        Short source identifier used by callers.
+        Short archive identifier used by callers and config files (stable).
     description : str
         Human-readable product description.
     start_date : pandas.Timestamp
-        Earliest archive date supported by the source.
+        Earliest date in the archive.
 
     Methods
     -------
@@ -139,6 +202,21 @@ class MeteorologySource(ABC):
     start_date: ClassVar[pd.Timestamp]
 
     S3_BUCKET: ClassVar[str] = "noaa-oar-arl-hysplit-pds"
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Register each subclass that defines its own ``name`` in :data:`ARCHIVES`."""
+        super().__init_subclass__(**kwargs)
+        name = cls.__dict__.get("name")
+        if name is None:
+            return  # an intermediate base class, not an archive
+        existing = _REGISTRY.get(name)
+        if existing is not None and existing.__qualname__ != cls.__qualname__:
+            raise ValueError(
+                f"A meteorology archive named {name!r} is already registered "
+                f"({existing.__module__}.{existing.__qualname__})."
+            )
+        _REGISTRY[name] = cls
+
     FTP_HOST: ClassVar[str] = "ftp.arl.noaa.gov"
     HTTP_BASE: ClassVar[str] = "https://www.ready.noaa.gov/data/archives"
 
@@ -147,7 +225,7 @@ class MeteorologySource(ABC):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    def _s3_key(self, time: pd.Timestamp) -> str:
+    def _archive_path(self, time: pd.Timestamp) -> str:
         """S3 key (no leading slash) for the ARL file containing *time*."""
 
     # ------------------------------------------------------------------
@@ -178,7 +256,7 @@ class MeteorologySource(ABC):
         Raises
         ------
         ValueError
-            If the range begins before the source's ``start_date``.
+            If the range begins before the archive's ``start_date``.
         """
         t0 = ensure_timestamp(start, floor="h")
         t1 = ensure_timestamp(end, floor="h")
@@ -199,7 +277,7 @@ class MeteorologySource(ABC):
         keys: list[str] = []
         t = t0
         while t <= t1:
-            key = self._s3_key(t)
+            key = self._archive_path(t)
             if key not in seen:
                 seen.add(key)
                 keys.append(key)
@@ -212,7 +290,7 @@ class MeteorologySource(ABC):
         end: pd.Timestamp | str,
         *,
         local_dir: Path | str,
-        backend: Literal["s3", "ftp", "http"] = "s3",
+        mirror: Literal["s3", "ftp", "http"] = "s3",
         bbox: tuple[float, float, float, float] | None = None,
         levels: Iterable[int] | None = None,
         overwrite: bool = False,
@@ -227,8 +305,9 @@ class MeteorologySource(ABC):
             are handled automatically.
         local_dir :
             Directory to save downloaded files. Created if absent.
-        backend :
-            Storage backend — ``"s3"`` (default), ``"ftp"``, or ``"http"``.
+        mirror :
+            Which copy of the archive to download from — ``"s3"`` (default,
+            AWS), ``"ftp"`` (NOAA ARL FTP), or ``"http"`` (NOAA READY web).
         bbox :
             ``(west, south, east, north)`` in degrees. When provided, each
             file is cropped with :func:`arlmet.extract_subset` before
@@ -252,7 +331,7 @@ class MeteorologySource(ABC):
         ImportError
             If ``fsspec`` is not installed.
         ValueError
-            If the range begins before the source's ``start_date``.
+            If the range begins before the archive's ``start_date``.
 
         Notes
         -----
@@ -264,16 +343,16 @@ class MeteorologySource(ABC):
 
         Examples
         --------
-        >>> from arlmet.sources import HRRRSource
-        >>> source = HRRRSource()
-        >>> source.fetch("2024-07-18", "2024-07-19", local_dir="./met")
+        >>> from arlmet.archives import HRRRArchive
+        >>> archive = HRRRArchive()
+        >>> archive.fetch("2024-07-18", "2024-07-19", local_dir="./met")
         """
         try:
             import fsspec  # noqa: F401
         except ImportError:
             raise ImportError(
-                "fsspec is required for MeteorologySource.fetch(). "
-                "Install with: pip install arlmet[sources]"
+                "fsspec is required for Archive.fetch(). "
+                "Install with: pip install arlmet[archives]"
             ) from None
 
         local_dir = Path(local_dir)
@@ -290,8 +369,8 @@ class MeteorologySource(ABC):
                 results.append(dest)
                 continue
 
-            url = self._url(key, backend)
-            opts = self._storage_options(backend)
+            url = self._url(key, mirror)
+            opts = self._storage_options(mirror)
             logger.info("Fetching %s → %s", url, dest.name)
 
             if bbox is not None or keep is not None:
@@ -330,20 +409,20 @@ class MeteorologySource(ABC):
             tag += f".levels_{_level_ranges(levels)}"
         return local_dir / f"{filename}{tag}"
 
-    def _url(self, key: str, backend: str) -> str:
+    def _url(self, key: str, mirror: str) -> str:
         """Return the fully qualified remote URL for an archive key."""
-        if backend == "s3":
+        if mirror == "s3":
             return f"s3://{self.S3_BUCKET}/{key}"
-        if backend == "ftp":
+        if mirror == "ftp":
             # FTP path mirrors S3 key structure under /archives/
             return f"ftp://anonymous@{self.FTP_HOST}/archives/{key}"
-        if backend == "http":
+        if mirror == "http":
             return f"{self.HTTP_BASE}/{key}"
-        raise ValueError(f"Unknown backend {backend!r}. Choose 's3', 'ftp', or 'http'.")
+        raise ValueError(f"Unknown mirror {mirror!r}. Choose 's3', 'ftp', or 'http'.")
 
-    def _storage_options(self, backend: str) -> dict[str, Any]:
-        """Return fsspec storage options for the selected backend."""
-        if backend == "s3":
+    def _storage_options(self, mirror: str) -> dict[str, Any]:
+        """Return fsspec storage options for the selected mirror."""
+        if mirror == "s3":
             return {"anon": True}
         return {}
 
@@ -400,11 +479,11 @@ class MeteorologySource(ABC):
 
 
 # ---------------------------------------------------------------------------
-# Concrete source implementations
+# Concrete archives
 # ---------------------------------------------------------------------------
 
 
-class HRRRSource(MeteorologySource):
+class HRRRArchive(Archive):
     """
     HRRR 3 km analysis (CONUS, June 2019–present).
 
@@ -430,12 +509,12 @@ class HRRRSource(MeteorologySource):
         return f"{time.strftime('%Y%m%d')}_{start_h:02d}-{end_h:02d}_hrrr"
 
     @override
-    def _s3_key(self, time: pd.Timestamp) -> str:
+    def _archive_path(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the HRRR file covering *time*."""
         return f"hrrr/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
-class NAMSource(MeteorologySource):
+class NAMArchive(Archive):
     """
     NAM 12 km analysis (North America, May 26, 2007–present).
 
@@ -453,12 +532,12 @@ class NAMSource(MeteorologySource):
         return f"{time.strftime('%Y%m%d')}_nam12"
 
     @override
-    def _s3_key(self, time: pd.Timestamp) -> str:
+    def _archive_path(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the NAM file covering *time*."""
         return f"nam12/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
-class GDASSource(MeteorologySource):
+class GDASArchive(Archive):
     """
     GDAS 1-degree global analysis (December 2004–present).
 
@@ -484,12 +563,12 @@ class GDASSource(MeteorologySource):
         return f"gdas1.{month}{year_2d}.w{self._week(time)}"
 
     @override
-    def _s3_key(self, time: pd.Timestamp) -> str:
+    def _archive_path(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the GDAS file covering *time*."""
         return f"gdas1/{time.year}/{self._filename(time)}"
 
 
-class GFSSource(MeteorologySource):
+class GFSArchive(Archive):
     """
     GFS 0.25-degree global analysis (June 13, 2019–present).
 
@@ -508,12 +587,12 @@ class GFSSource(MeteorologySource):
         return f"{time.strftime('%Y%m%d')}_gfs0p25"
 
     @override
-    def _s3_key(self, time: pd.Timestamp) -> str:
+    def _archive_path(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the GFS file covering *time*."""
         return f"gfs0p25/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
-class NAMSSource(MeteorologySource):
+class NAMSArchive(Archive):
     """
     NAMS hybrid sigma-pressure analysis (CONUS/Alaska/Hawaii, March 2009–present).
 
@@ -551,16 +630,16 @@ class NAMSSource(MeteorologySource):
         return f"{time.strftime('%Y%m%d')}_hysplit.t00z.namsa{suffix}"
 
     @override
-    def _s3_key(self, time: pd.Timestamp) -> str:
+    def _archive_path(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the NAMS file covering *time*."""
         return f"nams/{time.year}/{time.month:02d}/{self._filename(time)}"
 
     @override
     def __repr__(self) -> str:
-        return f"NAMSSource(domain={self.domain!r})"
+        return f"NAMSArchive(domain={self.domain!r})"
 
 
-class ReanalysisSource(MeteorologySource):
+class ReanalysisArchive(Archive):
     """
     NCEP/NCAR Reanalysis 2.5-degree global (1948–present).
 
@@ -580,17 +659,17 @@ class ReanalysisSource(MeteorologySource):
         return f"RP{time.strftime('%Y%m')}.gbl"
 
     @override
-    def _s3_key(self, time: pd.Timestamp) -> str:
+    def _archive_path(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the reanalysis file covering *time*."""
         return f"reanalysis/{time.year}/{self._filename(time)}"
 
 
-class HRRRv1Source(MeteorologySource):
+class HRRRv1Archive(Archive):
     """
     HRRR 3 km analysis, version 1 (CONUS, June 15, 2015–2019).
 
     Files cover 6-hour UTC blocks (00z, 06z, 12z, 18z).
-    Superseded by :class:`HRRRSource` from June 2019 onward.
+    Superseded by :class:`HRRRArchive` from June 2019 onward.
 
     S3: ``s3://noaa-oar-arl-hysplit-pds/hrrr.v1/{year}/{month:02d}/hysplit.{YYYYMMDD}.{HH}z.hrrra``
     """
@@ -607,16 +686,16 @@ class HRRRv1Source(MeteorologySource):
         return f"hysplit.{time.strftime('%Y%m%d')}.{start_h:02d}z.hrrra"
 
     @override
-    def _s3_key(self, time: pd.Timestamp) -> str:
+    def _archive_path(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the HRRR v1 file covering *time*."""
         return f"hrrr.v1/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
-class GDAS0p5Source(MeteorologySource):
+class GDAS0p5Archive(Archive):
     """
     GDAS 0.5-degree global analysis (September 2007–mid 2019).
 
-    One file per calendar day. Higher resolution than :class:`GDASSource`
+    One file per calendar day. Higher resolution than :class:`GDASArchive`
     (1-degree). Cropping with ``bbox=`` on fetch is strongly recommended.
 
     S3: ``s3://noaa-oar-arl-hysplit-pds/gdas0p5/{year}/{month:02d}/{YYYYMMDD}_gdas0p5``
@@ -631,12 +710,12 @@ class GDAS0p5Source(MeteorologySource):
         return f"{time.strftime('%Y%m%d')}_gdas0p5"
 
     @override
-    def _s3_key(self, time: pd.Timestamp) -> str:
+    def _archive_path(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the GDAS 0.5-degree file covering *time*."""
         return f"gdas0p5/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
-class NARRSource(MeteorologySource):
+class NARRArchive(Archive):
     """
     NCEP North American Regional Reanalysis (January 1979–2019).
 
@@ -656,20 +735,22 @@ class NARRSource(MeteorologySource):
         return f"NARR{time.strftime('%Y%m')}"
 
     @override
-    def _s3_key(self, time: pd.Timestamp) -> str:
+    def _archive_path(self, time: pd.Timestamp) -> str:
         """Return the NOAA ARL S3 object key for the NARR file covering *time*."""
         return f"narr/{time.year}/{self._filename(time)}"
 
 
 __all__ = [
-    "MeteorologySource",
-    "HRRRSource",
-    "HRRRv1Source",
-    "NAMSource",
-    "NAMSSource",
-    "GDASSource",
-    "GDAS0p5Source",
-    "GFSSource",
-    "NARRSource",
-    "ReanalysisSource",
+    "ARCHIVES",
+    "get_archive",
+    "Archive",
+    "HRRRArchive",
+    "HRRRv1Archive",
+    "NAMArchive",
+    "NAMSArchive",
+    "GDASArchive",
+    "GDAS0p5Archive",
+    "GFSArchive",
+    "NARRArchive",
+    "ReanalysisArchive",
 ]

@@ -1,51 +1,94 @@
 Downloading Archived Meteorology
 ================================
 
-arl-met includes source classes for downloading ARL meteorology files from the
+arl-met includes archive classes for downloading ARL meteorology files from the
 NOAA ARL public archives.
 
-Install the source dependencies first:
+Install the archive dependencies first:
 
 .. code-block:: bash
 
-   pip install "arlmet[sources]"
+   pip install "arlmet[archives]"
 
-Choose a source class
----------------------
+Choose an archive
+-----------------
 
-Each class knows the filename and archive layout for one product.
+Each class knows the filename and archive layout for one product, and is
+registered under a short name.
 
-.. list-table:: Available source classes
+.. list-table:: Available archives
    :header-rows: 1
 
-   * - Class
+   * - Name
+     - Class
      - Product
      - Typical coverage
-   * - :class:`arlmet.sources.HRRRSource`
+   * - ``"hrrr"``
+     - :class:`arlmet.archives.HRRRArchive`
      - HRRR 3 km
-     - CONUS, 6-hour files
-   * - :class:`arlmet.sources.NAMSource`
+     - CONUS, 6-hour files, June 2019–present
+   * - ``"hrrr.v1"``
+     - :class:`arlmet.archives.HRRRv1Archive`
+     - HRRR 3 km, version 1
+     - CONUS, 6-hour files, June 2015–2019
+   * - ``"nam12"``
+     - :class:`arlmet.archives.NAMArchive`
      - NAM 12 km
      - North America, daily files
-   * - :class:`arlmet.sources.GDASSource`
+   * - ``"nams"``
+     - :class:`arlmet.archives.NAMSArchive`
+     - NAM hybrid sigma-pressure
+     - CONUS, Alaska, or Hawaii (``domain=``), daily files
+   * - ``"gdas1"``
+     - :class:`arlmet.archives.GDASArchive`
      - GDAS 1 degree
      - Global, weekly files
-   * - :class:`arlmet.sources.GFSSource`
+   * - ``"gdas0p5"``
+     - :class:`arlmet.archives.GDAS0p5Archive`
+     - GDAS 0.5 degree
+     - Global, daily files, 2007–2019
+   * - ``"gfs0p25"``
+     - :class:`arlmet.archives.GFSArchive`
      - GFS 0.25 degree
      - Global, daily files
-   * - :class:`arlmet.sources.ReanalysisSource`
-     - NCEP/NCAR Reanalysis
+   * - ``"narr"``
+     - :class:`arlmet.archives.NARRArchive`
+     - North American Regional Reanalysis 32 km
+     - North America, monthly files, 1979–2019
+   * - ``"reanalysis"``
+     - :class:`arlmet.archives.ReanalysisArchive`
+     - NCEP/NCAR Reanalysis 2.5 degree
      - Global, monthly files
+
+Choose an archive by name
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:data:`arlmet.archives.ARCHIVES` maps each name to its class, and
+:func:`arlmet.archives.get_archive` builds an archive from its name plus any
+options, which is convenient when the product comes from a config file:
+
+.. code-block:: python
+
+   from arlmet.archives import ARCHIVES, get_archive
+
+   sorted(ARCHIVES)  # ['gdas0p5', 'gdas1', 'gfs0p25', 'hrrr', ...]
+   archive = get_archive("nams", domain="ak")
+   files = archive.fetch("2024-07-18", "2024-07-19", local_dir="./met/")
+
+An unknown name raises ``ValueError`` listing the available ones. A subclass of
+:class:`arlmet.archives.Archive` that sets ``name`` is registered
+automatically when it is defined, so your own archives work with
+``get_archive()`` too.
 
 Download files for a time range
 -------------------------------
 
 .. code-block:: python
 
-   from arlmet.sources import HRRRSource
+   from arlmet.archives import HRRRArchive
 
-   source = HRRRSource()
-   files = source.fetch(
+   archive = HRRRArchive()
+   files = archive.fetch(
        "2024-07-18 00:00",
        "2024-07-19 00:00",
        local_dir="./met",
@@ -63,10 +106,10 @@ before it is cached locally.
 
 .. code-block:: python
 
-   from arlmet.sources import GFSSource
+   from arlmet.archives import GFSArchive
 
-   source = GFSSource()
-   files = source.fetch(
+   archive = GFSArchive()
+   files = archive.fetch(
        "2024-07-18 00:00",
        "2024-07-19 00:00",
        local_dir="./met",
@@ -81,7 +124,7 @@ surface. It works with or without ``bbox``.
 
 .. code-block:: python
 
-   files = source.fetch(
+   files = archive.fetch(
        "2024-07-18 00:00",
        "2024-07-19 00:00",
        local_dir="./met",
@@ -98,21 +141,22 @@ The full, uncropped file is downloaded into ``local_dir`` (not the system temp
 directory) and deleted once the crop is written, so ``local_dir`` needs room
 for one full file at a time (about 3 GB for HRRR).
 
-Choose a backend
-----------------
+Choose a mirror
+---------------
 
-The default backend is ``"s3"`` and is usually the fastest choice.
+Each archive is served from three mirrors. The default, ``"s3"``, is usually
+the fastest choice.
 
 .. code-block:: python
 
-   files = source.fetch(
+   files = archive.fetch(
        "2024-07-18",
        "2024-07-19",
        local_dir="./met",
-       backend="ftp",
+       mirror="ftp",
    )
 
-Supported backends are:
+The mirrors are:
 
 - ``"s3"``: NOAA public S3 bucket via ``s3fs``
 - ``"ftp"``: NOAA ARL FTP archive
@@ -129,12 +173,12 @@ renamed into place only once complete, so an interrupted fetch never leaves a
 truncated file that a later call would reuse. A ``.partial`` file left behind
 by a killed process is never used and can be deleted.
 
-Requesting a time range that begins before a source's ``start_date`` (the
+Requesting a time range that begins before an archive's ``start_date`` (the
 start of its archive) raises ``ValueError``.
 
 .. code-block:: python
 
-   files = source.fetch(
+   files = archive.fetch(
        "2024-07-18",
        "2024-07-19",
        local_dir="./met",

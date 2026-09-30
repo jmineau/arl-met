@@ -18,7 +18,7 @@ format used by HYSPLIT and related workflows. It supports:
 
 - low-level record-preserving reads and writes through `File`, `RecordSet`, and `DataRecord`
 - xarray Dataset reads and common-case writes through `open_dataset()` and `write_dataset()`
-- NOAA source fetching helpers for common ARL archives
+- downloading from NOAA's ARL archives (HRRR, NAM, GDAS, GFS, ...) with optional crop-on-download
 - crop-before-unpack subset extraction with `extract_subset()`
 - vertical helper functions such as `pressure()`, `z_agl()`, and `z_msl()`
 - point sampling with `sample_points()`
@@ -27,7 +27,7 @@ format used by HYSPLIT and related workflows. It supports:
 ## Status and stability
 
 arl-met is in **beta**: the public API (everything in `arlmet.__all__`, the
-`arlmet.sources` module, the `ds.arl` accessor, and the `engine="arl"` xarray
+`arlmet.archives` module, the `ds.arl` accessor, and the `engine="arl"` xarray
 backend) is frozen, and breaking changes are rare and always flagged in the
 [changelog](CHANGELOG.md). See the
 [API stability policy](https://jmineau.github.io/arl-met/stability.html) for
@@ -54,10 +54,10 @@ Install the core package:
 pip install arlmet
 ```
 
-Install the optional source-fetching dependencies:
+Install the optional archive-download dependencies:
 
 ```bash
-pip install "arlmet[sources]"
+pip install "arlmet[archives]"
 ```
 
 For development:
