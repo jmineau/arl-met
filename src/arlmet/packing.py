@@ -11,13 +11,13 @@ from arlmet.grid import GridWindow
 __all__ = ["pack", "unpack", "calculate_checksum"]
 
 
-def calculate_checksum(packed: bytes | bytearray) -> int:
+def calculate_checksum(packed: bytes | bytearray | memoryview) -> int:
     """
     Compute the ARL checksum for a packed payload.
 
     Parameters
     ----------
-    packed : bytes or bytearray
+    packed : bytes, bytearray, or memoryview
         The packed byte array for which to calculate the checksum.
 
     Returns

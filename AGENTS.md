@@ -177,7 +177,7 @@ file      → collection, errors, grid, header, index, record, recordset, vertic
               File.sample_points — ops sits on top of file, so file's use of
               ops is lazy to keep the file↔ops dependency one-way at import time)
 ops/__init__ → ops.concat, ops.subset, ops.sample   (re-exports the public ops)
-ops.subset   → file, grid, header, index, vertical
+ops.subset   → errors, file, grid, header, index, packing, record, vertical
 ops.sample   → grid, vertical   (TYPE_CHECKING: file, record, recordset)
 ops.concat   → errors, file, index
 xarray/   → file, grid, ops.subset, vertical  (TYPE_CHECKING: record, recordset)
@@ -210,6 +210,10 @@ top-level imports.
 5. **`extract_subset` crops before unpack.** The performance gain comes from
    passing a `GridWindow` to `DataRecord.read(window=...)`, which decodes only
    the requested tile. Do not revert to "open full dataset, then subset".
+   Without a crop (the window is the full grid) it does not unpack at all:
+   `_copy_subset_records` copies each selected record's bytes (DIF records
+   included), rewriting only the header's level field, and rebuilds the index
+   records. Keep the two paths producing the same index records.
 
 6. **`window_from_bbox` uses HYSPLIT-inclusive windowing.** The grid index
    selection matches `xtrct_grid.f`: pixels are included if their center falls
@@ -410,15 +414,19 @@ exactly one line of `uv.lock`.
 - `test_writer.py` covers round-trip correctness.
 - `test_memory.py` bounds writer memory with `tracemalloc` (peak during
   `extract_subset`/`write_dataset`, and memory retained after return with the
-  GC disabled, and a lazy-Dataset `write_dataset`). Keep its grids ~200x200
-  so array buffers dominate Python object overhead.
+  GC disabled, and a lazy-Dataset `write_dataset`). `extract_subset` is
+  measured on both its byte-copy (no bbox) and repack (bbox) paths. Keep its
+  grids ~200x200 so array buffers dominate Python object overhead.
 - Run offline tests with `-m "not network and not slow"` (as CI does). A bare
   `pytest` also runs the network tests, which hit NOAA S3.
 - For performance benchmarks, use real files downloaded from the archives,
   e.g. the July 2024 NCEP/NCAR Reanalysis month
   (`get_archive("reanalysis").fetch("2024-07-01", "2024-07-01", dest_dir=...)`
-  gives `RP202407.gbl`: 73x144, 124 times, 18 levels). `extract_subset` of the
-  53x25 North America crop (`bbox=(-170, 10, -40, 70)`) takes ~2.1 s on it.
+  gives `RP202407.gbl`: 73x144, 124 times, 18 levels). On it, `extract_subset`
+  takes ~2.1 s for the `bbox=(-170, 10, -40, 70)` crop (repack path) and
+  ~0.3 s for `levels=[0, 1, 2, 3, 4]` without a bbox (byte-copy path; ~1.5 s
+  before it existed). A 614x428 NAM12 day (`get_archive("nam12")`) takes
+  ~0.27 s for the same levels (was ~3.3 s).
 
 ## Known Limitations and Open Work
 

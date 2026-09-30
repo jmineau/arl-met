@@ -89,6 +89,11 @@ Keep only the levels and variables you need
        variables=["UWND", "VWND", "TEMP"],
    )
 
+Without a ``bbox``, selecting levels or variables does not unpack anything:
+the selected records are copied byte for byte and only their level numbers
+and the index records are rewritten, so it runs at close to file-copy speed
+and the output values are exactly the input's.
+
 What changes in the output file
 -------------------------------
 
