@@ -91,7 +91,12 @@ surface. It works with or without ``bbox``.
 
 The crop is part of each cached file's name (for example
 ``...crop_-114.00_39.00_-110.00_42.00.levels_0-19``), so files cropped
-differently are cached separately.
+differently are cached separately. Bbox values are written with two decimals
+unless they have more, which are kept in full (``...crop_-111.925_...``).
+
+The full, uncropped file is downloaded into ``local_dir`` (not the system temp
+directory) and deleted once the crop is written, so ``local_dir`` needs room
+for one full file at a time (about 3 GB for HRRR).
 
 Choose a backend
 ----------------
@@ -118,6 +123,14 @@ Caching and overwrite behavior
 
 Downloaded files are reused if a matching local file already exists. Pass
 ``overwrite=True`` to force a fresh download.
+
+Files are written to a hidden ``.<name>.<random>.partial`` file first and
+renamed into place only once complete, so an interrupted fetch never leaves a
+truncated file that a later call would reuse. A ``.partial`` file left behind
+by a killed process is never used and can be deleted.
+
+Requesting a time range that begins before a source's ``start_date`` (the
+start of its archive) raises ``ValueError``.
 
 .. code-block:: python
 
