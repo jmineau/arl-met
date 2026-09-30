@@ -157,11 +157,6 @@ tests/
   test_subset.py
   test_vertical.py
   test_writer.py
-data/              real ARL sample files (not committed — local only)
-  RP202407.gbl     73x144 lat/lon, 124 times, 18 levels — good benchmark target
-  gdas1.sep25.w1
-  hysplit.t01z.hrrrf
-  ... (various NAM, GFS, HRRR samples)
 ```
 
 ## Dependency Graph (runtime)
@@ -312,7 +307,7 @@ arlmet.write_dataset(ds, "out.arl")
 
 # Download from NOAA's ARL archives (pip install "arlmet[archives]")
 from arlmet.archives import ARCHIVES, get_archive, HRRRArchive
-files = get_archive("hrrr").fetch("2024-07-18", "2024-07-19", local_dir="met/",
+files = get_archive("hrrr").fetch("2024-07-18", "2024-07-19", dest_dir="met/",
                                    mirror="s3", bbox=(-114, 39, -110, 42))
 
 # Direct subset extraction (fast, crop-before-unpack); returns Path(dest)
@@ -407,7 +402,7 @@ exactly one line of `uv.lock`.
 
 ## Testing Notes
 
-- Tests use synthetic ARL fixtures, not the large files in `data/`.
+- Tests write small synthetic ARL files; no real meteorology files are needed.
 - When writing a synthetic file, the grid must be large enough that
   `50 + nx*ny >= len(index_record.tobytes())`. A 20x20 grid is usually safe
   for a few variables and levels.
@@ -419,9 +414,11 @@ exactly one line of `uv.lock`.
   so array buffers dominate Python object overhead.
 - Run offline tests with `-m "not network and not slow"` (as CI does). A bare
   `pytest` also runs the network tests, which hit NOAA S3.
-- For performance benchmarks, use `data/RP202407.gbl` (73x144, 124 times, 18
-  levels). The direct `extract_subset` path takes ~3.8s for a 25x53 North
-  America crop on that file.
+- For performance benchmarks, use real files downloaded from the archives,
+  e.g. the July 2024 NCEP/NCAR Reanalysis month
+  (`get_archive("reanalysis").fetch("2024-07-01", "2024-07-01", dest_dir=...)`
+  gives `RP202407.gbl`: 73x144, 124 times, 18 levels). `extract_subset` of the
+  53x25 North America crop (`bbox=(-170, 10, -40, 70)`) takes ~2.1 s on it.
 
 ## Known Limitations and Open Work
 

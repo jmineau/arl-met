@@ -250,7 +250,7 @@ def test_concat_by_time_respects_freq(tmp_path):
     ]
 
 
-def test_concat_by_time_time_range_filters(tmp_path):
+def test_concat_by_time_start_end_filter(tmp_path):
     src = tmp_path / "hrrr"
     out = tmp_path / "daily"
     populate_hrrr_dir(src)
@@ -261,7 +261,8 @@ def test_concat_by_time_time_range_filters(tmp_path):
         freq="1D",
         pattern="*_hrrr",
         template="{time:%Y%m%d}_hrrr",
-        time_range=("2024-01-02 00:00", "2024-01-02 23:00"),
+        start="2024-01-02 00:00",
+        end="2024-01-02 23:00",
     )
 
     assert [p.name for p in written] == ["20240102_hrrr"]
@@ -348,3 +349,15 @@ def test_concat_by_time_rejects_template_collision(tmp_path):
             src, out, freq="6h", pattern="*_hrrr", template="{time:%Y%m%d}_hrrr"
         )
     assert not out.exists()
+
+
+def test_concat_by_time_open_ended_start_or_end(tmp_path):
+    src = tmp_path / "hrrr"
+    populate_hrrr_dir(src)
+    kwargs = {"pattern": "*_hrrr", "template": "{time:%Y%m%d}_hrrr"}
+
+    from_day2 = concat_by_time(src, tmp_path / "a", start="2024-01-02", **kwargs)
+    until_day1 = concat_by_time(src, tmp_path / "b", end="2024-01-01 23:00", **kwargs)
+
+    assert [p.name for p in from_day2] == ["20240102_hrrr"]
+    assert [p.name for p in until_day1] == ["20240101_hrrr"]

@@ -47,23 +47,23 @@ class TestHRRRArchive:
         t = pd.Timestamp(f"2024-07-18 {hour:02d}:00")
         assert self.src._filename(t) == expected
 
-    def test_s3_key_uses_year_month_subdir(self):
+    def test_archive_path_uses_year_month_subdir(self):
         t = pd.Timestamp("2024-07-18 03:00")
         assert self.src._archive_path(t) == "hrrr/2024/07/20240718_00-05_hrrr"
 
-    def test_keys_for_range_single_block(self):
-        keys = self.src.keys_for_range("2024-07-18 01:00", "2024-07-18 04:00")
+    def test_paths_for_range_single_block(self):
+        keys = self.src.paths_for_range("2024-07-18 01:00", "2024-07-18 04:00")
         assert keys == ["hrrr/2024/07/20240718_00-05_hrrr"]
 
-    def test_keys_for_range_two_blocks(self):
-        keys = self.src.keys_for_range("2024-07-18 04:00", "2024-07-18 08:00")
+    def test_paths_for_range_two_blocks(self):
+        keys = self.src.paths_for_range("2024-07-18 04:00", "2024-07-18 08:00")
         assert keys == [
             "hrrr/2024/07/20240718_00-05_hrrr",
             "hrrr/2024/07/20240718_06-11_hrrr",
         ]
 
-    def test_keys_for_range_all_four_blocks(self):
-        keys = self.src.keys_for_range("2024-07-18 00:00", "2024-07-18 23:00")
+    def test_paths_for_range_all_four_blocks(self):
+        keys = self.src.paths_for_range("2024-07-18 00:00", "2024-07-18 23:00")
         assert keys == [
             "hrrr/2024/07/20240718_00-05_hrrr",
             "hrrr/2024/07/20240718_06-11_hrrr",
@@ -71,24 +71,24 @@ class TestHRRRArchive:
             "hrrr/2024/07/20240718_18-23_hrrr",
         ]
 
-    def test_keys_for_range_day_boundary(self):
-        keys = self.src.keys_for_range("2024-07-18 22:00", "2024-07-19 02:00")
+    def test_paths_for_range_day_boundary(self):
+        keys = self.src.paths_for_range("2024-07-18 22:00", "2024-07-19 02:00")
         assert keys == [
             "hrrr/2024/07/20240718_18-23_hrrr",
             "hrrr/2024/07/20240719_00-05_hrrr",
         ]
 
-    def test_keys_for_range_backward_trajectory(self):
+    def test_paths_for_range_backward_trajectory(self):
         # start > end: backward STILT trajectory
-        keys = self.src.keys_for_range("2024-07-18 08:00", "2024-07-18 04:00")
+        keys = self.src.paths_for_range("2024-07-18 08:00", "2024-07-18 04:00")
         assert keys == [
             "hrrr/2024/07/20240718_00-05_hrrr",
             "hrrr/2024/07/20240718_06-11_hrrr",
         ]
 
-    def test_keys_for_range_no_duplicates(self):
+    def test_paths_for_range_no_duplicates(self):
         # All times within the same block → single key
-        keys = self.src.keys_for_range("2024-07-18 06:00", "2024-07-18 11:00")
+        keys = self.src.paths_for_range("2024-07-18 06:00", "2024-07-18 11:00")
         assert keys == ["hrrr/2024/07/20240718_06-11_hrrr"]
 
     def test_repr(self):
@@ -107,25 +107,25 @@ class TestNAMArchive:
     def test_filename(self):
         assert self.src._filename(pd.Timestamp("2024-07-18")) == "20240718_nam12"
 
-    def test_s3_key(self):
+    def test_archive_path(self):
         assert (
             self.src._archive_path(pd.Timestamp("2024-07-18"))
             == "nam12/2024/07/20240718_nam12"
         )
 
-    def test_keys_for_range_single_day(self):
-        keys = self.src.keys_for_range("2024-07-18 06:00", "2024-07-18 18:00")
+    def test_paths_for_range_single_day(self):
+        keys = self.src.paths_for_range("2024-07-18 06:00", "2024-07-18 18:00")
         assert keys == ["nam12/2024/07/20240718_nam12"]
 
-    def test_keys_for_range_two_days(self):
-        keys = self.src.keys_for_range("2024-07-18 22:00", "2024-07-19 06:00")
+    def test_paths_for_range_two_days(self):
+        keys = self.src.paths_for_range("2024-07-18 22:00", "2024-07-19 06:00")
         assert keys == [
             "nam12/2024/07/20240718_nam12",
             "nam12/2024/07/20240719_nam12",
         ]
 
-    def test_keys_for_range_backward(self):
-        keys = self.src.keys_for_range("2024-07-19 06:00", "2024-07-18 22:00")
+    def test_paths_for_range_backward(self):
+        keys = self.src.paths_for_range("2024-07-19 06:00", "2024-07-18 22:00")
         assert keys == [
             "nam12/2024/07/20240718_nam12",
             "nam12/2024/07/20240719_nam12",
@@ -174,39 +174,39 @@ class TestGDASArchive:
     def test_filename(self, date_str, expected):
         assert self.src._filename(pd.Timestamp(date_str)) == expected
 
-    def test_s3_key(self):
+    def test_archive_path(self):
         assert (
             self.src._archive_path(pd.Timestamp("2025-09-01"))
             == "gdas1/2025/gdas1.sep25.w1"
         )
 
-    def test_keys_for_range_within_one_week(self):
-        keys = self.src.keys_for_range("2025-09-03", "2025-09-05")
+    def test_paths_for_range_within_one_week(self):
+        keys = self.src.paths_for_range("2025-09-03", "2025-09-05")
         assert keys == ["gdas1/2025/gdas1.sep25.w1"]
 
-    def test_keys_for_range_week_boundary(self):
-        keys = self.src.keys_for_range("2025-09-06", "2025-09-09")
+    def test_paths_for_range_week_boundary(self):
+        keys = self.src.paths_for_range("2025-09-06", "2025-09-09")
         assert keys == [
             "gdas1/2025/gdas1.sep25.w1",
             "gdas1/2025/gdas1.sep25.w2",
         ]
 
-    def test_keys_for_range_month_boundary(self):
-        keys = self.src.keys_for_range("2025-09-29", "2025-10-03")
+    def test_paths_for_range_month_boundary(self):
+        keys = self.src.paths_for_range("2025-09-29", "2025-10-03")
         assert keys == [
             "gdas1/2025/gdas1.sep25.w5",
             "gdas1/2025/gdas1.oct25.w1",
         ]
 
-    def test_keys_for_range_year_boundary(self):
-        keys = self.src.keys_for_range("2024-12-30", "2025-01-02")
+    def test_paths_for_range_year_boundary(self):
+        keys = self.src.paths_for_range("2024-12-30", "2025-01-02")
         assert keys == [
             "gdas1/2024/gdas1.dec24.w5",
             "gdas1/2025/gdas1.jan25.w1",
         ]
 
-    def test_keys_for_range_backward(self):
-        keys = self.src.keys_for_range("2025-09-09", "2025-09-06")
+    def test_paths_for_range_backward(self):
+        keys = self.src.paths_for_range("2025-09-09", "2025-09-06")
         assert keys == [
             "gdas1/2025/gdas1.sep25.w1",
             "gdas1/2025/gdas1.sep25.w2",
@@ -225,18 +225,18 @@ class TestGFSArchive:
     def test_filename(self):
         assert self.src._filename(pd.Timestamp("2024-07-18")) == "20240718_gfs0p25"
 
-    def test_s3_key(self):
+    def test_archive_path(self):
         assert (
             self.src._archive_path(pd.Timestamp("2024-07-18"))
             == "gfs0p25/2024/07/20240718_gfs0p25"
         )
 
-    def test_keys_for_range_single_day(self):
-        keys = self.src.keys_for_range("2024-07-18 06:00", "2024-07-18 18:00")
+    def test_paths_for_range_single_day(self):
+        keys = self.src.paths_for_range("2024-07-18 06:00", "2024-07-18 18:00")
         assert keys == ["gfs0p25/2024/07/20240718_gfs0p25"]
 
-    def test_keys_for_range_two_days(self):
-        keys = self.src.keys_for_range("2024-07-18 20:00", "2024-07-19 06:00")
+    def test_paths_for_range_two_days(self):
+        keys = self.src.paths_for_range("2024-07-18 20:00", "2024-07-19 06:00")
         assert keys == [
             "gfs0p25/2024/07/20240718_gfs0p25",
             "gfs0p25/2024/07/20240719_gfs0p25",
@@ -276,25 +276,25 @@ class TestNAMSArchive:
         with pytest.raises(ValueError, match="domain"):
             NAMSArchive(domain="eu")
 
-    def test_s3_key(self):
+    def test_archive_path(self):
         assert (
             self.src._archive_path(pd.Timestamp("2024-07-18"))
             == "nams/2024/07/20240718_hysplit.t00z.namsa"
         )
 
-    def test_keys_for_range_single_day(self):
-        keys = self.src.keys_for_range("2024-07-18 06:00", "2024-07-18 18:00")
+    def test_paths_for_range_single_day(self):
+        keys = self.src.paths_for_range("2024-07-18 06:00", "2024-07-18 18:00")
         assert keys == ["nams/2024/07/20240718_hysplit.t00z.namsa"]
 
-    def test_keys_for_range_two_days(self):
-        keys = self.src.keys_for_range("2024-07-18 22:00", "2024-07-19 06:00")
+    def test_paths_for_range_two_days(self):
+        keys = self.src.paths_for_range("2024-07-18 22:00", "2024-07-19 06:00")
         assert keys == [
             "nams/2024/07/20240718_hysplit.t00z.namsa",
             "nams/2024/07/20240719_hysplit.t00z.namsa",
         ]
 
-    def test_keys_for_range_backward(self):
-        keys = self.src.keys_for_range("2024-07-19 06:00", "2024-07-18 22:00")
+    def test_paths_for_range_backward(self):
+        keys = self.src.paths_for_range("2024-07-19 06:00", "2024-07-18 22:00")
         assert keys == [
             "nams/2024/07/20240718_hysplit.t00z.namsa",
             "nams/2024/07/20240719_hysplit.t00z.namsa",
@@ -326,32 +326,32 @@ class TestReanalysisArchive:
     def test_filename(self, date_str, expected):
         assert self.src._filename(pd.Timestamp(date_str)) == expected
 
-    def test_s3_key(self):
+    def test_archive_path(self):
         assert (
             self.src._archive_path(pd.Timestamp("2024-07-18"))
             == "reanalysis/2024/RP202407.gbl"
         )
 
-    def test_keys_for_range_within_one_month(self):
-        keys = self.src.keys_for_range("2024-07-05", "2024-07-20")
+    def test_paths_for_range_within_one_month(self):
+        keys = self.src.paths_for_range("2024-07-05", "2024-07-20")
         assert keys == ["reanalysis/2024/RP202407.gbl"]
 
-    def test_keys_for_range_month_boundary(self):
-        keys = self.src.keys_for_range("2024-07-28", "2024-08-03")
+    def test_paths_for_range_month_boundary(self):
+        keys = self.src.paths_for_range("2024-07-28", "2024-08-03")
         assert keys == [
             "reanalysis/2024/RP202407.gbl",
             "reanalysis/2024/RP202408.gbl",
         ]
 
-    def test_keys_for_range_year_boundary(self):
-        keys = self.src.keys_for_range("2023-12-20", "2024-01-10")
+    def test_paths_for_range_year_boundary(self):
+        keys = self.src.paths_for_range("2023-12-20", "2024-01-10")
         assert keys == [
             "reanalysis/2023/RP202312.gbl",
             "reanalysis/2024/RP202401.gbl",
         ]
 
-    def test_keys_for_range_backward(self):
-        keys = self.src.keys_for_range("2024-08-03", "2024-07-28")
+    def test_paths_for_range_backward(self):
+        keys = self.src.paths_for_range("2024-08-03", "2024-07-28")
         assert keys == [
             "reanalysis/2024/RP202407.gbl",
             "reanalysis/2024/RP202408.gbl",
@@ -386,16 +386,16 @@ class TestHRRRv1Archive:
         t = pd.Timestamp(f"2017-06-01 {hour:02d}:00")
         assert self.src._filename(t) == expected
 
-    def test_s3_key(self):
+    def test_archive_path(self):
         t = pd.Timestamp("2017-06-01 06:00")
         assert self.src._archive_path(t) == "hrrr.v1/2017/06/hysplit.20170601.06z.hrrra"
 
-    def test_keys_for_range_single_block(self):
-        keys = self.src.keys_for_range("2017-06-01 01:00", "2017-06-01 04:00")
+    def test_paths_for_range_single_block(self):
+        keys = self.src.paths_for_range("2017-06-01 01:00", "2017-06-01 04:00")
         assert keys == ["hrrr.v1/2017/06/hysplit.20170601.00z.hrrra"]
 
-    def test_keys_for_range_two_blocks(self):
-        keys = self.src.keys_for_range("2017-06-01 04:00", "2017-06-01 08:00")
+    def test_paths_for_range_two_blocks(self):
+        keys = self.src.paths_for_range("2017-06-01 04:00", "2017-06-01 08:00")
         assert keys == [
             "hrrr.v1/2017/06/hysplit.20170601.00z.hrrra",
             "hrrr.v1/2017/06/hysplit.20170601.06z.hrrra",
@@ -417,18 +417,18 @@ class TestGDAS0p5Archive:
     def test_filename(self):
         assert self.src._filename(pd.Timestamp("2024-07-18")) == "20240718_gdas0p5"
 
-    def test_s3_key(self):
+    def test_archive_path(self):
         assert (
             self.src._archive_path(pd.Timestamp("2024-07-18"))
             == "gdas0p5/2024/07/20240718_gdas0p5"
         )
 
-    def test_keys_for_range_single_day(self):
-        keys = self.src.keys_for_range("2024-07-18 06:00", "2024-07-18 18:00")
+    def test_paths_for_range_single_day(self):
+        keys = self.src.paths_for_range("2024-07-18 06:00", "2024-07-18 18:00")
         assert keys == ["gdas0p5/2024/07/20240718_gdas0p5"]
 
-    def test_keys_for_range_two_days(self):
-        keys = self.src.keys_for_range("2024-07-18 20:00", "2024-07-19 06:00")
+    def test_paths_for_range_two_days(self):
+        keys = self.src.paths_for_range("2024-07-18 20:00", "2024-07-19 06:00")
         assert keys == [
             "gdas0p5/2024/07/20240718_gdas0p5",
             "gdas0p5/2024/07/20240719_gdas0p5",
@@ -460,24 +460,24 @@ class TestNARRArchive:
     def test_filename(self, date_str, expected):
         assert self.src._filename(pd.Timestamp(date_str)) == expected
 
-    def test_s3_key(self):
+    def test_archive_path(self):
         assert (
             self.src._archive_path(pd.Timestamp("2024-07-18")) == "narr/2024/NARR202407"
         )
 
-    def test_keys_for_range_within_one_month(self):
-        keys = self.src.keys_for_range("2024-07-05", "2024-07-20")
+    def test_paths_for_range_within_one_month(self):
+        keys = self.src.paths_for_range("2024-07-05", "2024-07-20")
         assert keys == ["narr/2024/NARR202407"]
 
-    def test_keys_for_range_month_boundary(self):
-        keys = self.src.keys_for_range("2024-07-28", "2024-08-03")
+    def test_paths_for_range_month_boundary(self):
+        keys = self.src.paths_for_range("2024-07-28", "2024-08-03")
         assert keys == [
             "narr/2024/NARR202407",
             "narr/2024/NARR202408",
         ]
 
-    def test_keys_for_range_year_boundary(self):
-        keys = self.src.keys_for_range("2023-12-20", "2024-01-10")
+    def test_paths_for_range_year_boundary(self):
+        keys = self.src.paths_for_range("2023-12-20", "2024-01-10")
         assert keys == [
             "narr/2023/NARR202312",
             "narr/2024/NARR202401",
@@ -714,7 +714,7 @@ class TestFetchHelpers:
         )
         monkeypatch.setattr(
             self.src,
-            "keys_for_range",
+            "paths_for_range",
             lambda start, end: ["hrrr/2024/07/a", "hrrr/2024/07/b"],
         )
 
@@ -735,7 +735,7 @@ class TestFetchHelpers:
         cached = tmp_path / "a"
         cached.write_text("cached")
 
-        results = self.src.fetch("2024-07-18", "2024-07-19", local_dir=tmp_path)
+        results = self.src.fetch("2024-07-18", "2024-07-19", dest_dir=tmp_path)
         assert results == [cached, tmp_path / "b"]
         assert downloads == [
             (
@@ -749,7 +749,7 @@ class TestFetchHelpers:
         results = self.src.fetch(
             "2024-07-18",
             "2024-07-19",
-            local_dir=tmp_path,
+            dest_dir=tmp_path,
             bbox=(-112.0, 40.0, -111.0, 41.0),
             overwrite=True,
         )
@@ -763,7 +763,7 @@ class TestFetchHelpers:
         # Levels alone also crop, and are passed sorted and unique.
         crops.clear()
         results = self.src.fetch(
-            "2024-07-18", "2024-07-19", local_dir=tmp_path, levels=range(2, -1, -1)
+            "2024-07-18", "2024-07-19", dest_dir=tmp_path, levels=range(2, -1, -1)
         )
         assert downloads == []
         assert [(entry[1].name, entry[2], entry[3]) for entry in crops] == [
@@ -794,7 +794,7 @@ _ALL_SOURCES = [
 class TestStartDate:
     @pytest.mark.parametrize("src", _ALL_SOURCES, ids=repr)
     def test_range_starting_at_start_date_is_allowed(self, src):
-        assert src.keys_for_range(src.start_date, src.start_date) == [
+        assert src.paths_for_range(src.start_date, src.start_date) == [
             src._archive_path(src.start_date)
         ]
 
@@ -802,20 +802,20 @@ class TestStartDate:
     def test_range_before_start_date_raises(self, src):
         before = src.start_date - pd.Timedelta(hours=1)
         with pytest.raises(ValueError, match="archive begins"):
-            src.keys_for_range(before, src.start_date + pd.Timedelta(days=1))
+            src.paths_for_range(before, src.start_date + pd.Timedelta(days=1))
 
     def test_backward_range_before_start_date_raises(self):
         # start > end (backward trajectory): the earlier end is what matters.
         src = HRRRArchive()
         with pytest.raises(ValueError, match="HRRRArchive archive begins 2019-06-12"):
-            src.keys_for_range("2019-06-12 06:00", "2019-06-11 18:00")
+            src.paths_for_range("2019-06-12 06:00", "2019-06-11 18:00")
 
     def test_tz_aware_range_is_compared_in_utc(self):
         src = HRRRArchive()
-        keys = src.keys_for_range("2019-06-12 00:00+00:00", "2019-06-12 03:00+00:00")
+        keys = src.paths_for_range("2019-06-12 00:00+00:00", "2019-06-12 03:00+00:00")
         assert keys == ["hrrr/2019/06/20190612_00-05_hrrr"]
         with pytest.raises(ValueError, match="archive begins"):
-            src.keys_for_range("2019-06-11 23:00+00:00", "2019-06-12 03:00+00:00")
+            src.paths_for_range("2019-06-11 23:00+00:00", "2019-06-12 03:00+00:00")
 
     def test_fetch_raises_before_downloading(self, tmp_path, monkeypatch):
         src = HRRRArchive()
@@ -828,7 +828,7 @@ class TestStartDate:
 
         monkeypatch.setattr(src, "_download", no_download)
         with pytest.raises(ValueError, match="archive begins"):
-            src.fetch("2019-06-01", "2019-06-13", local_dir=tmp_path)
+            src.fetch("2019-06-01", "2019-06-13", dest_dir=tmp_path)
 
 
 # ---------------------------------------------------------------------------
@@ -853,7 +853,7 @@ def test_fetch_raises_import_error_without_fsspec(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(builtins, "__import__", mock_import)
         with pytest.raises(ImportError, match="fsspec"):
-            src.fetch("2024-07-18", "2024-07-18", local_dir=Path(tempfile.mkdtemp()))
+            src.fetch("2024-07-18", "2024-07-18", dest_dir=Path(tempfile.mkdtemp()))
 
 
 # ---------------------------------------------------------------------------
@@ -981,7 +981,7 @@ def test_archive_fetch_and_open(tmp_path, archive, time, bbox):
     """Fetch one file from each archive and verify it opens as an xarray Dataset."""
     from arlmet import open_dataset
 
-    files = archive.fetch(time, time, local_dir=tmp_path, bbox=bbox)
+    files = archive.fetch(time, time, dest_dir=tmp_path, bbox=bbox)
 
     assert len(files) == 1
     dest = files[0]

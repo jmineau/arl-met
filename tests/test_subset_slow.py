@@ -149,7 +149,7 @@ def test_extract_subset_matches_xtrct_grid_error_envelope(
     time,
     bbox,
 ):
-    [source_path] = source.fetch(time, time, local_dir=tmp_path)
+    [source_path] = source.fetch(time, time, dest_dir=tmp_path)
     xtrct_path = tmp_path / "xtrct_grid.arl"
     subset_path = tmp_path / "extract_subset.arl"
 

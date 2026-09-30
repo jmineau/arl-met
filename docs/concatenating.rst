@@ -84,8 +84,8 @@ at ``freq`` — ``"{time:%Y%m%d}_hrrr"`` with ``freq="6h"`` would name four bins
 the same, which raises ``ValueError``. ``concat_by_time()`` returns the list of
 written paths, in time order.
 
-Limit the range with ``time_range`` to skip files whose first valid time falls
-outside an inclusive ``(start, end)`` window:
+Limit the range with ``start=`` and ``end=`` to skip files whose first valid
+time falls outside those inclusive bounds (either may be left open):
 
 .. code-block:: python
 
@@ -95,7 +95,8 @@ outside an inclusive ``(start, end)`` window:
        freq="1D",
        pattern="*_hrrr",
        template="{time:%Y%m%d}_hrrr",
-       time_range=("2024-01-01", "2024-01-31 23:00"),
+       start="2024-01-01",
+       end="2024-01-31 23:00",
    )
 
 Limitations
