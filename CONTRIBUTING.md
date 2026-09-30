@@ -15,19 +15,19 @@ the orientation file it should read.
    git clone https://github.com/YOUR_USERNAME/arl-met.git
    cd arl-met
    ```
-3. Create a python environment and install development dependencies:
+3. Create a development environment. The project uses
+   [uv](https://docs.astral.sh/uv/), which reads the pinned `uv.lock`:
    ```bash
-   # Using venv:
+   uv sync
+   ```
+   Without uv, install the package in editable mode with the `dev`
+   dependency group (needs pip >= 25.1):
+   ```bash
    python -m venv .venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-   # OR using conda:
-   conda create -n myenv python=3.10 -y
-   conda activate myenv
-
-   # Install development dependencies:
-   pip install -e ".[dev]"
+   pip install -e . --group dev
    ```
+   Either way, a C compiler is needed to build the `_pack` extension.
 
 4. Install pre-commit hooks:
    ```bash
@@ -52,7 +52,8 @@ the orientation file it should read.
    just quality-check
    ```
 
-4. Run test suite:
+4. Run the test suite (`just test-no-network` skips the tests that
+   download from NOAA S3):
    ```bash
    just test
    ```

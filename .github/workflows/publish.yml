@@ -4,6 +4,15 @@ on:
   push:
     tags:
       - "v*.*.*"
+  # Build (but never publish) wheels on PRs that touch the build, so a broken
+  # wheel build is caught before a release tag is pushed.
+  pull_request:
+    paths:
+      - "setup.py"
+      - "pyproject.toml"
+      - "src/arlmet/_pack.c"
+      - ".github/workflows/publish.yml"
+  workflow_dispatch:
 
 jobs:
   build-wheels:
@@ -17,17 +26,24 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.23.3
+        uses: pypa/cibuildwheel@v4.2.1
         env:
-          CIBW_BUILD: "cp310-* cp311-* cp312-*"
+          CIBW_BUILD: "cp310-* cp311-* cp312-* cp313-* cp314-*"
           CIBW_SKIP: "*-musllinux_*"
           CIBW_ARCHS_LINUX: "x86_64"
-          # manylinux2014 (cibuildwheel 2.x default) ships GCC 10.2, but NumPy
-          # 2.5 has no manylinux2014 wheels and needs GCC >= 10.3 to build from
-          # source. manylinux_2_28 (glibc >= 2.28) matches NumPy's own wheels.
+          # NumPy has no manylinux2014 wheels and needs GCC >= 10.3 to build
+          # from source; manylinux_2_28 (glibc >= 2.28) matches NumPy's own
+          # wheels. It is the cibuildwheel >= 3 default; pinned here explicitly.
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
           CIBW_ARCHS_MACOS: "x86_64 arm64"
           CIBW_ARCHS_WINDOWS: "AMD64"
+          # Smoke-test each wheel: the C packer must import and round-trip.
+          CIBW_TEST_COMMAND: >-
+            python -c "import numpy as np, arlmet;
+            a = np.arange(400, dtype=np.float32).reshape(20, 20);
+            packed, prec, exp, var1 = arlmet.pack(a);
+            out = arlmet.unpack(packed.tobytes(), 20, 20, prec, exp, var1);
+            assert np.allclose(out, a, atol=2 * prec), 'pack round-trip failed'"
 
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4
@@ -62,6 +78,7 @@ jobs:
   publish-pypi:
     name: Publish to PyPI
     needs: [build-wheels, build-sdist]
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     environment:
       name: pypi

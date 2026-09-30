@@ -34,7 +34,7 @@ Current strengths:
 - low-level ARL fidelity, including preservation of trailing `DIF*` records
 - xarray-native analysis workflow for common ARL files
 - direct subset extraction and point sampling
-- tested support for Python 3.10 through 3.12
+- tested support for Python 3.10 through 3.14
 
 Current limitations:
 
