@@ -4,6 +4,18 @@ All notable changes to arl-met are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Support for Python 3.13 and 3.14: tested in CI and built as wheels for Linux, macOS, and Windows
+
+### Changed
+
+- Wheels are built with cibuildwheel 4 and smoke-tested (the C packer must import and round-trip) before publishing. The wheel build also runs on pull requests that touch the build configuration, so a broken build is caught before a release is tagged
+- Building from source needs setuptools >= 77 (for the SPDX `license` field)
+- `CONTRIBUTING.md` setup steps now work: they used a `dev` extra that does not exist (it is a dependency group)
+
 ## [0.1.0a9] - 2026-09-29
 
 ### Added
