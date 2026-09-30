@@ -23,6 +23,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from arlmet.errors import ARLFormatError
 from arlmet.file import File
 from arlmet.index import IndexRecord
 
@@ -173,8 +174,8 @@ def _reject_duplicate_times(scanned: list[tuple[Path, list[pd.Timestamp]]]) -> N
                 raise ValueError(
                     f"Valid time {time} appears in both {owner[time]} and "
                     f"{path}. Concatenated ARL files must not repeat valid times: "
-                    "arlmet cannot read a file with duplicate times and HYSPLIT "
-                    "behavior on repeated times is undefined."
+                    "arlmet rejects a time step repeated with different content "
+                    "and HYSPLIT behavior on repeated times is undefined."
                 )
             owner[time] = path
 
@@ -290,8 +291,8 @@ def _peek_first_time(path: Path) -> pd.Timestamp:
     with open(path, "rb") as handle:
         try:
             return IndexRecord.from_position(handle, 0).time
-        except Exception as exc:
-            raise ValueError(
+        except (EOFError, ARLFormatError) as exc:
+            raise ARLFormatError(
                 f"Could not read an ARL index record from {path}: {exc}. "
                 "Scope `pattern` so it only matches ARL files."
             ) from exc

@@ -9,6 +9,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Support for Python 3.13 and 3.14: tested in CI and built as wheels for Linux, macOS, and Windows
+- `ARLFormatError` (subclass of `ValueError`, so existing `except ValueError` handlers still catch it) and `ARLFormatWarning`, new public exports. `ARLFormatError` is raised for malformed file content: unparseable record headers or index records, truncated files, inconsistent index records, and `DIF*` records without a parent. Messages name the file and byte position where known
 
 ### Changed
 
@@ -33,6 +34,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Plain (uncropped) downloads used a fixed `<name>.tmp` temp path, so concurrent fetches of the same file (e.g. parallel SLURM jobs) wrote to the same temp file. Each download now gets its own unique hidden `.partial` file, moved into place with `os.replace`
 - Cached file names rounded the bbox to two decimals, so bboxes differing only in the third decimal shared a cache file and `fetch` returned the wrong crop. Values with more than two decimals are now kept in full (`.crop_-111.925_...`); bboxes with at most two decimals keep exactly the same name as before (`.crop_-112.00_40.25_...`), so existing caches still match
 - `start_date` was declared on every source but never checked, so a range before the archive began produced keys for files that don't exist and failed at download time. `keys_for_range()` and `fetch()` now raise `ValueError` if the range begins before the source's `start_date`
+- Opening a corrupt or non-ARL file raised a bare `ValueError: invalid literal for int() ...` from deep inside the header parser. It now raises `ARLFormatError` naming the file, byte position, and the field that could not be parsed
+- A truncated file opened without error and only failed later, on read. `File` now raises `ARLFormatError` when the file size is not a whole number of records or when an index record declares more data records than remain in the file
+- Files that repeat a whole time step (index record and data records), as some NOAA HRRR archive files do, could not be opened: `ValueError: A RecordSet for time ... already exists`. A byte-identical repeat is now skipped with an `ARLFormatWarning`, so the file opens with each time once and rewriting it (e.g. `extract_subset()`) drops the repeat; a repeat with different content raises `ARLFormatError` (#16)
+- Reading an index record wrapped every one of the 12 projection fields above 180 by -360, so e.g. a projected grid with `sync_x = 900.5` (a grid index) read back as `540.5`. Only the longitude fields (`pole_lon`, `tangent_lon`, `sync_lon`) are wrapped now
 
 ## [0.1.0a9] - 2026-09-29
 

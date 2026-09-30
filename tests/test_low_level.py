@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from arlmet import File
+from arlmet import ARLFormatError, File
 from arlmet.grid import Grid, GridWindow, Projection
 from arlmet.header import Header
 from arlmet.index import LvlInfo, VarInfo
@@ -825,7 +825,7 @@ class TestFileLowLevelBehavior:
         self, tmp_path, monkeypatch
     ):
         path = tmp_path / "scan_vertical.arl"
-        path.write_bytes(b"\0" * 2000)
+        path.write_bytes(b"\0" * 900)  # two 450-byte index records
         grid = make_test_grid()
         first = SimpleNamespace(
             source="TEST",
@@ -850,14 +850,14 @@ class TestFileLowLevelBehavior:
 
         monkeypatch.setattr("arlmet.file.IndexRecord.from_position", fake_from_position)
 
-        with pytest.raises(ValueError, match="Vertical axis mismatch"):
+        with pytest.raises(ARLFormatError, match="vertical axis mismatch"):
             File(path)
 
     def test_scan_rejects_diff_record_without_preceding_record(
         self, tmp_path, monkeypatch
     ):
         path = tmp_path / "scan_diff.arl"
-        path.write_bytes(b"\0" * 2000)
+        path.write_bytes(b"\0" * 900)  # index record + one data record
         grid = make_test_grid()
         index = SimpleNamespace(
             source="TEST",
@@ -879,7 +879,7 @@ class TestFileLowLevelBehavior:
 
         monkeypatch.setattr("arlmet.file.IndexRecord.from_position", fake_from_position)
 
-        with pytest.raises(ValueError, match="Difference record found"):
+        with pytest.raises(ARLFormatError, match="difference record found"):
             File(path)
 
     def test_scan_stops_cleanly_on_eof_and_assigns_diff_after_data_record(
@@ -897,7 +897,7 @@ class TestFileLowLevelBehavior:
         arl.close()
 
         diff_path = tmp_path / "scan_diff_after_data.arl"
-        diff_path.write_bytes(b"\0" * 2000)
+        diff_path.write_bytes(b"\0" * 1350)  # index record + two data records
         grid = make_test_grid()
         index = SimpleNamespace(
             source="TEST",

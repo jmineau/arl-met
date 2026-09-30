@@ -82,6 +82,19 @@ Binary Metadata And Packing
    pack
    unpack
 
+Errors And Warnings
+-------------------
+
+Raised or emitted when file content is not valid ARL. ``ARLFormatError``
+subclasses ``ValueError``, so ``except ValueError`` also catches it.
+
+.. autosummary::
+   :toctree: _autosummary
+   :nosignatures:
+
+   ARLFormatError
+   ARLFormatWarning
+
 Remote Archive Sources
 ----------------------
 

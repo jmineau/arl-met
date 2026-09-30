@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import warnings
 from collections import OrderedDict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from pathlib import Path
@@ -16,6 +17,7 @@ from typing_extensions import override
 from xarray.backends import CachingFileManager
 
 from arlmet._time import ensure_timestamp
+from arlmet.errors import ARLFormatError, ARLFormatWarning
 from arlmet.grid import Grid, Projection
 from arlmet.header import record_length_from_grid
 from arlmet.index import IndexRecord
@@ -396,11 +398,27 @@ class File:
         )
 
     def _scan(self) -> None:
-        """Populate RecordSet objects by walking the on-disk index records."""
+        """
+        Populate RecordSet objects by walking the on-disk index records.
+
+        Raises
+        ------
+        ARLFormatError
+            If the file is not valid ARL: an unparseable index record, a size
+            that is not a whole number of records, an index record that
+            declares more data records than remain, inconsistent metadata
+            between index records, or a time step repeated with different
+            content.
+        """
         # Scan the file to populate recordsets in read mode
         fh = self.handle
+        size = self.size
 
-        while fh.tell() < self.size:
+        # Extent (position, n_bytes) of each time step's first occurrence,
+        # used to compare against any repeated copy of the same time.
+        extents: dict[pd.Timestamp, tuple[int, int]] = {}
+
+        while fh.tell() < size:
             # Get starting position of each recordset
             position = fh.tell()
 
@@ -409,36 +427,85 @@ class File:
                 index = IndexRecord.from_position(fh, position=position)
             except EOFError:
                 break  # End of file
+            except ARLFormatError as exc:
+                raise ARLFormatError(f"{self.path}: {exc}") from exc
 
-            # Set source when reading the first index record
+            # Set metadata when reading the first index record
             if self._source is None:
                 self._source = index.source
-
-            # Set grid when reading the first index record
             if self._grid is None:
                 self._grid = index.grid
-
-            # Set vertical axis when reading the first index record
+                # The first index record fixes the record length. Every record
+                # has the same length, so the file must hold a whole number.
+                if size % self.record_length != 0:
+                    raise ARLFormatError(
+                        f"{self.path}: file size {size} bytes is not a whole "
+                        f"number of {self.record_length}-byte records "
+                        f"({self.grid.nx}x{self.grid.ny} grid); the file is "
+                        "truncated or corrupt."
+                    )
             if self._vaxis is None:
                 self._vaxis = index.vertical_axis
             elif self._vaxis != index.vertical_axis:
-                raise ValueError("Vertical axis mismatch between index records.")
+                raise ARLFormatError(
+                    f"{self.path}: vertical axis mismatch between index records "
+                    f"(index record for {index.time} at byte {position})."
+                )
+
+            # The time step is the index record plus one record per variable
+            # per level; it must fit in what remains of the file.
+            record_length = self.record_length
+            n_data = sum(len(lvl.variables) for lvl in index.levels)
+            n_bytes = (1 + n_data) * record_length
+            if position + n_bytes > size:
+                remaining = (size - position) // record_length - 1
+                raise ARLFormatError(
+                    f"{self.path}: index record for {index.time} at byte "
+                    f"{position} declares {n_data} data records, but only "
+                    f"{remaining} remain in the file; the file is truncated."
+                )
+
+            # Some NOAA archive files repeat a whole time step. Skip a
+            # byte-identical copy; anything else is ambiguous, so raise.
+            if index.time in extents:
+                first_position, first_n_bytes = extents[index.time]
+                if first_n_bytes != n_bytes or not self._same_bytes(
+                    first_position, position, n_bytes
+                ):
+                    raise ARLFormatError(
+                        f"{self.path}: time step {index.time} is repeated with "
+                        f"different content (first at byte {first_position}, "
+                        f"again at byte {position})."
+                    )
+                warnings.warn(
+                    f"{self.path}: time step {index.time} is repeated "
+                    f"(byte-identical copy at byte {position}); the repeated "
+                    "copy was ignored.",
+                    ARLFormatWarning,
+                    stacklevel=3,
+                )
+                fh.seek(position + n_bytes)
+                continue
+            extents[index.time] = (position, n_bytes)
 
             # Create a RecordSet for this index record (time)
-            rs = self._create_recordset(
-                position=position,
-                source=index.source,
-                grid=index.grid,
-                time=index.time,
-                forecast=index.forecast,
-            )
-
-            # Skip to the end of the index record
-            record_length = self.record_length
-            fh.seek(position + record_length)
+            try:
+                rs = self._create_recordset(
+                    position=position,
+                    source=index.source,
+                    grid=index.grid,
+                    time=index.time,
+                    forecast=index.forecast,
+                )
+            except ValueError as exc:
+                # Source/grid mismatch with the first index record.
+                raise ARLFormatError(
+                    f"{self.path}: index record for {index.time} at byte "
+                    f"{position}: {exc}"
+                ) from exc
 
             # Read data records for this index record
-            position = fh.tell()  # start of data records
+            position += record_length  # start of data records
             prev_dr = None
             for lvl in index.levels:
                 for var in lvl.variables:
@@ -448,9 +515,10 @@ class File:
                     if var.startswith("DIF"):
                         # Assign as diff record to previous data record
                         if prev_dr is None:
-                            raise ValueError(
-                                f"Difference record found for variable '{var}' "
-                                f"at position {position} without a preceding data record."
+                            raise ARLFormatError(
+                                f"{self.path}: difference record found for "
+                                f"variable '{var}' at byte {position} without "
+                                "a preceding data record."
                             )
                         prev_dr._create_diff(
                             position=position,
@@ -475,6 +543,25 @@ class File:
 
             # Move file pointer to the start of the next index record
             fh.seek(position)
+
+    def _same_bytes(self, first: int, second: int, n_bytes: int) -> bool:
+        """
+        Compare two ``n_bytes`` spans of the file, one record at a time.
+
+        Reading record by record keeps memory at two records even for large
+        grids (an HRRR time step is ~200 MB).
+        """
+        fh = self.handle
+        chunk = self.record_length
+        for offset in range(0, n_bytes, chunk):
+            length = min(chunk, n_bytes - offset)
+            fh.seek(first + offset)
+            a = fh.read(length)
+            fh.seek(second + offset)
+            b = fh.read(length)
+            if a != b:
+                return False
+        return True
 
     def flush(self) -> None:
         """
