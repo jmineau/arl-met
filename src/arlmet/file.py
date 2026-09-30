@@ -220,6 +220,7 @@ class File:
         self,
         nx: int,
         ny: int,
+        *,
         pole_lat: float,
         pole_lon: float,
         tangent_lat: float,
