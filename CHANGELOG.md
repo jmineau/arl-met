@@ -9,6 +9,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Support for Python 3.13 and 3.14: tested in CI and built as wheels for Linux, macOS, and Windows
+- API stability policy (`docs/stability.rst`): what counts as the public API that beta freezes, and how versions change from here. README's "Alpha status" section is now "Status and stability"
 - `ARLFormatError` (subclass of `ValueError`, so existing `except ValueError` handlers still catch it) and `ARLFormatWarning`, new public exports. `ARLFormatError` is raised for malformed file content: unparseable record headers or index records, truncated files, inconsistent index records, and `DIF*` records without a parent. Messages name the file and byte position where known
 - `GridWindow` is exported from `arlmet` (it appears in `DataRecord.read(window=)`, `Grid.window_from_bbox()`, `Grid.subset()`, and `Grid.full_window()`), and it and the `VerticalAxis` subclasses (`SigmaAxis`, `PressureAxis`, `TerrainAxis`, `HybridAxis`) are in the API reference
 - Every public module defines `__all__`
@@ -19,6 +20,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Wheels are built with cibuildwheel 4 and smoke-tested (the C packer must import and round-trip) before publishing. The wheel build also runs on pull requests that touch the build configuration, so a broken build is caught before a release is tagged
 - Building from source needs setuptools >= 77 (for the SPDX `license` field)
 - `CONTRIBUTING.md` setup steps now work: they used a `dev` extra that does not exist (it is a dependency group)
+- The Code Quality workflow builds the docs with Sphinx warnings as errors, so broken docstrings and cross-references fail CI on pull requests
 - **Breaking:** one path-parameter scheme across the file operations: inputs are `path` / `paths`, outputs are `dest` (a file) / `dest_dir` (a directory). `source` now means only the 4-character ARL source ID (`File.source`, `ds.attrs["source"]`) and the `arlmet.sources` module. The renames are `extract_subset(source_path, destination_path, ...)` → `extract_subset(path, dest, *, bbox, levels, variables)`, `File.extract_subset(destination_path, ...)` → `File.extract_subset(dest, *, ...)`, `concat(sources, destination, *, sort)` → `concat(paths, dest, *, sort)`, `concat_by_time(directory, output_directory, ...)` → `concat_by_time(directory, dest_dir, *, ...)`, and `sample_points(source, points, variables, ...)` → `sample_points(files, points, variables, *, ...)`. Positional calls are unaffected except for `concat_by_time`'s `freq`. `open_dataset`/`write_dataset` keep xarray's `filename_or_obj`
 - **Breaking:** `concat_by_time()`'s `freq` is now keyword-only: `concat_by_time(directory, dest_dir, freq="1D")`
 - **Breaking:** `extract_subset()`, `File.extract_subset()`, and `concat()` return the output path (`pathlib.Path(dest)`) instead of the new file opened in read mode, so nothing holds a file handle after the call. Drop any `.close()` or `with` on the result and open the path with `File(...)` or `open_dataset(...)` when you need its contents
