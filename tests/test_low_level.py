@@ -1302,3 +1302,42 @@ class TestAddRecord:
         time, data = write_single_record_file(path)
         with File(path) as arl, pytest.raises(io.UnsupportedOperation):
             arl.add_record(time, "UWND", 0, forecast=0, data=data)
+
+
+def test_concurrent_record_reads_are_thread_safe(tmp_path):
+    """Threads sharing one File must each read their own record (e.g. dask chunks)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    path = tmp_path / "threads.arl"
+    grid = make_test_grid()
+    times = pd.date_range("2024-01-01", periods=6, freq="h")
+    with File(
+        path,
+        mode="w",
+        source="TEST",
+        grid=grid,
+        vertical_axis=PressureAxis(levels=[0.0, 1000.0, 900.0, 800.0]),
+    ) as arl:
+        for t_idx, time in enumerate(times):
+            rs = arl.create_recordset(time, forecast=0)
+            for level in (1, 2, 3):
+                value = 100.0 * t_idx + level
+                rs.create_datarecord(
+                    "TEMP",
+                    level=level,
+                    forecast=0,
+                    data=np.full((grid.ny, grid.nx), value, dtype=np.float32),
+                )
+
+    with File(path) as arl:
+        records = [r for time in arl.times for r in arl[time].records]
+        expected = [100.0 * list(arl.times).index(r.time) + r.level for r in records]
+
+        def read_all(_):
+            return [float(r.read()[0, 0]) for _ in range(20) for r in records]
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            results = list(pool.map(read_all, range(8)))
+
+    for got in results:
+        np.testing.assert_allclose(got, expected * 20, rtol=1e-6)

@@ -58,6 +58,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Reading records of one `File` from several threads, e.g. dask chunks from `open_dataset(...).chunk()`, could return another record's data or raise `ARLFormatError: DataRecord header mismatch`. All reads share one file handle, and one thread's seek could land between another thread's seek and read. Record reads are now serialized per `File`
 - Package data listed `resources/*`, a directory that is not in the repository, so wheels built from a local checkout that had it shipped files that release wheels did not. Only `py.typed` is package data now
 - `sample_points()` returned NaN for every point more than 180° east of a lat/lon grid's origin, so on global grids starting at 0°E (GDAS, GFS, Reanalysis) the whole western hemisphere, all of the Americas, sampled as NaN, whether given as `-90` or `270`. Longitudes are now measured eastward from the origin in [0, 360), and on grids spanning all 360° points between the last and first columns interpolate across the seam. New `Grid.wraps_lon` property
 - `extract_subset(p, p)` and `write_dataset(open_dataset(p), p)` truncated the input file before reading it, destroying it on multi-time files. Both now raise `ValueError` when the output is the input (including through a symlink or hard link)
