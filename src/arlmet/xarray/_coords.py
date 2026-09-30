@@ -123,23 +123,22 @@ def vaxis_from_coord(
     phys_coord: xr.DataArray | xr.Variable,
 ) -> VerticalAxis:
     """
-    Reconstruct a VerticalAxis from integer level coord and sparse physical coord.
+    Reconstruct a VerticalAxis from the level coord and its physical coord.
 
     Used for the flat Dataset (``open_dataset``) case where the physical coord
     has dims ``("level",)`` and carries ``attrs["surface"]`` (the level-0 value).
-    Missing intermediate levels are filled as 0.0.
+    The axis is the surface followed by the Dataset's levels in coordinate
+    order. A Dataset holding a subset of a file's levels therefore gets a
+    compact axis (``level`` values ``[2, 5]`` become axis levels 1 and 2), which
+    matches how :func:`arlmet.write_dataset` renumbers them.
     """
     surface = float(phys_coord.attrs["surface"])
     offset = float(phys_coord.attrs.get("offset", 0.0))
-    # level coord is 1-N; the full levels array has surface at index 0
-    level_ints = np.asarray(level_coord.values, dtype=int).tolist()
-    phys_values = np.asarray(phys_coord.values, dtype=float).tolist()
-    n_levels = max(level_ints) + 1  # +1 because indices are 1-based, plus surface at 0
-    levels: list[float] = [0.0] * n_levels
-    levels[0] = surface
-    for idx, phys in zip(level_ints, phys_values, strict=True):
-        levels[idx] = phys
-    return VerticalAxis.from_flag(flag, levels=levels, offset=offset)
+    level_ints = np.atleast_1d(np.asarray(level_coord.values, dtype=int)).tolist()
+    if len(set(level_ints)) != len(level_ints):
+        raise ValueError(f"'level' coordinate has repeated values: {level_ints}.")
+    phys_values = np.atleast_1d(np.asarray(phys_coord.values, dtype=float)).tolist()
+    return VerticalAxis.from_flag(flag, levels=[surface, *phys_values], offset=offset)
 
 
 def _extract_dataset_vertical_axis(

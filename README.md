@@ -137,7 +137,7 @@ grid = arlmet.Grid(
     nx=20,
     ny=20,
 )
-vertical_axis = arlmet.VerticalAxis(flag=2, levels=[0.0, 1000.0])
+vertical_axis = arlmet.PressureAxis(levels=[0.0, 1000.0])
 time = pd.Timestamp("2024-07-18 00:00")
 
 prss = np.ones((grid.ny, grid.nx), dtype=np.float32)
