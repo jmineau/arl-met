@@ -38,6 +38,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A truncated file opened without error and only failed later, on read. `File` now raises `ARLFormatError` when the file size is not a whole number of records or when an index record declares more data records than remain in the file
 - Files that repeat a whole time step (index record and data records), as some NOAA HRRR archive files do, could not be opened: `ValueError: A RecordSet for time ... already exists`. A byte-identical repeat is now skipped with an `ARLFormatWarning`, so the file opens with each time once and rewriting it (e.g. `extract_subset()`) drops the repeat; a repeat with different content raises `ARLFormatError` (#16)
 - Reading an index record wrapped every one of the 12 projection fields above 180 by -360, so e.g. a projected grid with `sync_x = 900.5` (a grid index) read back as `540.5`. Only the longitude fields (`pole_lon`, `tangent_lon`, `sync_lon`) are wrapped now
+- `concat_by_time()` put a file whose valid times crossed a `freq` bin boundary wholly into its first bin, so e.g. a file spanning 18Z–00Z landed in the earlier day's output. It now raises `ValueError` naming the file (files are never split) (#26)
+- `concat_by_time()` silently overwrote output files when `template` gave two bins the same name (e.g. `"{time:%Y%m%d}"` with `freq="6h"`). It now raises `ValueError` before writing anything
 
 ## [0.1.0a9] - 2026-09-29
 

@@ -59,7 +59,7 @@ Batch concatenation by time
 
 :func:`arlmet.concat_by_time` groups every ARL file in a directory into
 time-binned chunks and concatenates each group. Each file is assigned to a bin by
-its **first valid time, read from the file's index record** — not parsed from the
+its **valid times, read from the file's index records** — not parsed from the
 filename — so it is robust to any naming scheme.
 
 .. code-block:: python
@@ -75,13 +75,15 @@ filename — so it is robust to any naming scheme.
    )
 
 ``freq`` is a fixed-frequency pandas offset alias giving the size of each output
-chunk: ``"1D"`` is one file per day, ``"6h"`` one per six hours, and so on. Each
-file is binned by its first valid time floored to this frequency, so ``freq``
-should be at least as long as any single input file's time span.
+chunk: ``"1D"`` is one file per day, ``"6h"`` one per six hours, and so on.
+Files are never split: each file's first and last valid times must floor to the
+same bin, or ``concat_by_time()`` raises ``ValueError`` before writing anything.
 
 ``template`` is a ``str.format`` string for the output filenames, given the bin
-start time as ``time`` (a :class:`pandas.Timestamp`). ``concat_by_time()``
-returns the list of written paths, in time order.
+start time as ``time`` (a :class:`pandas.Timestamp`). It must keep bins distinct
+at ``freq`` — ``"{time:%Y%m%d}_hrrr"`` with ``freq="6h"`` would name four bins
+the same, which raises ``ValueError``. ``concat_by_time()`` returns the list of
+written paths, in time order.
 
 Limit the range with ``time_range`` to skip files whose first valid time falls
 outside an inclusive ``(start, end)`` window:
@@ -102,8 +104,7 @@ Limitations
 
 - Concatenated files must share one grid and one vertical axis.
 - Valid times must not repeat across the inputs of a single output file.
-- ``concat_by_time`` bins each file by its first valid time, so ``freq`` should
-  be no shorter than a single input file's span (e.g. use ``freq="1D"`` for
-  6-hourly inputs, not ``freq="1h"``).
+- ``concat_by_time`` does not split files, so no input may cross a ``freq`` bin
+  boundary (e.g. use ``freq="1D"`` for 6-hourly inputs, not ``freq="1h"``).
 - ``pattern`` should match only ARL files; a matched file that cannot be read as
   ARL raises :class:`arlmet.ARLFormatError` (a ``ValueError``).
