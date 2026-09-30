@@ -7,6 +7,7 @@ from collections import OrderedDict
 from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING
 
+from arlmet._io import atomic_output, reject_same_file
 from arlmet.file import File
 from arlmet.grid import Grid, GridWindow
 from arlmet.header import Header, record_length_from_grid, split_grid_component
@@ -200,6 +201,18 @@ def extract_subset(
         close it right away (``extract_subset(...).close()``); an unclosed
         File keeps its file handle open until it is garbage collected.
 
+    Raises
+    ------
+    ValueError
+        If ``destination_path`` is the same file as ``source_path``, or the
+        cropped grid is too small to hold the ARL index record.
+
+    Notes
+    -----
+    The subset is written to a temporary file next to ``destination_path``
+    and renamed into place once complete, so an interrupted run never leaves
+    a truncated file under the final name.
+
     Examples
     --------
     >>> import arlmet
@@ -211,6 +224,7 @@ def extract_subset(
     ... ) as subset:
     ...     ds = subset.to_dataset()
     """
+    reject_same_file(source_path, destination_path)
     variable_names = None if variables is None else set(variables)
 
     with File(source_path) as source:
@@ -245,13 +259,18 @@ def extract_subset(
             level_map=level_map,
         )
 
-        with File(
-            destination_path,
-            mode="w",
-            source=source.source,
-            grid=subset_grid,
-            vertical_axis=subset_axis,
-        ) as destination:
+        # Write to a temporary file that replaces destination_path only once
+        # complete, so an interrupted run never leaves a truncated output.
+        with (
+            atomic_output(destination_path) as tmp_path,
+            File(
+                tmp_path,
+                mode="w",
+                source=source.source,
+                grid=subset_grid,
+                vertical_axis=subset_axis,
+            ) as destination,
+        ):
             for src_recordset, selected_records in selected_recordsets:
                 dst_recordset = destination.create_recordset(
                     src_recordset.time,

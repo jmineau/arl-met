@@ -13,6 +13,7 @@ import pandas as pd
 import xarray as xr
 from xarray.core import indexing
 
+from arlmet._io import atomic_output, reject_same_file
 from arlmet._time import ensure_timestamp
 from arlmet.ops.subset import normalize_levels, resolve_window, select_records
 from arlmet.vertical import VerticalAxis
@@ -172,7 +173,13 @@ def open_dataset(
     Surface-only variables (e.g. ``SHGT``, ``T02M``, ``PRSS``) have dimensions
     ``(time, lat, lon)`` with no ``level`` dimension. Upper-air variables
     (e.g. ``UWND``, ``VWND``, ``TEMP``) have dimensions
-    ``(time, level, lat, lon)``. There is no NaN padding.
+    ``(time, level, lat, lon)``. An upper-air variable stored on only some
+    levels (or times) is NaN where the file has no record for it;
+    :func:`write_dataset` writes no record for such all-NaN slices.
+
+    The ``level`` coordinate holds the file's ARL level indices (surface is 0,
+    so upper-air levels start at 1). With ``levels=`` the kept levels keep their
+    original indices, which may therefore have gaps.
 
     ARL metadata is accessible via the ``.arl`` accessor::
 
@@ -199,11 +206,15 @@ def open_dataset(
     from arlmet.file import File
 
     with File(filename_or_obj) as met:
-        return met.to_dataset(
+        ds = met.to_dataset(
             drop_variables=drop_variables,
             bbox=bbox,
             levels=levels,
         )
+    # xarray convention: remember where the data came from (write_dataset uses
+    # it to refuse overwriting the file a lazy Dataset still reads from).
+    ds.encoding["source"] = os.fspath(filename_or_obj)
+    return ds
 
 
 def write_dataset(
@@ -222,14 +233,48 @@ def write_dataset(
     - upper-air variables use dims ``(time, level, y, x)`` or ``(time, level, lat, lon)``
     - all upper-air variables share the same ``level`` coordinate
 
+    Upper-air levels are written in ``level`` coordinate order and renumbered
+    ``1..N`` (surface is 0), so a Dataset holding a subset of a file's levels
+    (e.g. from ``open_dataset(levels=...)`` or ``ds.sel(level=...)``) is
+    written as a compact file, like :func:`arlmet.extract_subset` does. A
+    slice that is entirely NaN is taken to be absent from the file (as
+    :func:`open_dataset` represents it) and no record is written for it.
+
     Per-variable forecast heterogeneity is intentionally not represented in the
     flat Dataset API. ``forecast_hour(time)`` supplies only the ARL index-record
     forecast written for each time step.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset in the layout returned by :func:`open_dataset`.
+    filename_or_obj : path-like
+        Output ARL file path. Overwrites any existing file, but must not be the
+        file ``ds`` was opened from.
+    vertical_axis : VerticalAxis, optional
+        Vertical axis to write. By default it is rebuilt from the Dataset's
+        ``level`` coordinates. Required for surface-only Datasets; otherwise it
+        must have one level per ``level`` coordinate value plus the surface.
+
+    Raises
+    ------
+    ValueError
+        If the Dataset does not match the layout above, a slice is partly NaN
+        or non-finite, or ``filename_or_obj`` is the file ``ds`` was opened
+        from.
+
+    Notes
+    -----
+    The file is written to a temporary file next to ``filename_or_obj`` and
+    renamed into place once complete, so an interrupted write never leaves a
+    truncated file under the final name.
     """
     from arlmet.file import File
 
     if not isinstance(ds, xr.Dataset):
         raise TypeError("write_dataset() requires an xarray.Dataset.")
+    if "source" in ds.encoding:
+        reject_same_file(ds.encoding["source"], filename_or_obj)
 
     if "time" not in ds.coords:
         raise ValueError("Dataset must define a 'time' coordinate.")
@@ -245,6 +290,13 @@ def write_dataset(
     h_dims = grid.dims
 
     resolved_vertical_axis = _extract_dataset_vertical_axis(ds, vertical_axis)
+    n_upper_levels = ds.sizes.get("level", 0)
+    if n_upper_levels and len(resolved_vertical_axis.levels) != n_upper_levels + 1:
+        raise ValueError(
+            f"vertical_axis has {len(resolved_vertical_axis.levels)} levels, but the "
+            f"Dataset needs {n_upper_levels + 1} (the surface plus one per 'level' "
+            "coordinate value)."
+        )
     forecast_hours = _extract_dataset_forecast_hours(ds, times)
 
     data_vars = [name for name in ds.data_vars if name != "forecast_hour"]
@@ -267,13 +319,16 @@ def write_dataset(
             )
         diff_names[str(name)] = diff_name
 
-    with File(
-        filename_or_obj,
-        mode="w",
-        source=source,
-        grid=grid,
-        vertical_axis=resolved_vertical_axis,
-    ) as arl:
+    with (
+        atomic_output(filename_or_obj) as tmp_path,
+        File(
+            tmp_path,
+            mode="w",
+            source=source,
+            grid=grid,
+            vertical_axis=resolved_vertical_axis,
+        ) as arl,
+    ):
         for time_index, time in enumerate(times):
             recordset = arl.create_recordset(
                 pd.Timestamp(time),
@@ -317,13 +372,11 @@ def write_dataset(
                         raise ValueError(
                             f"Variable '{var_name}' uses a 'level' dimension but the dataset has no shared level coordinate."
                         )
-                    level_ints = np.atleast_1d(
-                        np.asarray(ds.coords["level"].values, dtype=int)
-                    ).tolist()
                     transposed = da.transpose(
                         "time", "level", *h_dims, missing_dims="raise"
                     )
-                    write_iter = enumerate(level_ints)
+                    # Renumber upper-air levels 1..N in coordinate order.
+                    write_iter = [(slot, slot + 1) for slot in range(ds.sizes["level"])]
                 else:
                     transposed = da.transpose("time", *h_dims, missing_dims="raise")
                     write_iter = [(None, 0)]
@@ -344,10 +397,15 @@ def write_dataset(
                         raise ValueError(
                             f"Variable '{var_name}' slice has shape {data.shape}, expected {(grid.ny, grid.nx)}."
                         )
-                    if np.isnan(data).any():
+                    nan_mask = np.isnan(data)
+                    if nan_mask.all():
+                        # open_dataset NaN-fills levels/times with no record.
+                        continue
+                    if nan_mask.any():
                         raise ValueError(
                             f"Variable '{var_name}' contains missing values at time {pd.Timestamp(time)} "
-                            f"level {level_index}; write_dataset() requires complete slices."
+                            f"level {level_index}; write_dataset() requires each slice to be "
+                            "complete or entirely NaN (no record)."
                         )
                     if not np.isfinite(data).all():
                         raise ValueError(

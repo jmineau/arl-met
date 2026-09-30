@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import xarray as xr
 from xarray.core import indexing
 
 from arlmet import File, open_dataset, write_dataset
@@ -252,10 +253,100 @@ class TestWriter:
 
         self.write_sample_file(source_path)
         ds = open_dataset(source_path)
-        ds["TEMP"] = ds["TEMP"].where(ds["level"] != 1)
+        ds["TEMP"] = ds["TEMP"].where(ds["lat"] != ds["lat"][0])
 
         with pytest.raises(ValueError, match="contains missing values"):
             write_dataset(ds, written_path)
+
+    def test_write_dataset_skips_all_nan_slices(self, tmp_path):
+        """A variable stored on only some levels round-trips through a Dataset."""
+        source_path = tmp_path / "partial.arl"
+        written_path = tmp_path / "written.arl"
+        grid = make_test_grid()
+        vertical_axis = PressureAxis(levels=[0.0, 1000.0, 900.0])
+        data = np.ones((grid.ny, grid.nx), dtype=np.float32)
+        with File(
+            source_path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=vertical_axis,
+        ) as arl:
+            rs = arl.create_recordset(pd.Timestamp("2024-07-18 00:00"), forecast=0)
+            rs.create_datarecord("TEMP", level=1, forecast=0, data=data)
+            rs.create_datarecord("TEMP", level=2, forecast=0, data=2 * data)
+            rs.create_datarecord("RELH", level=1, forecast=0, data=3 * data)
+
+        ds = open_dataset(source_path)
+        assert np.isnan(ds["RELH"].sel(level=2)).all()
+        write_dataset(ds, written_path)
+
+        with File(written_path) as reopened:
+            records = reopened[reopened.times[0]].records
+            assert [(r.level, r.variable) for r in records] == [
+                (1, "RELH"),
+                (1, "TEMP"),
+                (2, "TEMP"),
+            ]
+        xr.testing.assert_identical(
+            open_dataset(written_path).drop_encoding(), ds.drop_encoding()
+        )
+
+    def test_write_dataset_compacts_level_subset(self, tmp_path):
+        source_path = tmp_path / "levels.arl"
+        written_path = tmp_path / "written.arl"
+        grid = make_test_grid()
+        vertical_axis = PressureAxis(levels=[0.0, 1000.0, 900.0, 800.0])
+        data = np.ones((grid.ny, grid.nx), dtype=np.float32)
+        with File(
+            source_path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=vertical_axis,
+        ) as arl:
+            rs = arl.create_recordset(pd.Timestamp("2024-07-18 00:00"), forecast=0)
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=data)
+            for level in (1, 2, 3):
+                rs.create_datarecord("TEMP", level=level, forecast=0, data=level * data)
+
+        ds = open_dataset(source_path, levels=[0, 3])
+        assert ds.arl.vertical_axis.levels.tolist() == [0.0, 800.0]
+        write_dataset(ds, written_path)
+
+        with File(written_path) as reopened:
+            assert reopened.vertical_axis.levels.tolist() == [0.0, 800.0]
+        reopened_ds = open_dataset(written_path)
+        np.testing.assert_array_equal(reopened_ds["level"].values, [1])
+        np.testing.assert_allclose(reopened_ds["TEMP"].values, ds["TEMP"].values)
+
+        # ds.sel(level=...) on a full Dataset compacts the same way.
+        full = open_dataset(source_path).sel(level=[2, 3])
+        write_dataset(full, tmp_path / "sel.arl")
+        with File(tmp_path / "sel.arl") as reopened:
+            assert reopened.vertical_axis.levels.tolist() == [0.0, 900.0, 800.0]
+
+    def test_write_dataset_rejects_overwriting_its_source(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        self.write_sample_file(source_path)
+        size = source_path.stat().st_size
+        ds = open_dataset(source_path)
+
+        with pytest.raises(ValueError, match="same file as the source"):
+            write_dataset(ds, source_path)
+        assert source_path.stat().st_size == size
+
+    def test_write_dataset_checks_explicit_vertical_axis_size(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path)
+
+        with pytest.raises(ValueError, match="vertical_axis has 3 levels"):
+            write_dataset(
+                ds,
+                tmp_path / "written.arl",
+                vertical_axis=PressureAxis(levels=[0.0, 1000.0, 900.0]),
+            )
 
     def test_write_dataset_generates_diff_from_parent_attrs(self, tmp_path):
         source_path = tmp_path / "source.arl"

@@ -305,11 +305,59 @@ def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
     np.testing.assert_array_equal(ds.coords["pressure"].values, [2000.0])
     assert ds.arl.grid.nx == 3
     assert ds.arl.grid.ny == 3
-    # vertical_axis is reconstructed from the subset — level 1 (1000 hPa) was not
-    # loaded so it shows as 0.0 in the reconstructed levels array
-    assert ds.arl.vertical_axis.levels.tolist() == [0.0, 0.0, 2000.0]
+    # vertical_axis is the surface plus the loaded levels, compacted: level 1
+    # (1000 hPa) was not loaded, so it is absent rather than filled with 0.0
+    assert ds.arl.vertical_axis.levels.tolist() == [0.0, 2000.0]
     # PRSS has no level dim; UWND level dim has one element (index 0 → 2000 hPa)
     np.testing.assert_allclose(np.asarray(ds["PRSS"].isel(time=0)), source_prss)
     np.testing.assert_allclose(
         np.asarray(ds["UWND"].isel(time=0, level=0)), source_uwnd
     )
+
+
+def test_extract_subset_rejects_destination_equal_to_source(tmp_path):
+    source = tmp_path / "source.arl"
+    write_subset_source(source)
+    size = source.stat().st_size
+
+    with pytest.raises(ValueError, match="same file as the source"):
+        extract_subset(source, source, levels=[0, 1])
+    link = tmp_path / "link.arl"
+    try:
+        link.symlink_to(source)
+    except OSError:  # Windows without symlink privilege
+        pass
+    else:
+        with pytest.raises(ValueError, match="same file as the source"):
+            extract_subset(source, link, levels=[0, 1])
+
+    assert source.stat().st_size == size
+
+
+def test_extract_subset_failure_leaves_no_partial_output(tmp_path, monkeypatch):
+    source = tmp_path / "source.arl"
+    write_subset_source(source)
+    destination = tmp_path / "subset.arl"
+
+    def boom(self):
+        raise RuntimeError("interrupted")
+
+    monkeypatch.setattr(File, "flush", boom)
+    with pytest.raises(RuntimeError, match="interrupted"):
+        extract_subset(source, destination, levels=[0, 1])
+
+    assert not destination.exists()
+    assert list(tmp_path.iterdir()) == [source]
+
+
+def test_extract_subset_output_honors_umask(tmp_path):
+    source = tmp_path / "source.arl"
+    write_subset_source(source)
+    destination = tmp_path / "subset.arl"
+    plain = tmp_path / "plain"
+    plain.touch()
+
+    extract_subset(source, destination, levels=[0, 1]).close()
+
+    # Same permissions as any normally created file (not mkstemp's 0600).
+    assert destination.stat().st_mode & 0o777 == plain.stat().st_mode & 0o777

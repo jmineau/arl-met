@@ -10,15 +10,25 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Support for Python 3.13 and 3.14: tested in CI and built as wheels for Linux, macOS, and Windows
 
-### Removed
-
-- **Breaking:** Python 3.10 support. arlmet now requires Python 3.11 or newer (3.10 reaches end-of-life in October 2026, and current NumPy no longer supports it)
-
 ### Changed
 
 - Wheels are built with cibuildwheel 4 and smoke-tested (the C packer must import and round-trip) before publishing. The wheel build also runs on pull requests that touch the build configuration, so a broken build is caught before a release is tagged
 - Building from source needs setuptools >= 77 (for the SPDX `license` field)
 - `CONTRIBUTING.md` setup steps now work: they used a `dev` extra that does not exist (it is a dependency group)
+- `extract_subset()` and `write_dataset()` write to a temporary file next to the output and rename it into place when complete, so an interrupted run never leaves a truncated file under the final name (which a later run could mistake for a finished output, e.g. a cached crop)
+- `write_dataset()` renumbers upper-air levels `1..N` in `level` coordinate order, so a Dataset holding a subset of a file's levels (from `open_dataset(levels=...)` or `ds.sel(level=...)`) is written as a compact file, as `extract_subset()` does. An explicit `vertical_axis=` must have one level per `level` coordinate value plus the surface
+- `open_dataset()` records the input path in `ds.encoding["source"]`, as xarray's own backends do
+
+### Removed
+
+- **Breaking:** Python 3.10 support. arlmet now requires Python 3.11 or newer (3.10 reaches end-of-life in October 2026, and current NumPy no longer supports it)
+
+### Fixed
+
+- `extract_subset(p, p)` and `write_dataset(open_dataset(p), p)` truncated the input file before reading it, destroying it on multi-time files. Both now raise `ValueError` when the output is the input (including through a symlink or hard link)
+- `open_dataset()` followed by `write_dataset()` failed on files with a variable stored on only some levels: `open_dataset()` fills those levels with NaN (its docstring wrongly said it never NaN-pads), and `write_dataset()` rejected any NaN. An all-NaN slice is now written as no record; a partly-NaN slice still raises
+- `open_dataset(levels=[0, 2])` (and `ds.sel(level=...)`) rebuilt the vertical axis with 0.0 filled in for every level left out, so `ds.arl.vertical_axis` was wrong (`[0, 0, 2000]`) and `write_dataset()` wrote bogus levels. The axis is now the surface plus the Dataset's levels (`[0, 2000]`)
+- README and the writing guide built a vertical axis with `arlmet.VerticalAxis(flag=2, ...)`, which raises `TypeError` since `VerticalAxis` became abstract; they now use `arlmet.PressureAxis(...)`
 
 ## [0.1.0a9] - 2026-09-29
 

@@ -57,7 +57,16 @@ Write constraints
 
 - ``forecast_hour`` must have dims ``("time",)`` when present
 - variable names must be 4 characters or fewer
-- slices must be complete and finite; missing values are not written
+- each 2D slice must be finite, or entirely NaN; an all-NaN slice is written
+  as no record (this is how :func:`arlmet.open_dataset` represents a variable
+  missing from some levels or times), while a partly-NaN slice raises
+- upper-air levels are written in ``level`` coordinate order and renumbered
+  ``1..N``, so a Dataset holding a subset of a file's levels (from
+  ``open_dataset(levels=...)`` or ``ds.sel(level=...)``) is written as a
+  compact file
+- the output must not be the file the Dataset was opened from; write to a new
+  path. The file is written to a temporary name and renamed into place when
+  complete, so an interrupted write never leaves a truncated file
 - generated DIF names must be declared on the parent variable with
   ``attrs["diff"]`` and must start with ``DIF``
 - Dataset DIF writing is parent-led; do not add ``DIF*`` variables as separate
@@ -135,7 +144,7 @@ disk.
        nx=20,
        ny=20,
    )
-   vertical_axis = arlmet.VerticalAxis(flag=2, levels=[0.0, 1000.0])
+   vertical_axis = arlmet.PressureAxis(levels=[0.0, 1000.0])
    time = pd.Timestamp("2024-07-18 00:00")
 
    prss = np.ones((grid.ny, grid.nx), dtype=np.float32)
