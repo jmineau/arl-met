@@ -29,6 +29,21 @@ variables unchanged.
    print(ds["UWND"].dims)  # ('time', 'level', 'lat', 'lon')
    ds.isel(level=0)        # selects first upper level; surface vars unchanged
 
+arlmet also registers itself as an xarray backend, so the same Dataset is
+available through :func:`xarray.open_dataset` with ``engine="arl"``. That route
+adds xarray's generic options, such as ``chunks=`` for dask-backed arrays:
+
+.. code-block:: python
+
+   import xarray as xr
+
+   ds = xr.open_dataset("path/to/file.arl", engine="arl")
+   ds = xr.open_dataset("path/to/file.arl", engine="arl", chunks={"time": 1})
+
+ARL files have no standard extension, so xarray recognizes them by their first
+record: ``xr.open_dataset("path/to/file.arl")`` works without ``engine=`` too,
+as long as no other installed backend claims the file first.
+
 Select a smaller domain while reading
 -------------------------------------
 

@@ -40,6 +40,7 @@ archives = ["fsspec>=2024.2", "s3fs>=2024.2"]
 dev = [
     "arlmet[archives]",
     "build>=1.2",
+    "dask>=2023.6",
     "docstr-coverage>=2.0.0",
     "pydata-sphinx-theme>=0.14.0",
     "pre-commit>=3.0.0",
@@ -52,6 +53,9 @@ dev = [
     "sphinx-autodoc-typehints>=1.24.0",
     "twine>=5.0",
 ]
+
+[project.entry-points."xarray.backends"]
+arl = "arlmet.xarray._entrypoint:ARLBackendEntrypoint"
 
 [project.urls]
 Homepage = "https://github.com/jmineau/arl-met"
