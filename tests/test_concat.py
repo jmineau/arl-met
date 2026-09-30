@@ -291,3 +291,41 @@ def test_concat_by_time_rejects_non_arl_file(tmp_path):
         concat_by_time(
             src, tmp_path / "out", pattern="*_hrrr", template="{time:%Y%m%d}_hrrr"
         )
+
+
+def test_concat_by_time_rejects_file_straddling_bin(tmp_path):
+    src = tmp_path / "hrrr"
+    src.mkdir()
+    # One file spanning 18Z Jan 1 to 00Z Jan 2 crosses the daily boundary.
+    write_arl(src / "a_hrrr", ["2024-01-01 18:00", "2024-01-02 00:00"])
+    out = tmp_path / "daily"
+
+    with pytest.raises(ValueError, match="straddles a '1D' bin boundary"):
+        concat_by_time(src, out, freq="1D", pattern="*_hrrr")
+    assert not out.exists()
+
+
+def test_concat_by_time_accepts_multi_time_file_within_bin(tmp_path):
+    src = tmp_path / "hrrr"
+    src.mkdir()
+    write_arl(src / "a_hrrr", ["2024-01-01 00:00", "2024-01-01 06:00"])
+    write_arl(src / "b_hrrr", ["2024-01-01 12:00", "2024-01-01 18:00"])
+
+    written = concat_by_time(src, tmp_path / "daily", freq="1D", pattern="*_hrrr")
+
+    assert [p.name for p in written] == ["20240101_arl"]
+    with File(written[0]) as day:
+        assert len(day.times) == 4
+
+
+def test_concat_by_time_rejects_template_collision(tmp_path):
+    src = tmp_path / "hrrr"
+    out = tmp_path / "out"
+    populate_hrrr_dir(src)
+
+    # 6-hourly bins all format to the same daily filename.
+    with pytest.raises(ValueError, match="gives the same filename"):
+        concat_by_time(
+            src, out, freq="6h", pattern="*_hrrr", template="{time:%Y%m%d}_hrrr"
+        )
+    assert not out.exists()

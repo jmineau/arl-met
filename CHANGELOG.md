@@ -4,6 +4,13 @@ All notable changes to arl-met are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `concat_by_time()` put a file whose valid times crossed a `freq` bin boundary wholly into its first bin, so e.g. a file spanning 18Z–00Z landed in the earlier day's output. It now raises `ValueError` naming the file (files are never split) (#26)
+- `concat_by_time()` silently overwrote output files when `template` gave two bins the same name (e.g. `"{time:%Y%m%d}"` with `freq="6h"`). It now raises `ValueError` before writing anything
+
 ## [0.1.0a9] - 2026-09-29
 
 ### Added
