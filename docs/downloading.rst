@@ -73,7 +73,7 @@ options, which is convenient when the product comes from a config file:
 
    sorted(ARCHIVES)  # ['gdas0p5', 'gdas1', 'gfs0p25', 'hrrr', ...]
    archive = get_archive("nams", domain="ak")
-   files = archive.fetch("2024-07-18", "2024-07-19", local_dir="./met/")
+   files = archive.fetch("2024-07-18", "2024-07-19", dest_dir="./met/")
 
 An unknown name raises ``ValueError`` listing the available ones. A subclass of
 :class:`arlmet.archives.Archive` that sets ``name`` is registered
@@ -91,7 +91,7 @@ Download files for a time range
    files = archive.fetch(
        "2024-07-18 00:00",
        "2024-07-19 00:00",
-       local_dir="./met",
+       dest_dir="./met",
    )
 
 ``fetch()`` returns the local paths in chronological order. Duplicate archive
@@ -112,7 +112,7 @@ before it is cached locally.
    files = archive.fetch(
        "2024-07-18 00:00",
        "2024-07-19 00:00",
-       local_dir="./met",
+       dest_dir="./met",
        bbox=(-114.0, 39.0, -110.0, 42.0),
    )
 
@@ -127,7 +127,7 @@ surface. It works with or without ``bbox``.
    files = archive.fetch(
        "2024-07-18 00:00",
        "2024-07-19 00:00",
-       local_dir="./met",
+       dest_dir="./met",
        bbox=(-114.0, 39.0, -110.0, 42.0),
        levels=range(20),   # the lowest 20 levels
    )
@@ -137,8 +137,8 @@ The crop is part of each cached file's name (for example
 differently are cached separately. Bbox values are written with two decimals
 unless they have more, which are kept in full (``...crop_-111.925_...``).
 
-The full, uncropped file is downloaded into ``local_dir`` (not the system temp
-directory) and deleted once the crop is written, so ``local_dir`` needs room
+The full, uncropped file is downloaded into ``dest_dir`` (not the system temp
+directory) and deleted once the crop is written, so ``dest_dir`` needs room
 for one full file at a time (about 3 GB for HRRR).
 
 Choose a mirror
@@ -152,7 +152,7 @@ the fastest choice.
    files = archive.fetch(
        "2024-07-18",
        "2024-07-19",
-       local_dir="./met",
+       dest_dir="./met",
        mirror="ftp",
    )
 
@@ -181,6 +181,6 @@ start of its archive) raises ``ValueError``.
    files = archive.fetch(
        "2024-07-18",
        "2024-07-19",
-       local_dir="./met",
+       dest_dir="./met",
        overwrite=True,
    )

@@ -24,13 +24,13 @@ Example
 -------
 >>> from arlmet.archives import HRRRArchive
 >>> archive = HRRRArchive()
->>> files = archive.fetch("2024-07-18", "2024-07-19", local_dir="./met/")
+>>> files = archive.fetch("2024-07-18", "2024-07-19", dest_dir="./met/")
 
 >>> # Crop to domain on download (recommended due to large file sizes)
 >>> files = archive.fetch(
 ...     "2024-07-18",
 ...     "2024-07-19",
-...     local_dir="./met/",
+...     dest_dir="./met/",
 ...     bbox=(-114.0, 39.0, -110.0, 42.0),
 ... )
 
@@ -153,9 +153,7 @@ def get_archive(name: str, **options: Any) -> Archive:
     Examples
     --------
     >>> from arlmet.archives import get_archive
-    >>> files = get_archive("hrrr").fetch(
-    ...     "2024-07-18", "2024-07-19", local_dir="./met/"
-    ... )
+    >>> files = get_archive("hrrr").fetch("2024-07-18", "2024-07-19", dest_dir="./met/")
     """
     try:
         cls = ARCHIVES[name]
@@ -189,8 +187,8 @@ class Archive(ABC):
 
     Methods
     -------
-    keys_for_range(start, end)
-        Return archive keys covering the requested inclusive time range.
+    paths_for_range(start, end)
+        Return archive paths covering the requested inclusive time range.
     fetch(start, end, ...)
         Download or crop local ARL files for the requested time range.
     """
@@ -226,19 +224,22 @@ class Archive(ABC):
 
     @abstractmethod
     def _archive_path(self, time: pd.Timestamp) -> str:
-        """S3 key (no leading slash) for the ARL file containing *time*."""
+        """Path within the archive (no leading slash) of the ARL file containing *time*."""
 
     # ------------------------------------------------------------------
     # Public interface
     # ------------------------------------------------------------------
 
-    def keys_for_range(
+    def paths_for_range(
         self,
         start: pd.Timestamp | str,
         end: pd.Timestamp | str,
     ) -> list[str]:
         """
-        Return deduplicated, sorted S3 keys covering ``[start, end]``.
+        Return deduplicated, sorted archive paths covering ``[start, end]``.
+
+        Each path is relative to the archive root and is the same on every
+        mirror, e.g. ``"hrrr/2024/07/20240718_00-05_hrrr"``.
 
         Handles backward trajectories (``start > end``) by normalizing to
         chronological order before scanning.
@@ -251,7 +252,7 @@ class Archive(ABC):
         Returns
         -------
         list[str]
-            Unique archive keys in chronological order.
+            Unique archive paths in chronological order.
 
         Raises
         ------
@@ -274,36 +275,36 @@ class Archive(ABC):
             )
 
         seen: set[str] = set()
-        keys: list[str] = []
+        paths: list[str] = []
         t = t0
         while t <= t1:
-            key = self._archive_path(t)
-            if key not in seen:
-                seen.add(key)
-                keys.append(key)
+            path = self._archive_path(t)
+            if path not in seen:
+                seen.add(path)
+                paths.append(path)
             t = ensure_timestamp(t + pd.Timedelta(hours=1))
-        return keys
+        return paths
 
     def fetch(
         self,
         start: pd.Timestamp | str,
         end: pd.Timestamp | str,
         *,
-        local_dir: Path | str,
+        dest_dir: Path | str,
         mirror: Literal["s3", "ftp", "http"] = "s3",
         bbox: tuple[float, float, float, float] | None = None,
         levels: Iterable[int] | None = None,
         overwrite: bool = False,
     ) -> list[Path]:
         """
-        Download ARL files covering ``[start, end]`` to *local_dir*.
+        Download ARL files covering ``[start, end]`` to *dest_dir*.
 
         Parameters
         ----------
         start, end :
             Time range (inclusive). Backward trajectories (start > end)
             are handled automatically.
-        local_dir :
+        dest_dir :
             Directory to save downloaded files. Created if absent.
         mirror :
             Which copy of the archive to download from — ``"s3"`` (default,
@@ -336,16 +337,16 @@ class Archive(ABC):
         Notes
         -----
         Files are written to a hidden ``.<name>.<random>.partial`` file in
-        *local_dir* and renamed into place only once complete, so an
+        *dest_dir* and renamed into place only once complete, so an
         interrupted fetch never leaves a truncated file that a later call
         would reuse. When cropping, the full download is also staged in
-        *local_dir* (not the system temp directory) and removed afterwards.
+        *dest_dir* (not the system temp directory) and removed afterwards.
 
         Examples
         --------
         >>> from arlmet.archives import HRRRArchive
         >>> archive = HRRRArchive()
-        >>> archive.fetch("2024-07-18", "2024-07-19", local_dir="./met")
+        >>> archive.fetch("2024-07-18", "2024-07-19", dest_dir="./met")
         """
         try:
             import fsspec  # noqa: F401
@@ -355,21 +356,21 @@ class Archive(ABC):
                 "Install with: pip install arlmet[archives]"
             ) from None
 
-        local_dir = Path(local_dir)
-        local_dir.mkdir(parents=True, exist_ok=True)
+        dest_dir = Path(dest_dir)
+        dest_dir.mkdir(parents=True, exist_ok=True)
         keep = None if levels is None else sorted({int(level) for level in levels})
 
         results: list[Path] = []
-        for key in self.keys_for_range(start, end):
-            filename = Path(key).name
-            dest = self._dest_path(local_dir, filename, bbox, keep)
+        for archive_path in self.paths_for_range(start, end):
+            filename = Path(archive_path).name
+            dest = self._dest_path(dest_dir, filename, bbox, keep)
 
             if not overwrite and dest.exists():
                 logger.debug("Using cached %s", dest.name)
                 results.append(dest)
                 continue
 
-            url = self._url(key, mirror)
+            url = self._url(archive_path, mirror)
             opts = self._storage_options(mirror)
             logger.info("Fetching %s → %s", url, dest.name)
 
@@ -388,7 +389,7 @@ class Archive(ABC):
 
     def _dest_path(
         self,
-        local_dir: Path,
+        dest_dir: Path,
         filename: str,
         bbox: tuple[float, float, float, float] | None,
         levels: list[int] | None = None,
@@ -407,17 +408,17 @@ class Archive(ABC):
             tag += ".crop_" + "_".join(_bbox_value_tag(v) for v in bbox)
         if levels is not None:
             tag += f".levels_{_level_ranges(levels)}"
-        return local_dir / f"{filename}{tag}"
+        return dest_dir / f"{filename}{tag}"
 
-    def _url(self, key: str, mirror: str) -> str:
-        """Return the fully qualified remote URL for an archive key."""
+    def _url(self, path: str, mirror: str) -> str:
+        """Return the fully qualified remote URL for an archive path."""
         if mirror == "s3":
-            return f"s3://{self.S3_BUCKET}/{key}"
+            return f"s3://{self.S3_BUCKET}/{path}"
         if mirror == "ftp":
-            # FTP path mirrors S3 key structure under /archives/
-            return f"ftp://anonymous@{self.FTP_HOST}/archives/{key}"
+            # The FTP mirror has the same layout under /archives/
+            return f"ftp://anonymous@{self.FTP_HOST}/archives/{path}"
         if mirror == "http":
-            return f"{self.HTTP_BASE}/{key}"
+            return f"{self.HTTP_BASE}/{path}"
         raise ValueError(f"Unknown mirror {mirror!r}. Choose 's3', 'ftp', or 'http'.")
 
     def _storage_options(self, mirror: str) -> dict[str, Any]:
@@ -510,7 +511,7 @@ class HRRRArchive(Archive):
 
     @override
     def _archive_path(self, time: pd.Timestamp) -> str:
-        """Return the NOAA ARL S3 object key for the HRRR file covering *time*."""
+        """Return the archive path of the HRRR file covering *time*."""
         return f"hrrr/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
@@ -533,7 +534,7 @@ class NAMArchive(Archive):
 
     @override
     def _archive_path(self, time: pd.Timestamp) -> str:
-        """Return the NOAA ARL S3 object key for the NAM file covering *time*."""
+        """Return the archive path of the NAM file covering *time*."""
         return f"nam12/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
@@ -564,7 +565,7 @@ class GDASArchive(Archive):
 
     @override
     def _archive_path(self, time: pd.Timestamp) -> str:
-        """Return the NOAA ARL S3 object key for the GDAS file covering *time*."""
+        """Return the archive path of the GDAS file covering *time*."""
         return f"gdas1/{time.year}/{self._filename(time)}"
 
 
@@ -588,7 +589,7 @@ class GFSArchive(Archive):
 
     @override
     def _archive_path(self, time: pd.Timestamp) -> str:
-        """Return the NOAA ARL S3 object key for the GFS file covering *time*."""
+        """Return the archive path of the GFS file covering *time*."""
         return f"gfs0p25/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
@@ -631,7 +632,7 @@ class NAMSArchive(Archive):
 
     @override
     def _archive_path(self, time: pd.Timestamp) -> str:
-        """Return the NOAA ARL S3 object key for the NAMS file covering *time*."""
+        """Return the archive path of the NAMS file covering *time*."""
         return f"nams/{time.year}/{time.month:02d}/{self._filename(time)}"
 
     @override
@@ -660,7 +661,7 @@ class ReanalysisArchive(Archive):
 
     @override
     def _archive_path(self, time: pd.Timestamp) -> str:
-        """Return the NOAA ARL S3 object key for the reanalysis file covering *time*."""
+        """Return the archive path of the reanalysis file covering *time*."""
         return f"reanalysis/{time.year}/{self._filename(time)}"
 
 
@@ -687,7 +688,7 @@ class HRRRv1Archive(Archive):
 
     @override
     def _archive_path(self, time: pd.Timestamp) -> str:
-        """Return the NOAA ARL S3 object key for the HRRR v1 file covering *time*."""
+        """Return the archive path of the HRRR v1 file covering *time*."""
         return f"hrrr.v1/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
@@ -711,7 +712,7 @@ class GDAS0p5Archive(Archive):
 
     @override
     def _archive_path(self, time: pd.Timestamp) -> str:
-        """Return the NOAA ARL S3 object key for the GDAS 0.5-degree file covering *time*."""
+        """Return the archive path of the GDAS 0.5-degree file covering *time*."""
         return f"gdas0p5/{time.year}/{time.month:02d}/{self._filename(time)}"
 
 
@@ -736,7 +737,7 @@ class NARRArchive(Archive):
 
     @override
     def _archive_path(self, time: pd.Timestamp) -> str:
-        """Return the NOAA ARL S3 object key for the NARR file covering *time*."""
+        """Return the archive path of the NARR file covering *time*."""
         return f"narr/{time.year}/{self._filename(time)}"
 
 

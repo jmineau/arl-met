@@ -184,7 +184,8 @@ def concat_by_time(
     *,
     freq: str = "1D",
     pattern: str = "*",
-    time_range: tuple[str | pd.Timestamp, str | pd.Timestamp] | None = None,
+    start: str | pd.Timestamp | None = None,
+    end: str | pd.Timestamp | None = None,
     template: str = "{time:%Y%m%d}_arl",
     sort: bool = True,
 ) -> list[Path]:
@@ -213,9 +214,9 @@ def concat_by_time(
     pattern : str, default "*"
         Glob (relative to ``directory``) selecting input files. Scope it to ARL
         files; every match must be a readable ARL file.
-    time_range : tuple of (start, end), optional
-        Inclusive ``(start, end)`` filter on each file's first valid time. Files
-        whose first time falls outside the range are skipped.
+    start, end : str or pandas.Timestamp, optional
+        Inclusive bounds on each file's first valid time; files outside them
+        are skipped. Either may be omitted to leave that side open.
     template : str, default "{time:%Y%m%d}_arl"
         ``str.format`` template for output filenames, given the bin start time
         as ``time`` (a ``pandas.Timestamp``), e.g. ``"{time:%Y%m%d}_hrrr"``. It
@@ -258,15 +259,14 @@ def concat_by_time(
     if not candidates:
         raise ValueError(f"No files matched pattern {pattern!r} in {directory}.")
 
-    time_filter: tuple[pd.Timestamp, pd.Timestamp] | None = None
-    if time_range is not None:
-        time_filter = (pd.Timestamp(time_range[0]), pd.Timestamp(time_range[1]))
+    start_time = None if start is None else pd.Timestamp(start)
+    end_time = None if end is None else pd.Timestamp(end)
 
     groups: dict[pd.Timestamp, list[Path]] = defaultdict(list)
     for path in candidates:
         first_time, last_time = _read_time_span(path)
-        if time_filter is not None and not (
-            time_filter[0] <= first_time <= time_filter[1]
+        if (start_time is not None and first_time < start_time) or (
+            end_time is not None and first_time > end_time
         ):
             continue
         bin_start = first_time.floor(freq)
