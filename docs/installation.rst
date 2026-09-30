@@ -15,7 +15,7 @@ from the NOAA ARL archives:
 
 .. code-block:: bash
 
-   pip install "arlmet[sources]"
+   pip install "arlmet[archives]"
 
 Development Installation
 ------------------------

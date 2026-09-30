@@ -12,11 +12,11 @@ The public API is:
 
 - every name in ``arlmet.__all__`` (``import arlmet; arlmet.<name>``),
   including the documented methods and attributes of the classes it exports;
-- the :mod:`arlmet.sources` module (``pip install "arlmet[sources]"``);
+- the :mod:`arlmet.archives` module (``pip install "arlmet[archives]"``);
 - the ``ds.arl`` Dataset accessor and the ``engine="arl"`` xarray backend;
 - the layout of Datasets returned by :func:`arlmet.open_dataset` (dimension,
   coordinate, and attribute names) and the names of files cached by
-  :meth:`arlmet.sources.MeteorologySource.fetch`.
+  :meth:`arlmet.archives.Archive.fetch`.
 
 One exception: how Datasets represent forecast hours (today the
 ``forecast_hour(time)`` variable, which holds only each time step's

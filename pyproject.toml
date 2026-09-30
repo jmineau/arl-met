@@ -34,11 +34,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-sources = ["fsspec>=2024.2", "s3fs>=2024.2"]
+archives = ["fsspec>=2024.2", "s3fs>=2024.2"]
 
 [dependency-groups]
 dev = [
-    "arlmet[sources]",
+    "arlmet[archives]",
     "build>=1.2",
     "docstr-coverage>=2.0.0",
     "pydata-sphinx-theme>=0.14.0",

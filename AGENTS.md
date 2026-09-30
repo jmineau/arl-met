@@ -142,7 +142,7 @@ src/arlmet/
     subset.py      extract_subset(), resolve_window(), normalize_levels()
     sample.py      sample_points()
     concat.py      concat(), concat_by_time() — join ARL files into one
-  sources.py       MeteorologySource + HRRRSource, NAMSource, GDASSource, ... — NOAA downloads
+  archives.py      Archive + HRRRArchive, NAMArchive, GDASArchive, ... — NOAA archive downloads; ARCHIVES registry, get_archive()
 tests/
   test_grid.py
   test_low_level.py
@@ -153,7 +153,7 @@ tests/
   test_sample.py
   test_concat.py
   test_format_errors.py
-  test_sources.py
+  test_archives.py
   test_subset.py
   test_vertical.py
   test_writer.py
@@ -186,7 +186,7 @@ ops.subset   → file, grid, header, index, vertical
 ops.sample   → grid, vertical   (TYPE_CHECKING: file, record, recordset)
 ops.concat   → errors, file, index
 xarray/   → file, grid, ops.subset, vertical  (TYPE_CHECKING: record, recordset)
-sources   → ops.subset
+archives  → ops.subset
 ```
 
 Delayed (in-function-body) imports: `DataRecord.to_xarray()` → `xarray`; `File.extract_subset()` → `ops.subset` and
@@ -306,8 +306,14 @@ arlmet.write_dataset(ds, "out.arl")
 
 # Path-parameter naming (all ops): inputs are `path` / `paths`, outputs are
 # `dest` (a file) / `dest_dir` (a directory). `source` means only the ARL
-# 4-character source ID (File.source, ds.attrs["source"]) and arlmet.sources.
+# 4-character source ID (File.source, ds.attrs["source"]); the download
+# classes are "archives" and their server is the "mirror".
 # open_dataset/write_dataset keep xarray's `filename_or_obj`.
+
+# Download from NOAA's ARL archives (pip install "arlmet[archives]")
+from arlmet.archives import ARCHIVES, get_archive, HRRRArchive
+files = get_archive("hrrr").fetch("2024-07-18", "2024-07-19", local_dir="met/",
+                                   mirror="s3", bbox=(-114, 39, -110, 42))
 
 # Direct subset extraction (fast, crop-before-unpack); returns Path(dest)
 out = arlmet.extract_subset("in.arl", "out.arl", bbox=(-130, 20, -60, 60))

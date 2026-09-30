@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from arlmet import File, extract_subset, open_dataset
-from arlmet.sources import GDASSource, HRRRSource
+from arlmet.archives import GDASArchive, HRRRArchive
 
 _XTRCT_GRID_URL = (
     "https://raw.githubusercontent.com/uataq/stilt/main/bin/linux_x64/xtrct_grid"
@@ -25,8 +25,8 @@ _WEST_NA_BBOX = (-140.0, 20.0, -85.0, 60.0)
 _XTRCT_LEVELS = list(range(18))
 
 _SUBSET_CASES = [
-    pytest.param(HRRRSource(), _HRRR_TEST_TIME, _SLV_BBOX, id="hrrr"),
-    pytest.param(GDASSource(), _GDAS_TEST_TIME, _WEST_NA_BBOX, id="gdas1"),
+    pytest.param(HRRRArchive(), _HRRR_TEST_TIME, _SLV_BBOX, id="hrrr"),
+    pytest.param(GDASArchive(), _GDAS_TEST_TIME, _WEST_NA_BBOX, id="gdas1"),
 ]
 
 
