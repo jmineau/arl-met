@@ -50,23 +50,20 @@ Use :func:`arlmet.extract_subset` when you want a new ARL file on disk.
        "input.arl",
        "cropped.arl",
        bbox=(-114.0, 39.0, -110.0, 42.0),
-   ).close()
+   )
 
-``extract_subset()`` returns the new file opened in read mode, so you can chain
-straight into analysis. Use it as a context manager when you keep the return
-value, or call ``.close()`` right away (as above) if you only need the file on
-disk. An unclosed file keeps its file handle open until Python garbage-collects
-it.
+``extract_subset()`` returns the output path as a :class:`pathlib.Path`, so you
+can pass it straight to :func:`arlmet.open_dataset` or :class:`arlmet.File`.
 
 The subset is written one time step at a time, so memory use is bounded by a
 single cropped time step rather than the whole output file.
 
 .. code-block:: python
 
-   with arlmet.extract_subset(
+   out = arlmet.extract_subset(
        "input.arl", "cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0)
-   ) as cropped:
-       ds = cropped.to_dataset()
+   )
+   ds = arlmet.open_dataset(out)
 
 When you already hold an open :class:`arlmet.File`, the same operation is
 available as a method:
@@ -74,8 +71,8 @@ available as a method:
 .. code-block:: python
 
    with arlmet.File("input.arl") as met:
-       with met.extract_subset("cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0)) as cropped:
-           ds = cropped.to_dataset()
+       out = met.extract_subset("cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0))
+   ds = arlmet.open_dataset(out)
 
 Keep only the levels and variables you need
 -------------------------------------------

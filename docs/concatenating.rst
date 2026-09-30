@@ -28,16 +28,15 @@ order you list them in.
    arlmet.concat(
        ["20240101_00_hrrr", "20240101_06_hrrr", "20240101_12_hrrr"],
        "20240101_hrrr",
-   ).close()
+   )
 
-``concat()`` returns the new file opened in read mode, so you can chain straight
-into analysis. Use it as a context manager when you keep the return value, or
-call ``.close()`` right away (as above) if you only need the file on disk. An
-unclosed file keeps its file handle open until Python garbage-collects it.
+``concat()`` returns the output path as a :class:`pathlib.Path`, so you can pass
+it straight to :class:`arlmet.File` or :func:`arlmet.open_dataset`:
 
 .. code-block:: python
 
-   with arlmet.concat(paths, "20240101_hrrr") as combined:
+   out = arlmet.concat(paths, "20240101_hrrr")
+   with arlmet.File(out) as combined:
        print(combined.times)
 
 Pass ``sort=False`` to join the files in exactly the order given, like ``cat``.
@@ -52,7 +51,7 @@ record stream. ``concat()`` raises ``ValueError`` when:
   record lengths, which would corrupt the stream)
 - the same valid time appears in more than one input (HYSPLIT behaviour on
   repeated times is undefined)
-- a source file is empty, or the output path is also one of the inputs
+- an input file is empty, or the output path is also one of the inputs
 
 Batch concatenation by time
 ---------------------------
@@ -68,8 +67,8 @@ filename — so it is robust to any naming scheme.
 
    arlmet.concat_by_time(
        "hrrr/",                       # directory to scan
-       "daily/",                      # output directory (created if missing)
-       freq="1D",                     # one output file per day
+       "daily/",                      # dest_dir (created if missing)
+       freq="1D",                     # one output file per day (keyword-only)
        pattern="*_hrrr",              # which files to read
        template="{time:%Y%m%d}_hrrr",  # how to name each output
    )

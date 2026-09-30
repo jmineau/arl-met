@@ -1,5 +1,7 @@
 """Tests for direct ARL subset extraction."""
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -82,25 +84,24 @@ def test_extract_subset_crops_bbox_and_compacts_levels(tmp_path):
         )
 
 
-def test_extract_subset_returns_open_subset_file(tmp_path):
+def test_extract_subset_returns_output_path(tmp_path):
     source = tmp_path / "source.arl"
     destination = tmp_path / "subset.arl"
     write_subset_source(source)
 
     result = extract_subset(
-        source,
-        destination,
+        path=source,
+        dest=str(destination),
         bbox=(22.0, -8.0, 33.0, 3.0),
         levels=[0, 2],
         variables=["PRSS", "UWND"],
     )
-    try:
-        assert isinstance(result, File)
-        assert result.path == destination
-        assert result.grid.nx == 12
-        assert result.grid.ny == 12
-    finally:
-        result.close()
+
+    assert isinstance(result, Path)
+    assert result == destination
+    with File(result) as subset:
+        assert subset.grid.nx == 12
+        assert subset.grid.ny == 12
 
 
 def test_file_extract_subset_method_matches_module_function(tmp_path):
@@ -108,15 +109,15 @@ def test_file_extract_subset_method_matches_module_function(tmp_path):
     destination = tmp_path / "subset.arl"
     write_subset_source(source)
 
-    with (
-        File(source) as met,
-        met.extract_subset(
-            destination,
+    with File(source) as met:
+        result = met.extract_subset(
+            dest=destination,
             bbox=(22.0, -8.0, 33.0, 3.0),
             levels=[0, 2],
             variables=["PRSS", "UWND"],
-        ) as subset,
-    ):
+        )
+        assert result == destination
+    with File(source) as met, File(result) as subset:
         assert subset.grid.nx == 12
         assert subset.vertical_axis.levels.tolist() == [0.0, 2000.0]
         assert subset.times == met.times
@@ -315,12 +316,12 @@ def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
     )
 
 
-def test_extract_subset_rejects_destination_equal_to_source(tmp_path):
+def test_extract_subset_rejects_dest_equal_to_path(tmp_path):
     source = tmp_path / "source.arl"
     write_subset_source(source)
     size = source.stat().st_size
 
-    with pytest.raises(ValueError, match="same file as the source"):
+    with pytest.raises(ValueError, match="same file as the input"):
         extract_subset(source, source, levels=[0, 1])
     link = tmp_path / "link.arl"
     try:
@@ -328,7 +329,7 @@ def test_extract_subset_rejects_destination_equal_to_source(tmp_path):
     except OSError:  # Windows without symlink privilege
         pass
     else:
-        with pytest.raises(ValueError, match="same file as the source"):
+        with pytest.raises(ValueError, match="same file as the input"):
             extract_subset(source, link, levels=[0, 1])
 
     assert source.stat().st_size == size
@@ -357,7 +358,7 @@ def test_extract_subset_output_honors_umask(tmp_path):
     plain = tmp_path / "plain"
     plain.touch()
 
-    extract_subset(source, destination, levels=[0, 1]).close()
+    extract_subset(source, destination, levels=[0, 1])
 
     # Same permissions as any normally created file (not mkstemp's 0600).
     assert destination.stat().st_mode & 0o777 == plain.stat().st_mode & 0o777

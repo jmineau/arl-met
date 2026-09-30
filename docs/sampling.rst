@@ -10,8 +10,9 @@ Basic usage
 -----------
 
 Provide the points as a DataFrame (or dict) with ``lon``, ``lat``, ``z``, and
-``time`` columns, plus the variables you want sampled. ``source`` can be a path
-to an ARL file — :func:`arlmet.sample_points` opens and closes it for you.
+``time`` columns, plus the variables you want sampled. The first argument,
+``files``, can be a path to an ARL file — :func:`arlmet.sample_points` opens and
+closes it for you.
 
 .. code-block:: python
 
@@ -30,7 +31,10 @@ to an ARL file — :func:`arlmet.sample_points` opens and closes it for you.
    result = arlmet.sample_points("met.arl", points, ["UWND", "VWND", "TEMP"])
 
 The returned DataFrame is a copy of ``points`` with one column added per
-requested variable. The original index is preserved.
+requested variable. Every column of ``points`` (IDs, observations, anything
+else) and its index are preserved, so you can compare samples with
+observations row by row. A requested variable whose name matches an existing
+column raises ``ValueError`` rather than overwriting it.
 
 If you already have an open file, pass it instead of a path. The
 :class:`arlmet.File` object also exposes the same operation as a method:
@@ -117,18 +121,28 @@ for example from :func:`arlmet.open_dataset`:
 
    u_earth, v_earth = met.grid.rotate_winds(u, v, lon, lat)
 
-Single-time files
------------------
+Point times
+-----------
 
-When the file holds a single time, the ``time`` column may be omitted and that
-time is used for every point. You can also pass ``time=`` to supply or override
-a single timestamp.
+Each point's valid time comes from exactly one place:
+
+- the ``time`` column of ``points``, if it has one;
+- otherwise the ``time=`` argument, applied to every point;
+- otherwise, when the input file(s) hold a single valid time, that time.
+
+Passing both a ``time`` column and ``time=`` is ambiguous and raises
+``ValueError``, as does giving neither for inputs that hold more than one time.
+A point time that no input file contains raises ``ValueError`` naming the
+missing times.
 
 .. code-block:: python
 
    points = pd.DataFrame({"lon": [-111.9], "lat": [40.7], "z": [850.0]})
 
    result = arlmet.sample_points("single_time.arl", points, ["TEMP"])
+   result = arlmet.sample_points(
+       "multi_time.arl", points, ["TEMP"], time="2024-07-18 06:00"
+   )
 
 Sampling across multiple files
 ------------------------------
@@ -149,9 +163,9 @@ open, and paths are closed for you.
 Limitations
 -----------
 
-- Each timestamp must be present in at most one source file; overlapping times
+- Each timestamp must be present in at most one input file; overlapping times
   raise ``ValueError``.
-- Point times not covered by any source raise ``ValueError``.
+- Point times not covered by any input file raise ``ValueError``.
 - ``z_kind="agl"`` and ``"msl"`` use different field requirements depending on
   the vertical flag: pressure files (flag=2) require ``HGTS``; sigma/hybrid
   files (flag=1/4) use hypsometric integration from ``PRSS`` and ``TEMP``;

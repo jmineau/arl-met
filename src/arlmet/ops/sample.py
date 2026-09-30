@@ -6,7 +6,7 @@ import os
 from collections import OrderedDict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Literal, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -33,8 +33,16 @@ SURFACE_VARIABLES = {"PRSS", "SHGT"}
 #: Wind component pairs that are stored grid-relative on projected grids.
 WIND_PAIRS: tuple[tuple[str, str], ...] = (("UWND", "VWND"), ("U10M", "V10M"))
 
-# A single sampling source: an open File or a path to an ARL file.
-SourceLike = Union["File", str, "os.PathLike[str]"]
+# One sampling input: an open File or a path to an ARL file.
+FileLike = Union["File", str, "os.PathLike[str]"]
+
+#: Vertical coordinate systems accepted for the ``z`` of sample points.
+ZKind = Literal["native", "pressure", "agl", "msl"]
+#: Horizontal interpolation methods for point sampling.
+SampleMethod = Literal["linear", "nearest"]
+
+_Z_KINDS = frozenset({"native", "pressure", "agl", "msl"})
+_METHODS = frozenset({"linear", "nearest"})
 
 
 @dataclass(frozen=True)
@@ -51,7 +59,7 @@ class HorizontalSamplePlan:
     wx, wy : fractional weights toward x1/y1 (zero for nearest-neighbor)
     """
 
-    method: str
+    method: SampleMethod
     window: GridWindow | None
     inside: npt.NDArray[Any]
     x0: npt.NDArray[Any]
@@ -64,41 +72,69 @@ class HorizontalSamplePlan:
 
 def _normalize_points(
     points: pd.DataFrame | Mapping[str, Any],
+    variable_names: Sequence[str],
     *,
-    require_time: bool,
-    default_time: pd.Timestamp | None = None,
-) -> pd.DataFrame:
-    """Coerce *points* to a DataFrame with float lon/lat/z and Timestamp time columns."""
+    time: pd.Timestamp | str | None,
+    implied_time: pd.Timestamp | None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Validate *points* and split it into the result frame and sampling coordinates.
+
+    Returns ``(result, coords)``. *result* is a copy of *points* as a DataFrame,
+    with every column and the index preserved, that the sampled variables are
+    added to. *coords* has a positional ``RangeIndex`` aligned row-for-row with
+    *result* and holds float ``lon``/``lat``/``z`` and Timestamp ``time``
+    columns.
+
+    The point time comes from the ``time`` column, else from *time*, else from
+    *implied_time* (the single valid time of the inputs). Giving both a
+    ``time`` column and *time* is ambiguous and raises ``ValueError``.
+    """
     df = points if isinstance(points, pd.DataFrame) else pd.DataFrame(points)
 
-    missing = [name for name in ("lon", "lat") if name not in df.columns]
+    missing = [name for name in ("lon", "lat", "z") if name not in df.columns]
     if missing:
         raise ValueError(
-            "Point sampling requires 'lon' and 'lat' columns, "
+            "Point sampling requires 'lon', 'lat', and 'z' columns, "
             f"missing {', '.join(repr(name) for name in missing)}."
         )
 
-    normalized = pd.DataFrame(index=df.index.copy())
-    normalized["lon"] = np.asarray(df["lon"], dtype=float)
-    normalized["lat"] = np.asarray(df["lat"], dtype=float)
-
-    if "time" in df.columns:
-        normalized["time"] = pd.to_datetime(df["time"])
-    elif default_time is not None:
-        normalized["time"] = pd.Timestamp(default_time)
-    elif require_time:
+    clashes = [name for name in variable_names if name in df.columns]
+    if clashes:
         raise ValueError(
-            "Point sampling requires a 'time' column unless a single file time is implied."
+            "Requested variables collide with existing columns of points: "
+            f"{', '.join(repr(name) for name in clashes)}. Rename or drop those "
+            "columns before sampling."
         )
 
-    if "z" in df.columns:
-        normalized["z"] = np.asarray(df["z"], dtype=float)
+    has_time_column = "time" in df.columns
+    if has_time_column and time is not None:
+        raise ValueError(
+            "points has a 'time' column and time= was also given; pass only one."
+        )
+
+    coords = pd.DataFrame(
+        {
+            "lon": np.asarray(df["lon"], dtype=float),
+            "lat": np.asarray(df["lat"], dtype=float),
+            "z": np.asarray(df["z"], dtype=float),
+        }
+    )
+    if has_time_column:
+        coords["time"] = pd.to_datetime(df["time"]).to_numpy()
+    elif time is not None:
+        coords["time"] = ensure_timestamp(time)
+    elif implied_time is not None:
+        coords["time"] = implied_time
     else:
         raise ValueError(
-            "Point sampling requires a 'z' column for native, pressure, agl, or msl queries."
+            "Point sampling needs a time: add a 'time' column to points or pass "
+            "time=, unless the input file(s) contain exactly one valid time."
         )
+    if np.any(pd.isna(coords["time"])):
+        raise ValueError("points has missing (NaT) values in its 'time' column.")
 
-    return normalized
+    return df.copy(), coords
 
 
 def _normalize_variables(variables: str | Iterable[str]) -> tuple[str, ...]:
@@ -132,23 +168,22 @@ def _check_wind_pairs(variable_names: Sequence[str]) -> list[tuple[str, str]]:
     return pairs
 
 
-def _rotate_wind_columns(
-    result: pd.DataFrame, grid: Grid, pairs: Sequence[tuple[str, str]]
+def _rotate_winds(
+    sampled: dict[str, npt.NDArray[Any]],
+    grid: Grid,
+    lon: npt.NDArray[Any],
+    lat: npt.NDArray[Any],
+    pairs: Sequence[tuple[str, str]],
 ) -> None:
-    """Rotate each sampled wind pair in *result* from grid- to earth-relative, in place."""
+    """Rotate each sampled wind pair in *sampled* from grid- to earth-relative, in place."""
     if grid.is_latlon or not pairs:
         return
-    lon = result["lon"].to_numpy(dtype=float)
-    lat = result["lat"].to_numpy(dtype=float)
     for u_name, v_name in pairs:
         u_earth, v_earth = grid.rotate_winds(
-            result[u_name].to_numpy(dtype=float),
-            result[v_name].to_numpy(dtype=float),
-            lon,
-            lat,
+            sampled[u_name].astype(float), sampled[v_name].astype(float), lon, lat
         )
-        result[u_name] = u_earth.astype(np.float32)
-        result[v_name] = v_earth.astype(np.float32)
+        sampled[u_name] = np.asarray(u_earth, dtype=np.float32)
+        sampled[v_name] = np.asarray(v_earth, dtype=np.float32)
 
 
 def _record_levels(recordset: RecordSet, variable: str) -> OrderedDict[int, DataRecord]:
@@ -180,7 +215,7 @@ def _build_horizontal_plan(
     lon: npt.NDArray[Any],
     lat: npt.NDArray[Any],
     *,
-    method: str,
+    method: SampleMethod,
 ) -> HorizontalSamplePlan:
     """
     Compute grid-space fractional indices and bilinear weights for (lon, lat) points.
@@ -371,7 +406,7 @@ def _vertical_coords(
     recordset: RecordSet,
     levels: Sequence[int],
     *,
-    z_kind: str,
+    z_kind: ZKind,
     plan: HorizontalSamplePlan,
     surface_pressure: npt.NDArray[Any] | None,
     terrain: npt.NDArray[Any] | None,
@@ -507,7 +542,7 @@ def _sample_variable(
     variable: str,
     targets: npt.NDArray[Any],
     *,
-    z_kind: str,
+    z_kind: ZKind,
     plan: HorizontalSamplePlan,
     surface_pressure: npt.NDArray[Any] | None,
     terrain: npt.NDArray[Any] | None,
@@ -588,68 +623,54 @@ def _sample_variable(
 
 def _sample_points_from_file(
     file: File,
-    points: pd.DataFrame | Mapping[str, Any],
-    variables: str | Iterable[str],
+    time: pd.Timestamp,
+    coords: pd.DataFrame,
+    variable_names: Sequence[str],
     *,
-    time: pd.Timestamp | str | None = None,
-    z_kind: str = "pressure",
-    method: str = "linear",
-    earth_relative: bool = False,
-) -> pd.DataFrame:
+    z_kind: ZKind,
+    method: SampleMethod,
+    wind_pairs: Sequence[tuple[str, str]],
+) -> dict[str, npt.NDArray[Any]]:
     """
-    Sample meteorological variables at arbitrary (lon, lat, z, time) points from one file.
+    Sample variables at points that all share one valid time in one file.
 
     Parameters
     ----------
     file :
-        Open ARL :class:`~arlmet.file.File` in read mode.
-    points :
-        DataFrame or dict with columns ``lon``, ``lat``, ``z``, and optionally ``time``.
-        If ``time`` is absent and *file* has a single time, that time is used for all points.
-    variables :
-        One or more ARL field names (e.g. ``'TEMP'``, ``'UWND'``), or ``'pressure'`` for
-        the virtual pressure variable.
+        Open ARL :class:`~arlmet.file.File` in read mode that contains *time*.
     time :
-        Override or supply a single timestamp when *points* has no ``time`` column.
+        Valid time of every point in *coords*.
+    coords :
+        Normalized points (see :func:`_normalize_points`): float ``lon``,
+        ``lat``, and ``z`` columns.
+    variable_names :
+        ARL field names, or ``'pressure'`` for the virtual pressure variable.
     z_kind :
-        Vertical coordinate system for *z* values:
+        Vertical coordinate system of *z*. The method is fixed by the file's
+        vertical axis, matching HYSPLIT, with no fallback between methods:
 
-        - ``'native'`` — fractional level index
-        - ``'pressure'`` — hPa
-        - ``'agl'`` — metres above ground level (uses HGTS and SHGT when present,
-          otherwise integrated hypsometrically from PRSS and TEMP)
-        - ``'msl'`` — metres above mean sea level (uses HGTS when present,
-          otherwise hypsometric AGL from PRSS and TEMP plus SHGT terrain)
+        - ``'native'``: fractional level index, for every axis.
+        - ``'pressure'``: hPa. Sigma/hybrid (flag 1/4) convert from PRSS;
+          pressure (flag 2) uses the stored levels; terrain-following
+          (flag 3) raises ``ValueError``.
+        - ``'agl'``: metres above ground. Sigma/hybrid integrate
+          hypsometrically from PRSS and TEMP; pressure uses HGTS - SHGT
+          (HGTS is required); terrain-following uses the stored levels.
+        - ``'msl'``: metres above mean sea level. Sigma/hybrid add SHGT to the
+          hypsometric AGL height; pressure uses HGTS (required);
+          terrain-following adds SHGT to the stored levels.
     method :
         Horizontal interpolation: ``'linear'`` (bilinear) or ``'nearest'``.
-    earth_relative :
-        Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``) from
-        the grid axes to east/north. Winds in ARL files on projected grids are
-        stored grid-relative, as HYSPLIT expects. Both components of a pair
-        must be requested. No effect on lat/lon grids.
+    wind_pairs :
+        Wind component pairs to rotate from grid- to earth-relative (see
+        :func:`_check_wind_pairs`); empty to leave winds grid-relative.
 
     Returns
     -------
-    pd.DataFrame
-        Copy of *points* with one column added per requested variable.
+    dict[str, np.ndarray]
+        One array per variable, aligned with the rows of *coords*.
     """
-    variable_names = _normalize_variables(variables)
-    wind_pairs = _check_wind_pairs(variable_names) if earth_relative else []
-    require_time = time is None and len(file.times) != 1
-    default_time = (
-        ensure_timestamp(time)
-        if time is not None
-        else (file.times[0] if len(file.times) == 1 else None)
-    )
-    normalized = _normalize_points(
-        points,
-        require_time=require_time,
-        default_time=default_time,
-    )
-
-    if z_kind not in {"native", "pressure", "agl", "msl"}:
-        raise ValueError("z_kind must be one of 'native', 'pressure', 'agl', or 'msl'.")
-
+    recordset = file[time]
     axis = file.vertical_axis
     # Sigma/hybrid need PRSS for pressure conversion and hypsometric heights.
     need_surface_pressure = (
@@ -661,58 +682,48 @@ def _sample_points_from_file(
         z_kind == "msl" and isinstance(axis, (TerrainAxis, SigmaAxis, HybridAxis))
     )
 
-    result = normalized.copy()
-    for variable in variable_names:
-        result[variable] = np.nan
+    lon = coords["lon"].to_numpy(dtype=float)
+    lat = coords["lat"].to_numpy(dtype=float)
+    plan = _build_horizontal_plan(recordset.grid, lon, lat, method=method)
 
-    for sample_time, index in result.groupby("time").groups.items():
-        recordset = file[ensure_timestamp(sample_time)]
-        subset = result.loc[index]
-        plan = _build_horizontal_plan(
-            recordset.grid,
-            subset["lon"].to_numpy(dtype=float),
-            subset["lat"].to_numpy(dtype=float),
-            method=method,
-        )
-
-        surface_pressure = terrain = None
-        if need_surface_pressure:
-            surface_record = _surface_record(recordset, "PRSS")
-            if surface_record is None:
-                raise ValueError(
-                    f"Surface pressure field PRSS is required but not available at time {recordset.time}."
-                )
-            surface_pressure = _sample_record(surface_record, plan)
-        if need_terrain:
-            terrain_record = _surface_record(recordset, "SHGT")
-            if terrain_record is None:
-                raise ValueError(
-                    f"Terrain field SHGT is required at time {recordset.time}."
-                )
-            terrain = _sample_record(terrain_record, plan)
-
-        targets = subset["z"].to_numpy(dtype=float)
-        for variable in variable_names:
-            sampled = _sample_variable(
-                recordset,
-                variable,
-                targets,
-                z_kind=z_kind,
-                plan=plan,
-                surface_pressure=surface_pressure,
-                terrain=terrain,
+    surface_pressure = terrain = None
+    if need_surface_pressure:
+        surface_record = _surface_record(recordset, "PRSS")
+        if surface_record is None:
+            raise ValueError(
+                f"Surface pressure field PRSS is required but not available at time {recordset.time}."
             )
-            result.loc[index, variable] = sampled
+        surface_pressure = _sample_record(surface_record, plan)
+    if need_terrain:
+        terrain_record = _surface_record(recordset, "SHGT")
+        if terrain_record is None:
+            raise ValueError(
+                f"Terrain field SHGT is required at time {recordset.time}."
+            )
+        terrain = _sample_record(terrain_record, plan)
 
-    _rotate_wind_columns(result, file.grid, wind_pairs)
-    return result
+    targets = coords["z"].to_numpy(dtype=float)
+    sampled = {
+        variable: _sample_variable(
+            recordset,
+            variable,
+            targets,
+            z_kind=z_kind,
+            plan=plan,
+            surface_pressure=surface_pressure,
+            terrain=terrain,
+        )
+        for variable in variable_names
+    }
+    _rotate_winds(sampled, file.grid, lon, lat, wind_pairs)
+    return sampled
 
 
-def _open_sources(
-    source: SourceLike | Sequence[SourceLike],
+def _open_files(
+    files: FileLike | Sequence[FileLike],
 ) -> tuple[tuple[File, ...], list[File]]:
     """
-    Normalize *source* to a tuple of open read-mode Files.
+    Normalize *files* to a tuple of open read-mode Files.
 
     Accepts a single open :class:`~arlmet.file.File` or path, or a sequence of
     them. Paths are opened here; already-open Files are passed through. Returns
@@ -721,65 +732,88 @@ def _open_sources(
     """
     from arlmet.file import File
 
-    if isinstance(source, (File, str, os.PathLike)):
-        items: list[SourceLike] = [source]
+    if isinstance(files, (File, str, os.PathLike)):
+        items: list[FileLike] = [files]
     else:
-        items = list(source)
+        items = list(files)
+    if not items:
+        raise ValueError("sample_points requires at least one input file.")
 
-    files: list[File] = []
+    handles: list[File] = []
     opened: list[File] = []
     try:
         for item in items:
             if isinstance(item, File):
-                files.append(item)
+                handles.append(item)
             else:
                 handle = File(item)  # read mode
-                files.append(handle)
+                handles.append(handle)
                 opened.append(handle)
     except Exception:
         for handle in opened:
             handle.close()
         raise
 
-    return tuple(files), opened
+    return tuple(handles), opened
+
+
+def _map_times(files: Sequence[File]) -> dict[pd.Timestamp, File]:
+    """Map each valid time to the one input File that contains it."""
+    time_map: dict[pd.Timestamp, File] = {}
+    for file in files:
+        for file_time in file.times:
+            file_time = ensure_timestamp(file_time)
+            if file_time in time_map:
+                raise ValueError(
+                    f"Multiple input files contain meteorology for time {file_time}."
+                )
+            time_map[file_time] = file
+    return time_map
 
 
 def sample_points(
-    source: SourceLike | Sequence[SourceLike],
+    files: FileLike | Sequence[FileLike],
     points: pd.DataFrame | Mapping[str, Any],
     variables: str | Iterable[str],
     *,
     time: pd.Timestamp | str | None = None,
-    z_kind: str = "pressure",
-    method: str = "linear",
+    z_kind: ZKind = "pressure",
+    method: SampleMethod = "linear",
     earth_relative: bool = False,
 ) -> pd.DataFrame:
     """
     Sample meteorological variables at arbitrary (lon, lat, z, time) points.
 
     Accepts a single ARL file or a sequence of files spanning different time
-    periods. Each source may be an open :class:`~arlmet.file.File` or a path to
-    an ARL file; paths are opened (read mode) and closed automatically, while
-    already-open Files are left open for the caller to manage.
+    periods. Each may be an open :class:`~arlmet.file.File` or a path to an
+    ARL file; paths are opened (read mode) and closed automatically, while
+    already-open Files are left open for the caller to manage. Each point is
+    sampled from the file that contains its valid time.
 
     Parameters
     ----------
-    source :
+    files : File, path-like, or sequence of File or path-like
         A single open :class:`~arlmet.file.File` or path, or a sequence of
-        Files and/or paths. Each timestamp must appear in at most one source.
-    points :
-        DataFrame or dict with columns ``lon``, ``lat``, ``z``, and ``time``.
-        ``time`` may be omitted when *source* resolves to a single-time file.
-    variables :
-        One or more ARL field names, or ``'pressure'`` for the virtual pressure variable.
-    time :
-        Override or supply a single timestamp when *points* has no ``time`` column.
-    z_kind :
-        Vertical coordinate for *z*: ``'native'``, ``'pressure'``, ``'agl'``, or ``'msl'``.
-        See :meth:`arlmet.File.sample_points` for details.
-    method :
-        Horizontal interpolation: ``'linear'`` (bilinear) or ``'nearest'``.
-    earth_relative :
+        Files and/or paths. Each valid time must appear in at most one file.
+    points : pandas.DataFrame or mapping
+        Table-like object with ``lon``, ``lat`` (degrees), and ``z`` columns,
+        and optionally a ``time`` column. Any other columns are carried
+        through to the result unchanged.
+    variables : str or iterable of str
+        One or more ARL field names (e.g. ``"TEMP"``, ``"UWND"``), or
+        ``"pressure"`` for the virtual pressure variable. A name must not
+        collide with an existing column of ``points``.
+    time : pandas.Timestamp or str, optional
+        One valid time for every point, used when ``points`` has no ``time``
+        column. Passing both raises ``ValueError``. When neither is given, the
+        input file(s) must contain exactly one valid time, which is used.
+    z_kind : {"pressure", "native", "agl", "msl"}, default "pressure"
+        Vertical coordinate system of the ``z`` values. See
+        :meth:`arlmet.File.sample_points` for the method each vertical
+        coordinate system uses and the fields it requires.
+    method : {"linear", "nearest"}, default "linear"
+        Horizontal interpolation: bilinear or nearest grid point.
+    earth_relative : bool, default False
         Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``) from
         the grid axes to east/north, using the meridian convergence of each
         file's grid. Both components of a pair must be requested. No effect on
@@ -787,8 +821,20 @@ def sample_points(
 
     Returns
     -------
-    pd.DataFrame
-        Copy of *points* with one column added per requested variable, index preserved.
+    pandas.DataFrame
+        Copy of ``points`` (all columns and the index preserved) with one
+        added column per requested variable. Points outside the grid or the
+        vertical range are NaN.
+
+    Raises
+    ------
+    ValueError
+        If a required column is missing, ``time`` is given alongside a
+        ``time`` column, no time is given and the inputs hold more than one
+        time, a point time is in none of the files, a time is in more than one
+        file, a variable name collides with a column of ``points``, ``z_kind``
+        or ``method`` is invalid, or a field that ``z_kind`` requires is
+        missing.
 
     Examples
     --------
@@ -803,54 +849,53 @@ def sample_points(
 
     >>> arlmet.sample_points(["met_00.arl", "met_06.arl"], points, ["UWND", "VWND"])
     """
-    files, opened = _open_sources(source)
+    if z_kind not in _Z_KINDS:
+        raise ValueError("z_kind must be one of 'native', 'pressure', 'agl', or 'msl'.")
+    if method not in _METHODS:
+        raise ValueError("method must be 'linear' or 'nearest'.")
+    variable_names = _normalize_variables(variables)
+    wind_pairs = _check_wind_pairs(variable_names) if earth_relative else []
+
+    handles, opened = _open_files(files)
     try:
-        if len(files) == 1:
-            return _sample_points_from_file(
-                files[0],
-                points,
-                variables,
-                time=time,
-                z_kind=z_kind,
-                method=method,
-                earth_relative=earth_relative,
-            )
-
-        normalized = _normalize_points(
-            points,
-            require_time=True,
-            default_time=ensure_timestamp(time) if time is not None else None,
+        time_map = _map_times(handles)
+        implied_time = next(iter(time_map)) if len(time_map) == 1 else None
+        result, coords = _normalize_points(
+            points, variable_names, time=time, implied_time=implied_time
         )
-        time_map: dict[pd.Timestamp, File] = {}
-        for file in files:
-            for sample_time in file.times:
-                if sample_time in time_map:
-                    raise ValueError(
-                        f"Multiple sources contain meteorology for time {sample_time}."
-                    )
-                time_map[ensure_timestamp(sample_time)] = file
 
-        missing_times = sorted(set(normalized["time"]) - set(time_map))
+        codes, point_times = pd.factorize(coords["time"])
+        missing_times = [t for t in point_times if ensure_timestamp(t) not in time_map]
         if missing_times:
+            available = sorted(time_map)
+            coverage = f"{available[0]} to {available[-1]}" if available else "no times"
             raise ValueError(
-                "No source contains the requested point times: "
+                "No input file contains the requested point times: "
                 + ", ".join(str(ensure_timestamp(t)) for t in missing_times)
+                + f". The input file(s) cover {coverage}."
             )
 
-        pieces: list[pd.DataFrame] = []
-        for sample_time, index in normalized.groupby("time").groups.items():
-            piece = _sample_points_from_file(
-                time_map[ensure_timestamp(sample_time)],
-                normalized.loc[index],
-                variables,
-                time=ensure_timestamp(sample_time),
+        columns = {
+            name: np.full(len(coords), np.nan, dtype=float) for name in variable_names
+        }
+        for code, point_time in enumerate(point_times):
+            point_time = ensure_timestamp(point_time)
+            rows = np.flatnonzero(codes == code)
+            sampled = _sample_points_from_file(
+                time_map[point_time],
+                point_time,
+                coords.iloc[rows],
+                variable_names,
                 z_kind=z_kind,
                 method=method,
-                earth_relative=earth_relative,
+                wind_pairs=wind_pairs,
             )
-            pieces.append(piece)
+            for name, values in sampled.items():
+                columns[name][rows] = values
 
-        return pd.concat(pieces).reindex(normalized.index)
+        for name, values in columns.items():
+            result[name] = values
+        return result
     finally:
         for handle in opened:
             handle.close()

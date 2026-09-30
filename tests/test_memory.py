@@ -77,7 +77,7 @@ def test_extract_subset_peak_memory_is_one_time_step(tmp_path):
     destination = tmp_path / "subset.arl"
     write_multistep_source(source)
 
-    peak = traced_peak(lambda: extract_subset(source, destination).close())
+    peak = traced_peak(lambda: extract_subset(source, destination))
 
     assert peak < destination.stat().st_size
 
@@ -125,7 +125,7 @@ def test_extract_subset_releases_buffers_without_gc(tmp_path):
     tracemalloc.start()
     try:
         baseline = tracemalloc.get_traced_memory()[0]
-        extract_subset(source, destination).close()
+        extract_subset(source, destination)
         retained = tracemalloc.get_traced_memory()[0] - baseline
     finally:
         tracemalloc.stop()

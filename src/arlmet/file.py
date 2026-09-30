@@ -87,8 +87,8 @@ class File:
         Write pending record sets to disk and release their in-memory data.
     sample_points(points, variables, ...)
         Interpolate fields at arbitrary lon/lat/z sample points.
-    extract_subset(destination, ...)
-        Write a spatial/vertical subset to a new ARL file and return it.
+    extract_subset(dest, ...)
+        Write a spatial/vertical subset to a new ARL file and return its path.
     to_dataset(...)
         Project the file into the simplified analysis xarray Dataset.
     close()
@@ -606,35 +606,71 @@ class File:
         variables: str | Iterable[str],
         *,
         time: pd.Timestamp | str | None = None,
-        z_kind: str = "pressure",
-        method: str = "linear",
+        z_kind: Literal["native", "pressure", "agl", "msl"] = "pressure",
+        method: Literal["linear", "nearest"] = "linear",
         earth_relative: bool = False,
     ) -> pd.DataFrame:
         """
         Sample fields from this file at arbitrary lon/lat/z points.
 
+        Equivalent to :func:`arlmet.sample_points` with this file as the only
+        input.
+
         Parameters
         ----------
-        points : Any
-            Table-like object with ``lon``, ``lat``, ``z``, and optionally
-            ``time`` columns.
+        points : pandas.DataFrame or mapping
+            Table-like object with ``lon``, ``lat`` (degrees), and ``z``
+            columns, and optionally a ``time`` column. Any other columns are
+            carried through to the result unchanged.
         variables : str or iterable of str
-            One or more ARL variables to interpolate.
+            One or more ARL field names (e.g. ``"TEMP"``, ``"UWND"``), or
+            ``"pressure"`` for the virtual pressure variable. A name must not
+            collide with an existing column of ``points``.
         time : pandas.Timestamp or str, optional
-            Default or override time when ``points`` does not include a
-            ``time`` column.
+            One valid time for every point, used when ``points`` has no
+            ``time`` column. Passing both raises ``ValueError``. When neither
+            is given, the file must contain exactly one time, which is used.
         z_kind : {"pressure", "native", "agl", "msl"}, default "pressure"
-            Interpretation of the ``z`` coordinate.
+            Vertical coordinate system of the ``z`` values:
+
+            - ``"native"``: fractional ARL level index.
+            - ``"pressure"``: hPa. Sigma/hybrid files (flag 1/4) need
+              ``PRSS``; pressure files (flag 2) use the stored levels;
+              terrain-following files (flag 3) raise ``ValueError``.
+            - ``"agl"``: metres above ground level. Sigma/hybrid files
+              integrate hypsometrically from ``PRSS`` and ``TEMP``; pressure
+              files use ``HGTS - SHGT``; terrain-following files use the
+              stored levels.
+            - ``"msl"``: metres above mean sea level. Sigma/hybrid files add
+              ``SHGT`` to the hypsometric AGL height; pressure files use
+              ``HGTS``; terrain-following files add ``SHGT`` to the stored
+              levels.
+
+            Each vertical coordinate system has exactly one method, as in
+            HYSPLIT; there is no fallback between them.
         method : {"linear", "nearest"}, default "linear"
-            Horizontal interpolation method.
+            Horizontal interpolation: bilinear or nearest grid point.
         earth_relative : bool, default False
             Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``)
-            from the grid axes to east/north. Both components must be requested.
+            from the grid axes to east/north. Winds in ARL files on projected
+            grids are stored grid-relative, as HYSPLIT expects. Both components
+            of a pair must be requested. No effect on lat/lon grids.
 
         Returns
         -------
         pandas.DataFrame
-            Copy of ``points`` with one result column per requested variable.
+            Copy of ``points`` (all columns and the index preserved) with one
+            added column per requested variable. Points outside the grid or
+            the vertical range are NaN.
+
+        Raises
+        ------
+        ValueError
+            If a required column is missing, ``time`` is given alongside a
+            ``time`` column, no time is given for a multi-time file, a point
+            time is not in the file, a variable name collides with a column
+            of ``points``, ``z_kind`` or ``method`` is invalid, or a field
+            that ``z_kind`` requires is missing.
 
         Examples
         --------
@@ -642,13 +678,13 @@ class File:
         >>> import arlmet
         >>> pts = pd.DataFrame({"lon": [-111.9], "lat": [40.7], "z": [850.0]})
         >>> with arlmet.File("met.arl") as met:
-        ...     met.sample_points(pts, ["UWND", "VWND"])
+        ...     met.sample_points(pts, ["UWND", "VWND"], time="2024-07-18 00:00")
         """
         # Delayed import: ops sit on top of file, so file's use of the sampling
         # op is lazy to avoid a file <-> ops import cycle (see File.extract_subset).
-        from arlmet.ops.sample import _sample_points_from_file
+        from arlmet.ops.sample import sample_points
 
-        return _sample_points_from_file(
+        return sample_points(
             self,
             points,
             variables,
@@ -677,19 +713,23 @@ class File:
 
     def extract_subset(
         self,
-        destination_path: str | os.PathLike[str],
+        dest: str | os.PathLike[str],
         *,
         bbox: tuple[float, float, float, float] | None = None,
         levels: Iterable[int] | None = None,
         variables: Iterable[str] | None = None,
-    ) -> File:
+    ) -> Path:
         """
         Write a spatial/vertical subset of this file to a new ARL file.
 
+        Equivalent to :func:`arlmet.extract_subset` with this file's path as
+        the input.
+
         Parameters
         ----------
-        destination_path : path-like
-            Output ARL file path.
+        dest : path-like
+            Output ARL file. Overwrites any existing file. Must not be this
+            file.
         bbox : tuple[float, float, float, float], optional
             Geographic bounding box ``(west, south, east, north)`` in degrees.
         levels : iterable of int, optional
@@ -700,22 +740,21 @@ class File:
 
         Returns
         -------
-        File
-            The newly written subset, opened in read mode. Close it when done
-            (or use it as a context manager).
+        pathlib.Path
+            The output path, ``Path(dest)``.
 
         Examples
         --------
         >>> import arlmet
         >>> with arlmet.File("met.arl") as met:
-        ...     with met.extract_subset("subset.arl", bbox=(-114, 39, -110, 42)) as sub:
-        ...         ds = sub.to_dataset()
+        ...     out = met.extract_subset("subset.arl", bbox=(-114, 39, -110, 42))
+        >>> ds = arlmet.open_dataset(out)
         """
         from arlmet.ops.subset import extract_subset
 
         return extract_subset(
             self.path,
-            destination_path,
+            dest,
             bbox=bbox,
             levels=levels,
             variables=variables,

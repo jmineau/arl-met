@@ -30,11 +30,11 @@ __all__ = ["concat", "concat_by_time"]
 
 
 def concat(
-    sources: Iterable[str | os.PathLike[str]],
-    destination: str | os.PathLike[str],
+    paths: Iterable[str | os.PathLike[str]],
+    dest: str | os.PathLike[str],
     *,
     sort: bool = True,
-) -> File:
+) -> Path:
     """
     Concatenate multiple ARL files into a single ARL file.
 
@@ -45,12 +45,12 @@ def concat(
 
     Parameters
     ----------
-    sources : iterable of path-like
+    paths : iterable of path-like
         Input ARL files to join. Must contain at least one path. A bare string
         or path is rejected — wrap a single file in a list.
-    destination : path-like
-        Output ARL file path. Overwrites any existing file. Must not be one of
-        ``sources``.
+    dest : path-like
+        Output ARL file. Overwrites any existing file. Must not be one of
+        ``paths``.
     sort : bool, default True
         Order the inputs by their earliest valid time before joining, so the
         output is chronological regardless of input order. When False, inputs
@@ -58,18 +58,17 @@ def concat(
 
     Returns
     -------
-    File
-        The newly written file, opened in read mode. Close it when done (or use
-        it as a context manager). If you only need the file on disk, close it
-        right away (``concat(...).close()``); an unclosed File keeps its file
-        handle open until it is garbage collected.
+    pathlib.Path
+        The output path, ``Path(dest)``.
 
     Raises
     ------
+    TypeError
+        If ``paths`` is a single path rather than an iterable of paths.
     ValueError
-        If ``sources`` is empty, if ``destination`` is also a source, if any
-        source is empty, if the inputs disagree on grid or vertical axis, or if
-        the same valid time appears in more than one input.
+        If ``paths`` is empty, if ``dest`` is also an input, if any input is
+        empty, if the inputs disagree on grid or vertical axis, or if the same
+        valid time appears in more than one input.
 
     Examples
     --------
@@ -89,54 +88,54 @@ def concat(
     """
     # A bare str/PathLike is iterable (over characters / not at all), which would
     # silently do the wrong thing — reject it explicitly.
-    if isinstance(sources, (str, bytes, os.PathLike)):
+    if isinstance(paths, (str, bytes, os.PathLike)):
         raise TypeError(
-            "sources must be an iterable of paths, not a single path. "
-            "Wrap a single file in a list: concat([path], destination)."
+            "paths must be an iterable of paths, not a single path. "
+            "Wrap a single file in a list: concat([path], dest)."
         )
 
-    source_paths = [Path(p) for p in sources]
-    if not source_paths:
-        raise ValueError("concat requires at least one source file.")
+    input_paths = [Path(p) for p in paths]
+    if not input_paths:
+        raise ValueError("concat requires at least one input file.")
 
-    destination = Path(destination)
-    destination_resolved = destination.resolve()
-    if any(p.resolve() == destination_resolved for p in source_paths):
+    dest = Path(dest)
+    dest_resolved = dest.resolve()
+    if any(p.resolve() == dest_resolved for p in input_paths):
         raise ValueError(
-            f"destination {destination} is also one of the sources; "
+            f"dest {dest} is also one of the input paths; "
             "concatenating a file onto itself is not allowed."
         )
 
-    ordered_paths = _scan_sources(source_paths, sort=sort)
+    ordered_paths = _scan_inputs(input_paths, sort=sort)
 
-    with open(destination, "wb") as out:
+    with open(dest, "wb") as out:
         for path in ordered_paths:
             with open(path, "rb") as src:
                 shutil.copyfileobj(src, out)
 
-    return File(destination)
+    return dest
 
 
-def _scan_sources(source_paths: list[Path], *, sort: bool) -> list[Path]:
+def _scan_inputs(paths: list[Path], *, sort: bool) -> list[Path]:
     """
-    Read each source's index records to validate compatibility and order by time.
+    Read each input's index records to validate compatibility and order by time.
 
-    Returns the paths in write order. Raises if any source is empty, the grids
-    or vertical axes disagree, or a valid time is shared across sources.
+    Returns the paths in write order. Raises if any input is empty, the grids
+    or vertical axes disagree, or a valid time is shared across inputs.
     """
     scanned = []
-    for path in source_paths:
+    for path in paths:
         with File(path) as src:
             times = src.times
             if not times:
                 # An empty file never set a grid/axis, so check before reading them.
-                raise ValueError(f"Source file {path} contains no records.")
+                raise ValueError(f"Input file {path} contains no records.")
             grid = src.grid
             axis = src.vertical_axis
 
         scanned.append((path, times, grid, axis))
 
-    # source_paths is non-empty (checked by concat), so scanned[0] exists.
+    # paths is non-empty (checked by concat), so scanned[0] exists.
     reference_path, _, reference_grid, reference_axis = scanned[0]
     for path, _times, grid, axis in scanned[1:]:
         if grid != reference_grid:
@@ -165,7 +164,7 @@ def _scan_sources(source_paths: list[Path], *, sort: bool) -> list[Path]:
 
 
 def _reject_duplicate_times(scanned: list[tuple[Path, list[pd.Timestamp]]]) -> None:
-    """Raise if any valid time appears in more than one source."""
+    """Raise if any valid time appears in more than one input."""
     owner: dict[pd.Timestamp, Path] = {}
     for path, times in scanned:
         for time in times:
@@ -181,9 +180,9 @@ def _reject_duplicate_times(scanned: list[tuple[Path, list[pd.Timestamp]]]) -> N
 
 def concat_by_time(
     directory: str | os.PathLike[str],
-    output_directory: str | os.PathLike[str],
-    freq: str = "1D",
+    dest_dir: str | os.PathLike[str],
     *,
+    freq: str = "1D",
     pattern: str = "*",
     time_range: tuple[str | pd.Timestamp, str | pd.Timestamp] | None = None,
     template: str = "{time:%Y%m%d}_arl",
@@ -203,7 +202,7 @@ def concat_by_time(
     ----------
     directory : path-like
         Directory to scan for input ARL files (non-recursive).
-    output_directory : path-like
+    dest_dir : path-like
         Directory to write the concatenated files into. Created if missing.
         Should differ from ``directory``.
     freq : str, default "1D"
@@ -253,7 +252,7 @@ def concat_by_time(
     ... )
     """
     directory = Path(directory)
-    output_directory = Path(output_directory)
+    dest_dir = Path(dest_dir)
 
     candidates = sorted(p for p in directory.glob(pattern) if p.is_file())
     if not candidates:
@@ -281,7 +280,7 @@ def concat_by_time(
         groups[bin_start].append(path)
 
     out_paths = {
-        bin_start: output_directory / template.format(time=bin_start)
+        bin_start: dest_dir / template.format(time=bin_start)
         for bin_start in sorted(groups)
     }
     owner: dict[Path, pd.Timestamp] = {}
@@ -295,14 +294,11 @@ def concat_by_time(
             )
         owner[out_path] = bin_start
 
-    output_directory.mkdir(parents=True, exist_ok=True)
+    dest_dir.mkdir(parents=True, exist_ok=True)
 
     outputs: list[Path] = []
     for bin_start, out_path in out_paths.items():
-        # concat returns an open File; we only need it written, so close it.
-        with concat(groups[bin_start], out_path, sort=sort):
-            pass
-        outputs.append(out_path)
+        outputs.append(concat(groups[bin_start], out_path, sort=sort))
     return outputs
 
 
@@ -317,5 +313,5 @@ def _read_time_span(path: Path) -> tuple[pd.Timestamp, pd.Timestamp]:
             "Scope `pattern` so it only matches ARL files."
         ) from exc
     if not times:
-        raise ValueError(f"Source file {path} contains no records.")
+        raise ValueError(f"Input file {path} contains no records.")
     return times[0], times[-1]

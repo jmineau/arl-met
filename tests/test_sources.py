@@ -631,17 +631,16 @@ class TestFetchHelpers:
     def test_fetch_and_crop_cleans_up_temp_input(self, tmp_path, monkeypatch):
         downloaded = []
         cropped = []
-        closed = []
 
         def fake_download(url, dest, opts):
             downloaded.append((url, dest, opts))
             Path(dest).write_bytes(b"raw")
 
-        def fake_extract_subset(src, dst, bbox, levels):
-            cropped.append((Path(src), Path(dst), bbox, levels))
-            Path(dst).write_bytes(Path(src).read_bytes() + b"-cropped")
-            # extract_subset returns the cropped file opened in read mode.
-            return types.SimpleNamespace(close=lambda: closed.append(True))
+        def fake_extract_subset(path, dest, bbox, levels):
+            cropped.append((Path(path), Path(dest), bbox, levels))
+            Path(dest).write_bytes(Path(path).read_bytes() + b"-cropped")
+            # extract_subset returns the output path.
+            return Path(dest)
 
         monkeypatch.setattr(self.src, "_download", fake_download)
         monkeypatch.setitem(
@@ -662,8 +661,6 @@ class TestFetchHelpers:
         assert downloaded[0][0] == "s3://bucket/test"
         assert cropped[0][2:] == ((-112.0, 40.0, -111.0, 41.0), [0, 1, 2])
         assert dest.read_bytes() == b"raw-cropped"
-        # The returned handle is closed by _fetch_and_crop.
-        assert closed == [True]
         # The raw download is staged as a hidden file in the destination
         # directory, not the system temp dir, and cleaned up. The crop goes
         # straight to dest: extract_subset itself writes atomically.
@@ -681,7 +678,7 @@ class TestFetchHelpers:
             if fail_in == "download":
                 raise RuntimeError("download failed")
 
-        def fake_extract_subset(src, dst, bbox, levels):
+        def fake_extract_subset(path, dest, bbox, levels):
             # The real extract_subset leaves nothing at dst when it fails
             # (tested in test_subset.py).
             raise RuntimeError("crop failed")
