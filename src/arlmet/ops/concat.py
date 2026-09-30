@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from arlmet.errors import ARLFormatError
+from arlmet.exceptions import ARLFormatError
 from arlmet.file import File
 
 __all__ = ["concat", "concat_by_time"]

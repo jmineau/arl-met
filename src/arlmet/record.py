@@ -10,7 +10,7 @@ import numpy.typing as npt
 import pandas as pd
 from typing_extensions import override
 
-from arlmet.errors import ARLFormatError
+from arlmet.exceptions import ARLFormatError
 from arlmet.grid import Grid, GridWindow
 from arlmet.header import Header, record_length_from_grid, split_grid_component
 from arlmet.packing import calculate_checksum, pack, unpack

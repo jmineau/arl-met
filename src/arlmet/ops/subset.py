@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, BinaryIO
 
 from arlmet._io import atomic_output, reject_same_file
-from arlmet.errors import ARLFormatError
+from arlmet.exceptions import ARLFormatError
 from arlmet.file import File
 from arlmet.grid import Grid, GridWindow
 from arlmet.header import Header, record_length_from_grid, split_grid_component

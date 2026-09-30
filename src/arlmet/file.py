@@ -18,7 +18,7 @@ from xarray.backends.locks import SerializableLock
 
 from arlmet._time import ensure_timestamp
 from arlmet.collection import VariableAccessor
-from arlmet.errors import ARLFormatError, ARLFormatWarning
+from arlmet.exceptions import ARLFormatError, ARLFormatWarning
 from arlmet.grid import Grid, Projection
 from arlmet.header import record_length_from_grid
 from arlmet.index import IndexRecord

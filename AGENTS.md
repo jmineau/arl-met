@@ -53,7 +53,7 @@ raw (`metset.f`, `12F7.0`); `sync_x`/`sync_y` are grid indices and can
 legitimately exceed 180, so never wrap them.
 
 ### Malformed files
-`File._scan` raises `ARLFormatError` (a `ValueError` subclass, `errors.py`)
+`File._scan` raises `ARLFormatError` (a `ValueError` subclass, `exceptions.py`)
 for bad file content: unparseable headers/index records, a size that is not a
 whole number of records, an index record declaring more data records than
 remain, inconsistent index metadata. Keep programmer errors (bad arguments) as
@@ -127,7 +127,7 @@ src/arlmet/
   grid.py          Grid, GridWindow, Projection — horizontal geometry only
   vertical.py      VerticalAxis (ABC), SigmaAxis, PressureAxis, TerrainAxis, HybridAxis
   header.py        Header, helper functions — 50-byte record header codec
-  errors.py        ARLFormatError, ARLFormatWarning — malformed file content
+  exceptions.py    ARLFormatError, ARLFormatWarning — malformed file content
   index.py         IndexRecord, VarInfo, LvlInfo — index record codec
   packing.py       pack(), unpack(), calculate_checksum()
   xarray/          open_dataset(), write_dataset(), vertical helpers
@@ -165,22 +165,22 @@ tests/
 Arrows show runtime imports. TYPE_CHECKING-only imports are not shown.
 
 ```
-grid, packing, errors               ← leaf nodes
-header → errors, grid
-index  → errors, grid, header, vertical
+grid, packing, exceptions             ← leaf nodes
+header → exceptions, grid
+index  → exceptions, grid, header, vertical
 vertical  (no imports — leaf node)
-record    → errors, grid, header, packing, vertical
+record    → exceptions, grid, header, packing, vertical
              (delayed import: xarray, inside DataRecord.to_xarray only)
 collection → grid, record, vertical
 recordset → collection, grid, header, index, record, vertical
-file      → collection, errors, grid, header, index, record, recordset, vertical
+file      → collection, exceptions, grid, header, index, record, recordset, vertical
              (delayed: ops.subset in File.extract_subset, ops.sample in
               File.sample_points — ops sits on top of file, so file's use of
               ops is lazy to keep the file↔ops dependency one-way at import time)
 ops/__init__ → ops.concat, ops.subset, ops.sample   (re-exports the public ops)
-ops.subset   → errors, file, grid, header, index, packing, record, vertical
+ops.subset   → exceptions, file, grid, header, index, packing, record, vertical
 ops.sample   → grid, vertical   (TYPE_CHECKING: file, record, recordset)
-ops.concat   → errors, file, index
+ops.concat   → exceptions, file, index
 xarray/   → file, grid, ops.subset, vertical  (TYPE_CHECKING: record, recordset)
 archives  → ops.subset
 ```
