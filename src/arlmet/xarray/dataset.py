@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import warnings
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -32,13 +32,15 @@ if TYPE_CHECKING:
     from arlmet.file import File
     from arlmet.record import DataRecord
 
+__all__ = ["open_dataset", "write_dataset"]
+
 
 def _build_dataset_from_file(
     met: File,
     *,
     drop_variables: Sequence[str] | None = None,
     bbox: tuple[float, float, float, float] | None = None,
-    levels: list[int] | tuple[int, ...] | None = None,
+    levels: Iterable[int] | None = None,
 ) -> xr.Dataset:
     """Build an xarray Dataset from an open ARL File handle."""
     drop_variables_set: set[str] = set(drop_variables or [])
@@ -163,9 +165,10 @@ def _build_dataset_from_file(
 
 def open_dataset(
     filename_or_obj: str | os.PathLike[str],
+    *,
     drop_variables: Sequence[str] | None = None,
     bbox: tuple[float, float, float, float] | None = None,
-    levels: list[int] | tuple[int, ...] | None = None,
+    levels: Iterable[int] | None = None,
 ) -> xr.Dataset:
     """
     Open an ARL meteorology file as an xarray Dataset.
@@ -192,11 +195,11 @@ def open_dataset(
     ----------
     filename_or_obj : path-like
         Path to the ARL file.
-    drop_variables : iterable of str, optional
+    drop_variables : sequence of str, optional
         Variable names to omit from the resulting dataset.
     bbox : tuple[float, float, float, float], optional
         Geographic bounding box ``(west, south, east, north)`` in degrees.
-    levels : list[int] or tuple[int, ...], optional
+    levels : iterable of int, optional
         ARL level indices to keep.
 
     Returns

@@ -9,7 +9,7 @@ import importlib.metadata
 
 from .errors import ARLFormatError, ARLFormatWarning
 from .file import File
-from .grid import Grid, Projection
+from .grid import Grid, GridWindow, Projection
 from .header import Header
 from .index import IndexRecord
 from .ops import concat, concat_by_time, extract_subset, sample_points
@@ -34,6 +34,7 @@ __all__ = [
     "z_msl",
     "Projection",
     "Grid",
+    "GridWindow",
     "VerticalAxis",
     "SigmaAxis",
     "PressureAxis",

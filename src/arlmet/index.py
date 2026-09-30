@@ -10,8 +10,10 @@ import pandas as pd
 from arlmet._time import ensure_timestamp
 from arlmet.errors import ARLFormatError
 from arlmet.grid import Grid, Projection
-from arlmet.header import Header, format_fixed_width_float
+from arlmet.header import Header, format_fixed_width_float, split_grid_component
 from arlmet.vertical import VerticalAxis
+
+__all__ = ["IndexRecord", "LvlInfo", "VarInfo"]
 
 
 def _derive_index_forecast(
@@ -60,10 +62,13 @@ class LvlInfo:
     variables: OrderedDict[str, VarInfo]
 
 
-@dataclass
+@dataclass(frozen=True)
 class IndexRecord:
     """
     Index record describing one ARL time step and its contained variables.
+
+    Index records are immutable value objects; use :func:`dataclasses.replace`
+    to derive a modified copy.
 
     Parameters
     ----------
@@ -114,16 +119,18 @@ class IndexRecord:
     sync_lon : float
         Earth longitude corresponding to the grid position (sync_x, sync_y).
         For lat-lon grids: longitude of the (0,0) grid point position.
+    reserved : float
+        Twelfth projection field; holds the vertical-axis pressure offset.
     nx : int
-        Number of grid points in the x-direction (columns).
+        Number of grid points in the x-direction (columns). This is the full
+        size: the index record stores only ``nx % 1000`` and the header's grid
+        letters carry the thousands (see :attr:`Header.grid`).
     ny : int
-        Number of grid points in the y-direction (rows).
+        Number of grid points in the y-direction (rows), full size as ``nx``.
     nz : int
         Number of vertical levels.
     vertical_flag : int
         Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain, 4=hybrid).
-    index_length : int
-        Total length of the index record in bytes, including fixed and variable portions.
     levels : sequence of LvlInfo
         Variable manifests for each stored vertical level.
 
@@ -131,8 +138,15 @@ class IndexRecord:
     ----------
     N_BYTES_FIXED : int
         Number of bytes in the fixed portion of the index record (108 bytes).
+    index_length : int
+        Serialized length in bytes of the fixed plus variable portions
+        (excluding the 50-byte header), computed from the current fields.
     time : pd.Timestamp
         The valid time of the record, calculated from the header time and minutes.
+    grid : Grid
+        Horizontal grid built from the projection fields and ``nx``/``ny``.
+    vertical_axis : VerticalAxis
+        Vertical axis built from ``vertical_flag``, level heights, and ``reserved``.
 
     Methods
     -------
@@ -140,8 +154,13 @@ class IndexRecord:
         Read and parse an index record from a file handle.
     tobytes()
         Serialize the exact used bytes of the index record.
-    to_record_bytes(record_size)
+    to_record_bytes(record_length)
         Serialize the index record padded to one ARL record.
+
+    Raises
+    ------
+    ValueError
+        If ``header.grid`` does not carry the thousands of ``nx``/``ny``.
 
     Examples
     --------
@@ -184,7 +203,6 @@ class IndexRecord:
     ny: int
     nz: int
     vertical_flag: int
-    index_length: int
     levels: Sequence[LvlInfo]
 
     N_BYTES_FIXED: ClassVar[int] = 108
@@ -196,6 +214,18 @@ class IndexRecord:
     _LONGITUDE_FIELDS: ClassVar[frozenset[str]] = frozenset(
         {"pole_lon", "tangent_lon", "sync_lon"}
     )
+
+    def __post_init__(self) -> None:
+        """Check that the header grid letters match ``nx``/``ny``."""
+        thousands = (
+            split_grid_component(self.nx)[0],
+            split_grid_component(self.ny)[0],
+        )
+        if tuple(self.header.grid) != thousands:
+            raise ValueError(
+                f"header.grid {tuple(self.header.grid)} does not match the "
+                f"thousands of nx={self.nx}, ny={self.ny} (expected {thousands})."
+            )
 
     @classmethod
     def from_position(cls, file: BinaryIO, position: int) -> "IndexRecord":
@@ -237,21 +267,28 @@ class IndexRecord:
                     f"Expected 'INDX' record, found '{header.variable}'"
                 )
 
-            fixed = IndexRecord.parse_fixed(data=file.read(IndexRecord.N_BYTES_FIXED))
-            extended = file.read(fixed["index_length"] - IndexRecord.N_BYTES_FIXED)
-            levels = IndexRecord.parse_extended(data=extended, nz=fixed["nz"])
+            fixed = IndexRecord._parse_fixed(data=file.read(IndexRecord.N_BYTES_FIXED))
+            index_length = fixed.pop("index_length")
+            extended = file.read(index_length - IndexRecord.N_BYTES_FIXED)
+            levels = IndexRecord._parse_extended(data=extended, nz=fixed["nz"])
         except ARLFormatError as exc:
             # Add the byte position; File._scan adds the file path on top.
             raise ARLFormatError(
                 f"Invalid index record at byte {position}: {exc}"
             ) from exc
+        # The fixed portion stores the grid size below 1000; the header's grid
+        # letters carry the thousands.
+        fixed["nx"] += header.grid[0]
+        fixed["ny"] += header.grid[1]
         return IndexRecord(header=header, **fixed, levels=levels)
 
-    def serialize_fixed(self, index_length: int | None = None) -> bytes:
-        """Serialize the fixed 108-byte portion of the index record."""
-        if index_length is None:
-            index_length = self.index_length
+    @property
+    def index_length(self) -> int:
+        """Serialized length of the fixed plus variable portions, in bytes."""
+        return self.N_BYTES_FIXED + len(self._serialize_extended())
 
+    def _serialize_fixed(self, index_length: int) -> bytes:
+        """Serialize the fixed 108-byte portion of the index record."""
         values = [
             self.pole_lat,
             self.pole_lon,
@@ -272,8 +309,8 @@ class IndexRecord:
             f"{self.forecast:3d}"
             f"{self.minutes:2d}"
             f"{proj}"
-            f"{self.nx:3d}"
-            f"{self.ny:3d}"
+            f"{self.nx % 1000:3d}"
+            f"{self.ny % 1000:3d}"
             f"{self.nz:3d}"
             f"{self.vertical_flag:2d}"
             f"{index_length:4d}"
@@ -284,7 +321,7 @@ class IndexRecord:
             )
         return fixed.encode("ascii")
 
-    def serialize_extended(self) -> bytes:
+    def _serialize_extended(self) -> bytes:
         """Serialize the variable-length level/variable portion of the index record."""
         chunks: list[str] = []
         for level in self.levels:
@@ -297,10 +334,8 @@ class IndexRecord:
 
     def tobytes(self) -> bytes:
         """Serialize the exact used bytes of the index record, including its header."""
-        extended = self.serialize_extended()
-        index_length = self.N_BYTES_FIXED + len(extended)
-        self.index_length = index_length
-        fixed = self.serialize_fixed(index_length=index_length)
+        extended = self._serialize_extended()
+        fixed = self._serialize_fixed(index_length=self.N_BYTES_FIXED + len(extended))
         return self.header.tobytes() + fixed + extended
 
     def to_record_bytes(self, record_length: int) -> bytes:
@@ -313,7 +348,7 @@ class IndexRecord:
         return raw.ljust(record_length, b" ")
 
     @staticmethod
-    def parse_fixed(data: bytes) -> dict[str, Any]:
+    def _parse_fixed(data: bytes) -> dict[str, Any]:
         """
         Parse the fixed 108-byte portion of an index record from raw bytes.
 
@@ -326,7 +361,8 @@ class IndexRecord:
         Returns
         -------
         dict
-            Parsed fields as a dictionary.
+            Parsed fields as a dictionary. ``nx``/``ny`` are the raw values
+            below 1000, and ``index_length`` is the stored length.
         """
         if len(data) < IndexRecord.N_BYTES_FIXED:
             raise ARLFormatError(
@@ -384,7 +420,7 @@ class IndexRecord:
         return fields
 
     @staticmethod
-    def parse_extended(data: bytes, nz: int) -> list[LvlInfo]:
+    def _parse_extended(data: bytes, nz: int) -> list[LvlInfo]:
         """
         Parse the variable-length portion of an index record.
 
@@ -438,16 +474,6 @@ class IndexRecord:
         return ensure_timestamp(self.header.time + pd.Timedelta(minutes=self.minutes))
 
     @property
-    def total_nx(self) -> int:
-        """Total x grid points including thousands from header grid letters."""
-        return self.nx + self.header.grid[0]
-
-    @property
-    def total_ny(self) -> int:
-        """Total y grid points including thousands from header grid letters."""
-        return self.ny + self.header.grid[1]
-
-    @property
     def grid(self) -> Grid:
         """Construct a Grid from the index record's projection parameters."""
         proj = Projection(
@@ -463,7 +489,7 @@ class IndexRecord:
             sync_lat=self.sync_lat,
             sync_lon=self.sync_lon,
         )
-        return Grid(projection=proj, nx=self.total_nx, ny=self.total_ny)
+        return Grid(projection=proj, nx=self.nx, ny=self.ny)
 
     @property
     def vertical_axis(self) -> VerticalAxis:

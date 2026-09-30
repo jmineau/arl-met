@@ -1,5 +1,7 @@
 """Tests for arlmet.grid module."""
 
+from dataclasses import FrozenInstanceError, replace
+
 import numpy as np
 import pytest
 
@@ -155,10 +157,12 @@ class TestGrid:
 
         assert grid.is_latlon is True
         assert grid.dims == ("lat", "lon")
-        assert "lon" in grid.coords
-        assert "lat" in grid.coords
-        assert len(grid.coords["lon"]) == 360
-        assert len(grid.coords["lat"]) == 180
+        coords = grid.calculate_coords()
+        assert set(coords) == {"lon", "lat"}
+        assert coords["lon"][0] == ("lon",)
+        assert coords["lat"][0] == ("lat",)
+        assert len(coords["lon"][1]) == 360
+        assert len(coords["lat"][1]) == 180
 
     def test_projected_grid(self):
         """Test projected grid initialization."""
@@ -179,10 +183,13 @@ class TestGrid:
 
         assert grid.is_latlon is False
         assert grid.dims == ("y", "x")
-        assert "x" in grid.coords
-        assert "y" in grid.coords
-        assert "lon" in grid.coords
-        assert "lat" in grid.coords
+        coords = grid.calculate_coords()
+        assert set(coords) == {"x", "y", "lon", "lat"}
+        assert coords["x"][0] == ("x",)
+        assert coords["y"][0] == ("y",)
+        assert coords["lon"][0] == ("y", "x")
+        assert coords["lat"][0] == ("y", "x")
+        assert coords["lon"][1].shape == (100, 100)
 
     def test_window_from_bbox_latlon(self):
         proj = Projection(
@@ -286,8 +293,9 @@ class TestGrid:
 
         assert subset.nx == 3
         assert subset.ny == 2
-        np.testing.assert_allclose(subset.coords["lon"][0], 23.0)
-        np.testing.assert_allclose(subset.coords["lat"][0], -7.0)
+        coords = subset.calculate_coords()
+        np.testing.assert_allclose(coords["lon"][1][0], 23.0)
+        np.testing.assert_allclose(coords["lat"][1][0], -7.0)
 
 
 class TestVerticalAxis:
@@ -325,13 +333,6 @@ class TestVerticalAxis:
         """Test unknown vertical flag raises ValueError."""
         with pytest.raises(ValueError, match="Unsupported vertical flag 99"):
             VerticalAxis.from_flag(99, levels=[1.0, 0.5])
-
-    def test_sigma_coordinate_calculates_native_coords(self):
-        """Test sigma coordinate returns native sigma fractions as level coord."""
-        axis = SigmaAxis(levels=[1.0, 0.5], offset=0.0)
-        coords = axis.calculate_coords()
-        assert set(coords.keys()) == {"level"}
-        np.testing.assert_allclose(coords["level"], [1.0, 0.5])
 
 
 class TestReprs:
@@ -467,3 +468,71 @@ class TestWindRotation:
         u_out, v_out = grid.rotate_winds([1.0, 2.0], [3.0, 4.0], lon, lat)
         np.testing.assert_array_equal(u_out, [1.0, 2.0])
         np.testing.assert_array_equal(v_out, [3.0, 4.0])
+
+
+def _lambert_projection(**overrides) -> Projection:
+    params = {
+        "pole_lat": 90.0,
+        "pole_lon": 0.0,
+        "tangent_lat": 38.5,
+        "tangent_lon": -97.5,
+        "grid_size": 3.0,
+        "orientation": 0.0,
+        "cone_angle": 38.5,
+        "sync_x": 1.0,
+        "sync_y": 1.0,
+        "sync_lat": 21.138,
+        "sync_lon": -122.72,
+    }
+    params.update(overrides)
+    return Projection(**params)
+
+
+class TestImmutability:
+    def test_projection_is_frozen(self):
+        proj = _lambert_projection()
+        with pytest.raises(FrozenInstanceError):
+            proj.grid_size = 12.0  # type: ignore[misc]
+
+    def test_projection_params_are_fresh_copies(self):
+        proj = _lambert_projection()
+        params = proj.params
+        params["proj"] = "merc"
+        assert proj.params["proj"] == "lcc"
+
+    def test_projection_equality_and_hash_follow_fields(self):
+        a = _lambert_projection()
+        b = _lambert_projection()
+        assert a == b
+        assert hash(a) == hash(b)
+        assert a != replace(a, sync_lat=22.0)
+
+    def test_grid_is_frozen(self):
+        grid = Grid(projection=_lambert_projection(), nx=50, ny=40)
+        for name, value in (("nx", 10), ("ny", 10), ("projection", None)):
+            with pytest.raises(FrozenInstanceError):
+                setattr(grid, name, value)
+
+    def test_grid_hash_is_stable_after_cached_properties(self):
+        grid = Grid(projection=_lambert_projection(), nx=50, ny=40)
+        before = hash(grid)
+        _ = grid.crs, grid.origin
+        assert hash(grid) == before
+        assert grid == Grid(projection=_lambert_projection(), nx=50, ny=40)
+        assert {grid: 1}[Grid(projection=_lambert_projection(), nx=50, ny=40)] == 1
+
+    def test_replace_builds_new_grid_with_fresh_crs(self):
+        grid = Grid(projection=_lambert_projection(), nx=50, ny=40)
+        crs = grid.crs
+        moved = replace(grid, projection=replace(grid.projection, sync_lat=25.0))
+        assert moved.crs != crs
+        assert grid.crs == crs
+
+    def test_grid_rejects_empty_shape(self):
+        with pytest.raises(ValueError, match="positive"):
+            Grid(projection=_lambert_projection(), nx=0, ny=10)
+
+    def test_grid_window_is_exported(self):
+        import arlmet
+
+        assert arlmet.GridWindow is GridWindow

@@ -61,13 +61,22 @@ Low-Level File Model
 Grid And Vertical Metadata
 --------------------------
 
+These are immutable, hashable value objects. Derive modified copies with
+:func:`dataclasses.replace` (``Projection``, ``Grid``, ``GridWindow``) or by
+constructing a new axis.
+
 .. autosummary::
    :toctree: _autosummary
    :nosignatures:
 
    Projection
    Grid
+   GridWindow
    VerticalAxis
+   SigmaAxis
+   PressureAxis
+   TerrainAxis
+   HybridAxis
 
 Binary Metadata And Packing
 ---------------------------

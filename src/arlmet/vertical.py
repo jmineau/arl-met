@@ -7,12 +7,21 @@ coordinates.
 """
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
-from typing import Any
+from dataclasses import FrozenInstanceError
+from typing import Any, ClassVar
 
 import numpy as np
 import numpy.typing as npt
 from typing_extensions import override
+
+__all__ = [
+    "VerticalAxis",
+    "SigmaAxis",
+    "PressureAxis",
+    "TerrainAxis",
+    "HybridAxis",
+    "hypsometric_z_agl",
+]
 
 R_D = 287.05  # dry air gas constant [J/(kg·K)]
 G = 9.80665  # standard gravity [m/s²]
@@ -100,6 +109,15 @@ def hypsometric_z_agl(
     return np.cumsum(dz_all, axis=level_ax)
 
 
+def _require(name: str, value: npt.ArrayLike | None, axis: "VerticalAxis") -> None:
+    """Raise a clear ValueError when an input *axis* needs was not given."""
+    if value is None:
+        raise ValueError(
+            f"{type(axis).__name__} (flag={axis.flag}) requires {name}= for this "
+            "conversion."
+        )
+
+
 class VerticalAxis(ABC):
     """
     Abstract base class for ARL vertical coordinate axes.
@@ -107,31 +125,62 @@ class VerticalAxis(ABC):
     Use :meth:`from_flag` to construct from a raw ARL flag integer, or
     instantiate a subclass directly (e.g. ``PressureAxis(levels=[...])``).
 
+    Vertical axes are immutable value objects: ``levels`` is a read-only
+    NumPy array, attributes cannot be reassigned, and equal axes hash
+    equally. Build a new axis to change one.
+
     Parameters
     ----------
-    levels : sequence of float
-        Native level values stored in the file.
+    levels : array-like of float
+        Native level values stored in the file (1-D).
     offset : float, default 0.0
         Pressure offset used by sigma and hybrid coordinate conversions.
+
+    Attributes
+    ----------
+    flag : int
+        ARL vertical coordinate flag (1=sigma, 2=pressure, 3=terrain,
+        4=hybrid).
+    coord_system : str
+        Human-readable coordinate system name.
+    levels : numpy.ndarray
+        Read-only ``float64`` array of native level values.
+    offset : float
+        Pressure offset stored in the index record.
     """
 
-    flag: int
-    coord_system: str
+    flag: ClassVar[int]
+    coord_system: ClassVar[str]
+
+    levels: npt.NDArray[np.float64]
+    offset: float
 
     def __init__(
         self,
-        levels: Sequence[float],
+        levels: npt.ArrayLike,
         *,
         offset: float = 0.0,
     ):
-        self._levels = np.asarray(levels, dtype=float)
-        self.offset = float(offset)
+        arr = np.array(levels, dtype=float)
+        if arr.ndim != 1:
+            raise ValueError(f"levels must be 1-D, got shape {arr.shape}.")
+        arr.setflags(write=False)
+        object.__setattr__(self, "levels", arr)
+        object.__setattr__(self, "offset", float(offset))
+
+    @override
+    def __setattr__(self, name: str, value: object) -> None:
+        raise FrozenInstanceError(f"cannot assign to field {name!r}")
+
+    @override
+    def __delattr__(self, name: str) -> None:
+        raise FrozenInstanceError(f"cannot delete field {name!r}")
 
     @classmethod
     def from_flag(
         cls,
         flag: int,
-        levels: Sequence[float],
+        levels: npt.ArrayLike,
         *,
         offset: float = 0.0,
     ) -> "VerticalAxis":
@@ -144,22 +193,72 @@ class VerticalAxis(ABC):
             )
         return subclass(levels=levels, offset=offset)
 
-    @property
-    def levels(self) -> npt.NDArray[Any]:
-        return self._levels.copy()
-
-    def calculate_coords(self) -> dict[str, npt.NDArray[Any]]:
-        """Return the native level coordinate values stored in the file."""
-        return {"level": self._levels.copy()}
-
     @abstractmethod
-    def to_pressure(self, **kwargs: Any) -> npt.NDArray[Any]:
-        """Compute pressure [hPa] at each level."""
+    def to_pressure(
+        self, *, surface_pressure: npt.ArrayLike | None = None
+    ) -> npt.NDArray[np.float64]:
+        """
+        Compute pressure [hPa] at each level.
+
+        Parameters
+        ----------
+        surface_pressure : array-like, optional
+            Surface pressure [hPa] (``PRSS``). Required for sigma and hybrid
+            axes; ignored by pressure axes.
+
+        Returns
+        -------
+        numpy.ndarray
+            ``(nlev,)`` for pressure axes, or ``surface_pressure.shape +
+            (nlev,)`` for sigma and hybrid axes.
+
+        Raises
+        ------
+        ValueError
+            If a required input is missing, or the axis has no pressure
+            coordinate (terrain-following).
+        """
         ...
 
     @abstractmethod
-    def to_height_agl(self, **kwargs: Any) -> npt.NDArray[Any]:
-        """Compute height above ground level [m] at each level."""
+    def to_height_agl(
+        self,
+        *,
+        surface_pressure: npt.ArrayLike | None = None,
+        temperature: npt.ArrayLike | None = None,
+        hgts: npt.ArrayLike | None = None,
+        terrain: npt.ArrayLike | None = None,
+    ) -> npt.NDArray[np.float64]:
+        """
+        Compute height above ground level [m] at each level.
+
+        Each axis uses only the inputs its coordinate system needs (matching
+        HYSPLIT's ``prfcom``) and ignores the rest.
+
+        Parameters
+        ----------
+        surface_pressure : array-like, optional
+            Surface pressure [hPa] (``PRSS``). Required for sigma and hybrid.
+        temperature : array-like, optional
+            Temperature [K] at each level (``TEMP``), levels on the last
+            axis. Required for sigma and hybrid.
+        hgts : array-like, optional
+            Geopotential height [m MSL] at each level (``HGTS``). Required
+            for pressure axes.
+        terrain : array-like, optional
+            Terrain height [m] (``SHGT``), broadcastable to ``hgts``.
+            Required for pressure axes.
+
+        Returns
+        -------
+        numpy.ndarray
+            Heights AGL [m].
+
+        Raises
+        ------
+        ValueError
+            If an input this axis needs is missing.
+        """
         ...
 
     @override
@@ -169,18 +268,19 @@ class VerticalAxis(ABC):
         return (
             self.flag == other.flag
             and self.offset == other.offset
-            and np.array_equal(self._levels, other._levels)
+            and np.array_equal(self.levels, other.levels)
         )
 
+    @override
     def __hash__(self) -> int:
-        return hash((self.flag, self.offset, tuple(self._levels)))
+        return hash((self.flag, self.offset, tuple(self.levels.tolist())))
 
     def __len__(self) -> int:
-        return len(self._levels)
+        return len(self.levels)
 
     @override
     def __repr__(self) -> str:
-        return f"{type(self).__name__}(n={len(self._levels)})"
+        return f"{type(self).__name__}(n={len(self.levels)})"
 
 
 class SigmaAxis(VerticalAxis):
@@ -190,16 +290,25 @@ class SigmaAxis(VerticalAxis):
     coord_system = "sigma"
 
     @override
-    def to_pressure(self, **kwargs: Any) -> npt.NDArray[Any]:
+    def to_pressure(
+        self, *, surface_pressure: npt.ArrayLike | None = None
+    ) -> npt.NDArray[np.float64]:
         """Pressure [hPa] from ``surface_pressure``: offset + (sp - offset) * sigma."""
-        sp = np.asarray(kwargs["surface_pressure"], dtype=float)
-        return self.offset + (sp[..., None] - self.offset) * self._levels
+        _require("surface_pressure", surface_pressure, self)
+        sp = np.asarray(surface_pressure, dtype=float)
+        return self.offset + (sp[..., None] - self.offset) * self.levels
 
     @override
-    def to_height_agl(self, **kwargs: Any) -> npt.NDArray[Any]:
+    def to_height_agl(
+        self,
+        *,
+        surface_pressure: npt.ArrayLike | None = None,
+        temperature: npt.ArrayLike | None = None,
+        hgts: npt.ArrayLike | None = None,
+        terrain: npt.ArrayLike | None = None,
+    ) -> npt.NDArray[np.float64]:
         """Height AGL [m] by hypsometric integration of ``surface_pressure`` and ``temperature``."""
-        p = self.to_pressure(surface_pressure=kwargs["surface_pressure"])
-        return hypsometric_z_agl(p, kwargs["surface_pressure"], kwargs["temperature"])
+        return _hypsometric_height(self, surface_pressure, temperature)
 
 
 class PressureAxis(VerticalAxis):
@@ -209,16 +318,25 @@ class PressureAxis(VerticalAxis):
     coord_system = "pressure"
 
     @override
-    def to_pressure(self, **kwargs: Any) -> npt.NDArray[Any]:
-        """Pressure [hPa]: the stored levels. No keyword arguments needed."""
-        return self._levels.copy()
+    def to_pressure(
+        self, *, surface_pressure: npt.ArrayLike | None = None
+    ) -> npt.NDArray[np.float64]:
+        """Pressure [hPa]: a writable copy of the stored levels. No inputs needed."""
+        return self.levels.copy()
 
     @override
-    def to_height_agl(self, **kwargs: Any) -> npt.NDArray[Any]:
+    def to_height_agl(
+        self,
+        *,
+        surface_pressure: npt.ArrayLike | None = None,
+        temperature: npt.ArrayLike | None = None,
+        hgts: npt.ArrayLike | None = None,
+        terrain: npt.ArrayLike | None = None,
+    ) -> npt.NDArray[np.float64]:
         """Height AGL [m] as ``hgts`` (geopotential height, HGTS) minus ``terrain``."""
-        return np.asarray(kwargs["hgts"], dtype=float) - np.asarray(
-            kwargs["terrain"], dtype=float
-        )
+        _require("hgts", hgts, self)
+        _require("terrain", terrain, self)
+        return np.asarray(hgts, dtype=float) - np.asarray(terrain, dtype=float)
 
 
 class TerrainAxis(VerticalAxis):
@@ -228,16 +346,25 @@ class TerrainAxis(VerticalAxis):
     coord_system = "terrain"
 
     @override
-    def to_pressure(self, **kwargs: Any) -> npt.NDArray[Any]:
+    def to_pressure(
+        self, *, surface_pressure: npt.ArrayLike | None = None
+    ) -> npt.NDArray[np.float64]:
         """Always raises ValueError: terrain-following files have no pressure."""
         raise ValueError(
             "Terrain-following (flag=3) files have no pressure coordinate."
         )
 
     @override
-    def to_height_agl(self, **kwargs: Any) -> npt.NDArray[Any]:
-        """Height AGL [m]: the stored levels. No keyword arguments needed."""
-        return self._levels.copy()
+    def to_height_agl(
+        self,
+        *,
+        surface_pressure: npt.ArrayLike | None = None,
+        temperature: npt.ArrayLike | None = None,
+        hgts: npt.ArrayLike | None = None,
+        terrain: npt.ArrayLike | None = None,
+    ) -> npt.NDArray[np.float64]:
+        """Height AGL [m]: a writable copy of the stored levels. No inputs needed."""
+        return self.levels.copy()
 
 
 class HybridAxis(VerticalAxis):
@@ -247,20 +374,42 @@ class HybridAxis(VerticalAxis):
     coord_system = "hybrid"
 
     @override
-    def to_pressure(self, **kwargs: Any) -> npt.NDArray[Any]:
+    def to_pressure(
+        self, *, surface_pressure: npt.ArrayLike | None = None
+    ) -> npt.NDArray[np.float64]:
         """Pressure [hPa] from ``surface_pressure``: sp * sigma + floor(level)."""
-        sp = np.asarray(kwargs["surface_pressure"], dtype=float)
-        floor_p = np.floor(self._levels)
-        sigma = self._levels - floor_p
+        _require("surface_pressure", surface_pressure, self)
+        sp = np.asarray(surface_pressure, dtype=float)
+        floor_p = np.floor(self.levels)
+        sigma = self.levels - floor_p
         p = sp[..., None] * sigma + floor_p
         p[..., 0] = sp  # first hybrid level is always surface
         return p
 
     @override
-    def to_height_agl(self, **kwargs: Any) -> npt.NDArray[Any]:
+    def to_height_agl(
+        self,
+        *,
+        surface_pressure: npt.ArrayLike | None = None,
+        temperature: npt.ArrayLike | None = None,
+        hgts: npt.ArrayLike | None = None,
+        terrain: npt.ArrayLike | None = None,
+    ) -> npt.NDArray[np.float64]:
         """Height AGL [m] by hypsometric integration of ``surface_pressure`` and ``temperature``."""
-        p = self.to_pressure(surface_pressure=kwargs["surface_pressure"])
-        return hypsometric_z_agl(p, kwargs["surface_pressure"], kwargs["temperature"])
+        return _hypsometric_height(self, surface_pressure, temperature)
+
+
+def _hypsometric_height(
+    axis: SigmaAxis | HybridAxis,
+    surface_pressure: npt.ArrayLike | None,
+    temperature: npt.ArrayLike | None,
+) -> npt.NDArray[np.float64]:
+    """Shared sigma/hybrid ``to_height_agl``: pressure, then hypsometric heights."""
+    _require("surface_pressure", surface_pressure, axis)
+    _require("temperature", temperature, axis)
+    assert surface_pressure is not None and temperature is not None
+    p = axis.to_pressure(surface_pressure=surface_pressure)
+    return hypsometric_z_agl(p, surface_pressure, temperature)
 
 
 # Registry for from_flag

@@ -12,12 +12,14 @@ from arlmet._time import ensure_timestamp
 from arlmet.errors import ARLFormatError
 from arlmet.grid import Grid
 
+__all__ = ["Header"]
+
 # ---------------------------------------------------------------------------
 # Helper functions
 # ---------------------------------------------------------------------------
 
 
-def restore_year(yr: str | int):
+def restore_year(yr: str | int) -> int:
     """
     Convert 2-digit year to 4-digit year.
 
@@ -102,10 +104,13 @@ def record_length_from_grid(grid: Grid) -> int:
 # ---------------------------------------------------------------------------
 
 
-@dataclass
+@dataclass(frozen=True)
 class Header:
     """
     Fixed-width 50-byte header present at the start of every ARL record.
+
+    Headers are immutable value objects; use :func:`dataclasses.replace` to
+    derive a modified copy.
 
     Parameters
     ----------
@@ -116,7 +121,10 @@ class Header:
     level : int
         ARL vertical level index.
     grid : tuple[int, int]
-        Thousands-encoded x and y grid header components.
+        Thousands part of the x and y grid sizes, as stored in the header's
+        two grid letters (``(1000, 0)`` for a 1799x799 grid; ``(0, 0)``
+        below 1000 points). The remainders live in the index record, whose
+        ``nx``/``ny`` are the full sizes.
     variable : str
         Four-character ARL variable name.
     exponent : int
@@ -203,9 +211,6 @@ class Header:
         )
 
         return cls(**parsed)
-
-    def __getitem__(self, key: str) -> int | float | tuple[int, int] | str:
-        return getattr(self, key)
 
     @property
     def time(self) -> pd.Timestamp:

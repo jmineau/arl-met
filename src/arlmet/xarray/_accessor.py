@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import xarray as xr
 
+from arlmet.grid import Grid
+from arlmet.vertical import VerticalAxis
+
 from ._coords import grid_from_coord, vaxis_from_coord
+
+__all__ = ["ARLDatasetAccessor"]
 
 
 @xr.register_dataset_accessor("arl")
@@ -30,7 +35,7 @@ class ARLDatasetAccessor:
         self._obj = xarray_obj
 
     @property
-    def grid(self):
+    def grid(self) -> Grid:
         if "arl_grid" not in self._obj.coords:
             raise AttributeError(
                 "Dataset has no 'arl_grid' coordinate. Open files with arlmet.open_dataset()."
@@ -38,7 +43,7 @@ class ARLDatasetAccessor:
         return grid_from_coord(self._obj.coords["arl_grid"])
 
     @property
-    def vertical_axis(self):
+    def vertical_axis(self) -> VerticalAxis | None:
         # Dataset case: integer 'level' coord + physical non-dim coord with "surface" attr
         flag = self._obj.attrs.get("vertical_flag")
         if flag is None or "level" not in self._obj.coords:

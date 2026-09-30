@@ -1,4 +1,4 @@
-"""RecordCollection protocol, VariableView, VariableAccessor, and RecordSet."""
+"""RecordSet: the records for one valid time of an ARL file."""
 
 from __future__ import annotations
 
@@ -20,6 +20,8 @@ from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
     from arlmet.file import File
+
+__all__ = ["RecordSet"]
 
 
 class RecordSet:
@@ -56,12 +58,15 @@ class RecordSet:
     Methods
     -------
     __getitem__(key)
-        Get a DataRecord by (level, variable) key.
+        Get a DataRecord by ``(level, variable)`` key.
+    __contains__(key)
+        ``(level, variable) in rs`` tests for a record; ``variable in rs``
+        tests whether the variable is present at any level.
     __iter__()
         Iterate over DataRecords in this record set.
     __len__()
         Get the number of records in this record set.
-    create_datarecord(variable, level, forecast=-1, data=None)
+    create_datarecord(variable, level, *, forecast, data=None, diff=None)
         Create a writable data record for this time.
     """
 
@@ -143,6 +148,7 @@ class RecordSet:
         self,
         variable: str,
         level: int,
+        *,
         forecast: int,
         data: npt.ArrayLike | None = None,
         diff: str | None = None,
@@ -160,7 +166,8 @@ class RecordSet:
             Forecast hour to write into the record header.
             Missing data should use a value of -1.
         data : numpy.ndarray, optional
-            Initial ``(ny, nx)`` field values to assign.
+            Initial ``(ny, nx)`` field values to assign. When omitted, assign
+            the whole field later with ``record[:] = values``.
         diff : str, optional
             Name of a trailing DIF record to derive from the parent field.
 
@@ -175,7 +182,7 @@ class RecordSet:
                 "Create DIF records through the parent record using diff='DIF...'."
             )
         if diff is not None:
-            self.file.register_diff_binding(diff_name=diff, parent_name=variable)
+            self.file._register_diff_binding(diff_name=diff, parent_name=variable)
         dr = self._create_datarecord(
             position=-1, variable=variable, level=level, forecast=forecast
         )
@@ -246,8 +253,8 @@ class RecordSet:
             record_forecasts=forecast_hours, explicit_forecast=self.forecast
         )
 
-        grid_x, nx = split_grid_component(self.grid.nx)
-        grid_y, ny = split_grid_component(self.grid.ny)
+        grid_x = split_grid_component(self.grid.nx)[0]
+        grid_y = split_grid_component(self.grid.ny)[0]
         levels = [
             LvlInfo(
                 level=level,
@@ -297,11 +304,10 @@ class RecordSet:
             sync_lat=projection.sync_lat,
             sync_lon=projection.sync_lon,
             reserved=vaxis.offset,
-            nx=nx,
-            ny=ny,
+            nx=self.grid.nx,
+            ny=self.grid.ny,
             nz=len(levels),
             vertical_flag=vaxis.flag,
-            index_length=0,
             levels=levels,
         )
 
@@ -353,7 +359,12 @@ class RecordSet:
 
     def __contains__(self, key: object) -> bool:
         if isinstance(key, str):
-            return key in {r.variable for r in self.records}
+            return any(r.variable == key for r in self._datarecords.values())
+        if isinstance(key, tuple) and len(key) == 2:
+            try:
+                return (self.time, *key) in self._datarecords
+            except TypeError:  # unhashable key parts
+                return False
         return False
 
     @override

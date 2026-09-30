@@ -1,6 +1,10 @@
 """Tests for arlmet.metadata module."""
 
+import io
 from collections import OrderedDict
+from dataclasses import FrozenInstanceError
+
+import pytest
 
 from arlmet.header import Header, letter_to_thousands, restore_year
 from arlmet.index import IndexRecord, LvlInfo, VarInfo
@@ -100,7 +104,6 @@ class TestIndexRecord:
             ny=10,
             nz=2,
             vertical_flag=4,
-            index_length=124,
             levels=[
                 LvlInfo(
                     level=0, height=1.0, variables=OrderedDict({"PRSS": VarInfo(0, "")})
@@ -117,3 +120,87 @@ class TestIndexRecord:
         assert axis.offset == 25.0
         assert axis.coord_system == "hybrid"
         assert axis.levels.tolist() == [1.0, 0.5]
+
+
+def _index_record(nx: int, ny: int, *, grid: tuple[int, int] | None = None):
+    """Build a one-level IndexRecord for an ``nx`` x ``ny`` lat/lon grid."""
+    if grid is None:
+        grid = ((nx // 1000) * 1000, (ny // 1000) * 1000)
+    header = Header(
+        year=2025,
+        month=1,
+        day=1,
+        hour=0,
+        forecast=0,
+        level=0,
+        grid=grid,
+        variable="INDX",
+        exponent=0,
+        precision=0.0,
+        initial_value=0.0,
+    )
+    return IndexRecord(
+        header=header,
+        source="TEST",
+        forecast=0,
+        minutes=0,
+        pole_lat=90.0,
+        pole_lon=0.0,
+        tangent_lat=0.1,
+        tangent_lon=0.1,
+        grid_size=0.0,
+        orientation=0.0,
+        cone_angle=0.0,
+        sync_x=1.0,
+        sync_y=1.0,
+        sync_lat=0.0,
+        sync_lon=0.0,
+        reserved=0.0,
+        nx=nx,
+        ny=ny,
+        nz=1,
+        vertical_flag=2,
+        levels=[
+            LvlInfo(
+                level=0, height=1000.0, variables=OrderedDict({"PRSS": VarInfo(7, "")})
+            )
+        ],
+    )
+
+
+class TestIndexRecordGridSize:
+    def test_nx_ny_are_full_sizes_through_a_byte_roundtrip(self):
+        index = _index_record(1799, 1059)
+        raw = index.tobytes()
+
+        # The fixed portion stores only the remainder below 1000 ...
+        fixed = raw[Header.N_BYTES : Header.N_BYTES + IndexRecord.N_BYTES_FIXED]
+        assert fixed[93:99] == b"799 59"
+        # ... and the header's grid letters carry the thousands.
+        assert raw[12:14] == b"AA"
+
+        parsed = IndexRecord.from_position(io.BytesIO(raw), 0)
+        assert (parsed.nx, parsed.ny) == (1799, 1059)
+        assert (parsed.grid.nx, parsed.grid.ny) == (1799, 1059)
+        assert parsed == index
+
+    def test_mismatched_header_grid_raises(self):
+        with pytest.raises(ValueError, match="thousands"):
+            _index_record(1799, 1059, grid=(0, 0))
+
+    def test_tobytes_computes_index_length_without_mutation(self):
+        index = _index_record(20, 20)
+        expected = IndexRecord.N_BYTES_FIXED + 8 + 8  # one level, one variable
+        assert index.index_length == expected
+        raw = index.tobytes()
+        assert index.index_length == expected
+        assert len(raw) == Header.N_BYTES + expected
+        fixed = raw[Header.N_BYTES : Header.N_BYTES + IndexRecord.N_BYTES_FIXED]
+        assert int(fixed[104:108]) == expected
+
+    def test_index_record_and_header_are_frozen(self):
+        index = _index_record(20, 20)
+        with pytest.raises(FrozenInstanceError):
+            index.nx = 30  # type: ignore[misc]
+        with pytest.raises(FrozenInstanceError):
+            index.header.forecast = 3  # type: ignore[misc]

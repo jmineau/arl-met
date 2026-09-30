@@ -90,8 +90,8 @@ def _build_subset_index_record(
             reserved=(record._reserved or "")[:1],
         )
 
-    grid_x, nx = split_grid_component(subset_grid.nx)
-    grid_y, ny = split_grid_component(subset_grid.ny)
+    grid_x = split_grid_component(subset_grid.nx)[0]
+    grid_y = split_grid_component(subset_grid.ny)[0]
     levels = [
         LvlInfo(
             level=level,
@@ -131,11 +131,10 @@ def _build_subset_index_record(
         sync_lat=projection.sync_lat,
         sync_lon=projection.sync_lon,
         reserved=subset_axis.offset,
-        nx=nx,
-        ny=ny,
+        nx=subset_grid.nx,
+        ny=subset_grid.ny,
         nz=len(levels),
         vertical_flag=subset_axis.flag,
-        index_length=0,
         levels=levels,
     )
 

@@ -93,7 +93,6 @@ class TestPack:
             precision=precision,
             exponent=exponent,
             initial_value=initial_value,
-            driver=np,
         )
 
         np.testing.assert_array_equal(packed, 127)
@@ -113,7 +112,6 @@ class TestPack:
             precision=precision,
             exponent=exponent,
             initial_value=initial_value,
-            driver=np,
         )
 
         np.testing.assert_allclose(roundtripped, unpacked, atol=precision)
@@ -132,7 +130,6 @@ class TestPack:
             precision=precision,
             exponent=exponent,
             initial_value=initial_value,
-            driver=np,
         )
 
         np.testing.assert_allclose(roundtripped, unpacked, atol=precision)
@@ -162,7 +159,6 @@ class TestPack:
             exponent=exponent,
             initial_value=initial_value,
             window=window,
-            driver=np,
         )
 
         np.testing.assert_allclose(subset, unpacked[1:4, 2:5], atol=precision)
@@ -193,7 +189,6 @@ class TestPack:
             precision=precision,
             exponent=exponent,
             initial_value=initial_value,
-            driver=np,
         )
 
         np.testing.assert_allclose(roundtripped, unpacked, atol=precision)

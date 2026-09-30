@@ -92,6 +92,26 @@ Height above mean sea level
 ``z_msl()`` is ``z_agl(ds) + ds["SHGT"]`` (surface terrain height in metres) and
 requires ``SHGT`` in the dataset.
 
+NumPy arrays
+------------
+
+The same conversions are available on the vertical axis itself for plain NumPy
+arrays. Inputs are keyword-only, and each axis uses only the ones its
+coordinate system needs; a missing one raises ``ValueError`` naming it.
+
+.. code-block:: python
+
+   vaxis = arlmet.SigmaAxis(levels=[1.0, 0.98, 0.95], offset=0.0)
+   p = vaxis.to_pressure(surface_pressure=prss)  # prss.shape + (nlev,)
+   z = vaxis.to_height_agl(surface_pressure=prss, temperature=temp)
+
+   paxis = arlmet.PressureAxis(levels=[1000.0, 925.0, 850.0])
+   z = paxis.to_height_agl(hgts=hgts, terrain=shgt[..., None])
+
+Vertical axes are immutable: ``levels`` is a read-only array and attributes
+cannot be reassigned. Build a new axis instead (for example
+``arlmet.VerticalAxis.from_flag(vaxis.flag, levels, offset=vaxis.offset)``).
+
 Limitations
 -----------
 

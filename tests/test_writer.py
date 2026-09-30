@@ -455,7 +455,7 @@ class TestWriter:
     @staticmethod
     def _pack_args(
         data: np.ndarray,
-    ) -> tuple[bytes, int, int, float, int, float, type[np]]:
+    ) -> tuple[bytes, int, int, float, int, float]:
         packed, precision, exponent, initial_value = pack(data)
         return (
             packed.tobytes(),
@@ -464,5 +464,4 @@ class TestWriter:
             precision,
             exponent,
             initial_value,
-            np,
         )
