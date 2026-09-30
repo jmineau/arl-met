@@ -50,6 +50,6 @@ Supported versions
 ------------------
 
 arlmet supports the CPython versions that are not end-of-life and have NumPy
-wheels (currently 3.10 through 3.14), on Linux, macOS, and Windows. Support
+wheels (currently 3.11 through 3.14), on Linux, macOS, and Windows. Support
 for a Python version is dropped in a minor release after it reaches
 end-of-life.

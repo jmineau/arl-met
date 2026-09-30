@@ -8,11 +8,11 @@ from collections import OrderedDict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from pathlib import Path
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, BinaryIO, Literal, cast
+from typing import TYPE_CHECKING, Any, BinaryIO, Literal, Self, cast
 
 import numpy.typing as npt
 import pandas as pd
-from typing_extensions import Self, override
+from typing_extensions import override
 from xarray.backends import CachingFileManager
 
 from arlmet._time import ensure_timestamp
