@@ -75,13 +75,11 @@ the API reference for the full object model.
    getting-started
    user-guides
    api
-   stability
 
 Development
 -----------
 
-See :doc:`contributing` for contribution guidance. :doc:`stability` describes what
-counts as public API and how versions change.
+See :doc:`contributing` for contribution guidance.
 
 Indices and tables
 ==================

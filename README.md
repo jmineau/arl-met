@@ -24,14 +24,11 @@ format used by HYSPLIT and related workflows. It supports:
 - point sampling with `sample_points()`
 - joining files with `concat()` and `concat_by_time()` (e.g. 6-hourly into daily)
 
-## Status and stability
+## Status
 
-arl-met is in **beta**: the public API (everything in `arlmet.__all__`, the
-`arlmet.archives` module, the `ds.arl` accessor, and the `engine="arl"` xarray
-backend) is frozen, and breaking changes are rare and always flagged in the
-[changelog](CHANGELOG.md). See the
-[API stability policy](https://jmineau.github.io/arl-met/stability.html) for
-what counts as public and how versions change.
+arl-met is in **beta**. The core API is settled enough to build on, but it may
+still change before 1.0; breaking changes are marked **Breaking** in the
+[changelog](CHANGELOG.md).
 
 Strengths:
 

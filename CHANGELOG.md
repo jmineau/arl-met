@@ -4,6 +4,12 @@ All notable changes to arl-met are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+
+- The API stability policy page (`docs/stability.rst`). arl-met is in beta and its API may still change; the README's "Status" note says so, and breaking changes stay marked **Breaking** here
+
 ## [0.1.0b1] - 2026-09-30
 
 ### Added
