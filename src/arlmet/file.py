@@ -337,7 +337,7 @@ class File:
             Forecast hour for the index record header.
             HYSPLIT docs are unclear on this, but conversion code appears to
             use the forecast hour from the first variable specified in the config file.
-            This is brittle in `arlmet`s case, so we chose to either allow
+            This is brittle in arlmet's case, so we chose to either allow
             specifying it here or an index's forecast hour will be set to the minimum
             forecast hour among its variables (defaulting to -1 when all variables are missing data).
 
