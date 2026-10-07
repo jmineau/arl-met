@@ -36,4 +36,14 @@
    ~{{ objname }}.{{ item }}
 {%- endfor %}
 {% endif %}
+
+{% for base, members in class_page.inherited(fullname, attributes + all_methods) %}
+{% if loop.first %}
+.. rubric:: Inherited
+
+{% endif %}
+From :class:`~{{ base }}`:
+{%- for member in members %} :py:obj:`~{{ member }}`{{ "," if not loop.last }}{% endfor %}
+
+{% endfor %}
 {% endif %}
