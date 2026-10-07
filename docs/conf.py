@@ -4,10 +4,14 @@ Sphinx configuration for the arl-met docs.
 The full list of settings: https://www.sphinx-doc.org/en/master/usage/configuration.html
 """
 
+import sys
 import warnings
 from importlib.metadata import version as package_version
+from pathlib import Path
 
 from sphinx.deprecation import RemovedInSphinx10Warning
+
+sys.path.insert(0, str(Path(__file__).parent / "_ext"))
 
 warnings.filterwarnings(
     "ignore",
@@ -36,6 +40,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "sphinx_autodoc_typehints",
+    "api_pages",  # _ext/api_pages.py: class pages with member tables
     "sphinx_copybutton",
 ]
 
@@ -76,7 +81,7 @@ napoleon_include_special_with_doc = True
 napoleon_use_admonition_for_examples = False
 napoleon_use_admonition_for_notes = False
 napoleon_use_admonition_for_references = False
-napoleon_use_ivar = False
+napoleon_use_ivar = True
 napoleon_use_param = True
 napoleon_use_rtype = True
 napoleon_preprocess_types = False

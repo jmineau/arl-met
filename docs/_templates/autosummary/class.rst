@@ -2,24 +2,38 @@
 
 .. currentmodule:: {{ module }}
 
+{#- What gets a row here and a page of its own: _ext/api_pages.py. #}
+{% if class_page.is_enum(fullname) %}
 .. autoclass:: {{ objname }}
+   :members:
+   :undoc-members:
+   :show-inheritance:
+{% else %}
+.. autoclass:: {{ objname }}
+   :no-members:
+{%- if class_page.has_bases(fullname) %}
+   :show-inheritance:
+{%- endif %}
+{% set attrs = class_page.members(fullname, attributes) | sort(case_sensitive=False) %}
+{% set meths = class_page.members(fullname, all_methods) | sort(case_sensitive=False) %}
 
-{% if methods %}
-.. rubric:: Methods
-
-.. autosummary::
-
-{% for item in methods %}
-   {{ objname }}.{{ item }}
-{%- endfor %}
-{% endif %}
-
-{% if attributes %}
+{% if attrs %}
 .. rubric:: Attributes
 
 .. autosummary::
-
-{% for item in attributes %}
-   {{ objname }}.{{ item }}
+   :toctree:
+{% for item in attrs %}
+   ~{{ objname }}.{{ item }}
 {%- endfor %}
+{% endif %}
+
+{% if meths %}
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+{% for item in meths %}
+   ~{{ objname }}.{{ item }}
+{%- endfor %}
+{% endif %}
 {% endif %}
