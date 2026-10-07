@@ -4,7 +4,7 @@
 
 ## Checklist
 
-- [ ] Tests added or updated (`uv run pytest -m "not network and not slow"` passes)
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, and `uv run pyrefly check src/arlmet` pass
-- [ ] Docs (`docs/*.rst`, README) updated for any public API change
+- [ ] Tests added or updated
+- [ ] `just quality-check` passes (lint, type check, docstrings, tests)
+- [ ] Docs updated for any public API change (`just build-docs` has no warnings)
 - [ ] `CHANGELOG.md` entry under `## [Unreleased]`

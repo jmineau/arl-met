@@ -379,20 +379,24 @@ with arlmet.File("out.arl", mode="w", source="TEST", grid=grid, vertical_axis=va
 
 ## Development Workflow
 
+Driven by [`just`](https://github.com/casey/just) and uv; CI runs the same
+recipes (`just` lists them all):
+
 ```bash
-# install with dev dependencies
-uv sync --dev
-
-# run tests
-uv run pytest -q
-
-# lint and format
-uv run ruff check .
-uv run ruff format .
-
-# pre-commit (runs ruff + other hooks)
-pre-commit run --all-files
+uv sync                  # .venv with the package (builds _pack) and the dev tools
+just test                # offline tests, in parallel; extra args go to pytest
+just test-network        # the tests that download from NOAA S3
+just lint                # ruff check + format check (`just format` fixes)
+just type-check          # pyrefly, strict preset
+just quality-check       # lint, type check, docstrings (`just docstr`), tests
+just build-docs          # Sphinx; warnings are errors (`just docs-serve` previews)
+just dist                # sdist + this platform's wheel, checked with twine
+just pre-commit          # every pre-commit hook on every file
 ```
+
+The tooling comes from [jmineau/python-template](https://github.com/jmineau/python-template)
+(`.copier-answers.yml`); `copier update` pulls in its changes. Releases:
+RELEASING.md.
 
 Python ≥ 3.11 required. Runtime dependencies: `numpy`, `pandas`, `pyproj`,
 `xarray`.
@@ -417,8 +421,9 @@ many unrelated pins.
   GC disabled, and a lazy-Dataset `write_dataset`). `extract_subset` is
   measured on both its byte-copy (no bbox) and repack (bbox) paths. Keep its
   grids ~200x200 so array buffers dominate Python object overhead.
-- Run offline tests with `-m "not network and not slow"` (as CI does). A bare
-  `pytest` also runs the network tests, which hit NOAA S3.
+- `just test` runs the offline tests (`-m "not network and not slow"`, as CI
+  does). A bare `pytest` also runs the network tests, which hit NOAA S3.
+  Warnings are errors; a test that expects one asserts it with `pytest.warns`.
 - For performance benchmarks, use real files downloaded from the archives,
   e.g. the July 2024 NCEP/NCAR Reanalysis month
   (`get_archive("reanalysis").fetch("2024-07-01", "2024-07-01", dest_dir=...)`

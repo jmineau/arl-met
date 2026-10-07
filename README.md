@@ -62,7 +62,9 @@ For development:
 ```bash
 git clone https://github.com/jmineau/arl-met.git
 cd arl-met
-uv sync --dev
+uv sync
+uv run pre-commit install
+just quality-check   # lint, type check, docstrings, tests
 ```
 
 ## Quick examples
