@@ -184,6 +184,11 @@ class Archive(ABC):
         Human-readable product description.
     start_date : pandas.Timestamp
         Earliest date in the archive.
+    source : str
+        The source id its files' headers carry (:attr:`arlmet.File.source`),
+        such as ``"HRRR"``, so a caller can tell which product an archive
+        holds without downloading a file. Every file of an archive carries
+        the same id, except where a subclass says otherwise.
 
     Methods
     -------
@@ -198,6 +203,8 @@ class Archive(ABC):
     description: ClassVar[str]
     #: Earliest date available in the NOAA archive.
     start_date: ClassVar[pd.Timestamp]
+    #: The source id in the headers of the archive's files.
+    source: ClassVar[str]
 
     S3_BUCKET: ClassVar[str] = "noaa-oar-arl-hysplit-pds"
 
@@ -500,6 +507,7 @@ class HRRRArchive(Archive):
     name = "hrrr"
     description = "HRRR 3 km analysis"
     start_date = ensure_timestamp("2019-06-12")
+    source = "HRRR"
 
     _HOURS_PER_FILE: ClassVar[int] = 6
 
@@ -527,6 +535,7 @@ class NAMArchive(Archive):
     name = "nam12"
     description = "NAM 12 km analysis"
     start_date = ensure_timestamp("2007-05-26")
+    source = "NAM"
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the daily NAM archive filename for *time*."""
@@ -552,6 +561,7 @@ class GDASArchive(Archive):
     name = "gdas1"
     description = "GDAS 1-degree global analysis"
     start_date = ensure_timestamp("2004-12-01")
+    source = "GDAS"
 
     def _week(self, time: pd.Timestamp) -> int:
         """Return the 1-based archive week within the month for *time*."""
@@ -582,6 +592,7 @@ class GFSArchive(Archive):
     name = "gfs0p25"
     description = "GFS 0.25-degree global analysis"
     start_date = ensure_timestamp("2019-06-13")
+    source = "GFSQ"
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the daily GFS archive filename for *time*."""
@@ -611,6 +622,7 @@ class NAMSArchive(Archive):
     name = "nams"
     description = "NAMS hybrid sigma-pressure analysis"
     start_date = ensure_timestamp("2009-03-22")
+    source = "NAMS"
 
     _DOMAIN_SUFFIXES: ClassVar[dict[str, str]] = {
         "conus": "",
@@ -654,6 +666,7 @@ class ReanalysisArchive(Archive):
     name = "reanalysis"
     description = "NCEP/NCAR Reanalysis 2.5-degree global"
     start_date = ensure_timestamp("1948-01-01")
+    source = "CDC1"
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the monthly reanalysis archive filename for *time*."""
@@ -678,6 +691,7 @@ class HRRRv1Archive(Archive):
     name = "hrrr.v1"
     description = "HRRR 3 km analysis v1"
     start_date = ensure_timestamp("2015-06-15")
+    source = "HRRR"
 
     _HOURS_PER_FILE: ClassVar[int] = 6
 
@@ -705,6 +719,8 @@ class GDAS0p5Archive(Archive):
     name = "gdas0p5"
     description = "GDAS 0.5-degree global analysis"
     start_date = ensure_timestamp("2007-09-01")
+    #: Files before 2013-07-29 carry "GHDA", the id of the same product.
+    source = "GFSG"
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the daily GDAS 0.5-degree archive filename for *time*."""
@@ -730,6 +746,7 @@ class NARRArchive(Archive):
     name = "narr"
     description = "NCEP North American Regional Reanalysis 32 km"
     start_date = ensure_timestamp("1979-01-01")
+    source = "NARR"
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the monthly NARR archive filename for *time*."""
