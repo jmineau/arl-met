@@ -2,8 +2,6 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 title: "arl-met"
-version: 0.1.0a7
-date-released: "2026-09-22"
 # Concept DOI (always resolves to the latest release) — same convention as
 # pandas/astropy/xarray. `doi` is the shorthand GitHub's "Cite this
 # repository" popup actually renders in APA/BibTeX (it ignores

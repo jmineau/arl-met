@@ -24,6 +24,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # setuptools-scm reads the version from tags
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.2.1
@@ -57,6 +59,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # setuptools-scm reads the version from tags
 
       - name: Set up Python
         uses: actions/setup-python@v6
