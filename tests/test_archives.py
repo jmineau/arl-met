@@ -1058,3 +1058,41 @@ class TestArchiveRegistry:
             assert src.ARCHIVES["hrrr"] is src.HRRRArchive
         finally:
             src._REGISTRY.pop("test-mymodel", None)
+
+
+def test_every_archive_says_which_source_its_files_carry():
+    from arlmet.archives import ARCHIVES
+
+    for name, cls in ARCHIVES.items():
+        assert isinstance(cls.source, str) and cls.source, name
+
+
+#: A date each archive has a file for on S3.
+_SOURCE_CHECK_DATES = {
+    "hrrr": "2021-01-15",
+    "nam12": "2021-01-15",
+    "gdas1": "2021-01-15",
+    "gfs0p25": "2021-01-15",
+    "nams": "2021-01-15",
+    "reanalysis": "2021-01-15",
+    "hrrr.v1": "2015-07-15",
+    "gdas0p5": "2015-07-15",
+    "narr": "2015-07-15",
+}
+
+
+@pytest.mark.network
+@pytest.mark.parametrize("name", sorted(_SOURCE_CHECK_DATES))
+def test_an_archives_source_is_the_one_its_files_carry(name):
+    """Read the index record of one real file, without downloading the rest."""
+    import s3fs
+
+    from arlmet.archives import ARCHIVES
+    from arlmet.index import IndexRecord
+
+    archive = ARCHIVES[name]()
+    key = archive._archive_path(pd.Timestamp(_SOURCE_CHECK_DATES[name]))
+    fs = s3fs.S3FileSystem(anon=True)
+    with fs.open(f"{archive.S3_BUCKET}/{key}", "rb", block_size=2**20) as f:
+        index = IndexRecord.from_position(f, 0)
+    assert index.source == archive.source

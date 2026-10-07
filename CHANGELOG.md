@@ -6,6 +6,13 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `Archive.source`: the source id the headers of an archive's files carry
+  (`"HRRR"`, `"NAM"`, `"GDAS"`, ...), so a caller can tell which product an
+  archive holds without downloading a file (#42). GDAS 0.5° files before
+  2013-07-29 carry `"GHDA"`, an earlier id of the same product.
+
 ### Removed
 
 - The API stability policy page (`docs/stability.rst`). arl-met is in beta and its API may still change; the README's "Status" note says so, and breaking changes stay marked **Breaking** here
