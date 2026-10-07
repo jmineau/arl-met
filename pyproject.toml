@@ -143,14 +143,28 @@ select = [
     "B",  # flake8-bugbear
     "SIM",  # flake8-simplify
     "I",  # isort
+    "D",  # pydocstyle, numpy convention (below)
     "D213",  # docstring summary on the second line
     "NPY",  # NumPy-specific, incl. NumPy 2 deprecations
     "RUF100",  # unused noqa
 ]
 ignore = [
-    "D212",  # incompatible with D213; keep summaries on the second line
     "E501",  # line too long, handled by formatter
+    "D105",  # magic methods need no docstring (docstr-coverage skips them too)
+    "D200",  # One-line docstring should fit on one line with quotes
+    "D212",  # Multi-line docstring summary should start at the first line
+    "D400",  # First line should end with a period, question mark, or exclamation point
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests need no docstrings; the docstring format rules still apply to them.
+"tests/**" = ["D100", "D101", "D102", "D103", "D104", "D106", "D107"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+# Properties are documented in their class's docstring (docstr-coverage skips
+# them too, with --skip-property).
+ignore-decorators = ["property"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["arlmet"]

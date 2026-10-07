@@ -309,7 +309,7 @@ class File:
         *,
         forecast: int | None = None,
     ) -> RecordSet:
-        """Internal factory method to create a new RecordSet."""
+        """Create a new RecordSet (internal factory)."""
         if time in self._recordsets:
             raise ValueError(f"A RecordSet for time {time} already exists.")
 

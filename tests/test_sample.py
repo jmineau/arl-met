@@ -327,6 +327,7 @@ class TestPointSampling:
 def write_sigma_sampling_file(path, *, time: pd.Timestamp):
     """
     Sigma (flag=1) file with offset=0 (p_top=0 hPa).
+
     sigma=[1.0, 0.9, 0.8], PRSS=1000 → pressure levels [1000, 900, 800] hPa.
     No HGTS — matches real sigma files. Heights derived via hypsometric.
     TEMP at each level: 280, 290, 300 K (uniform grid).
@@ -358,6 +359,7 @@ def write_sigma_sampling_file(path, *, time: pd.Timestamp):
 def write_terrain_sampling_file(path, *, time: pd.Timestamp):
     """
     Terrain-following (flag=3) file.
+
     Level heights (AGL): [0, 100, 500] m.
     TEMP: 280, 290, 300 K at each level (uniform grid).
     terrain (SHGT) = 200 m.
@@ -394,6 +396,7 @@ def _sigma_hypsometric_agl(surface_pressure, temps, sigma_levels, offset=0.0):
 class TestSigmaSampling:
     """
     Sigma (flag=1) file: sigma=[1.0, 0.9, 0.8], PRSS=1000 hPa, p_top=0.
+
     Effective pressure levels: [1000, 900, 800] hPa.
     Heights derived via hypsometric integration from PRSS + TEMP.
     TEMP: [280, 290, 300] K.
@@ -460,6 +463,7 @@ class TestSigmaSampling:
 def write_hybrid_sampling_file(path, *, time: pd.Timestamp):
     """
     Hybrid (flag=4) file with pure-sigma levels (floor_p=0 for all).
+
     levels=[0.995, 0.9, 0.8], PRSS=1000 hPa.
     Pressure: level 0 → 1000 hPa (surface override), level 1 → 900 hPa, level 2 → 800 hPa.
     No HGTS — matches real hybrid files. Heights derived via hypsometric.
@@ -500,6 +504,7 @@ def _hybrid_hypsometric_agl(surface_pressure, temps, hybrid_levels):
 class TestHybridSampling:
     """
     Hybrid (flag=4) file: levels=[0.995, 0.9, 0.8], PRSS=1000 hPa.
+
     Effective pressure levels: [1000, 900, 800] hPa (floor_p=0 → pure sigma).
     Heights derived via hypsometric integration.
     TEMP: [280, 290, 300] K.
@@ -564,6 +569,7 @@ class TestHybridSampling:
 def write_sampling_file_with_hgts(path, *, time: pd.Timestamp):
     """
     Pressure-level (flag=2) file with HGTS records.
+
     levels=[1000, 900, 800] hPa, terrain=200m, PRSS=1000 hPa.
     HGTS=[200, 1200, 2200]m → AGL=[0, 1000, 2000]m.
     TEMP: 280, 290, 300 K at each level.
@@ -600,6 +606,7 @@ def write_sampling_file_with_hgts(path, *, time: pd.Timestamp):
 class TestHgtsBasedSampling:
     """
     Pressure-level (flag=2) file with distinct HGTS values.
+
     HGTS=[200,1200,2200]m, terrain=200m → AGL=[0,1000,2000]m.
     TEMP=[280,290,300]K. Pressure=[1000,900,800]hPa.
     """
@@ -650,6 +657,7 @@ class TestHgtsBasedSampling:
 class TestTerrainFollowingSampling:
     """
     Terrain-following (flag=3) file.
+
     Level AGL heights: [0, 100, 500] m.
     TEMP: [280, 290, 300] K. Terrain: 200 m.
     """

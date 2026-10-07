@@ -349,7 +349,7 @@ class TerrainAxis(VerticalAxis):
     def to_pressure(
         self, *, surface_pressure: npt.ArrayLike | None = None
     ) -> npt.NDArray[np.float64]:
-        """Always raises ValueError: terrain-following files have no pressure."""
+        """Raise ValueError: terrain-following files have no pressure."""
         raise ValueError(
             "Terrain-following (flag=3) files have no pressure coordinate."
         )
