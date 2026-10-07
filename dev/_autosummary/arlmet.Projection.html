@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=c9ea721e"></script>
+    <script src="../_static/documentation_options.js?v=79fde6bc"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -55,11 +55,11 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="arlmet.Grid" href="arlmet.Grid.html" />
-    <link rel="prev" title="arlmet.DataRecord" href="arlmet.DataRecord.html" />
+    <link rel="next" title="arlmet.Projection.is_latlon" href="arlmet.Projection.is_latlon.html" />
+    <link rel="prev" title="arlmet.DataRecord.verify_checksum" href="arlmet.DataRecord.verify_checksum.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3.dev4+g183843473" />
+  <meta name="docsearch:version" content="0.1.0b3.dev6+g2ec897a3e" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -389,23 +389,119 @@
 <li class="toctree-l1"><a class="reference internal" href="arlmet.z_msl.html">arlmet.z_msl</a></li>
 </ul>
 <ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="arlmet.File.html">arlmet.File</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.RecordSet.html">arlmet.RecordSet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.DataRecord.html">arlmet.DataRecord</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.File.html">arlmet.File</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.handle.html">arlmet.File.handle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.record_length.html">arlmet.File.record_length</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.records.html">arlmet.File.records</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.size.html">arlmet.File.size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.times.html">arlmet.File.times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.add_record.html">arlmet.File.add_record</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.close.html">arlmet.File.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.create_grid.html">arlmet.File.create_grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.create_recordset.html">arlmet.File.create_recordset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.extract_subset.html">arlmet.File.extract_subset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.flush.html">arlmet.File.flush</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.sample_points.html">arlmet.File.sample_points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.to_dataset.html">arlmet.File.to_dataset</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.RecordSet.html">arlmet.RecordSet</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.grid.html">arlmet.RecordSet.grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.mode.html">arlmet.RecordSet.mode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.record_length.html">arlmet.RecordSet.record_length</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.records.html">arlmet.RecordSet.records</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.source.html">arlmet.RecordSet.source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.vertical_axis.html">arlmet.RecordSet.vertical_axis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.create_datarecord.html">arlmet.RecordSet.create_datarecord</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.DataRecord.html">arlmet.DataRecord</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.bytes.html">arlmet.DataRecord.bytes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.checksum.html">arlmet.DataRecord.checksum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.data.html">arlmet.DataRecord.data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.diff.html">arlmet.DataRecord.diff</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.dtype.html">arlmet.DataRecord.dtype</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.forecast.html">arlmet.DataRecord.forecast</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.grid.html">arlmet.DataRecord.grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.header.html">arlmet.DataRecord.header</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.mode.html">arlmet.DataRecord.mode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.n_bytes.html">arlmet.DataRecord.n_bytes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.shape.html">arlmet.DataRecord.shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.source.html">arlmet.DataRecord.source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.time.html">arlmet.DataRecord.time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.vertical_axis.html">arlmet.DataRecord.vertical_axis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.read.html">arlmet.DataRecord.read</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.to_xarray.html">arlmet.DataRecord.to_xarray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.verify_checksum.html">arlmet.DataRecord.verify_checksum</a></li>
+</ul>
+</details></li>
 </ul>
 <ul class="current nav bd-sidenav">
-<li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">arlmet.Projection</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.Grid.html">arlmet.Grid</a></li>
+<li class="toctree-l1 current active has-children"><a aria-current="page" class="current reference internal" href="#">arlmet.Projection</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Projection.is_latlon.html">arlmet.Projection.is_latlon</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Projection.params.html">arlmet.Projection.params</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.Grid.html">arlmet.Grid</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.crs.html">arlmet.Grid.crs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.dims.html">arlmet.Grid.dims</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.is_latlon.html">arlmet.Grid.is_latlon</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.origin.html">arlmet.Grid.origin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.wraps_lon.html">arlmet.Grid.wraps_lon</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.calculate_coords.html">arlmet.Grid.calculate_coords</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.fractional_indices.html">arlmet.Grid.fractional_indices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.full_window.html">arlmet.Grid.full_window</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.meridian_convergence.html">arlmet.Grid.meridian_convergence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.rotate_winds.html">arlmet.Grid.rotate_winds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.subset.html">arlmet.Grid.subset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.window_from_bbox.html">arlmet.Grid.window_from_bbox</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.GridWindow.html">arlmet.GridWindow</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.VerticalAxis.html">arlmet.VerticalAxis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.SigmaAxis.html">arlmet.SigmaAxis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.PressureAxis.html">arlmet.PressureAxis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.TerrainAxis.html">arlmet.TerrainAxis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.HybridAxis.html">arlmet.HybridAxis</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.VerticalAxis.html">arlmet.VerticalAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.from_flag.html">arlmet.VerticalAxis.from_flag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.to_height_agl.html">arlmet.VerticalAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.to_pressure.html">arlmet.VerticalAxis.to_pressure</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.SigmaAxis.html">arlmet.SigmaAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.SigmaAxis.to_height_agl.html">arlmet.SigmaAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.SigmaAxis.to_pressure.html">arlmet.SigmaAxis.to_pressure</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.PressureAxis.html">arlmet.PressureAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.PressureAxis.to_height_agl.html">arlmet.PressureAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.PressureAxis.to_pressure.html">arlmet.PressureAxis.to_pressure</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.TerrainAxis.html">arlmet.TerrainAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.TerrainAxis.to_height_agl.html">arlmet.TerrainAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.TerrainAxis.to_pressure.html">arlmet.TerrainAxis.to_pressure</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.HybridAxis.html">arlmet.HybridAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.HybridAxis.to_height_agl.html">arlmet.HybridAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.HybridAxis.to_pressure.html">arlmet.HybridAxis.to_pressure</a></li>
+</ul>
+</details></li>
 </ul>
 <ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="arlmet.Header.html">arlmet.Header</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.IndexRecord.html">arlmet.IndexRecord</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.Header.html">arlmet.Header</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Header.time.html">arlmet.Header.time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Header.from_bytes.html">arlmet.Header.from_bytes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Header.tobytes.html">arlmet.Header.tobytes</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.IndexRecord.html">arlmet.IndexRecord</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.grid.html">arlmet.IndexRecord.grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.index_length.html">arlmet.IndexRecord.index_length</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.time.html">arlmet.IndexRecord.time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.vertical_axis.html">arlmet.IndexRecord.vertical_axis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.from_position.html">arlmet.IndexRecord.from_position</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.to_record_bytes.html">arlmet.IndexRecord.to_record_bytes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.tobytes.html">arlmet.IndexRecord.tobytes</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.calculate_checksum.html">arlmet.calculate_checksum</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.pack.html">arlmet.pack</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.unpack.html">arlmet.unpack</a></li>
@@ -416,13 +512,22 @@
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.get_archive.html">arlmet.archives.get_archive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.archives.Archive.html">arlmet.archives.Archive</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.archives.Archive.html">arlmet.archives.Archive</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.source.html">arlmet.archives.Archive.source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.start_date.html">arlmet.archives.Archive.start_date</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.fetch.html">arlmet.archives.Archive.fetch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.paths_for_range.html">arlmet.archives.Archive.paths_for_range</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.HRRRArchive.html">arlmet.archives.HRRRArchive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.HRRRv1Archive.html">arlmet.archives.HRRRv1Archive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.NAMArchive.html">arlmet.archives.NAMArchive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.NAMSArchive.html">arlmet.archives.NAMSArchive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.GDASArchive.html">arlmet.archives.GDASArchive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.archives.GDAS0p5Archive.html">arlmet.archives.GDAS0p5Archive</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.archives.GDAS0p5Archive.html">arlmet.archives.GDAS0p5Archive</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.archives.GDAS0p5Archive.source.html">arlmet.archives.GDAS0p5Archive.source</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.GFSArchive.html">arlmet.archives.GFSArchive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.NARRArchive.html">arlmet.archives.NARRArchive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.ReanalysisArchive.html">arlmet.archives.ReanalysisArchive</a></li>
@@ -526,30 +631,6 @@ grids: longitude of the (0,0) grid point position.</p></li>
 </ul>
 </dd>
 </dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="arlmet.Projection.params">
-<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#arlmet.Projection.params" title="Link to this definition">#</a></dt>
-<dd><p>pyproj parameter dictionary derived from the ARL metadata (a new
-dict on each access). False easting and northing offsets are applied
-at the Grid level (<a class="reference internal" href="arlmet.Grid.html#arlmet.Grid.crs" title="arlmet.Grid.crs"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Grid.crs</span></code></a>).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)">str</a>, Any]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="arlmet.Projection.is_latlon">
-<span class="sig-name descname"><span class="pre">is_latlon</span></span><a class="headerlink" href="#arlmet.Projection.is_latlon" title="Link to this definition">#</a></dt>
-<dd><p>True if the grid is a lat-lon grid (grid_size == 0).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)">bool</a></p>
-</dd>
-</dl>
-</dd></dl>
-
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Projection</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">proj</span> <span class="o">=</span> <span class="n">Projection</span><span class="p">(</span>
@@ -571,59 +652,14 @@ at the Grid level (<a class="reference internal" href="arlmet.Grid.html#arlmet.G
 </div>
 </dd></dl>
 
-<p class="rubric">Methods</p>
-<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
-<tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.__init__</span></code>(pole_lat, pole_lon, ...)</p></td>
-<td><p></p></td>
-</tr>
-</tbody>
-</table>
-</div>
 <p class="rubric">Attributes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.PARAMS</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#arlmet.Projection.is_latlon" title="arlmet.Projection.is_latlon"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.is_latlon</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.Projection.is_latlon.html#arlmet.Projection.is_latlon" title="arlmet.Projection.is_latlon"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_latlon</span></code></a></p></td>
 <td><p>Check if this is a lat-lon grid.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#arlmet.Projection.params" title="arlmet.Projection.params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.params</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.Projection.params.html#arlmet.Projection.params" title="arlmet.Projection.params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">params</span></code></a></p></td>
 <td><p>pyproj parameters for the base projection (a new dict on each access).</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.pole_lat</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.pole_lon</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.tangent_lat</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.tangent_lon</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.grid_size</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.orientation</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.cone_angle</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.sync_x</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.sync_y</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.sync_lat</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Projection.sync_lon</span></code></p></td>
-<td><p></p></td>
 </tr>
 </tbody>
 </table>
@@ -641,20 +677,20 @@ at the Grid level (<a class="reference internal" href="arlmet.Grid.html#arlmet.G
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="arlmet.DataRecord.html"
+       href="arlmet.DataRecord.verify_checksum.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">arlmet.DataRecord</p>
+        <p class="prev-next-title">arlmet.DataRecord.verify_checksum</p>
       </div>
     </a>
     <a class="right-next"
-       href="arlmet.Grid.html"
+       href="arlmet.Projection.is_latlon.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">arlmet.Grid</p>
+        <p class="prev-next-title">arlmet.Projection.is_latlon</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -677,11 +713,7 @@ at the Grid level (<a class="reference internal" href="arlmet.Grid.html#arlmet.G
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.Projection"><code class="docutils literal notranslate"><span class="pre">Projection</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.Projection.params"><code class="docutils literal notranslate"><span class="pre">Projection.params</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.Projection.is_latlon"><code class="docutils literal notranslate"><span class="pre">Projection.is_latlon</span></code></a></li>
-</ul>
-</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.Projection"><code class="docutils literal notranslate"><span class="pre">Projection</span></code></a></li>
 </ul>
   </nav></div>
 

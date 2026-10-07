@@ -4,26 +4,31 @@
 .. currentmodule:: arlmet
 
 .. autoclass:: RecordSet
+   :no-members:
 
-
-.. rubric:: Methods
-
-.. autosummary::
-
-
-   RecordSet.__init__
-   RecordSet.create_datarecord
 
 
 
 .. rubric:: Attributes
 
 .. autosummary::
+   :toctree:
+
+   ~RecordSet.grid
+   ~RecordSet.mode
+   ~RecordSet.record_length
+   ~RecordSet.records
+   ~RecordSet.source
+   ~RecordSet.vertical_axis
 
 
-   RecordSet.grid
-   RecordSet.mode
-   RecordSet.record_length
-   RecordSet.records
-   RecordSet.source
-   RecordSet.vertical_axis
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~RecordSet.create_datarecord
+
+
+

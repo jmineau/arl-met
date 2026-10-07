@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=c9ea721e"></script>
+    <script src="../../_static/documentation_options.js?v=79fde6bc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3.dev4+g183843473" />
+  <meta name="docsearch:version" content="0.1.0b3.dev6+g2ec897a3e" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -644,7 +644,7 @@
         <span class="k">return</span> <span class="n">record_length_from_grid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
 
 <div class="viewcode-block" id="File.create_grid">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.create_grid">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.create_grid.html#arlmet.File.create_grid">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">create_grid</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">nx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -742,7 +742,7 @@
         <span class="k">return</span> <span class="n">rs</span>
 
 <div class="viewcode-block" id="File.create_recordset">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.create_recordset">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.create_recordset.html#arlmet.File.create_recordset">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">create_recordset</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">forecast</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RecordSet</span><span class="p">:</span>
@@ -757,7 +757,7 @@
 <span class="sd">            Forecast hour for the index record header.</span>
 <span class="sd">            HYSPLIT docs are unclear on this, but conversion code appears to</span>
 <span class="sd">            use the forecast hour from the first variable specified in the config file.</span>
-<span class="sd">            This is brittle in `arlmet`s case, so we chose to either allow</span>
+<span class="sd">            This is brittle in arlmet&#39;s case, so we chose to either allow</span>
 <span class="sd">            specifying it here or an index&#39;s forecast hour will be set to the minimum</span>
 <span class="sd">            forecast hour among its variables (defaulting to -1 when all variables are missing data).</span>
 
@@ -796,7 +796,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_diff_parents</span><span class="p">[</span><span class="n">diff_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">parent_name</span>
 
 <div class="viewcode-block" id="File.add_record">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.add_record">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.add_record.html#arlmet.File.add_record">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_record</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
@@ -1013,7 +1013,7 @@
         <span class="k">return</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="File.flush">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.flush">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.flush.html#arlmet.File.flush">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Write pending record sets to disk and release their in-memory data.</span>
@@ -1042,7 +1042,7 @@
 
 
 <div class="viewcode-block" id="File.close">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.close">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.close.html#arlmet.File.close">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Flush pending writes and close the managed binary file handle.&quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
@@ -1056,7 +1056,7 @@
 
 
 <div class="viewcode-block" id="File.sample_points">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.sample_points">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.sample_points.html#arlmet.File.sample_points">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">sample_points</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">points</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -1153,7 +1153,7 @@
 
 
 <div class="viewcode-block" id="File.to_dataset">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.to_dataset">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.to_dataset.html#arlmet.File.to_dataset">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dataset</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1189,7 +1189,7 @@
 
 
 <div class="viewcode-block" id="File.extract_subset">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.extract_subset">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.extract_subset.html#arlmet.File.extract_subset">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">extract_subset</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">dest</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -1240,8 +1240,6 @@
         <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="File.__getitem__">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.__getitem__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RecordSet</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="c1"># Allow lookup by string time representation</span>
@@ -1249,14 +1247,10 @@
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
             <span class="c1"># Positional lookup follows the sorted `times`, not file order</span>
             <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-
-<div class="viewcode-block" id="File.__iter__">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.__iter__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">)</span></div>
-
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="p">)</span>

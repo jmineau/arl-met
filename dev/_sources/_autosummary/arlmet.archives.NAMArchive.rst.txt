@@ -4,28 +4,20 @@
 .. currentmodule:: arlmet.archives
 
 .. autoclass:: NAMArchive
-
-
-.. rubric:: Methods
-
-.. autosummary::
-
-
-   NAMArchive.__init__
-   NAMArchive.fetch
-   NAMArchive.paths_for_range
+   :no-members:
+   :show-inheritance:
 
 
 
-.. rubric:: Attributes
-
-.. autosummary::
 
 
-   NAMArchive.FTP_HOST
-   NAMArchive.HTTP_BASE
-   NAMArchive.S3_BUCKET
-   NAMArchive.description
-   NAMArchive.name
-   NAMArchive.source
-   NAMArchive.start_date
+
+
+
+
+.. rubric:: Inherited
+
+
+From :class:`~arlmet.archives.Archive`: :py:obj:`~arlmet.archives.Archive.fetch`, :py:obj:`~arlmet.archives.Archive.paths_for_range`, :py:obj:`~arlmet.archives.Archive.source`, :py:obj:`~arlmet.archives.Archive.start_date`
+
+

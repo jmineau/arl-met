@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=c9ea721e"></script>
+    <script src="../../_static/documentation_options.js?v=79fde6bc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3.dev4+g183843473" />
+  <meta name="docsearch:version" content="0.1.0b3.dev6+g2ec897a3e" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -802,7 +802,7 @@
         <span class="k">return</span> <span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Grid.origin">
-<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.html#arlmet.Grid.origin">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.origin.html#arlmet.Grid.origin">[docs]</a>
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">origin</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -838,7 +838,7 @@
 
 
 <div class="viewcode-block" id="Grid.crs">
-<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.html#arlmet.Grid.crs">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.crs.html#arlmet.Grid.crs">[docs]</a>
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">crs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pyproj</span><span class="o">.</span><span class="n">CRS</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -857,7 +857,7 @@
 
 
 <div class="viewcode-block" id="Grid.calculate_coords">
-<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.html#arlmet.Grid.calculate_coords">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.calculate_coords.html#arlmet.Grid.calculate_coords">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">calculate_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_Coord</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Grid coordinates in both projected and geographic systems.</span>
@@ -919,7 +919,7 @@
         <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nx</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">tangent_lon</span><span class="p">),</span> <span class="mf">360.0</span><span class="p">))</span>
 
 <div class="viewcode-block" id="Grid.fractional_indices">
-<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.html#arlmet.Grid.fractional_indices">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.fractional_indices.html#arlmet.Grid.fractional_indices">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">fractional_indices</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">lon</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">lat</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="nb">float</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
@@ -974,6 +974,8 @@
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span></div>
 
 
+<div class="viewcode-block" id="Grid.meridian_convergence">
+<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.meridian_convergence.html#arlmet.Grid.meridian_convergence">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">meridian_convergence</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">lon</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">lat</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="nb">float</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
@@ -1002,8 +1004,11 @@
         <span class="n">factors</span> <span class="o">=</span> <span class="n">pyproj</span><span class="o">.</span><span class="n">Proj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crs</span><span class="p">)</span><span class="o">.</span><span class="n">get_factors</span><span class="p">(</span><span class="n">lon_arr</span><span class="p">,</span> <span class="n">lat_arr</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">factors</span><span class="o">.</span><span class="n">meridian_convergence</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
             <span class="n">lon_arr</span><span class="o">.</span><span class="n">shape</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="Grid.rotate_winds">
+<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.rotate_winds.html#arlmet.Grid.rotate_winds">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">rotate_winds</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">u</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
@@ -1042,8 +1047,11 @@
         <span class="n">angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meridian_convergence</span><span class="p">(</span><span class="n">lon_arr</span><span class="p">,</span> <span class="n">lat_arr</span><span class="p">))</span>
         <span class="n">cos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
         <span class="n">sin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">cos</span> <span class="o">*</span> <span class="n">u_arr</span> <span class="o">+</span> <span class="n">sin</span> <span class="o">*</span> <span class="n">v_arr</span><span class="p">,</span> <span class="n">cos</span> <span class="o">*</span> <span class="n">v_arr</span> <span class="o">-</span> <span class="n">sin</span> <span class="o">*</span> <span class="n">u_arr</span>
+        <span class="k">return</span> <span class="n">cos</span> <span class="o">*</span> <span class="n">u_arr</span> <span class="o">+</span> <span class="n">sin</span> <span class="o">*</span> <span class="n">v_arr</span><span class="p">,</span> <span class="n">cos</span> <span class="o">*</span> <span class="n">v_arr</span> <span class="o">-</span> <span class="n">sin</span> <span class="o">*</span> <span class="n">u_arr</span></div>
 
+
+<div class="viewcode-block" id="Grid.full_window">
+<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.full_window.html#arlmet.Grid.full_window">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">full_window</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GridWindow</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return a GridWindow spanning the full horizontal domain.</span>
@@ -1053,10 +1061,11 @@
 <span class="sd">        GridWindow</span>
 <span class="sd">            Window covering all x and y indices in the grid.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">GridWindow</span><span class="p">(</span><span class="n">x_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_stop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span> <span class="n">y_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y_stop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">GridWindow</span><span class="p">(</span><span class="n">x_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_stop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span> <span class="n">y_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y_stop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="Grid.window_from_bbox">
-<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.html#arlmet.Grid.window_from_bbox">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.window_from_bbox.html#arlmet.Grid.window_from_bbox">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">window_from_bbox</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">GridWindow</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Resolve a geographic bounding box to grid indices.</span>
@@ -1146,7 +1155,7 @@
 
 
 <div class="viewcode-block" id="Grid.subset">
-<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.html#arlmet.Grid.subset">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.Grid.subset.html#arlmet.Grid.subset">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">subset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">window</span><span class="p">:</span> <span class="n">GridWindow</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Grid&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Build a new grid definition for a rectangular subset.</span>

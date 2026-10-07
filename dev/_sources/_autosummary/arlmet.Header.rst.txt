@@ -4,35 +4,27 @@
 .. currentmodule:: arlmet
 
 .. autoclass:: Header
+   :no-members:
 
-
-.. rubric:: Methods
-
-.. autosummary::
-
-
-   Header.__init__
-   Header.from_bytes
-   Header.tobytes
 
 
 
 .. rubric:: Attributes
 
 .. autosummary::
+   :toctree:
+
+   ~Header.time
 
 
-   Header.FIELDS
-   Header.N_BYTES
-   Header.time
-   Header.year
-   Header.month
-   Header.day
-   Header.hour
-   Header.forecast
-   Header.level
-   Header.grid
-   Header.variable
-   Header.exponent
-   Header.precision
-   Header.initial_value
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~Header.from_bytes
+   ~Header.tobytes
+
+
+

@@ -4,28 +4,20 @@
 .. currentmodule:: arlmet.archives
 
 .. autoclass:: HRRRv1Archive
-
-
-.. rubric:: Methods
-
-.. autosummary::
-
-
-   HRRRv1Archive.__init__
-   HRRRv1Archive.fetch
-   HRRRv1Archive.paths_for_range
+   :no-members:
+   :show-inheritance:
 
 
 
-.. rubric:: Attributes
-
-.. autosummary::
 
 
-   HRRRv1Archive.FTP_HOST
-   HRRRv1Archive.HTTP_BASE
-   HRRRv1Archive.S3_BUCKET
-   HRRRv1Archive.description
-   HRRRv1Archive.name
-   HRRRv1Archive.source
-   HRRRv1Archive.start_date
+
+
+
+
+.. rubric:: Inherited
+
+
+From :class:`~arlmet.archives.Archive`: :py:obj:`~arlmet.archives.Archive.fetch`, :py:obj:`~arlmet.archives.Archive.paths_for_range`, :py:obj:`~arlmet.archives.Archive.source`, :py:obj:`~arlmet.archives.Archive.start_date`
+
+

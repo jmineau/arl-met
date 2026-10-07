@@ -4,26 +4,22 @@
 .. currentmodule:: arlmet
 
 .. autoclass:: VerticalAxis
+   :no-members:
+   :show-inheritance:
+
+
+
+
 
 
 .. rubric:: Methods
 
 .. autosummary::
+   :toctree:
+
+   ~VerticalAxis.from_flag
+   ~VerticalAxis.to_height_agl
+   ~VerticalAxis.to_pressure
 
 
-   VerticalAxis.__init__
-   VerticalAxis.from_flag
-   VerticalAxis.to_height_agl
-   VerticalAxis.to_pressure
 
-
-
-.. rubric:: Attributes
-
-.. autosummary::
-
-
-   VerticalAxis.flag
-   VerticalAxis.coord_system
-   VerticalAxis.levels
-   VerticalAxis.offset

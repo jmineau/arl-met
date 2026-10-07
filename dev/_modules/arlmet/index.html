@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=c9ea721e"></script>
+    <script src="../../_static/documentation_options.js?v=79fde6bc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3.dev4+g183843473" />
+  <meta name="docsearch:version" content="0.1.0b3.dev6+g2ec897a3e" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -643,7 +643,7 @@
             <span class="p">)</span>
 
 <div class="viewcode-block" id="IndexRecord.from_position">
-<a class="viewcode-back" href="../../_autosummary/arlmet.IndexRecord.html#arlmet.IndexRecord.from_position">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.IndexRecord.from_position.html#arlmet.IndexRecord.from_position">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_position</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">BinaryIO</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;IndexRecord&quot;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -751,7 +751,7 @@
         <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="IndexRecord.tobytes">
-<a class="viewcode-back" href="../../_autosummary/arlmet.IndexRecord.html#arlmet.IndexRecord.tobytes">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.IndexRecord.tobytes.html#arlmet.IndexRecord.tobytes">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">tobytes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the exact used bytes of the index record, including its header.&quot;&quot;&quot;</span>
         <span class="n">extended</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_serialize_extended</span><span class="p">()</span>
@@ -760,7 +760,7 @@
 
 
 <div class="viewcode-block" id="IndexRecord.to_record_bytes">
-<a class="viewcode-back" href="../../_autosummary/arlmet.IndexRecord.html#arlmet.IndexRecord.to_record_bytes">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.IndexRecord.to_record_bytes.html#arlmet.IndexRecord.to_record_bytes">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_record_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the index record padded to one full ARL record.&quot;&quot;&quot;</span>
         <span class="n">raw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span>

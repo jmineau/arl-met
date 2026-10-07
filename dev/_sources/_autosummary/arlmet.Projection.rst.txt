@@ -4,33 +4,20 @@
 .. currentmodule:: arlmet
 
 .. autoclass:: Projection
+   :no-members:
 
-
-.. rubric:: Methods
-
-.. autosummary::
-
-
-   Projection.__init__
 
 
 
 .. rubric:: Attributes
 
 .. autosummary::
+   :toctree:
+
+   ~Projection.is_latlon
+   ~Projection.params
 
 
-   Projection.PARAMS
-   Projection.is_latlon
-   Projection.params
-   Projection.pole_lat
-   Projection.pole_lon
-   Projection.tangent_lat
-   Projection.tangent_lon
-   Projection.grid_size
-   Projection.orientation
-   Projection.cone_angle
-   Projection.sync_x
-   Projection.sync_y
-   Projection.sync_lat
-   Projection.sync_lon
+
+
+

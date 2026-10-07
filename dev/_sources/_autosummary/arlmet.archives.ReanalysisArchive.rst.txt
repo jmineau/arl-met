@@ -4,28 +4,20 @@
 .. currentmodule:: arlmet.archives
 
 .. autoclass:: ReanalysisArchive
-
-
-.. rubric:: Methods
-
-.. autosummary::
-
-
-   ReanalysisArchive.__init__
-   ReanalysisArchive.fetch
-   ReanalysisArchive.paths_for_range
+   :no-members:
+   :show-inheritance:
 
 
 
-.. rubric:: Attributes
-
-.. autosummary::
 
 
-   ReanalysisArchive.FTP_HOST
-   ReanalysisArchive.HTTP_BASE
-   ReanalysisArchive.S3_BUCKET
-   ReanalysisArchive.description
-   ReanalysisArchive.name
-   ReanalysisArchive.source
-   ReanalysisArchive.start_date
+
+
+
+
+.. rubric:: Inherited
+
+
+From :class:`~arlmet.archives.Archive`: :py:obj:`~arlmet.archives.Archive.fetch`, :py:obj:`~arlmet.archives.Archive.paths_for_range`, :py:obj:`~arlmet.archives.Archive.source`, :py:obj:`~arlmet.archives.Archive.start_date`
+
+

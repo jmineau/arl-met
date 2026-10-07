@@ -1,0 +1,6 @@
+arlmet.archives.Archive.start\_date
+===================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: Archive.start_date

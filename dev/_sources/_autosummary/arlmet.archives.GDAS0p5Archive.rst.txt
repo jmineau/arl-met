@@ -4,28 +4,27 @@
 .. currentmodule:: arlmet.archives
 
 .. autoclass:: GDAS0p5Archive
+   :no-members:
+   :show-inheritance:
 
-
-.. rubric:: Methods
-
-.. autosummary::
-
-
-   GDAS0p5Archive.__init__
-   GDAS0p5Archive.fetch
-   GDAS0p5Archive.paths_for_range
 
 
 
 .. rubric:: Attributes
 
 .. autosummary::
+   :toctree:
+
+   ~GDAS0p5Archive.source
 
 
-   GDAS0p5Archive.FTP_HOST
-   GDAS0p5Archive.HTTP_BASE
-   GDAS0p5Archive.S3_BUCKET
-   GDAS0p5Archive.description
-   GDAS0p5Archive.name
-   GDAS0p5Archive.source
-   GDAS0p5Archive.start_date
+
+
+
+
+.. rubric:: Inherited
+
+
+From :class:`~arlmet.archives.Archive`: :py:obj:`~arlmet.archives.Archive.fetch`, :py:obj:`~arlmet.archives.Archive.paths_for_range`, :py:obj:`~arlmet.archives.Archive.start_date`
+
+

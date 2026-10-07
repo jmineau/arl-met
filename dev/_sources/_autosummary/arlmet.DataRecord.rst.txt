@@ -4,37 +4,41 @@
 .. currentmodule:: arlmet
 
 .. autoclass:: DataRecord
+   :no-members:
 
-
-.. rubric:: Methods
-
-.. autosummary::
-
-
-   DataRecord.__init__
-   DataRecord.read
-   DataRecord.to_xarray
-   DataRecord.verify_checksum
 
 
 
 .. rubric:: Attributes
 
 .. autosummary::
+   :toctree:
+
+   ~DataRecord.bytes
+   ~DataRecord.checksum
+   ~DataRecord.data
+   ~DataRecord.diff
+   ~DataRecord.dtype
+   ~DataRecord.forecast
+   ~DataRecord.grid
+   ~DataRecord.header
+   ~DataRecord.mode
+   ~DataRecord.n_bytes
+   ~DataRecord.shape
+   ~DataRecord.source
+   ~DataRecord.time
+   ~DataRecord.vertical_axis
 
 
-   DataRecord.bytes
-   DataRecord.checksum
-   DataRecord.data
-   DataRecord.diff
-   DataRecord.dtype
-   DataRecord.forecast
-   DataRecord.grid
-   DataRecord.header
-   DataRecord.mode
-   DataRecord.n_bytes
-   DataRecord.ndim
-   DataRecord.shape
-   DataRecord.source
-   DataRecord.time
-   DataRecord.vertical_axis
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~DataRecord.read
+   ~DataRecord.to_xarray
+   ~DataRecord.verify_checksum
+
+
+

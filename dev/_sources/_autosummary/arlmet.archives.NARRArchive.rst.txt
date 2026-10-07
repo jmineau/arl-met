@@ -4,28 +4,20 @@
 .. currentmodule:: arlmet.archives
 
 .. autoclass:: NARRArchive
-
-
-.. rubric:: Methods
-
-.. autosummary::
-
-
-   NARRArchive.__init__
-   NARRArchive.fetch
-   NARRArchive.paths_for_range
+   :no-members:
+   :show-inheritance:
 
 
 
-.. rubric:: Attributes
-
-.. autosummary::
 
 
-   NARRArchive.FTP_HOST
-   NARRArchive.HTTP_BASE
-   NARRArchive.S3_BUCKET
-   NARRArchive.description
-   NARRArchive.name
-   NARRArchive.source
-   NARRArchive.start_date
+
+
+
+
+.. rubric:: Inherited
+
+
+From :class:`~arlmet.archives.Archive`: :py:obj:`~arlmet.archives.Archive.fetch`, :py:obj:`~arlmet.archives.Archive.paths_for_range`, :py:obj:`~arlmet.archives.Archive.source`, :py:obj:`~arlmet.archives.Archive.start_date`
+
+

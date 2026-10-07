@@ -4,28 +4,12 @@
 .. currentmodule:: arlmet
 
 .. autoclass:: GridWindow
-
-
-.. rubric:: Methods
-
-.. autosummary::
-
-
-   GridWindow.__init__
+   :no-members:
 
 
 
-.. rubric:: Attributes
-
-.. autosummary::
 
 
-   GridWindow.nx
-   GridWindow.ny
-   GridWindow.shape
-   GridWindow.x_slice
-   GridWindow.y_slice
-   GridWindow.x_start
-   GridWindow.x_stop
-   GridWindow.y_start
-   GridWindow.y_stop
+
+
+

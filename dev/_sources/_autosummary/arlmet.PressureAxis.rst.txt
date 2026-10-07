@@ -4,26 +4,28 @@
 .. currentmodule:: arlmet
 
 .. autoclass:: PressureAxis
+   :no-members:
+   :show-inheritance:
+
+
+
+
 
 
 .. rubric:: Methods
 
 .. autosummary::
+   :toctree:
+
+   ~PressureAxis.to_height_agl
+   ~PressureAxis.to_pressure
 
 
-   PressureAxis.__init__
-   PressureAxis.from_flag
-   PressureAxis.to_height_agl
-   PressureAxis.to_pressure
 
 
-
-.. rubric:: Attributes
-
-.. autosummary::
+.. rubric:: Inherited
 
 
-   PressureAxis.coord_system
-   PressureAxis.flag
-   PressureAxis.levels
-   PressureAxis.offset
+From :class:`~arlmet.VerticalAxis`: :py:obj:`~arlmet.VerticalAxis.from_flag`
+
+

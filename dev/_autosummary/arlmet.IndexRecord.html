@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=c9ea721e"></script>
+    <script src="../_static/documentation_options.js?v=79fde6bc"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -55,11 +55,11 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="arlmet.calculate_checksum" href="arlmet.calculate_checksum.html" />
-    <link rel="prev" title="arlmet.Header" href="arlmet.Header.html" />
+    <link rel="next" title="arlmet.IndexRecord.grid" href="arlmet.IndexRecord.grid.html" />
+    <link rel="prev" title="arlmet.Header.tobytes" href="arlmet.Header.tobytes.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3.dev4+g183843473" />
+  <meta name="docsearch:version" content="0.1.0b3.dev6+g2ec897a3e" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -389,23 +389,119 @@
 <li class="toctree-l1"><a class="reference internal" href="arlmet.z_msl.html">arlmet.z_msl</a></li>
 </ul>
 <ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="arlmet.File.html">arlmet.File</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.RecordSet.html">arlmet.RecordSet</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.DataRecord.html">arlmet.DataRecord</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.File.html">arlmet.File</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.handle.html">arlmet.File.handle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.record_length.html">arlmet.File.record_length</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.records.html">arlmet.File.records</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.size.html">arlmet.File.size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.times.html">arlmet.File.times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.add_record.html">arlmet.File.add_record</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.close.html">arlmet.File.close</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.create_grid.html">arlmet.File.create_grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.create_recordset.html">arlmet.File.create_recordset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.extract_subset.html">arlmet.File.extract_subset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.flush.html">arlmet.File.flush</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.sample_points.html">arlmet.File.sample_points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.to_dataset.html">arlmet.File.to_dataset</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.RecordSet.html">arlmet.RecordSet</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.grid.html">arlmet.RecordSet.grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.mode.html">arlmet.RecordSet.mode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.record_length.html">arlmet.RecordSet.record_length</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.records.html">arlmet.RecordSet.records</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.source.html">arlmet.RecordSet.source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.vertical_axis.html">arlmet.RecordSet.vertical_axis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.RecordSet.create_datarecord.html">arlmet.RecordSet.create_datarecord</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.DataRecord.html">arlmet.DataRecord</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.bytes.html">arlmet.DataRecord.bytes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.checksum.html">arlmet.DataRecord.checksum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.data.html">arlmet.DataRecord.data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.diff.html">arlmet.DataRecord.diff</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.dtype.html">arlmet.DataRecord.dtype</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.forecast.html">arlmet.DataRecord.forecast</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.grid.html">arlmet.DataRecord.grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.header.html">arlmet.DataRecord.header</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.mode.html">arlmet.DataRecord.mode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.n_bytes.html">arlmet.DataRecord.n_bytes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.shape.html">arlmet.DataRecord.shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.source.html">arlmet.DataRecord.source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.time.html">arlmet.DataRecord.time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.vertical_axis.html">arlmet.DataRecord.vertical_axis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.read.html">arlmet.DataRecord.read</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.to_xarray.html">arlmet.DataRecord.to_xarray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.verify_checksum.html">arlmet.DataRecord.verify_checksum</a></li>
+</ul>
+</details></li>
 </ul>
 <ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="arlmet.Projection.html">arlmet.Projection</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.Grid.html">arlmet.Grid</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.Projection.html">arlmet.Projection</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Projection.is_latlon.html">arlmet.Projection.is_latlon</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Projection.params.html">arlmet.Projection.params</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.Grid.html">arlmet.Grid</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.crs.html">arlmet.Grid.crs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.dims.html">arlmet.Grid.dims</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.is_latlon.html">arlmet.Grid.is_latlon</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.origin.html">arlmet.Grid.origin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.wraps_lon.html">arlmet.Grid.wraps_lon</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.calculate_coords.html">arlmet.Grid.calculate_coords</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.fractional_indices.html">arlmet.Grid.fractional_indices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.full_window.html">arlmet.Grid.full_window</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.meridian_convergence.html">arlmet.Grid.meridian_convergence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.rotate_winds.html">arlmet.Grid.rotate_winds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.subset.html">arlmet.Grid.subset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.window_from_bbox.html">arlmet.Grid.window_from_bbox</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.GridWindow.html">arlmet.GridWindow</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.VerticalAxis.html">arlmet.VerticalAxis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.SigmaAxis.html">arlmet.SigmaAxis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.PressureAxis.html">arlmet.PressureAxis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.TerrainAxis.html">arlmet.TerrainAxis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.HybridAxis.html">arlmet.HybridAxis</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.VerticalAxis.html">arlmet.VerticalAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.from_flag.html">arlmet.VerticalAxis.from_flag</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.to_height_agl.html">arlmet.VerticalAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.to_pressure.html">arlmet.VerticalAxis.to_pressure</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.SigmaAxis.html">arlmet.SigmaAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.SigmaAxis.to_height_agl.html">arlmet.SigmaAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.SigmaAxis.to_pressure.html">arlmet.SigmaAxis.to_pressure</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.PressureAxis.html">arlmet.PressureAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.PressureAxis.to_height_agl.html">arlmet.PressureAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.PressureAxis.to_pressure.html">arlmet.PressureAxis.to_pressure</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.TerrainAxis.html">arlmet.TerrainAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.TerrainAxis.to_height_agl.html">arlmet.TerrainAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.TerrainAxis.to_pressure.html">arlmet.TerrainAxis.to_pressure</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.HybridAxis.html">arlmet.HybridAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.HybridAxis.to_height_agl.html">arlmet.HybridAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.HybridAxis.to_pressure.html">arlmet.HybridAxis.to_pressure</a></li>
+</ul>
+</details></li>
 </ul>
 <ul class="current nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="arlmet.Header.html">arlmet.Header</a></li>
-<li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">arlmet.IndexRecord</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.Header.html">arlmet.Header</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Header.time.html">arlmet.Header.time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Header.from_bytes.html">arlmet.Header.from_bytes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Header.tobytes.html">arlmet.Header.tobytes</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a aria-current="page" class="current reference internal" href="#">arlmet.IndexRecord</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.grid.html">arlmet.IndexRecord.grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.index_length.html">arlmet.IndexRecord.index_length</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.time.html">arlmet.IndexRecord.time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.vertical_axis.html">arlmet.IndexRecord.vertical_axis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.from_position.html">arlmet.IndexRecord.from_position</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.to_record_bytes.html">arlmet.IndexRecord.to_record_bytes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.IndexRecord.tobytes.html">arlmet.IndexRecord.tobytes</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.calculate_checksum.html">arlmet.calculate_checksum</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.pack.html">arlmet.pack</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.unpack.html">arlmet.unpack</a></li>
@@ -416,13 +512,22 @@
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.get_archive.html">arlmet.archives.get_archive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.archives.Archive.html">arlmet.archives.Archive</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.archives.Archive.html">arlmet.archives.Archive</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.source.html">arlmet.archives.Archive.source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.start_date.html">arlmet.archives.Archive.start_date</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.fetch.html">arlmet.archives.Archive.fetch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.paths_for_range.html">arlmet.archives.Archive.paths_for_range</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.HRRRArchive.html">arlmet.archives.HRRRArchive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.HRRRv1Archive.html">arlmet.archives.HRRRv1Archive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.NAMArchive.html">arlmet.archives.NAMArchive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.NAMSArchive.html">arlmet.archives.NAMSArchive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.GDASArchive.html">arlmet.archives.GDASArchive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.archives.GDAS0p5Archive.html">arlmet.archives.GDAS0p5Archive</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.archives.GDAS0p5Archive.html">arlmet.archives.GDAS0p5Archive</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.archives.GDAS0p5Archive.source.html">arlmet.archives.GDAS0p5Archive.source</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.GFSArchive.html">arlmet.archives.GFSArchive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.NARRArchive.html">arlmet.archives.NARRArchive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.ReanalysisArchive.html">arlmet.archives.ReanalysisArchive</a></li>
@@ -539,82 +644,9 @@ letters carry the thousands (see <code class="xref py py-attr docutils literal n
 <li><p><strong>levels</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">LvlInfo</span></code>]</span>) – Variable manifests for each stored vertical level.</p></li>
 </ul>
 </dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="arlmet.IndexRecord.N_BYTES_FIXED">
-<span class="sig-name descname"><span class="pre">N_BYTES_FIXED</span></span><a class="headerlink" href="#arlmet.IndexRecord.N_BYTES_FIXED" title="Link to this definition">#</a></dt>
-<dd><p>Number of bytes in the fixed portion of the index record (108 bytes).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)">int</a></p>
+<dt class="field-even">Variables<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>N_BYTES_FIXED</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of bytes in the fixed portion of the index record (108 bytes).</p>
 </dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="arlmet.IndexRecord.index_length">
-<span class="sig-name descname"><span class="pre">index_length</span></span><a class="headerlink" href="#arlmet.IndexRecord.index_length" title="Link to this definition">#</a></dt>
-<dd><p>Serialized length in bytes of the fixed plus variable portions
-(excluding the 50-byte header), computed from the current fields.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)">int</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="arlmet.IndexRecord.time">
-<span class="sig-name descname"><span class="pre">time</span></span><a class="headerlink" href="#arlmet.IndexRecord.time" title="Link to this definition">#</a></dt>
-<dd><p>The valid time of the record, calculated from the header time and minutes.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.Timestamp</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="arlmet.IndexRecord.grid">
-<span class="sig-name descname"><span class="pre">grid</span></span><a class="headerlink" href="#arlmet.IndexRecord.grid" title="Link to this definition">#</a></dt>
-<dd><p>Horizontal grid built from the projection fields and <code class="docutils literal notranslate"><span class="pre">nx</span></code>/<code class="docutils literal notranslate"><span class="pre">ny</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="arlmet.Grid.html#arlmet.Grid" title="arlmet.Grid">Grid</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="arlmet.IndexRecord.vertical_axis">
-<span class="sig-name descname"><span class="pre">vertical_axis</span></span><a class="headerlink" href="#arlmet.IndexRecord.vertical_axis" title="Link to this definition">#</a></dt>
-<dd><p>Vertical axis built from <code class="docutils literal notranslate"><span class="pre">vertical_flag</span></code>, level heights, and <code class="docutils literal notranslate"><span class="pre">reserved</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="arlmet.VerticalAxis.html#arlmet.VerticalAxis" title="arlmet.VerticalAxis">VerticalAxis</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="arlmet.IndexRecord.from_position">
-<span class="sig-name descname"><span class="pre">from_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/index.html#IndexRecord.from_position"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.IndexRecord.from_position" title="Link to this definition">#</a></dt>
-<dd><p>Read and parse an index record from a file handle.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="arlmet.IndexRecord.tobytes">
-<span class="sig-name descname"><span class="pre">tobytes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/index.html#IndexRecord.tobytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.IndexRecord.tobytes" title="Link to this definition">#</a></dt>
-<dd><p>Serialize the exact used bytes of the index record.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="arlmet.IndexRecord.to_record_bytes">
-<span class="sig-name descname"><span class="pre">to_record_bytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record_length</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/index.html#IndexRecord.to_record_bytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.IndexRecord.to_record_bytes" title="Link to this definition">#</a></dt>
-<dd><p>Serialize the index record padded to one ARL record.</p>
-</dd></dl>
-
-<dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">header.grid</span></code> does not carry the thousands of <code class="docutils literal notranslate"><span class="pre">nx</span></code>/<code class="docutils literal notranslate"><span class="pre">ny</span></code>.</p>
 </dd>
@@ -641,104 +673,35 @@ letters carry the thousands (see <code class="xref py py-attr docutils literal n
 </div>
 </dd></dl>
 
-<p class="rubric">Methods</p>
+<p class="rubric">Attributes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.__init__</span></code>(header, source, ...)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.IndexRecord.grid.html#arlmet.IndexRecord.grid" title="arlmet.IndexRecord.grid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">grid</span></code></a></p></td>
+<td><p>Construct a Grid from the index record's projection parameters.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#arlmet.IndexRecord.from_position" title="arlmet.IndexRecord.from_position"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.from_position</span></code></a>(file, position)</p></td>
-<td><p>Create an IndexRecord by reading from a file at a specific position.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.IndexRecord.index_length.html#arlmet.IndexRecord.index_length" title="arlmet.IndexRecord.index_length"><code class="xref py py-obj docutils literal notranslate"><span class="pre">index_length</span></code></a></p></td>
+<td><p>Serialized length of the fixed plus variable portions, in bytes.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#arlmet.IndexRecord.to_record_bytes" title="arlmet.IndexRecord.to_record_bytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.to_record_bytes</span></code></a>(record_length)</p></td>
-<td><p>Serialize the index record padded to one full ARL record.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.IndexRecord.time.html#arlmet.IndexRecord.time" title="arlmet.IndexRecord.time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time</span></code></a></p></td>
+<td><p>Valid time calculated from header time plus minutes offset.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#arlmet.IndexRecord.tobytes" title="arlmet.IndexRecord.tobytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.tobytes</span></code></a>()</p></td>
-<td><p>Serialize the exact used bytes of the index record, including its header.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.IndexRecord.vertical_axis.html#arlmet.IndexRecord.vertical_axis" title="arlmet.IndexRecord.vertical_axis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">vertical_axis</span></code></a></p></td>
+<td><p>Construct the vertical axis definition from the index record.</p></td>
 </tr>
 </tbody>
 </table>
 </div>
-<p class="rubric">Attributes</p>
+<p class="rubric">Methods</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#arlmet.IndexRecord.N_BYTES_FIXED" title="arlmet.IndexRecord.N_BYTES_FIXED"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.N_BYTES_FIXED</span></code></a></p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.IndexRecord.from_position.html#arlmet.IndexRecord.from_position" title="arlmet.IndexRecord.from_position"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_position</span></code></a>(file, position)</p></td>
+<td><p>Create an IndexRecord by reading from a file at a specific position.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#arlmet.IndexRecord.grid" title="arlmet.IndexRecord.grid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.grid</span></code></a></p></td>
-<td><p>Construct a Grid from the index record's projection parameters.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.IndexRecord.to_record_bytes.html#arlmet.IndexRecord.to_record_bytes" title="arlmet.IndexRecord.to_record_bytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_record_bytes</span></code></a>(record_length)</p></td>
+<td><p>Serialize the index record padded to one full ARL record.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#arlmet.IndexRecord.index_length" title="arlmet.IndexRecord.index_length"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.index_length</span></code></a></p></td>
-<td><p>Serialized length of the fixed plus variable portions, in bytes.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#arlmet.IndexRecord.time" title="arlmet.IndexRecord.time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.time</span></code></a></p></td>
-<td><p>Valid time calculated from header time plus minutes offset.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#arlmet.IndexRecord.vertical_axis" title="arlmet.IndexRecord.vertical_axis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.vertical_axis</span></code></a></p></td>
-<td><p>Construct the vertical axis definition from the index record.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.header</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.source</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.forecast</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.minutes</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.pole_lat</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.pole_lon</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.tangent_lat</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.tangent_lon</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.grid_size</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.orientation</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.cone_angle</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.sync_x</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.sync_y</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.sync_lat</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.sync_lon</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.reserved</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.nx</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.ny</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.nz</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.vertical_flag</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexRecord.levels</span></code></p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.IndexRecord.tobytes.html#arlmet.IndexRecord.tobytes" title="arlmet.IndexRecord.tobytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tobytes</span></code></a>()</p></td>
+<td><p>Serialize the exact used bytes of the index record, including its header.</p></td>
 </tr>
 </tbody>
 </table>
@@ -756,20 +719,20 @@ letters carry the thousands (see <code class="xref py py-attr docutils literal n
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="arlmet.Header.html"
+       href="arlmet.Header.tobytes.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">arlmet.Header</p>
+        <p class="prev-next-title">arlmet.Header.tobytes</p>
       </div>
     </a>
     <a class="right-next"
-       href="arlmet.calculate_checksum.html"
+       href="arlmet.IndexRecord.grid.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">arlmet.calculate_checksum</p>
+        <p class="prev-next-title">arlmet.IndexRecord.grid</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -792,17 +755,7 @@ letters carry the thousands (see <code class="xref py py-attr docutils literal n
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.IndexRecord"><code class="docutils literal notranslate"><span class="pre">IndexRecord</span></code></a><ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.IndexRecord.N_BYTES_FIXED"><code class="docutils literal notranslate"><span class="pre">IndexRecord.N_BYTES_FIXED</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.IndexRecord.index_length"><code class="docutils literal notranslate"><span class="pre">IndexRecord.index_length</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.IndexRecord.time"><code class="docutils literal notranslate"><span class="pre">IndexRecord.time</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.IndexRecord.grid"><code class="docutils literal notranslate"><span class="pre">IndexRecord.grid</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.IndexRecord.vertical_axis"><code class="docutils literal notranslate"><span class="pre">IndexRecord.vertical_axis</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.IndexRecord.from_position"><code class="docutils literal notranslate"><span class="pre">IndexRecord.from_position()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.IndexRecord.tobytes"><code class="docutils literal notranslate"><span class="pre">IndexRecord.tobytes()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.IndexRecord.to_record_bytes"><code class="docutils literal notranslate"><span class="pre">IndexRecord.to_record_bytes()</span></code></a></li>
-</ul>
-</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.IndexRecord"><code class="docutils literal notranslate"><span class="pre">IndexRecord</span></code></a></li>
 </ul>
   </nav></div>
 

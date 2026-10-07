@@ -4,28 +4,29 @@
 .. currentmodule:: arlmet.archives
 
 .. autoclass:: Archive
+   :no-members:
+   :show-inheritance:
 
-
-.. rubric:: Methods
-
-.. autosummary::
-
-
-   Archive.__init__
-   Archive.fetch
-   Archive.paths_for_range
 
 
 
 .. rubric:: Attributes
 
 .. autosummary::
+   :toctree:
+
+   ~Archive.source
+   ~Archive.start_date
 
 
-   Archive.FTP_HOST
-   Archive.HTTP_BASE
-   Archive.S3_BUCKET
-   Archive.name
-   Archive.description
-   Archive.start_date
-   Archive.source
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~Archive.fetch
+   ~Archive.paths_for_range
+
+
+

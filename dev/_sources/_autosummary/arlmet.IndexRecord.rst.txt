@@ -4,48 +4,31 @@
 .. currentmodule:: arlmet
 
 .. autoclass:: IndexRecord
+   :no-members:
 
-
-.. rubric:: Methods
-
-.. autosummary::
-
-
-   IndexRecord.__init__
-   IndexRecord.from_position
-   IndexRecord.to_record_bytes
-   IndexRecord.tobytes
 
 
 
 .. rubric:: Attributes
 
 .. autosummary::
+   :toctree:
+
+   ~IndexRecord.grid
+   ~IndexRecord.index_length
+   ~IndexRecord.time
+   ~IndexRecord.vertical_axis
 
 
-   IndexRecord.N_BYTES_FIXED
-   IndexRecord.grid
-   IndexRecord.index_length
-   IndexRecord.time
-   IndexRecord.vertical_axis
-   IndexRecord.header
-   IndexRecord.source
-   IndexRecord.forecast
-   IndexRecord.minutes
-   IndexRecord.pole_lat
-   IndexRecord.pole_lon
-   IndexRecord.tangent_lat
-   IndexRecord.tangent_lon
-   IndexRecord.grid_size
-   IndexRecord.orientation
-   IndexRecord.cone_angle
-   IndexRecord.sync_x
-   IndexRecord.sync_y
-   IndexRecord.sync_lat
-   IndexRecord.sync_lon
-   IndexRecord.reserved
-   IndexRecord.nx
-   IndexRecord.ny
-   IndexRecord.nz
-   IndexRecord.vertical_flag
-   IndexRecord.levels
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~IndexRecord.from_position
+   ~IndexRecord.to_record_bytes
+   ~IndexRecord.tobytes
+
+
+

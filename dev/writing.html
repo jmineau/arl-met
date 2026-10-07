@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=c9ea721e"></script>
+    <script src="_static/documentation_options.js?v=79fde6bc"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
     <link rel="prev" title="Cropping ARL Data" href="cropping.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3.dev4+g183843473" />
+  <meta name="docsearch:version" content="0.1.0b3.dev6+g2ec897a3e" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -518,7 +518,7 @@ Dataset data variables</p></li>
 <h2>Differential records<a class="headerlink" href="#differential-records" title="Link to this heading">#</a></h2>
 <p>arl-met supports two DIF authoring paths:</p>
 <ul class="simple">
-<li><p>low-level: pass <code class="docutils literal notranslate"><span class="pre">diff=&quot;DIF...&quot;</span></code> to <a class="reference internal" href="_autosummary/arlmet.RecordSet.html#arlmet.RecordSet.create_datarecord" title="arlmet.RecordSet.create_datarecord"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.RecordSet.create_datarecord()</span></code></a></p></li>
+<li><p>low-level: pass <code class="docutils literal notranslate"><span class="pre">diff=&quot;DIF...&quot;</span></code> to <a class="reference internal" href="_autosummary/arlmet.RecordSet.create_datarecord.html#arlmet.RecordSet.create_datarecord" title="arlmet.RecordSet.create_datarecord"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.RecordSet.create_datarecord()</span></code></a></p></li>
 <li><p>Dataset: set <code class="docutils literal notranslate"><span class="pre">DataArray.attrs[&quot;diff&quot;]</span> <span class="pre">=</span> <span class="pre">&quot;DIF...&quot;</span></code> on the parent variable</p></li>
 </ul>
 <p>In both cases the caller supplies only the intended parent field values.
@@ -600,13 +600,13 @@ disk.</p>
 the same time need different forecast hours or explicit record-level control.
 <code class="docutils literal notranslate"><span class="pre">File</span></code> metadata (<code class="docutils literal notranslate"><span class="pre">source</span></code>, <code class="docutils literal notranslate"><span class="pre">grid</span></code>, <code class="docutils literal notranslate"><span class="pre">vertical_axis</span></code>) and the record
 options (<code class="docutils literal notranslate"><span class="pre">forecast</span></code>, <code class="docutils literal notranslate"><span class="pre">data</span></code>, <code class="docutils literal notranslate"><span class="pre">diff</span></code>) are keyword-only.
-<a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File.add_record" title="arlmet.File.add_record"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.File.add_record()</span></code></a> is a shorthand that creates the time step’s
+<a class="reference internal" href="_autosummary/arlmet.File.add_record.html#arlmet.File.add_record" title="arlmet.File.add_record"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.File.add_record()</span></code></a> is a shorthand that creates the time step’s
 record set on first use:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">arl</span><span class="o">.</span><span class="n">add_record</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">temp</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Records are held in memory until the file is flushed or closed. When writing
-many time steps, call <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File.flush" title="arlmet.File.flush"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.File.flush()</span></code></a> after filling each one so memory
+many time steps, call <a class="reference internal" href="_autosummary/arlmet.File.flush.html#arlmet.File.flush" title="arlmet.File.flush"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.File.flush()</span></code></a> after filling each one so memory
 stays bounded by a single time step instead of the whole file.
 <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> and <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a> already do this.
 Flushed record sets are on disk and can no longer be modified.</p>

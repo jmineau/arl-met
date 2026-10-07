@@ -4,26 +4,28 @@
 .. currentmodule:: arlmet
 
 .. autoclass:: SigmaAxis
+   :no-members:
+   :show-inheritance:
+
+
+
+
 
 
 .. rubric:: Methods
 
 .. autosummary::
+   :toctree:
+
+   ~SigmaAxis.to_height_agl
+   ~SigmaAxis.to_pressure
 
 
-   SigmaAxis.__init__
-   SigmaAxis.from_flag
-   SigmaAxis.to_height_agl
-   SigmaAxis.to_pressure
 
 
-
-.. rubric:: Attributes
-
-.. autosummary::
+.. rubric:: Inherited
 
 
-   SigmaAxis.coord_system
-   SigmaAxis.flag
-   SigmaAxis.levels
-   SigmaAxis.offset
+From :class:`~arlmet.VerticalAxis`: :py:obj:`~arlmet.VerticalAxis.from_flag`
+
+

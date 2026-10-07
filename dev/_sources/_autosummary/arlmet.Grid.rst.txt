@@ -4,34 +4,36 @@
 .. currentmodule:: arlmet
 
 .. autoclass:: Grid
+   :no-members:
 
-
-.. rubric:: Methods
-
-.. autosummary::
-
-
-   Grid.__init__
-   Grid.calculate_coords
-   Grid.fractional_indices
-   Grid.full_window
-   Grid.meridian_convergence
-   Grid.rotate_winds
-   Grid.subset
-   Grid.window_from_bbox
 
 
 
 .. rubric:: Attributes
 
 .. autosummary::
+   :toctree:
+
+   ~Grid.crs
+   ~Grid.dims
+   ~Grid.is_latlon
+   ~Grid.origin
+   ~Grid.wraps_lon
 
 
-   Grid.crs
-   Grid.dims
-   Grid.is_latlon
-   Grid.origin
-   Grid.wraps_lon
-   Grid.projection
-   Grid.nx
-   Grid.ny
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~Grid.calculate_coords
+   ~Grid.fractional_indices
+   ~Grid.full_window
+   ~Grid.meridian_convergence
+   ~Grid.rotate_winds
+   ~Grid.subset
+   ~Grid.window_from_bbox
+
+
+

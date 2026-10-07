@@ -4,26 +4,28 @@
 .. currentmodule:: arlmet
 
 .. autoclass:: TerrainAxis
+   :no-members:
+   :show-inheritance:
+
+
+
+
 
 
 .. rubric:: Methods
 
 .. autosummary::
+   :toctree:
+
+   ~TerrainAxis.to_height_agl
+   ~TerrainAxis.to_pressure
 
 
-   TerrainAxis.__init__
-   TerrainAxis.from_flag
-   TerrainAxis.to_height_agl
-   TerrainAxis.to_pressure
 
 
-
-.. rubric:: Attributes
-
-.. autosummary::
+.. rubric:: Inherited
 
 
-   TerrainAxis.coord_system
-   TerrainAxis.flag
-   TerrainAxis.levels
-   TerrainAxis.offset
+From :class:`~arlmet.VerticalAxis`: :py:obj:`~arlmet.VerticalAxis.from_flag`
+
+

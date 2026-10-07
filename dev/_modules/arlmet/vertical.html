@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=c9ea721e"></script>
+    <script src="../../_static/documentation_options.js?v=79fde6bc"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3.dev4+g183843473" />
+  <meta name="docsearch:version" content="0.1.0b3.dev6+g2ec897a3e" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -591,6 +591,8 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__delattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">FrozenInstanceError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cannot delete field </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
 
+<div class="viewcode-block" id="VerticalAxis.from_flag">
+<a class="viewcode-back" href="../../_autosummary/arlmet.VerticalAxis.from_flag.html#arlmet.VerticalAxis.from_flag">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_flag</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -606,8 +608,11 @@
                 <span class="sa">f</span><span class="s2">&quot;Unsupported vertical flag </span><span class="si">{</span><span class="n">flag</span><span class="si">}</span><span class="s2">. &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;Supported flags: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">_FLAG_MAP</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">subclass</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">subclass</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="VerticalAxis.to_pressure">
+<a class="viewcode-back" href="../../_autosummary/arlmet.VerticalAxis.to_pressure.html#arlmet.VerticalAxis.to_pressure">[docs]</a>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_pressure</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -633,8 +638,11 @@
 <span class="sd">            If a required input is missing, or the axis has no pressure</span>
 <span class="sd">            coordinate (terrain-following).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="o">...</span>
+        <span class="o">...</span></div>
 
+
+<div class="viewcode-block" id="VerticalAxis.to_height_agl">
+<a class="viewcode-back" href="../../_autosummary/arlmet.VerticalAxis.to_height_agl.html#arlmet.VerticalAxis.to_height_agl">[docs]</a>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_height_agl</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -674,7 +682,8 @@
 <span class="sd">        ValueError</span>
 <span class="sd">            If an input this axis needs is missing.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="o">...</span>
+        <span class="o">...</span></div>
+
 
     <span class="nd">@override</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -707,6 +716,8 @@
     <span class="n">flag</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">coord_system</span> <span class="o">=</span> <span class="s2">&quot;sigma&quot;</span>
 
+<div class="viewcode-block" id="SigmaAxis.to_pressure">
+<a class="viewcode-back" href="../../_autosummary/arlmet.SigmaAxis.to_pressure.html#arlmet.SigmaAxis.to_pressure">[docs]</a>
     <span class="nd">@override</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_pressure</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -714,8 +725,11 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Pressure [hPa] from ``surface_pressure``: offset + (sp - offset) * sigma.&quot;&quot;&quot;</span>
         <span class="n">_require</span><span class="p">(</span><span class="s2">&quot;surface_pressure&quot;</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
         <span class="n">sp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">surface_pressure</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">sp</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">sp</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span></div>
 
+
+<div class="viewcode-block" id="SigmaAxis.to_height_agl">
+<a class="viewcode-back" href="../../_autosummary/arlmet.SigmaAxis.to_height_agl.html#arlmet.SigmaAxis.to_height_agl">[docs]</a>
     <span class="nd">@override</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_height_agl</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -727,6 +741,7 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Height AGL [m] by hypsometric integration of ``surface_pressure`` and ``temperature``.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">_hypsometric_height</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">,</span> <span class="n">temperature</span><span class="p">)</span></div>
+</div>
 
 
 
@@ -738,13 +753,18 @@
     <span class="n">flag</span> <span class="o">=</span> <span class="mi">2</span>
     <span class="n">coord_system</span> <span class="o">=</span> <span class="s2">&quot;pressure&quot;</span>
 
+<div class="viewcode-block" id="PressureAxis.to_pressure">
+<a class="viewcode-back" href="../../_autosummary/arlmet.PressureAxis.to_pressure.html#arlmet.PressureAxis.to_pressure">[docs]</a>
     <span class="nd">@override</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_pressure</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Pressure [hPa]: a writable copy of the stored levels. No inputs needed.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
 
+
+<div class="viewcode-block" id="PressureAxis.to_height_agl">
+<a class="viewcode-back" href="../../_autosummary/arlmet.PressureAxis.to_height_agl.html#arlmet.PressureAxis.to_height_agl">[docs]</a>
     <span class="nd">@override</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_height_agl</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -758,6 +778,7 @@
         <span class="n">_require</span><span class="p">(</span><span class="s2">&quot;hgts&quot;</span><span class="p">,</span> <span class="n">hgts</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
         <span class="n">_require</span><span class="p">(</span><span class="s2">&quot;terrain&quot;</span><span class="p">,</span> <span class="n">terrain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">hgts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">terrain</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span></div>
+</div>
 
 
 
@@ -769,6 +790,8 @@
     <span class="n">flag</span> <span class="o">=</span> <span class="mi">3</span>
     <span class="n">coord_system</span> <span class="o">=</span> <span class="s2">&quot;terrain&quot;</span>
 
+<div class="viewcode-block" id="TerrainAxis.to_pressure">
+<a class="viewcode-back" href="../../_autosummary/arlmet.TerrainAxis.to_pressure.html#arlmet.TerrainAxis.to_pressure">[docs]</a>
     <span class="nd">@override</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_pressure</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -776,8 +799,11 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Raise ValueError: terrain-following files have no pressure.&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="s2">&quot;Terrain-following (flag=3) files have no pressure coordinate.&quot;</span>
-        <span class="p">)</span>
+        <span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="TerrainAxis.to_height_agl">
+<a class="viewcode-back" href="../../_autosummary/arlmet.TerrainAxis.to_height_agl.html#arlmet.TerrainAxis.to_height_agl">[docs]</a>
     <span class="nd">@override</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_height_agl</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -789,6 +815,7 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Height AGL [m]: a writable copy of the stored levels. No inputs needed.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+</div>
 
 
 
@@ -800,6 +827,8 @@
     <span class="n">flag</span> <span class="o">=</span> <span class="mi">4</span>
     <span class="n">coord_system</span> <span class="o">=</span> <span class="s2">&quot;hybrid&quot;</span>
 
+<div class="viewcode-block" id="HybridAxis.to_pressure">
+<a class="viewcode-back" href="../../_autosummary/arlmet.HybridAxis.to_pressure.html#arlmet.HybridAxis.to_pressure">[docs]</a>
     <span class="nd">@override</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_pressure</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -811,8 +840,11 @@
         <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span> <span class="o">-</span> <span class="n">floor_p</span>
         <span class="n">p</span> <span class="o">=</span> <span class="n">sp</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">+</span> <span class="n">floor_p</span>
         <span class="n">p</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sp</span>  <span class="c1"># first hybrid level is always surface</span>
-        <span class="k">return</span> <span class="n">p</span>
+        <span class="k">return</span> <span class="n">p</span></div>
 
+
+<div class="viewcode-block" id="HybridAxis.to_height_agl">
+<a class="viewcode-back" href="../../_autosummary/arlmet.HybridAxis.to_height_agl.html#arlmet.HybridAxis.to_height_agl">[docs]</a>
     <span class="nd">@override</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_height_agl</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -824,6 +856,7 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Height AGL [m] by hypsometric integration of ``surface_pressure`` and ``temperature``.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">_hypsometric_height</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">,</span> <span class="n">temperature</span><span class="p">)</span></div>
+</div>
 
 
 
