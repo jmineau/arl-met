@@ -1,3 +1,5 @@
+"""Build the C packer extension, ``arlmet._pack``; everything else is in pyproject.toml."""
+
 import numpy as np
 from setuptools import Extension, setup
 

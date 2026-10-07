@@ -17,8 +17,9 @@ N_TIMES = 12
 
 def write_multistep_source(path, n: int = 200) -> None:
     """
-    Write a source with many time steps of fields large enough (n x n) that
-    array buffers dominate Python object overhead in the measurements.
+    Write a source with many time steps of large (n x n) fields.
+
+    Array buffers then dominate Python object overhead in the measurements.
     """
     projection = Projection(
         pole_lat=90.0,

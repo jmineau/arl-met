@@ -1,7 +1,8 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""
+Sphinx configuration for the arl-met docs.
+
+The full list of settings: https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""
 
 import warnings
 from importlib.metadata import version as package_version

@@ -93,7 +93,7 @@ class DataRecord:
         reserved: str | None = None,
     ):
         """
-        Initializes the array representation.
+        Initialize the array representation.
         """
         self.recordset = recordset
         self.position = position
@@ -131,8 +131,9 @@ class DataRecord:
         reserved: str | None = None,
     ) -> DataRecord:
         """
-        Create a DataRecord representing the difference between this record
-        and another DataRecord (self - other).
+        Create a DataRecord of the difference between this record and *other*.
+
+        The values are ``self - other``.
 
         Returns
         -------

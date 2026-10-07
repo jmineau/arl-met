@@ -179,8 +179,9 @@ class TestWriter:
 
     def test_open_dataset_handles_mixed_forecast_hours_within_recordset(self, tmp_path):
         """
-        open_dataset must not raise when data records within one time step
-        carry different per-record forecast hours (e.g. GDAS weekly files).
+        ``open_dataset`` reads a time step whose records differ in forecast hour.
+
+        GDAS weekly files have them; opening one must not raise.
         """
         path = tmp_path / "mixed_forecast.arl"
         grid = make_test_grid()

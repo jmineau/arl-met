@@ -383,8 +383,9 @@ def test_extract_subset_output_honors_umask(tmp_path):
 
 def write_byte_copy_source(path, *, diff=True):
     """
-    Several times and levels, mixed forecasts, and (with ``diff``) DIF records
-    on odd levels.
+    Write a source with several times and levels, and mixed forecasts.
+
+    With ``diff`` (the default) it also has DIF records, on odd levels.
     """
     grid = make_test_grid()
     vertical_axis = SigmaAxis(levels=[1.0, 0.98, 0.9, 0.7, 0.5])

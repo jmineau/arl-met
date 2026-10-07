@@ -127,7 +127,7 @@ class RecordSet:
         reserved: str | None = None,
     ) -> DataRecord:
         """
-        Internal method to create a DataRecord for an existing record on disk.
+        Create a DataRecord for an existing record on disk (internal).
         """
         dr = DataRecord(
             recordset=self,
