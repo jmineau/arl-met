@@ -8,8 +8,8 @@ tables, and keeps the class docstring from describing it a second time.
 
 A member gets a row and a page when the package defines it (not when a
 pydantic model inherits it from ``BaseModel``, or an exception from
-``Exception``) and it is public. Members inherited from the package's own
-classes are listed too, as in pandas.
+``Exception``) and it is public. A member a subclass inherits from
+another class of the package is a link to that class's page for it.
 
 A member without a docstring of its own (a ``#:`` comment or a string
 after it, for data) gets no row when the class docstring describes it
@@ -21,6 +21,7 @@ are dropped, so nothing is described twice.
 
 import enum
 import functools
+import importlib
 import inspect
 
 from sphinx.errors import PycodeError
@@ -140,9 +141,35 @@ def _has_page(cls: type, name: str) -> bool:
     return _is_routine(cls, name) and name not in _described_attributes(cls)
 
 
+def _public_path(cls: type, near: str) -> str | None:
+    """
+    Return the name a base class is documented under, or None if it has none.
+
+    Try the module of the class page that links to it (*near*), the top
+    package, then the module that defines it, and take the first public
+    module that has it.
+    """
+    if cls.__name__.startswith("_"):
+        return None
+    for module in (near, _package(cls), cls.__module__):
+        if any(part.startswith("_") for part in module.split(".")):
+            continue
+        try:
+            if getattr(importlib.import_module(module), cls.__name__, None) is cls:
+                return f"{module}.{cls.__name__}"
+        except ImportError:
+            continue
+    return None
+
+
 class ClassPage:
     """
     What a class page shows, for ``_templates/autosummary/class.rst``.
+
+    A class's page gives a row and a page to the members it defines. Those
+    it inherits from another class of the package are links to that class's
+    pages instead, unless that class has no public name (a private mixin),
+    when they count as the class's own.
 
     The template calls it as ``class_page.members(fullname, names)``, and so
     on. It is an object rather than functions so that Sphinx can pickle it
@@ -152,7 +179,50 @@ class ClassPage:
     def members(self, fullname: str, names: list[str]) -> list[str]:
         """Return the names in *names* that get a row and a page."""
         cls = _import_class(fullname)
-        return names if cls is None else [n for n in names if _has_page(cls, n)]
+        if cls is None:
+            return names
+        module = fullname.rpartition(".")[0]
+        return [
+            name
+            for name in names
+            if _has_page(cls, name)
+            and (
+                _owner(cls, name) is cls
+                or _public_path(_owner(cls, name), module) is None
+            )
+        ]
+
+    def inherited(self, fullname: str, names: list[str]) -> list[tuple[str, list[str]]]:
+        """
+        Return the members in *names* that link to a base class's pages.
+
+        Each item is a base class's documented name and the full names of
+        its members, sorted, in the order of the MRO.
+        """
+        cls = _import_class(fullname)
+        if cls is None:
+            return []
+        module = fullname.rpartition(".")[0]
+        bases: dict[type, list[str]] = {}
+        for name in names:
+            owner = _owner(cls, name)
+            if _has_page(cls, name):
+                if owner is not cls:
+                    bases.setdefault(owner, []).append(name)
+            elif owner is not None and _defined_here(cls, name):
+                # An undocumented override (a class constant set to another
+                # value, say) links to the base class that documents it.
+                for base in owner.__mro__[1:]:
+                    if _package(base) == _package(cls) and _has_page(base, name):
+                        bases.setdefault(_owner(base, name), []).append(name)
+                        break
+        found = []
+        for base in cls.__mro__:
+            path = _public_path(base, module) if base in bases else None
+            if path:
+                members = sorted(set(bases[base]), key=str.lower)
+                found.append((path, [f"{path}.{name}" for name in members]))
+        return found
 
     def has_bases(self, fullname: str) -> bool:
         """Whether the class has a base other than ``object``."""
