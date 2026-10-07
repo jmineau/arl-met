@@ -1,0 +1,31 @@
+﻿arlmet.archives.NAMArchive
+==========================
+
+.. currentmodule:: arlmet.archives
+
+.. autoclass:: NAMArchive
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   NAMArchive.__init__
+   NAMArchive.fetch
+   NAMArchive.paths_for_range
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   NAMArchive.FTP_HOST
+   NAMArchive.HTTP_BASE
+   NAMArchive.S3_BUCKET
+   NAMArchive.description
+   NAMArchive.name
+   NAMArchive.source
+   NAMArchive.start_date

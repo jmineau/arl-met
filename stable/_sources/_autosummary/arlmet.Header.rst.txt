@@ -1,0 +1,38 @@
+﻿arlmet.Header
+=============
+
+.. currentmodule:: arlmet
+
+.. autoclass:: Header
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   Header.__init__
+   Header.from_bytes
+   Header.tobytes
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   Header.FIELDS
+   Header.N_BYTES
+   Header.time
+   Header.year
+   Header.month
+   Header.day
+   Header.hour
+   Header.forecast
+   Header.level
+   Header.grid
+   Header.variable
+   Header.exponent
+   Header.precision
+   Header.initial_value

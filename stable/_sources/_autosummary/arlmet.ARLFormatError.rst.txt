@@ -1,0 +1,6 @@
+﻿arlmet.ARLFormatError
+=====================
+
+.. currentmodule:: arlmet
+
+.. autoexception:: ARLFormatError

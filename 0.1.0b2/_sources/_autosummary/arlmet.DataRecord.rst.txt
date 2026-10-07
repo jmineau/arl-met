@@ -1,0 +1,40 @@
+﻿arlmet.DataRecord
+=================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: DataRecord
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   DataRecord.__init__
+   DataRecord.read
+   DataRecord.to_xarray
+   DataRecord.verify_checksum
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   DataRecord.bytes
+   DataRecord.checksum
+   DataRecord.data
+   DataRecord.diff
+   DataRecord.dtype
+   DataRecord.forecast
+   DataRecord.grid
+   DataRecord.header
+   DataRecord.mode
+   DataRecord.n_bytes
+   DataRecord.ndim
+   DataRecord.shape
+   DataRecord.source
+   DataRecord.time
+   DataRecord.vertical_axis

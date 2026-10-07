@@ -1,0 +1,1306 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>arlmet.file &#8212; arl-met 0.1.0b2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=283e4333" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=7f76b32a3354e82990f2"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2" />
+
+    <script src="../../_static/documentation_options.js?v=d31d1d1e"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/arlmet/file';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.0b2" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">arl-met 0.1.0b2 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">arlmet.file</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for arlmet.file</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;File class for reading and writing ARL meteorology binary files.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">TracebackType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">BinaryIO</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Self</span><span class="p">,</span> <span class="n">cast</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">npt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">xarray.backends</span><span class="w"> </span><span class="kn">import</span> <span class="n">CachingFileManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">xarray.backends.locks</span><span class="w"> </span><span class="kn">import</span> <span class="n">SerializableLock</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._time</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_timestamp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.collection</span><span class="w"> </span><span class="kn">import</span> <span class="n">VariableAccessor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARLFormatError</span><span class="p">,</span> <span class="n">ARLFormatWarning</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span><span class="p">,</span> <span class="n">Projection</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">record_length_from_grid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.index</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span><span class="p">,</span> <span class="n">_require_mode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.recordset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerticalAxis</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;File&quot;</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_open_binary</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BinaryIO</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Open ``path`` in binary ``mode`` (&quot;r&quot;, &quot;w&quot;, or &quot;a&quot;).</span>
+
+<span class="sd">    CachingFileManager switches mode &quot;w&quot; to &quot;a&quot; after the first open so that</span>
+<span class="sd">    reopening a writer appends instead of truncating. It only recognizes the</span>
+<span class="sd">    bare letter, so the manager gets &quot;r&quot;/&quot;w&quot; and the &quot;b&quot; is added here.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># open() only narrows to BinaryIO for literal modes.</span>
+    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">BinaryIO</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">mode</span> <span class="o">+</span> <span class="s2">&quot;b&quot;</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="File">
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">File</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read or write an ARL meteorology file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : path-like</span>
+<span class="sd">        Location of the ARL file on disk.</span>
+<span class="sd">    mode : {&quot;r&quot;, &quot;w&quot;}, default &quot;r&quot;</span>
+<span class="sd">        File mode. Read mode scans the file immediately; write mode expects</span>
+<span class="sd">        the caller to provide ``source``, ``grid``, and ``vertical_axis``</span>
+<span class="sd">        before creating records.</span>
+<span class="sd">    source : str, optional</span>
+<span class="sd">        Four-character ARL source identifier used when writing.</span>
+<span class="sd">    grid : Grid, optional</span>
+<span class="sd">        Horizontal grid metadata used when writing.</span>
+<span class="sd">    vertical_axis : VerticalAxis, optional</span>
+<span class="sd">        Vertical axis metadata used when writing.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : pathlib.Path</span>
+<span class="sd">        Filesystem path for the ARL file.</span>
+<span class="sd">    mode : {&quot;r&quot;, &quot;w&quot;}</span>
+<span class="sd">        Active file mode.</span>
+<span class="sd">    times : list[pandas.Timestamp]</span>
+<span class="sd">        Sorted valid times discovered in the file.</span>
+<span class="sd">    source : str</span>
+<span class="sd">        ARL source identifier.</span>
+<span class="sd">    grid : Grid</span>
+<span class="sd">        Horizontal grid metadata.</span>
+<span class="sd">    vertical_axis : VerticalAxis</span>
+<span class="sd">        Vertical coordinate metadata.</span>
+<span class="sd">    variables : VariableAccessor</span>
+<span class="sd">        Lazy accessor for variable-wise views inherited from RecordCollection.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    __getitem__(key)</span>
+<span class="sd">        Get a RecordSet by valid time (Timestamp or string), or by position</span>
+<span class="sd">        in ``times`` (int).</span>
+<span class="sd">    __iter__()</span>
+<span class="sd">        Iterate over valid times in ``times`` order (sorted).</span>
+<span class="sd">    create_grid(...)</span>
+<span class="sd">        Build and attach a Grid when writing a new file.</span>
+<span class="sd">    create_recordset(time, *, forecast=None)</span>
+<span class="sd">        Create a writable RecordSet for one valid time.</span>
+<span class="sd">    add_record(time, variable, level, *, forecast, data=None, diff=None)</span>
+<span class="sd">        Add one writable DataRecord, creating its RecordSet if needed.</span>
+<span class="sd">    flush()</span>
+<span class="sd">        Write pending record sets to disk and release their in-memory data.</span>
+<span class="sd">    sample_points(points, variables, ...)</span>
+<span class="sd">        Interpolate fields at arbitrary lon/lat/z sample points.</span>
+<span class="sd">    extract_subset(dest, ...)</span>
+<span class="sd">        Write a spatial/vertical subset to a new ARL file and return its path.</span>
+<span class="sd">    to_dataset(...)</span>
+<span class="sd">        Project the file into the simplified analysis xarray Dataset.</span>
+<span class="sd">    close()</span>
+<span class="sd">        Flush pending writes and release the file handle.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import arlmet</span>
+<span class="sd">    &gt;&gt;&gt; with arlmet.File(&quot;met.arl&quot;) as met:</span>
+<span class="sd">    ...     met.times[0]</span>
+<span class="sd">    Timestamp(&#39;2024-07-18 00:00:00&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">grid</span><span class="p">:</span> <span class="n">Grid</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">vertical_axis</span><span class="p">:</span> <span class="n">VerticalAxis</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># File attrs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mode</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Mode must be &#39;r&#39; (read) or &#39;w&#39; (write).&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Open the binary file handle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_manager</span> <span class="o">=</span> <span class="n">CachingFileManager</span><span class="p">(</span><span class="n">_open_binary</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">:</span> <span class="n">BinaryIO</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># Record reads are a seek followed by a read on the one shared handle;</span>
+        <span class="c1"># this lock keeps the pair atomic when threads read concurrently (e.g.</span>
+        <span class="c1"># dask chunks). SerializableLock pickles, unlike threading.Lock.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">SerializableLock</span><span class="p">()</span>
+
+        <span class="c1"># Must be consistent throughout the file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">source</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span><span class="p">:</span> <span class="n">Grid</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">grid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_vaxis</span><span class="p">:</span> <span class="n">VerticalAxis</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">vertical_axis</span>
+
+        <span class="c1"># Initialize recordsets as an ordered dict to preserve time order</span>
+        <span class="c1"># Mapping: time -&gt; RecordSet</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="n">RecordSet</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_diff_parents</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variables</span> <span class="o">=</span> <span class="n">VariableAccessor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1"># Scan the file to populate recordsets in read mode</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scan</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">handle</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BinaryIO</span><span class="p">:</span>
+        <span class="c1"># Hot record read/write paths hit this repeatedly, so keep one</span>
+        <span class="c1"># acquired handle per File instead of reentering the manager. xarray&#39;s</span>
+        <span class="c1"># global file cache closes the least recently used file once it holds</span>
+        <span class="c1"># `file_cache_maxsize` (128) files, so reacquire when that happens; the</span>
+        <span class="c1"># manager reopens the file (in append mode for writers).</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
+            <span class="c1"># CachingFileManager.acquire() returns IO[Any]; _open_binary</span>
+            <span class="c1"># guarantees BinaryIO at runtime.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">BinaryIO</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_manager</span><span class="o">.</span><span class="n">acquire</span><span class="p">())</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_read_at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_bytes</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read ``n_bytes`` starting at byte ``position``; safe to call from several threads.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="n">fh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">handle</span>
+            <span class="n">fh</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">n_bytes</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">source</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Source has not been set for this File.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span>
+
+    <span class="nd">@source</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_source</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Grid</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Grid has not been set for this File.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span>
+
+    <span class="nd">@grid</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Grid</span><span class="p">):</span>
+        <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Grid</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;grid must be a Grid instance.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">vertical_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VerticalAxis</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vaxis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Vertical axis has not been set for this File.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vaxis</span>
+
+    <span class="nd">@vertical_axis</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">vertical_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">):</span>
+        <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">VerticalAxis</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;vertical_axis must be a VerticalAxis instance.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_vaxis</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">times</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a sorted list of timestamps in the file.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">records</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;All DataRecords in the file, in ``times`` order.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">record</span> <span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="p">[</span><span class="n">time</span><span class="p">]</span><span class="o">.</span><span class="n">records</span>
+        <span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">record_length</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">record_length_from_grid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
+
+<div class="viewcode-block" id="File.create_grid">
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.create_grid">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_grid</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">nx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ny</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">pole_lat</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">pole_lon</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">tangent_lat</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">tangent_lon</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">grid_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">orientation</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">cone_angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">sync_x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">sync_y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">sync_lat</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">sync_lon</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Grid</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create and attach the horizontal grid metadata for a writable file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nx : int</span>
+<span class="sd">            Number of grid points in the x direction.</span>
+<span class="sd">        ny : int</span>
+<span class="sd">            Number of grid points in the y direction.</span>
+<span class="sd">        pole_lat, pole_lon : float</span>
+<span class="sd">            Projection pole definition from the ARL index record.</span>
+<span class="sd">        tangent_lat, tangent_lon : float</span>
+<span class="sd">            Reference latitude and longitude that define the projection.</span>
+<span class="sd">        grid_size : float</span>
+<span class="sd">            Grid spacing in kilometres at the projection reference point.</span>
+<span class="sd">        orientation : float</span>
+<span class="sd">            Rotation of the grid y-axis relative to true north.</span>
+<span class="sd">        cone_angle : float</span>
+<span class="sd">            Projection cone angle used for stereographic, Lambert, or</span>
+<span class="sd">            Mercator grids.</span>
+<span class="sd">        sync_x, sync_y : float</span>
+<span class="sd">            One-based grid coordinates of the synchronization point.</span>
+<span class="sd">        sync_lat, sync_lon : float</span>
+<span class="sd">            Geographic coordinates of the synchronization point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Grid</span>
+<span class="sd">            The created grid instance, also stored on the file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Grid has already been set for this File.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Build projection</span>
+        <span class="n">proj</span> <span class="o">=</span> <span class="n">Projection</span><span class="p">(</span>
+            <span class="n">pole_lat</span><span class="o">=</span><span class="n">pole_lat</span><span class="p">,</span>
+            <span class="n">pole_lon</span><span class="o">=</span><span class="n">pole_lon</span><span class="p">,</span>
+            <span class="n">tangent_lat</span><span class="o">=</span><span class="n">tangent_lat</span><span class="p">,</span>
+            <span class="n">tangent_lon</span><span class="o">=</span><span class="n">tangent_lon</span><span class="p">,</span>
+            <span class="n">grid_size</span><span class="o">=</span><span class="n">grid_size</span><span class="p">,</span>
+            <span class="n">orientation</span><span class="o">=</span><span class="n">orientation</span><span class="p">,</span>
+            <span class="n">cone_angle</span><span class="o">=</span><span class="n">cone_angle</span><span class="p">,</span>
+            <span class="n">sync_x</span><span class="o">=</span><span class="n">sync_x</span><span class="p">,</span>
+            <span class="n">sync_y</span><span class="o">=</span><span class="n">sync_y</span><span class="p">,</span>
+            <span class="n">sync_lat</span><span class="o">=</span><span class="n">sync_lat</span><span class="p">,</span>
+            <span class="n">sync_lon</span><span class="o">=</span><span class="n">sync_lon</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Create grid</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="n">Grid</span><span class="p">(</span><span class="n">projection</span><span class="o">=</span><span class="n">proj</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="o">=</span><span class="n">ny</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span> <span class="o">=</span> <span class="n">grid</span>
+        <span class="k">return</span> <span class="n">grid</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_recordset</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">position</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">grid</span><span class="p">:</span> <span class="n">Grid</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">forecast</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RecordSet</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Internal factory method to create a new RecordSet.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">time</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;A RecordSet for time </span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s2"> already exists.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span> <span class="o">!=</span> <span class="n">source</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Source mismatch when creating RecordSet.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">grid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span> <span class="o">!=</span> <span class="n">grid</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Grid mismatch when creating RecordSet.&quot;</span><span class="p">)</span>
+
+        <span class="n">rs</span> <span class="o">=</span> <span class="n">RecordSet</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="n">position</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="n">forecast</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="p">[</span><span class="n">time</span><span class="p">]</span> <span class="o">=</span> <span class="n">rs</span>
+        <span class="k">return</span> <span class="n">rs</span>
+
+<div class="viewcode-block" id="File.create_recordset">
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.create_recordset">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_recordset</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">forecast</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RecordSet</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a writable RecordSet for one valid time.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        time : pandas.Timestamp or compatible datetime-like</span>
+<span class="sd">            Valid time for the new record set.</span>
+<span class="sd">        forecast : int, optional</span>
+<span class="sd">            Forecast hour for the index record header.</span>
+<span class="sd">            HYSPLIT docs are unclear on this, but conversion code appears to</span>
+<span class="sd">            use the forecast hour from the first variable specified in the config file.</span>
+<span class="sd">            This is brittle in `arlmet`s case, so we chose to either allow</span>
+<span class="sd">            specifying it here or an index&#39;s forecast hour will be set to the minimum</span>
+<span class="sd">            forecast hour among its variables (defaulting to -1 when all variables are missing data).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        RecordSet</span>
+<span class="sd">            Writable record set associated with ``time``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Source and Grid must be set to create RecordSets.&quot;</span><span class="p">)</span>
+
+        <span class="n">position</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># New recordsets have no on-disk position yet</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">grid</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># skip checks in _create_recordset</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_recordset</span><span class="p">(</span>
+            <span class="n">position</span><span class="o">=</span><span class="n">position</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="n">grid</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">ts</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="n">forecast</span>
+        <span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_register_diff_binding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">diff_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Record and validate the explicit parent binding for a generated DIF name.&quot;&quot;&quot;</span>
+        <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">diff_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;DIF&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Generated diff record names must start with &#39;DIF&#39;, got &#39;</span><span class="si">{</span><span class="n">diff_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">bound_parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff_parents</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">diff_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bound_parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">bound_parent</span> <span class="o">!=</span> <span class="n">parent_name</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Difference record &#39;</span><span class="si">{</span><span class="n">diff_name</span><span class="si">}</span><span class="s2">&#39; is already bound to parent &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">bound_parent</span><span class="si">}</span><span class="s2">&#39;, not &#39;</span><span class="si">{</span><span class="n">parent_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_diff_parents</span><span class="p">[</span><span class="n">diff_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">parent_name</span>
+
+<div class="viewcode-block" id="File.add_record">
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.add_record">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_record</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">level</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">forecast</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">diff</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataRecord</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add one writable DataRecord, creating its RecordSet if needed.</span>
+
+<span class="sd">        Shorthand for ``create_recordset(time)`` (when ``time`` has no record</span>
+<span class="sd">        set yet) followed by :meth:`RecordSet.create_datarecord`. A record set</span>
+<span class="sd">        created here derives its index-record forecast from its records; call</span>
+<span class="sd">        :meth:`create_recordset` first to set it explicitly.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        time : pandas.Timestamp or str</span>
+<span class="sd">            Valid time of the record.</span>
+<span class="sd">        variable : str</span>
+<span class="sd">            Four-character ARL variable name.</span>
+<span class="sd">        level : int</span>
+<span class="sd">            ARL level index for the record.</span>
+<span class="sd">        forecast : int</span>
+<span class="sd">            Forecast hour to write into the record header.</span>
+<span class="sd">        data : array-like, optional</span>
+<span class="sd">            ``(ny, nx)`` field values. When omitted, assign the whole field</span>
+<span class="sd">            later with ``record[:] = values``.</span>
+<span class="sd">        diff : str, optional</span>
+<span class="sd">            Name of a trailing DIF record to derive from the parent field.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        DataRecord</span>
+<span class="sd">            Writable data record for ``variable`` at ``level`` and ``time``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+        <span class="n">recordset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">recordset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">recordset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_recordset</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">recordset</span><span class="o">.</span><span class="n">create_datarecord</span><span class="p">(</span>
+            <span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="n">forecast</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">diff</span><span class="o">=</span><span class="n">diff</span>
+        <span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_scan</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Populate RecordSet objects by walking the on-disk index records.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ARLFormatError</span>
+<span class="sd">            If the file is not valid ARL: an unparseable index record, a size</span>
+<span class="sd">            that is not a whole number of records, an index record that</span>
+<span class="sd">            declares more data records than remain, inconsistent metadata</span>
+<span class="sd">            between index records, or a time step repeated with different</span>
+<span class="sd">            content.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Scan the file to populate recordsets in read mode</span>
+        <span class="n">fh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">handle</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="c1"># Extent (position, n_bytes) of each time step&#39;s first occurrence,</span>
+        <span class="c1"># used to compare against any repeated copy of the same time.</span>
+        <span class="n">extents</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">while</span> <span class="n">fh</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">size</span><span class="p">:</span>
+            <span class="c1"># Get starting position of each recordset</span>
+            <span class="n">position</span> <span class="o">=</span> <span class="n">fh</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+
+            <span class="c1"># Parse index record</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="n">IndexRecord</span><span class="o">.</span><span class="n">from_position</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="n">position</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">EOFError</span><span class="p">:</span>
+                <span class="k">break</span>  <span class="c1"># End of file</span>
+            <span class="k">except</span> <span class="n">ARLFormatError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+            <span class="c1"># Set metadata when reading the first index record</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_source</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">source</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">grid</span>
+                <span class="c1"># The first index record fixes the record length. Every record</span>
+                <span class="c1"># has the same length, so the file must hold a whole number.</span>
+                <span class="k">if</span> <span class="n">size</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">record_length</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: file size </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2"> bytes is not a whole &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;number of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">record_length</span><span class="si">}</span><span class="s2">-byte records &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="si">}</span><span class="s2"> grid); the file is &quot;</span>
+                        <span class="s2">&quot;truncated or corrupt.&quot;</span>
+                    <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vaxis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_vaxis</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">vertical_axis</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vaxis</span> <span class="o">!=</span> <span class="n">index</span><span class="o">.</span><span class="n">vertical_axis</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: vertical axis mismatch between index records &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;(index record for </span><span class="si">{</span><span class="n">index</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2"> at byte </span><span class="si">{</span><span class="n">position</span><span class="si">}</span><span class="s2">).&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># The time step is the index record plus one record per variable</span>
+            <span class="c1"># per level; it must fit in what remains of the file.</span>
+            <span class="n">record_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">record_length</span>
+            <span class="n">n_data</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lvl</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span> <span class="k">for</span> <span class="n">lvl</span> <span class="ow">in</span> <span class="n">index</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span>
+            <span class="n">n_bytes</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">n_data</span><span class="p">)</span> <span class="o">*</span> <span class="n">record_length</span>
+            <span class="k">if</span> <span class="n">position</span> <span class="o">+</span> <span class="n">n_bytes</span> <span class="o">&gt;</span> <span class="n">size</span><span class="p">:</span>
+                <span class="n">remaining</span> <span class="o">=</span> <span class="p">(</span><span class="n">size</span> <span class="o">-</span> <span class="n">position</span><span class="p">)</span> <span class="o">//</span> <span class="n">record_length</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: index record for </span><span class="si">{</span><span class="n">index</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2"> at byte &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">position</span><span class="si">}</span><span class="s2"> declares </span><span class="si">{</span><span class="n">n_data</span><span class="si">}</span><span class="s2"> data records, but only &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">remaining</span><span class="si">}</span><span class="s2"> remain in the file; the file is truncated.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># Some NOAA archive files repeat a whole time step. Skip a</span>
+            <span class="c1"># byte-identical copy; anything else is ambiguous, so raise.</span>
+            <span class="k">if</span> <span class="n">index</span><span class="o">.</span><span class="n">time</span> <span class="ow">in</span> <span class="n">extents</span><span class="p">:</span>
+                <span class="n">first_position</span><span class="p">,</span> <span class="n">first_n_bytes</span> <span class="o">=</span> <span class="n">extents</span><span class="p">[</span><span class="n">index</span><span class="o">.</span><span class="n">time</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">first_n_bytes</span> <span class="o">!=</span> <span class="n">n_bytes</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_same_bytes</span><span class="p">(</span>
+                    <span class="n">first_position</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">n_bytes</span>
+                <span class="p">):</span>
+                    <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: time step </span><span class="si">{</span><span class="n">index</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2"> is repeated with &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;different content (first at byte </span><span class="si">{</span><span class="n">first_position</span><span class="si">}</span><span class="s2">, &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;again at byte </span><span class="si">{</span><span class="n">position</span><span class="si">}</span><span class="s2">).&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: time step </span><span class="si">{</span><span class="n">index</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2"> is repeated &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;(byte-identical copy at byte </span><span class="si">{</span><span class="n">position</span><span class="si">}</span><span class="s2">); the repeated &quot;</span>
+                    <span class="s2">&quot;copy was ignored.&quot;</span><span class="p">,</span>
+                    <span class="n">ARLFormatWarning</span><span class="p">,</span>
+                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">fh</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">position</span> <span class="o">+</span> <span class="n">n_bytes</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">extents</span><span class="p">[</span><span class="n">index</span><span class="o">.</span><span class="n">time</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">n_bytes</span><span class="p">)</span>
+
+            <span class="c1"># Create a RecordSet for this index record (time)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">rs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_recordset</span><span class="p">(</span>
+                    <span class="n">position</span><span class="o">=</span><span class="n">position</span><span class="p">,</span>
+                    <span class="n">source</span><span class="o">=</span><span class="n">index</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+                    <span class="n">grid</span><span class="o">=</span><span class="n">index</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span>
+                    <span class="n">time</span><span class="o">=</span><span class="n">index</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+                    <span class="n">forecast</span><span class="o">=</span><span class="n">index</span><span class="o">.</span><span class="n">forecast</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                <span class="c1"># Source/grid mismatch with the first index record.</span>
+                <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: index record for </span><span class="si">{</span><span class="n">index</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2"> at byte &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">position</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+            <span class="c1"># Read data records for this index record</span>
+            <span class="n">position</span> <span class="o">+=</span> <span class="n">record_length</span>  <span class="c1"># start of data records</span>
+            <span class="n">prev_dr</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">lvl</span> <span class="ow">in</span> <span class="n">index</span><span class="o">.</span><span class="n">levels</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">lvl</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
+                    <span class="n">checksum</span> <span class="o">=</span> <span class="n">lvl</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">checksum</span>
+                    <span class="n">reserved</span> <span class="o">=</span> <span class="n">lvl</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">reserved</span>
+
+                    <span class="k">if</span> <span class="n">var</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;DIF&quot;</span><span class="p">):</span>
+                        <span class="c1"># Assign as diff record to previous data record</span>
+                        <span class="k">if</span> <span class="n">prev_dr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: difference record found for &quot;</span>
+                                <span class="sa">f</span><span class="s2">&quot;variable &#39;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">&#39; at byte </span><span class="si">{</span><span class="n">position</span><span class="si">}</span><span class="s2"> without &quot;</span>
+                                <span class="s2">&quot;a preceding data record.&quot;</span>
+                            <span class="p">)</span>
+                        <span class="n">prev_dr</span><span class="o">.</span><span class="n">_create_diff</span><span class="p">(</span>
+                            <span class="n">position</span><span class="o">=</span><span class="n">position</span><span class="p">,</span>
+                            <span class="n">variable</span><span class="o">=</span><span class="n">var</span><span class="p">,</span>
+                            <span class="n">checksum</span><span class="o">=</span><span class="n">checksum</span><span class="p">,</span>
+                            <span class="n">reserved</span><span class="o">=</span><span class="n">reserved</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># Create data record</span>
+                        <span class="n">dr</span> <span class="o">=</span> <span class="n">rs</span><span class="o">.</span><span class="n">_create_datarecord</span><span class="p">(</span>
+                            <span class="n">position</span><span class="o">=</span><span class="n">position</span><span class="p">,</span>
+                            <span class="n">variable</span><span class="o">=</span><span class="n">var</span><span class="p">,</span>
+                            <span class="n">level</span><span class="o">=</span><span class="n">lvl</span><span class="o">.</span><span class="n">level</span><span class="p">,</span>
+                            <span class="n">checksum</span><span class="o">=</span><span class="n">checksum</span><span class="p">,</span>
+                            <span class="n">reserved</span><span class="o">=</span><span class="n">reserved</span><span class="p">,</span>
+                        <span class="p">)</span>
+
+                        <span class="c1"># Keep track of previous data record for diff assignment</span>
+                        <span class="n">prev_dr</span> <span class="o">=</span> <span class="n">dr</span>
+
+                    <span class="n">position</span> <span class="o">+=</span> <span class="n">record_length</span>  <span class="c1"># go to next record</span>
+
+            <span class="c1"># Move file pointer to the start of the next index record</span>
+            <span class="n">fh</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_same_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">first</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">second</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_bytes</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compare two ``n_bytes`` spans of the file, one record at a time.</span>
+
+<span class="sd">        Reading record by record keeps memory at two records even for large</span>
+<span class="sd">        grids (an HRRR time step is ~200 MB).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">handle</span>
+        <span class="n">chunk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">record_length</span>
+        <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_bytes</span><span class="p">,</span> <span class="n">chunk</span><span class="p">):</span>
+            <span class="n">length</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="n">n_bytes</span> <span class="o">-</span> <span class="n">offset</span><span class="p">)</span>
+            <span class="n">fh</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">first</span> <span class="o">+</span> <span class="n">offset</span><span class="p">)</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+            <span class="n">fh</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">second</span> <span class="o">+</span> <span class="n">offset</span><span class="p">)</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="n">b</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="File.flush">
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.flush">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write pending record sets to disk and release their in-memory data.</span>
+
+<span class="sd">        Record sets are held in memory until the file is flushed or closed.</span>
+<span class="sd">        When writing many time steps, call ``flush()`` after filling each one</span>
+<span class="sd">        so memory stays bounded by one time step instead of the whole file.</span>
+<span class="sd">        Flushed record sets cannot be modified.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; with arlmet.File(</span>
+<span class="sd">        ...     &quot;out.arl&quot;, mode=&quot;w&quot;, source=&quot;TEST&quot;, grid=grid, vertical_axis=vaxis</span>
+<span class="sd">        ... ) as arl:</span>
+<span class="sd">        ...     for time, fields in steps:  # fields: {(name, level): array}</span>
+<span class="sd">        ...         rs = arl.create_recordset(time, forecast=0)</span>
+<span class="sd">        ...         for (name, level), data in fields.items():</span>
+<span class="sd">        ...             rs.create_datarecord(name, level=level, forecast=0, data=data)</span>
+<span class="sd">        ...         arl.flush()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">rs</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">rs</span><span class="o">.</span><span class="n">position</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">rs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">rs</span><span class="o">.</span><span class="n">_flush</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handle</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="File.close">
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.close">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Flush pending writes and close the managed binary file handle.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="c1"># Close the file manager — this releases the underlying file handle.</span>
+            <span class="c1"># Any mmap objects created from it become invalid and are GC&#39;d automatically.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_manager</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="File.sample_points">
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.sample_points">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample_points</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">points</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">variables</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">z_kind</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;native&quot;</span><span class="p">,</span> <span class="s2">&quot;pressure&quot;</span><span class="p">,</span> <span class="s2">&quot;agl&quot;</span><span class="p">,</span> <span class="s2">&quot;msl&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;pressure&quot;</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="s2">&quot;nearest&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;linear&quot;</span><span class="p">,</span>
+        <span class="n">earth_relative</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sample fields from this file at arbitrary lon/lat/z points.</span>
+
+<span class="sd">        Equivalent to :func:`arlmet.sample_points` with this file as the only</span>
+<span class="sd">        input.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        points : pandas.DataFrame or mapping</span>
+<span class="sd">            Table-like object with ``lon``, ``lat`` (degrees), and ``z``</span>
+<span class="sd">            columns, and optionally a ``time`` column. Any other columns are</span>
+<span class="sd">            carried through to the result unchanged.</span>
+<span class="sd">        variables : str or iterable of str</span>
+<span class="sd">            One or more ARL field names (e.g. ``&quot;TEMP&quot;``, ``&quot;UWND&quot;``), or</span>
+<span class="sd">            ``&quot;pressure&quot;`` for the virtual pressure variable. A name must not</span>
+<span class="sd">            collide with an existing column of ``points``.</span>
+<span class="sd">        time : pandas.Timestamp or str, optional</span>
+<span class="sd">            One valid time for every point, used when ``points`` has no</span>
+<span class="sd">            ``time`` column. Passing both raises ``ValueError``. When neither</span>
+<span class="sd">            is given, the file must contain exactly one time, which is used.</span>
+<span class="sd">        z_kind : {&quot;pressure&quot;, &quot;native&quot;, &quot;agl&quot;, &quot;msl&quot;}, default &quot;pressure&quot;</span>
+<span class="sd">            Vertical coordinate system of the ``z`` values:</span>
+
+<span class="sd">            - ``&quot;native&quot;``: fractional ARL level index.</span>
+<span class="sd">            - ``&quot;pressure&quot;``: hPa. Sigma/hybrid files (flag 1/4) need</span>
+<span class="sd">              ``PRSS``; pressure files (flag 2) use the stored levels;</span>
+<span class="sd">              terrain-following files (flag 3) raise ``ValueError``.</span>
+<span class="sd">            - ``&quot;agl&quot;``: metres above ground level. Sigma/hybrid files</span>
+<span class="sd">              integrate hypsometrically from ``PRSS`` and ``TEMP``; pressure</span>
+<span class="sd">              files use ``HGTS - SHGT``; terrain-following files use the</span>
+<span class="sd">              stored levels.</span>
+<span class="sd">            - ``&quot;msl&quot;``: metres above mean sea level. Sigma/hybrid files add</span>
+<span class="sd">              ``SHGT`` to the hypsometric AGL height; pressure files use</span>
+<span class="sd">              ``HGTS``; terrain-following files add ``SHGT`` to the stored</span>
+<span class="sd">              levels.</span>
+
+<span class="sd">            Each vertical coordinate system has exactly one method, as in</span>
+<span class="sd">            HYSPLIT; there is no fallback between them.</span>
+<span class="sd">        method : {&quot;linear&quot;, &quot;nearest&quot;}, default &quot;linear&quot;</span>
+<span class="sd">            Horizontal interpolation: bilinear or nearest grid point.</span>
+<span class="sd">        earth_relative : bool, default False</span>
+<span class="sd">            Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``)</span>
+<span class="sd">            from the grid axes to east/north. Winds in ARL files on projected</span>
+<span class="sd">            grids are stored grid-relative, as HYSPLIT expects. Both components</span>
+<span class="sd">            of a pair must be requested. No effect on lat/lon grids.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            Copy of ``points`` (all columns and the index preserved) with one</span>
+<span class="sd">            added column per requested variable. Points outside the grid or</span>
+<span class="sd">            the vertical range are NaN.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If a required column is missing, ``time`` is given alongside a</span>
+<span class="sd">            ``time`` column, no time is given for a multi-time file, a point</span>
+<span class="sd">            time is not in the file, a variable name collides with a column</span>
+<span class="sd">            of ``points``, ``z_kind`` or ``method`` is invalid, or a field</span>
+<span class="sd">            that ``z_kind`` requires is missing.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import pandas as pd</span>
+<span class="sd">        &gt;&gt;&gt; import arlmet</span>
+<span class="sd">        &gt;&gt;&gt; pts = pd.DataFrame({&quot;lon&quot;: [-111.9], &quot;lat&quot;: [40.7], &quot;z&quot;: [850.0]})</span>
+<span class="sd">        &gt;&gt;&gt; with arlmet.File(&quot;met.arl&quot;) as met:</span>
+<span class="sd">        ...     met.sample_points(pts, [&quot;UWND&quot;, &quot;VWND&quot;], time=&quot;2024-07-18 00:00&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Delayed import: ops sit on top of file, so file&#39;s use of the sampling</span>
+        <span class="c1"># op is lazy to avoid a file &lt;-&gt; ops import cycle (see File.extract_subset).</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.ops.sample</span><span class="w"> </span><span class="kn">import</span> <span class="n">sample_points</span>
+
+        <span class="k">return</span> <span class="n">sample_points</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">points</span><span class="p">,</span>
+            <span class="n">variables</span><span class="p">,</span>
+            <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">,</span>
+            <span class="n">z_kind</span><span class="o">=</span><span class="n">z_kind</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+            <span class="n">earth_relative</span><span class="o">=</span><span class="n">earth_relative</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="File.to_dataset">
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.to_dataset">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dataset</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">drop_variables</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">levels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Project this file into the simplified analysis Dataset representation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        drop_variables : sequence of str, optional</span>
+<span class="sd">            Variable names to omit.</span>
+<span class="sd">        bbox : tuple[float, float, float, float], optional</span>
+<span class="sd">            Geographic bounding box ``(west, south, east, north)`` in degrees.</span>
+<span class="sd">        levels : iterable of int, optional</span>
+<span class="sd">            ARL level indices to keep.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        xarray.Dataset</span>
+<span class="sd">            See :func:`arlmet.open_dataset` for the layout.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.xarray.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_dataset_from_file</span>
+
+        <span class="k">return</span> <span class="n">_build_dataset_from_file</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">drop_variables</span><span class="o">=</span><span class="n">drop_variables</span><span class="p">,</span>
+            <span class="n">bbox</span><span class="o">=</span><span class="n">bbox</span><span class="p">,</span>
+            <span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="File.extract_subset">
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.extract_subset">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_subset</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">dest</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">levels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">variables</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write a spatial/vertical subset of this file to a new ARL file.</span>
+
+<span class="sd">        Equivalent to :func:`arlmet.extract_subset` with this file&#39;s path as</span>
+<span class="sd">        the input.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dest : path-like</span>
+<span class="sd">            Output ARL file. Overwrites any existing file. Must not be this</span>
+<span class="sd">            file.</span>
+<span class="sd">        bbox : tuple[float, float, float, float], optional</span>
+<span class="sd">            Geographic bounding box ``(west, south, east, north)`` in degrees.</span>
+<span class="sd">        levels : iterable of int, optional</span>
+<span class="sd">            ARL level indices to keep. Output levels are compacted and</span>
+<span class="sd">            renumbered from zero while preserving the selected level heights.</span>
+<span class="sd">        variables : iterable of str, optional</span>
+<span class="sd">            Variable names to keep. All variables are included by default.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pathlib.Path</span>
+<span class="sd">            The output path, ``Path(dest)``.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import arlmet</span>
+<span class="sd">        &gt;&gt;&gt; with arlmet.File(&quot;met.arl&quot;) as met:</span>
+<span class="sd">        ...     out = met.extract_subset(&quot;subset.arl&quot;, bbox=(-114, 39, -110, 42))</span>
+<span class="sd">        &gt;&gt;&gt; ds = arlmet.open_dataset(out)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.ops.subset</span><span class="w"> </span><span class="kn">import</span> <span class="n">extract_subset</span>
+
+        <span class="k">return</span> <span class="n">extract_subset</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+            <span class="n">dest</span><span class="p">,</span>
+            <span class="n">bbox</span><span class="o">=</span><span class="n">bbox</span><span class="p">,</span>
+            <span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">,</span>
+            <span class="n">variables</span><span class="o">=</span><span class="n">variables</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="File.__getitem__">
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.__getitem__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RecordSet</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># Allow lookup by string time representation</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="c1"># Positional lookup follows the sorted `times`, not file order</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="File.__iter__">
+<a class="viewcode-back" href="../../_autosummary/arlmet.File.html#arlmet.File.__iter__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ts</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">OverflowError</span><span class="p">):</span>
+            <span class="c1"># Not interpretable as a timestamp</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">ts</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span>
+
+    <span class="nd">@override</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">grid_str</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_grid</span><span class="o">.</span><span class="n">nx</span><span class="si">}</span><span class="se">\u00d7</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_grid</span><span class="o">.</span><span class="n">ny</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="s2">&quot;None&quot;</span>
+        <span class="p">)</span>
+        <span class="n">levels_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vaxis</span><span class="o">.</span><span class="n">levels</span><span class="p">))</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vaxis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;None&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;File(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">, mode=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="si">!r}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;times=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">, grid=</span><span class="si">{</span><span class="n">grid_str</span><span class="si">}</span><span class="s2">, levels=</span><span class="si">{</span><span class="n">levels_str</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">exc_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">exc_val</span><span class="p">:</span> <span class="ne">BaseException</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">exc_tb</span><span class="p">:</span> <span class="n">TracebackType</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, James Mineau.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

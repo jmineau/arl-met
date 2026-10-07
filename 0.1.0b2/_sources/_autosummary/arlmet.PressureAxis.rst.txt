@@ -1,0 +1,29 @@
+﻿arlmet.PressureAxis
+===================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: PressureAxis
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   PressureAxis.__init__
+   PressureAxis.from_flag
+   PressureAxis.to_height_agl
+   PressureAxis.to_pressure
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   PressureAxis.coord_system
+   PressureAxis.flag
+   PressureAxis.levels
+   PressureAxis.offset

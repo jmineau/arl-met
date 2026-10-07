@@ -1,0 +1,29 @@
+﻿arlmet.VerticalAxis
+===================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: VerticalAxis
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   VerticalAxis.__init__
+   VerticalAxis.from_flag
+   VerticalAxis.to_height_agl
+   VerticalAxis.to_pressure
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   VerticalAxis.flag
+   VerticalAxis.coord_system
+   VerticalAxis.levels
+   VerticalAxis.offset

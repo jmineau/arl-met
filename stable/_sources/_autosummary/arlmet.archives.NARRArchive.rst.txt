@@ -1,0 +1,31 @@
+﻿arlmet.archives.NARRArchive
+===========================
+
+.. currentmodule:: arlmet.archives
+
+.. autoclass:: NARRArchive
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   NARRArchive.__init__
+   NARRArchive.fetch
+   NARRArchive.paths_for_range
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   NARRArchive.FTP_HOST
+   NARRArchive.HTTP_BASE
+   NARRArchive.S3_BUCKET
+   NARRArchive.description
+   NARRArchive.name
+   NARRArchive.source
+   NARRArchive.start_date

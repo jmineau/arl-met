@@ -1,0 +1,937 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>arlmet.index &#8212; arl-met 0.1.0b2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=283e4333" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=7f76b32a3354e82990f2"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2" />
+
+    <script src="../../_static/documentation_options.js?v=d31d1d1e"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/arlmet/index';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.0b2" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">arl-met 0.1.0b2 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">arlmet.index</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for arlmet.index</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Binary codecs for ARL index records: VarInfo, LvlInfo, and IndexRecord.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">BinaryIO</span><span class="p">,</span> <span class="n">ClassVar</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._time</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_timestamp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARLFormatError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span><span class="p">,</span> <span class="n">Projection</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span><span class="p">,</span> <span class="n">format_fixed_width_float</span><span class="p">,</span> <span class="n">split_grid_component</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerticalAxis</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;IndexRecord&quot;</span><span class="p">,</span> <span class="s2">&quot;LvlInfo&quot;</span><span class="p">,</span> <span class="s2">&quot;VarInfo&quot;</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_derive_index_forecast</span><span class="p">(</span>
+    <span class="n">record_forecasts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">explicit_forecast</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Derive an index-record forecast from per-record forecasts.</span>
+
+<span class="sd">    If an explicit forecast is provided, use it directly. Otherwise, use the</span>
+<span class="sd">    lowest non-negative forecast from the records, or -1 if all are missing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">explicit_forecast</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">explicit_forecast</span>
+
+    <span class="n">nonnegative_forecasts</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">record_forecasts</span> <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">nonnegative_forecasts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">nonnegative_forecasts</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VarInfo</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Checksum and reserved-byte metadata for one variable within an index record.&quot;&quot;&quot;</span>
+
+    <span class="n">checksum</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">reserved</span><span class="p">:</span> <span class="nb">str</span>
+
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">LvlInfo</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Information about a single vertical level.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    level : int</span>
+<span class="sd">        Level index.</span>
+<span class="sd">    height : float</span>
+<span class="sd">        Height in units of the vertical coordinate system.</span>
+<span class="sd">    variables : dict[str, VarInfo]</span>
+<span class="sd">        Dictionary mapping variable names to VarInfo (checksum and reserved).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">level</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">height</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">variables</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="IndexRecord">
+<a class="viewcode-back" href="../../_autosummary/arlmet.IndexRecord.html#arlmet.IndexRecord">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">IndexRecord</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Index record describing one ARL time step and its contained variables.</span>
+
+<span class="sd">    Index records are immutable value objects; use :func:`dataclasses.replace`</span>
+<span class="sd">    to derive a modified copy.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    header : Header</span>
+<span class="sd">        The header information for the index record.</span>
+<span class="sd">    source : str</span>
+<span class="sd">        Source identifier (4 characters).</span>
+<span class="sd">    forecast : int</span>
+<span class="sd">        Forecast hour.</span>
+<span class="sd">    minutes : int</span>
+<span class="sd">        Minutes after the hour.</span>
+<span class="sd">    pole_lat : float</span>
+<span class="sd">        Pole latitude position of the grid projection.</span>
+<span class="sd">        For lat-lon grids: max latitude of the grid.</span>
+<span class="sd">    pole_lon : float</span>
+<span class="sd">        Pole longitude position of the grid projection.</span>
+<span class="sd">        For lat-lon grids: max longitude of the grid.</span>
+<span class="sd">    tangent_lat : float</span>
+<span class="sd">        Reference latitude at which the grid spacing is defined.</span>
+<span class="sd">        For conical and mercator projections, this is the latitude</span>
+<span class="sd">        at which the grid touches the surface.</span>
+<span class="sd">        For lat-lon grids: grid spacing in degrees latitude.</span>
+<span class="sd">    tangent_lon : float</span>
+<span class="sd">        Reference longitude at which the grid spacing is defined.</span>
+<span class="sd">        For conical and mercator projections, this is the longitude</span>
+<span class="sd">        at which the grid touches the surface.</span>
+<span class="sd">        For lat-lon grids: grid spacing in degrees longitude.</span>
+<span class="sd">    grid_size : float</span>
+<span class="sd">        Grid spacing in km at the reference position.</span>
+<span class="sd">        For lat-lon grids: value of zero signals that the grid is a lat-lon grid.</span>
+<span class="sd">    orientation : float</span>
+<span class="sd">        Angle at the reference point made by the y-axis and the local direction of north.</span>
+<span class="sd">        For lat-lon grids: 0</span>
+<span class="sd">    cone_angle : float</span>
+<span class="sd">        Angle between the axis and the surface of the cone.</span>
+<span class="sd">        For regular projections it equals the latitude at which the grid is tangent to the earth&#39;s surface.</span>
+<span class="sd">        Stereographic: ±90, Mercator: 0, Lambert Conformal: 0 ~ 90</span>
+<span class="sd">        For lat-lon grids: 0</span>
+<span class="sd">    sync_x : float</span>
+<span class="sd">        Grid x-coordinate used to equate a position on the grid with a position on earth.</span>
+<span class="sd">        This is a unitless grid index (FORTRAN 1-based).</span>
+<span class="sd">    sync_y : float</span>
+<span class="sd">        Grid y-coordinate used to equate a position on the grid with a position on earth.</span>
+<span class="sd">        This is a unitless grid index (FORTRAN 1-based).</span>
+<span class="sd">    sync_lat : float</span>
+<span class="sd">        Earth latitude corresponding to the grid position (sync_x, sync_y).</span>
+<span class="sd">        For lat-lon grids: latitude of the (0,0) grid point position.</span>
+<span class="sd">    sync_lon : float</span>
+<span class="sd">        Earth longitude corresponding to the grid position (sync_x, sync_y).</span>
+<span class="sd">        For lat-lon grids: longitude of the (0,0) grid point position.</span>
+<span class="sd">    reserved : float</span>
+<span class="sd">        Twelfth projection field; holds the vertical-axis pressure offset.</span>
+<span class="sd">    nx : int</span>
+<span class="sd">        Number of grid points in the x-direction (columns). This is the full</span>
+<span class="sd">        size: the index record stores only ``nx % 1000`` and the header&#39;s grid</span>
+<span class="sd">        letters carry the thousands (see :attr:`Header.grid`).</span>
+<span class="sd">    ny : int</span>
+<span class="sd">        Number of grid points in the y-direction (rows), full size as ``nx``.</span>
+<span class="sd">    nz : int</span>
+<span class="sd">        Number of vertical levels.</span>
+<span class="sd">    vertical_flag : int</span>
+<span class="sd">        Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain, 4=hybrid).</span>
+<span class="sd">    levels : sequence of LvlInfo</span>
+<span class="sd">        Variable manifests for each stored vertical level.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    N_BYTES_FIXED : int</span>
+<span class="sd">        Number of bytes in the fixed portion of the index record (108 bytes).</span>
+<span class="sd">    index_length : int</span>
+<span class="sd">        Serialized length in bytes of the fixed plus variable portions</span>
+<span class="sd">        (excluding the 50-byte header), computed from the current fields.</span>
+<span class="sd">    time : pd.Timestamp</span>
+<span class="sd">        The valid time of the record, calculated from the header time and minutes.</span>
+<span class="sd">    grid : Grid</span>
+<span class="sd">        Horizontal grid built from the projection fields and ``nx``/``ny``.</span>
+<span class="sd">    vertical_axis : VerticalAxis</span>
+<span class="sd">        Vertical axis built from ``vertical_flag``, level heights, and ``reserved``.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    from_position(file, position)</span>
+<span class="sd">        Read and parse an index record from a file handle.</span>
+<span class="sd">    tobytes()</span>
+<span class="sd">        Serialize the exact used bytes of the index record.</span>
+<span class="sd">    to_record_bytes(record_length)</span>
+<span class="sd">        Serialize the index record padded to one ARL record.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If ``header.grid`` does not carry the thousands of ``nx``/``ny``.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from arlmet.header import Header</span>
+<span class="sd">    &gt;&gt;&gt; from arlmet.index import IndexRecord</span>
+<span class="sd">    &gt;&gt;&gt; header = Header(</span>
+<span class="sd">    ...     year=2024,</span>
+<span class="sd">    ...     month=7,</span>
+<span class="sd">    ...     day=18,</span>
+<span class="sd">    ...     hour=0,</span>
+<span class="sd">    ...     forecast=0,</span>
+<span class="sd">    ...     level=0,</span>
+<span class="sd">    ...     grid=(0, 0),</span>
+<span class="sd">    ...     variable=&quot;INDX&quot;,</span>
+<span class="sd">    ...     exponent=0,</span>
+<span class="sd">    ...     precision=0.0,</span>
+<span class="sd">    ...     initial_value=0.0,</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; isinstance(header.time, pd.Timestamp)</span>
+<span class="sd">    True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">header</span><span class="p">:</span> <span class="n">Header</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">forecast</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">minutes</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">pole_lat</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">pole_lon</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">tangent_lat</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">tangent_lon</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">grid_size</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">orientation</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">cone_angle</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">sync_x</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">sync_y</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">sync_lat</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">sync_lon</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">reserved</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">nx</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">ny</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">nz</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">vertical_flag</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">levels</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">LvlInfo</span><span class="p">]</span>
+
+    <span class="n">N_BYTES_FIXED</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">108</span>
+
+    <span class="c1"># Only the longitude fields of the 12 projection values are wrapped to</span>
+    <span class="c1"># [-180, 180]. HYSPLIT reads all 12 raw (metset.f: `12F7.0`); wrapping</span>
+    <span class="c1"># others such as sync_x/sync_y (grid indices) or grid_size (km) would</span>
+    <span class="c1"># corrupt legitimate values above 180.</span>
+    <span class="n">_LONGITUDE_FIELDS</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
+        <span class="p">{</span><span class="s2">&quot;pole_lon&quot;</span><span class="p">,</span> <span class="s2">&quot;tangent_lon&quot;</span><span class="p">,</span> <span class="s2">&quot;sync_lon&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check that the header grid letters match ``nx``/``ny``.&quot;&quot;&quot;</span>
+        <span class="n">thousands</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">split_grid_component</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nx</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">split_grid_component</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span> <span class="o">!=</span> <span class="n">thousands</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;header.grid </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span><span class="si">}</span><span class="s2"> does not match the &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;thousands of nx=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nx</span><span class="si">}</span><span class="s2">, ny=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="si">}</span><span class="s2"> (expected </span><span class="si">{</span><span class="n">thousands</span><span class="si">}</span><span class="s2">).&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="IndexRecord.from_position">
+<a class="viewcode-back" href="../../_autosummary/arlmet.IndexRecord.html#arlmet.IndexRecord.from_position">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_position</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">BinaryIO</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;IndexRecord&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create an IndexRecord by reading from a file at a specific position.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file : file-like object</span>
+<span class="sd">            The file to read from.</span>
+<span class="sd">        position : int</span>
+<span class="sd">            The byte position in the file where the index record starts.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        IndexRecord</span>
+<span class="sd">            The parsed IndexRecord object.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        EOFError</span>
+<span class="sd">            If ``position`` is at the end of the file.</span>
+<span class="sd">        ARLFormatError</span>
+<span class="sd">            If the bytes at ``position`` are not a valid index record.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+
+        <span class="n">header_bytes</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">Header</span><span class="o">.</span><span class="n">N_BYTES</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">header_bytes</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">EOFError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Reached end of file while reading header at position </span><span class="si">{</span><span class="n">position</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">header</span> <span class="o">=</span> <span class="n">Header</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">header_bytes</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">header</span><span class="o">.</span><span class="n">variable</span> <span class="o">!=</span> <span class="s2">&quot;INDX&quot;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Expected &#39;INDX&#39; record, found &#39;</span><span class="si">{</span><span class="n">header</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">fixed</span> <span class="o">=</span> <span class="n">IndexRecord</span><span class="o">.</span><span class="n">_parse_fixed</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">IndexRecord</span><span class="o">.</span><span class="n">N_BYTES_FIXED</span><span class="p">))</span>
+            <span class="n">index_length</span> <span class="o">=</span> <span class="n">fixed</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;index_length&quot;</span><span class="p">)</span>
+            <span class="n">extended</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">index_length</span> <span class="o">-</span> <span class="n">IndexRecord</span><span class="o">.</span><span class="n">N_BYTES_FIXED</span><span class="p">)</span>
+            <span class="n">levels</span> <span class="o">=</span> <span class="n">IndexRecord</span><span class="o">.</span><span class="n">_parse_extended</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">extended</span><span class="p">,</span> <span class="n">nz</span><span class="o">=</span><span class="n">fixed</span><span class="p">[</span><span class="s2">&quot;nz&quot;</span><span class="p">])</span>
+        <span class="k">except</span> <span class="n">ARLFormatError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="c1"># Add the byte position; File._scan adds the file path on top.</span>
+            <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Invalid index record at byte </span><span class="si">{</span><span class="n">position</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+        <span class="c1"># The fixed portion stores the grid size below 1000; the header&#39;s grid</span>
+        <span class="c1"># letters carry the thousands.</span>
+        <span class="n">fixed</span><span class="p">[</span><span class="s2">&quot;nx&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">header</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">fixed</span><span class="p">[</span><span class="s2">&quot;ny&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">header</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">IndexRecord</span><span class="p">(</span><span class="n">header</span><span class="o">=</span><span class="n">header</span><span class="p">,</span> <span class="o">**</span><span class="n">fixed</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">index_length</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialized length of the fixed plus variable portions, in bytes.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_BYTES_FIXED</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_serialize_extended</span><span class="p">())</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_serialize_fixed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the fixed 108-byte portion of the index record.&quot;&quot;&quot;</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pole_lat</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pole_lon</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tangent_lat</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tangent_lon</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">orientation</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cone_angle</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sync_x</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sync_y</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sync_lat</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sync_lon</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reserved</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="n">proj</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">format_fixed_width_float</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="p">)</span>
+        <span class="n">fixed</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="si">:</span><span class="s2">&lt;4</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">forecast</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">minutes</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">proj</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nx</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">1000</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">1000</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nz</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">vertical_flag</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">index_length</span><span class="si">:</span><span class="s2">4d</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fixed</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_BYTES_FIXED</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Fixed index serialization produced </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">fixed</span><span class="p">)</span><span class="si">}</span><span class="s2"> bytes, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">N_BYTES_FIXED</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">fixed</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_serialize_extended</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the variable-length level/variable portion of the index record.&quot;&quot;&quot;</span>
+        <span class="n">chunks</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="p">:</span>
+            <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">format_fixed_width_float</span><span class="p">(</span><span class="n">level</span><span class="o">.</span><span class="n">height</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+            <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">level</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">level</span><span class="o">.</span><span class="n">variables</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">reserved</span> <span class="o">=</span> <span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">reserved</span> <span class="ow">or</span> <span class="s2">&quot; &quot;</span><span class="p">)[:</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">:</span><span class="s2">&lt;4</span><span class="si">}{</span><span class="n">info</span><span class="o">.</span><span class="n">checksum</span><span class="si">:</span><span class="s2">3d</span><span class="si">}{</span><span class="n">reserved</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="IndexRecord.tobytes">
+<a class="viewcode-back" href="../../_autosummary/arlmet.IndexRecord.html#arlmet.IndexRecord.tobytes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tobytes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the exact used bytes of the index record, including its header.&quot;&quot;&quot;</span>
+        <span class="n">extended</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_serialize_extended</span><span class="p">()</span>
+        <span class="n">fixed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_serialize_fixed</span><span class="p">(</span><span class="n">index_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">N_BYTES_FIXED</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">extended</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span> <span class="o">+</span> <span class="n">fixed</span> <span class="o">+</span> <span class="n">extended</span></div>
+
+
+<div class="viewcode-block" id="IndexRecord.to_record_bytes">
+<a class="viewcode-back" href="../../_autosummary/arlmet.IndexRecord.html#arlmet.IndexRecord.to_record_bytes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_record_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the index record padded to one full ARL record.&quot;&quot;&quot;</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">record_length</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Index record uses </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span><span class="si">}</span><span class="s2"> bytes, which exceeds record length </span><span class="si">{</span><span class="n">record_length</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">raw</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="n">record_length</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot; &quot;</span><span class="p">)</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_fixed</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parse the fixed 108-byte portion of an index record from raw bytes.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : bytes</span>
+<span class="sd">            Raw bytes containing the fixed portion of the index record.</span>
+<span class="sd">            108 bytes expected.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Parsed fields as a dictionary. ``nx``/``ny`` are the raw values</span>
+<span class="sd">            below 1000, and ``index_length`` is the stored length.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">IndexRecord</span><span class="o">.</span><span class="n">N_BYTES_FIXED</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;IndexRecord fixed portion must be at least </span><span class="si">{</span><span class="n">IndexRecord</span><span class="o">.</span><span class="n">N_BYTES_FIXED</span><span class="si">}</span><span class="s2"> bytes, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">fixed</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:</span> <span class="n">IndexRecord</span><span class="o">.</span><span class="n">N_BYTES_FIXED</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">IndexRecord</span><span class="o">.</span><span class="n">_parse_fixed_fields</span><span class="p">(</span><span class="n">fixed</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Cannot parse fixed index-record fields from </span><span class="si">{</span><span class="n">fixed</span><span class="si">!r}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_fixed_fields</span><span class="p">(</span><span class="n">fixed</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decode the fixed index-record fields; raises ValueError on bad text.&quot;&quot;&quot;</span>
+        <span class="n">fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">fields</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fixed</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">fields</span><span class="p">[</span><span class="s2">&quot;forecast&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fixed</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">7</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="n">fields</span><span class="p">[</span><span class="s2">&quot;minutes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fixed</span><span class="p">[</span><span class="mi">7</span><span class="p">:</span><span class="mi">9</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+        <span class="n">proj_section</span> <span class="o">=</span> <span class="n">fixed</span><span class="p">[</span><span class="mi">9</span> <span class="p">:</span> <span class="mi">9</span> <span class="o">+</span> <span class="mi">12</span> <span class="o">*</span> <span class="mi">7</span><span class="p">]</span>
+        <span class="n">proj_names</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;pole_lat&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;pole_lon&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tangent_lat&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tangent_lon&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;grid_size&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;orientation&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cone_angle&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sync_x&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sync_y&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sync_lat&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sync_lon&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;reserved&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">12</span><span class="p">):</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">7</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="mi">7</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">proj_section</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">proj_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="n">IndexRecord</span><span class="o">.</span><span class="n">_LONGITUDE_FIELDS</span> <span class="ow">and</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="mi">360</span> <span class="o">-</span> <span class="n">val</span><span class="p">)</span>
+            <span class="n">fields</span><span class="p">[</span><span class="n">proj_names</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">val</span>
+
+        <span class="n">grid_section</span> <span class="o">=</span> <span class="n">fixed</span><span class="p">[</span><span class="mi">93</span><span class="p">:</span><span class="mi">102</span><span class="p">]</span>
+        <span class="n">fields</span><span class="p">[</span><span class="s2">&quot;nx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">grid_section</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="n">fields</span><span class="p">[</span><span class="s2">&quot;ny&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">grid_section</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="n">fields</span><span class="p">[</span><span class="s2">&quot;nz&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">grid_section</span><span class="p">[</span><span class="mi">6</span><span class="p">:</span><span class="mi">9</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+        <span class="n">fields</span><span class="p">[</span><span class="s2">&quot;vertical_flag&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fixed</span><span class="p">[</span><span class="mi">102</span><span class="p">:</span><span class="mi">104</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="n">fields</span><span class="p">[</span><span class="s2">&quot;index_length&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fixed</span><span class="p">[</span><span class="mi">104</span><span class="p">:</span><span class="mi">108</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="n">fields</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_extended</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">nz</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">LvlInfo</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parse the variable-length portion of an index record.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : bytes</span>
+<span class="sd">            Raw bytes containing the extended portion of the index record.</span>
+<span class="sd">        nz : int</span>
+<span class="sd">            Number of vertical levels (from the fixed portion).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list[LvlInfo]</span>
+<span class="sd">            List of LvlInfo objects for each vertical level.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">extended</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">IndexRecord</span><span class="o">.</span><span class="n">_parse_levels</span><span class="p">(</span><span class="n">extended</span><span class="p">,</span> <span class="n">nz</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Cannot parse level/variable manifest of index record: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_levels</span><span class="p">(</span><span class="n">extended</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nz</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">LvlInfo</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decode the per-level manifests; raises ValueError on bad text.&quot;&quot;&quot;</span>
+        <span class="n">lvls</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nz</span><span class="p">):</span>
+            <span class="n">height</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">extended</span><span class="p">[</span><span class="n">cursor</span> <span class="p">:</span> <span class="n">cursor</span> <span class="o">+</span> <span class="mi">6</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+            <span class="nb">vars</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="n">num_vars</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">extended</span><span class="p">[</span><span class="n">cursor</span> <span class="o">+</span> <span class="mi">6</span> <span class="p">:</span> <span class="n">cursor</span> <span class="o">+</span> <span class="mi">8</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_vars</span><span class="p">):</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">+</span> <span class="mi">8</span> <span class="o">+</span> <span class="n">j</span> <span class="o">*</span> <span class="mi">8</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="mi">8</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">extended</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="nb">vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">VarInfo</span><span class="p">(</span>
+                    <span class="n">checksum</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">extended</span><span class="p">[</span><span class="n">start</span> <span class="o">+</span> <span class="mi">4</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="mi">7</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()),</span>
+                    <span class="n">reserved</span><span class="o">=</span><span class="n">extended</span><span class="p">[</span><span class="n">start</span> <span class="o">+</span> <span class="mi">7</span> <span class="p">:</span> <span class="n">end</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+                <span class="p">)</span>
+
+            <span class="n">lvls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">LvlInfo</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="nb">vars</span><span class="p">))</span>
+            <span class="n">cursor</span> <span class="o">+=</span> <span class="mi">8</span> <span class="o">+</span> <span class="n">num_vars</span> <span class="o">*</span> <span class="mi">8</span>
+
+        <span class="k">return</span> <span class="n">lvls</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">time</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Valid time calculated from header time plus minutes offset.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">time</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">minutes</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Grid</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a Grid from the index record&#39;s projection parameters.&quot;&quot;&quot;</span>
+        <span class="n">proj</span> <span class="o">=</span> <span class="n">Projection</span><span class="p">(</span>
+            <span class="n">pole_lat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pole_lat</span><span class="p">,</span>
+            <span class="n">pole_lon</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pole_lon</span><span class="p">,</span>
+            <span class="n">tangent_lat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tangent_lat</span><span class="p">,</span>
+            <span class="n">tangent_lon</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tangent_lon</span><span class="p">,</span>
+            <span class="n">grid_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span><span class="p">,</span>
+            <span class="n">orientation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">orientation</span><span class="p">,</span>
+            <span class="n">cone_angle</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cone_angle</span><span class="p">,</span>
+            <span class="n">sync_x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sync_x</span><span class="p">,</span>
+            <span class="n">sync_y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sync_y</span><span class="p">,</span>
+            <span class="n">sync_lat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sync_lat</span><span class="p">,</span>
+            <span class="n">sync_lon</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sync_lon</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">Grid</span><span class="p">(</span><span class="n">projection</span><span class="o">=</span><span class="n">proj</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">vertical_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VerticalAxis</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct the vertical axis definition from the index record.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">VerticalAxis</span><span class="o">.</span><span class="n">from_flag</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vertical_flag</span><span class="p">,</span>
+            <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="n">lvl</span><span class="o">.</span><span class="n">height</span> <span class="k">for</span> <span class="n">lvl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="p">],</span>
+            <span class="n">offset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">reserved</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, James Mineau.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

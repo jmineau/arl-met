@@ -1,0 +1,6 @@
+﻿arlmet.archives.get\_archive
+============================
+
+.. currentmodule:: arlmet.archives
+
+.. autofunction:: get_archive

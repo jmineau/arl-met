@@ -1,0 +1,31 @@
+﻿arlmet.archives.GFSArchive
+==========================
+
+.. currentmodule:: arlmet.archives
+
+.. autoclass:: GFSArchive
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   GFSArchive.__init__
+   GFSArchive.fetch
+   GFSArchive.paths_for_range
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   GFSArchive.FTP_HOST
+   GFSArchive.HTTP_BASE
+   GFSArchive.S3_BUCKET
+   GFSArchive.description
+   GFSArchive.name
+   GFSArchive.source
+   GFSArchive.start_date

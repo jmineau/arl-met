@@ -1,0 +1,31 @@
+﻿arlmet.archives.GDASArchive
+===========================
+
+.. currentmodule:: arlmet.archives
+
+.. autoclass:: GDASArchive
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   GDASArchive.__init__
+   GDASArchive.fetch
+   GDASArchive.paths_for_range
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   GDASArchive.FTP_HOST
+   GDASArchive.HTTP_BASE
+   GDASArchive.S3_BUCKET
+   GDASArchive.description
+   GDASArchive.name
+   GDASArchive.source
+   GDASArchive.start_date

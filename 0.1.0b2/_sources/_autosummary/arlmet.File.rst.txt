@@ -1,0 +1,38 @@
+﻿arlmet.File
+===========
+
+.. currentmodule:: arlmet
+
+.. autoclass:: File
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   File.__init__
+   File.add_record
+   File.close
+   File.create_grid
+   File.create_recordset
+   File.extract_subset
+   File.flush
+   File.sample_points
+   File.to_dataset
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   File.grid
+   File.handle
+   File.record_length
+   File.records
+   File.size
+   File.source
+   File.times
+   File.vertical_axis

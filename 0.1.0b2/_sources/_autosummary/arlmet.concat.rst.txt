@@ -1,0 +1,6 @@
+﻿arlmet.concat
+=============
+
+.. currentmodule:: arlmet
+
+.. autofunction:: concat

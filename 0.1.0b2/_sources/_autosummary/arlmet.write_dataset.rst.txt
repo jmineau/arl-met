@@ -1,0 +1,6 @@
+﻿arlmet.write\_dataset
+=====================
+
+.. currentmodule:: arlmet
+
+.. autofunction:: write_dataset

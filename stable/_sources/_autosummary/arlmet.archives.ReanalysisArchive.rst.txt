@@ -1,0 +1,31 @@
+﻿arlmet.archives.ReanalysisArchive
+=================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoclass:: ReanalysisArchive
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   ReanalysisArchive.__init__
+   ReanalysisArchive.fetch
+   ReanalysisArchive.paths_for_range
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   ReanalysisArchive.FTP_HOST
+   ReanalysisArchive.HTTP_BASE
+   ReanalysisArchive.S3_BUCKET
+   ReanalysisArchive.description
+   ReanalysisArchive.name
+   ReanalysisArchive.source
+   ReanalysisArchive.start_date

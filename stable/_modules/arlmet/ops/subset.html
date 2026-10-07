@@ -1,0 +1,870 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>arlmet.ops.subset &#8212; arl-met 0.1.0b2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=283e4333" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=7f76b32a3354e82990f2"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2" />
+
+    <script src="../../../_static/documentation_options.js?v=d31d1d1e"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/arlmet/ops/subset';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.0b2" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">arl-met 0.1.0b2 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">arlmet.ops.subset</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for arlmet.ops.subset</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Subset extraction helpers for ARL meteorology files.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">BinaryIO</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_output</span><span class="p">,</span> <span class="n">reject_same_file</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARLFormatError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span><span class="p">,</span> <span class="n">GridWindow</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span><span class="p">,</span> <span class="n">record_length_from_grid</span><span class="p">,</span> <span class="n">split_grid_component</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.index</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span><span class="p">,</span> <span class="n">LvlInfo</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">,</span> <span class="n">_derive_index_forecast</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.packing</span><span class="w"> </span><span class="kn">import</span> <span class="n">calculate_checksum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerticalAxis</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.recordset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordSet</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_levels</span><span class="p">(</span>
+    <span class="n">vertical_axis</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">,</span> <span class="n">levels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Normalize a level selection to sorted unique ARL level indices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">levels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vertical_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)))</span>
+
+    <span class="n">normalized</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">({</span><span class="nb">int</span><span class="p">(</span><span class="n">level</span><span class="p">)</span> <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">}))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">normalized</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;levels must include at least one level index.&quot;</span><span class="p">)</span>
+
+    <span class="n">max_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vertical_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">normalized</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">normalized</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">max_index</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;levels must be between 0 and </span><span class="si">{</span><span class="n">max_index</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">normalized</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">normalized</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">resolve_window</span><span class="p">(</span>
+    <span class="n">file</span><span class="p">:</span> <span class="n">File</span><span class="p">,</span> <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GridWindow</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Resolve a bbox selection to a grid window.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">bbox</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">file</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">full_window</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">file</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">window_from_bbox</span><span class="p">(</span><span class="n">bbox</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">select_records</span><span class="p">(</span>
+    <span class="n">records</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">levels</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">variables</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Filter records by ARL level index and variable name.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">record</span>
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">records</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">levels</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">record</span><span class="o">.</span><span class="n">level</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="p">(</span><span class="n">variables</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">record</span><span class="o">.</span><span class="n">variable</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">)</span>
+    <span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_source_index_entries</span><span class="p">(</span>
+    <span class="n">selected_records</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">],</span> <span class="n">level_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Index manifest entries ``(output level, name, info)`` for selected records.</span>
+
+<span class="sd">    Each record is followed by its DIF record, if any, as in the output file.</span>
+<span class="sd">    Checksums and reserved flags come from the source index; they size the</span>
+<span class="sd">    output index record for validation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">entries</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">selected_records</span><span class="p">:</span>
+        <span class="n">level</span> <span class="o">=</span> <span class="n">level_map</span><span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">level</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="p">(</span><span class="n">record</span><span class="p">,)</span> <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">diff</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">diff</span><span class="p">):</span>
+            <span class="n">entries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">level</span><span class="p">,</span>
+                    <span class="n">rec</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span>
+                    <span class="n">VarInfo</span><span class="p">(</span><span class="n">checksum</span><span class="o">=</span><span class="n">rec</span><span class="o">.</span><span class="n">checksum</span><span class="p">,</span> <span class="n">reserved</span><span class="o">=</span><span class="p">(</span><span class="n">rec</span><span class="o">.</span><span class="n">_reserved</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)[:</span><span class="mi">1</span><span class="p">]),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+    <span class="k">return</span> <span class="n">entries</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_subset_index_record</span><span class="p">(</span>
+    <span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">subset_grid</span><span class="p">:</span> <span class="n">Grid</span><span class="p">,</span>
+    <span class="n">subset_axis</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">,</span>
+    <span class="n">selected_records</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">],</span>
+    <span class="n">entries</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IndexRecord</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the output index record for one subsetted time step.</span>
+
+<span class="sd">    ``entries`` lists ``(output level, variable name, VarInfo)`` in file order.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">forecast</span> <span class="o">=</span> <span class="n">_derive_index_forecast</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">forecast</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">selected_records</span><span class="p">),</span>
+        <span class="n">recordset</span><span class="o">.</span><span class="n">forecast</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">level_records</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">level</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">()</span> <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">subset_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">))</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">level</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
+        <span class="n">level_records</span><span class="p">[</span><span class="n">level</span><span class="p">][</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
+
+    <span class="n">grid_x</span> <span class="o">=</span> <span class="n">split_grid_component</span><span class="p">(</span><span class="n">subset_grid</span><span class="o">.</span><span class="n">nx</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">grid_y</span> <span class="o">=</span> <span class="n">split_grid_component</span><span class="p">(</span><span class="n">subset_grid</span><span class="o">.</span><span class="n">ny</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">levels</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">LvlInfo</span><span class="p">(</span>
+            <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">height</span><span class="p">),</span>
+            <span class="n">variables</span><span class="o">=</span><span class="n">level_records</span><span class="p">[</span><span class="n">level</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">level</span><span class="p">,</span> <span class="n">height</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">subset_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">projection</span> <span class="o">=</span> <span class="n">subset_grid</span><span class="o">.</span><span class="n">projection</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">recordset</span><span class="o">.</span><span class="n">time</span>
+    <span class="k">return</span> <span class="n">IndexRecord</span><span class="p">(</span>
+        <span class="n">header</span><span class="o">=</span><span class="n">Header</span><span class="p">(</span>
+            <span class="n">year</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
+            <span class="n">month</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
+            <span class="n">day</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+            <span class="n">hour</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span>
+            <span class="n">forecast</span><span class="o">=</span><span class="n">forecast</span><span class="p">,</span>
+            <span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">grid</span><span class="o">=</span><span class="p">(</span><span class="n">grid_x</span><span class="p">,</span> <span class="n">grid_y</span><span class="p">),</span>
+            <span class="n">variable</span><span class="o">=</span><span class="s2">&quot;INDX&quot;</span><span class="p">,</span>
+            <span class="n">exponent</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">precision</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">initial_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">source</span><span class="o">=</span><span class="n">recordset</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+        <span class="n">forecast</span><span class="o">=</span><span class="n">forecast</span><span class="p">,</span>
+        <span class="n">minutes</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span>
+        <span class="n">pole_lat</span><span class="o">=</span><span class="n">projection</span><span class="o">.</span><span class="n">pole_lat</span><span class="p">,</span>
+        <span class="n">pole_lon</span><span class="o">=</span><span class="n">projection</span><span class="o">.</span><span class="n">pole_lon</span><span class="p">,</span>
+        <span class="n">tangent_lat</span><span class="o">=</span><span class="n">projection</span><span class="o">.</span><span class="n">tangent_lat</span><span class="p">,</span>
+        <span class="n">tangent_lon</span><span class="o">=</span><span class="n">projection</span><span class="o">.</span><span class="n">tangent_lon</span><span class="p">,</span>
+        <span class="n">grid_size</span><span class="o">=</span><span class="n">projection</span><span class="o">.</span><span class="n">grid_size</span><span class="p">,</span>
+        <span class="n">orientation</span><span class="o">=</span><span class="n">projection</span><span class="o">.</span><span class="n">orientation</span><span class="p">,</span>
+        <span class="n">cone_angle</span><span class="o">=</span><span class="n">projection</span><span class="o">.</span><span class="n">cone_angle</span><span class="p">,</span>
+        <span class="n">sync_x</span><span class="o">=</span><span class="n">projection</span><span class="o">.</span><span class="n">sync_x</span><span class="p">,</span>
+        <span class="n">sync_y</span><span class="o">=</span><span class="n">projection</span><span class="o">.</span><span class="n">sync_y</span><span class="p">,</span>
+        <span class="n">sync_lat</span><span class="o">=</span><span class="n">projection</span><span class="o">.</span><span class="n">sync_lat</span><span class="p">,</span>
+        <span class="n">sync_lon</span><span class="o">=</span><span class="n">projection</span><span class="o">.</span><span class="n">sync_lon</span><span class="p">,</span>
+        <span class="n">reserved</span><span class="o">=</span><span class="n">subset_axis</span><span class="o">.</span><span class="n">offset</span><span class="p">,</span>
+        <span class="n">nx</span><span class="o">=</span><span class="n">subset_grid</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span>
+        <span class="n">ny</span><span class="o">=</span><span class="n">subset_grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span>
+        <span class="n">nz</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">),</span>
+        <span class="n">vertical_flag</span><span class="o">=</span><span class="n">subset_axis</span><span class="o">.</span><span class="n">flag</span><span class="p">,</span>
+        <span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_subset_record_length</span><span class="p">(</span>
+    <span class="n">selected_recordsets</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">RecordSet</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">]]],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">subset_grid</span><span class="p">:</span> <span class="n">Grid</span><span class="p">,</span>
+    <span class="n">subset_axis</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">,</span>
+    <span class="n">level_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fail early when a cropped ARL grid cannot fit its index record.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">record_len</span> <span class="o">=</span> <span class="n">record_length_from_grid</span><span class="p">(</span><span class="n">grid</span><span class="o">=</span><span class="n">subset_grid</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">recordset</span><span class="p">,</span> <span class="n">selected_records</span> <span class="ow">in</span> <span class="n">selected_recordsets</span><span class="p">:</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">_build_subset_index_record</span><span class="p">(</span>
+            <span class="n">recordset</span><span class="p">,</span>
+            <span class="n">subset_grid</span><span class="o">=</span><span class="n">subset_grid</span><span class="p">,</span>
+            <span class="n">subset_axis</span><span class="o">=</span><span class="n">subset_axis</span><span class="p">,</span>
+            <span class="n">selected_records</span><span class="o">=</span><span class="n">selected_records</span><span class="p">,</span>
+            <span class="n">entries</span><span class="o">=</span><span class="n">_source_index_entries</span><span class="p">(</span><span class="n">selected_records</span><span class="p">,</span> <span class="n">level_map</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">index_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">index_len</span> <span class="o">&gt;</span> <span class="n">record_len</span><span class="p">:</span>
+            <span class="n">min_cells</span> <span class="o">=</span> <span class="n">index_len</span> <span class="o">-</span> <span class="n">Header</span><span class="o">.</span><span class="n">N_BYTES</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Subset grid is too small to encode an ARL index record: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;time </span><span class="si">{</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2"> needs </span><span class="si">{</span><span class="n">index_len</span><span class="si">}</span><span class="s2"> bytes, but each record is &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;only </span><span class="si">{</span><span class="n">record_len</span><span class="si">}</span><span class="s2"> bytes for grid </span><span class="si">{</span><span class="n">subset_grid</span><span class="o">.</span><span class="n">nx</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="n">subset_grid</span><span class="o">.</span><span class="n">ny</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;The bbox must yield at least </span><span class="si">{</span><span class="n">min_cells</span><span class="si">}</span><span class="s2"> grid cells (nx*ny). &quot;</span>
+                <span class="s2">&quot;Expand the bbox or reduce levels/variables.&quot;</span>
+            <span class="p">)</span>
+
+
+<span class="c1"># Byte offsets of the level field in a record header (see Header.FIELDS).</span>
+<span class="n">_LEVEL_START</span><span class="p">,</span> <span class="n">_LEVEL_STOP</span> <span class="o">=</span> <span class="n">Header</span><span class="o">.</span><span class="n">FIELDS</span><span class="p">[</span><span class="s2">&quot;level&quot;</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_copy_subset_records</span><span class="p">(</span>
+    <span class="n">src</span><span class="p">:</span> <span class="n">File</span><span class="p">,</span>
+    <span class="n">out</span><span class="p">:</span> <span class="n">BinaryIO</span><span class="p">,</span>
+    <span class="n">selected_recordsets</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">RecordSet</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">]]],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">subset_grid</span><span class="p">:</span> <span class="n">Grid</span><span class="p">,</span>
+    <span class="n">subset_axis</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">,</span>
+    <span class="n">level_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write an uncropped subset by copying record bytes instead of re-packing.</span>
+
+<span class="sd">    Without a horizontal crop a record&#39;s packed bytes do not depend on which</span>
+<span class="sd">    other records are kept, so each selected record (and its DIF record) is</span>
+<span class="sd">    copied verbatim with only the header&#39;s level field renumbered. Only the</span>
+<span class="sd">    index records are rebuilt, with checksums recomputed from the copied</span>
+<span class="sd">    bytes and blank reserved flags, as a re-pack writes them.</span>
+
+<span class="sd">    The output decodes to exactly the source values. For records that</span>
+<span class="sd">    re-packing reproduces byte for byte (those written by arlmet without a</span>
+<span class="sd">    DIF record) it is identical to the re-pack path&#39;s output; otherwise the</span>
+<span class="sd">    re-pack path re-quantizes the values and this path is the more faithful.</span>
+
+<span class="sd">    Each time step&#39;s index record is written last, over a placeholder, once</span>
+<span class="sd">    the checksums of its records are known, so memory stays at a few records.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">record_length</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">record_length</span>
+    <span class="n">src_fh</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">handle</span>
+    <span class="n">placeholder</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">record_length</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">recordset</span><span class="p">,</span> <span class="n">selected_records</span> <span class="ow">in</span> <span class="n">selected_recordsets</span><span class="p">:</span>
+        <span class="n">index_position</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">placeholder</span><span class="p">)</span>
+
+        <span class="n">entries</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">selected_records</span><span class="p">:</span>
+            <span class="n">level</span> <span class="o">=</span> <span class="n">level_map</span><span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">level</span><span class="p">]</span>
+            <span class="n">level_field</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">level</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="p">(</span><span class="n">record</span><span class="p">,)</span> <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">diff</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">diff</span><span class="p">):</span>
+                <span class="n">src_fh</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">rec</span><span class="o">.</span><span class="n">position</span><span class="p">)</span>
+                <span class="n">raw</span> <span class="o">=</span> <span class="n">src_fh</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">record_length</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span> <span class="o">!=</span> <span class="n">record_length</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">src</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: record </span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">variable</span><span class="si">!r}</span><span class="s2"> at byte &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">position</span><span class="si">}</span><span class="s2"> is truncated.&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">header</span> <span class="o">=</span> <span class="n">Header</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">raw</span><span class="p">[:</span> <span class="n">Header</span><span class="o">.</span><span class="n">N_BYTES</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">header</span><span class="o">.</span><span class="n">variable</span> <span class="o">!=</span> <span class="n">rec</span><span class="o">.</span><span class="n">variable</span> <span class="ow">or</span> <span class="n">header</span><span class="o">.</span><span class="n">level</span> <span class="o">!=</span> <span class="n">rec</span><span class="o">.</span><span class="n">level</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;DataRecord header mismatch at position </span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">position</span><span class="si">}</span><span class="s2">: &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;expected variable &#39;</span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39; level </span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">, &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;got variable &#39;</span><span class="si">{</span><span class="n">header</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39; level &#39;</span><span class="si">{</span><span class="n">header</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                    <span class="p">)</span>
+                <span class="c1"># Write the record with its level renumbered, without copying it.</span>
+                <span class="n">view</span> <span class="o">=</span> <span class="nb">memoryview</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">view</span><span class="p">[:</span><span class="n">_LEVEL_START</span><span class="p">])</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">level_field</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">view</span><span class="p">[</span><span class="n">_LEVEL_STOP</span><span class="p">:])</span>
+                <span class="n">checksum</span> <span class="o">=</span> <span class="n">calculate_checksum</span><span class="p">(</span><span class="n">view</span><span class="p">[</span><span class="n">Header</span><span class="o">.</span><span class="n">N_BYTES</span> <span class="p">:])</span>
+                <span class="n">entries</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">level</span><span class="p">,</span> <span class="n">rec</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">(</span><span class="n">checksum</span><span class="p">,</span> <span class="n">reserved</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)))</span>
+
+        <span class="n">index</span> <span class="o">=</span> <span class="n">_build_subset_index_record</span><span class="p">(</span>
+            <span class="n">recordset</span><span class="p">,</span>
+            <span class="n">subset_grid</span><span class="o">=</span><span class="n">subset_grid</span><span class="p">,</span>
+            <span class="n">subset_axis</span><span class="o">=</span><span class="n">subset_axis</span><span class="p">,</span>
+            <span class="n">selected_records</span><span class="o">=</span><span class="n">selected_records</span><span class="p">,</span>
+            <span class="n">entries</span><span class="o">=</span><span class="n">entries</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">index_position</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">index</span><span class="o">.</span><span class="n">to_record_bytes</span><span class="p">(</span><span class="n">record_length</span><span class="p">))</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_repack_subset_records</span><span class="p">(</span>
+    <span class="n">src</span><span class="p">:</span> <span class="n">File</span><span class="p">,</span>
+    <span class="n">dest</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">selected_recordsets</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">RecordSet</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">]]],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">window</span><span class="p">:</span> <span class="n">GridWindow</span><span class="p">,</span>
+    <span class="n">subset_grid</span><span class="p">:</span> <span class="n">Grid</span><span class="p">,</span>
+    <span class="n">subset_axis</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">,</span>
+    <span class="n">level_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write a cropped subset by unpacking each record&#39;s window and re-packing it.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">File</span><span class="p">(</span>
+        <span class="n">dest</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="n">src</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+        <span class="n">grid</span><span class="o">=</span><span class="n">subset_grid</span><span class="p">,</span>
+        <span class="n">vertical_axis</span><span class="o">=</span><span class="n">subset_axis</span><span class="p">,</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">src_recordset</span><span class="p">,</span> <span class="n">selected_records</span> <span class="ow">in</span> <span class="n">selected_recordsets</span><span class="p">:</span>
+            <span class="n">dst_recordset</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">create_recordset</span><span class="p">(</span>
+                <span class="n">src_recordset</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+                <span class="n">forecast</span><span class="o">=</span><span class="n">src_recordset</span><span class="o">.</span><span class="n">forecast</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">selected_records</span><span class="p">:</span>
+                <span class="c1"># record.read() returns the full-precision value</span>
+                <span class="c1"># (parent + diff when a diff is attached); the diff branch</span>
+                <span class="c1"># below relies on this so that create_datarecord(diff=...)</span>
+                <span class="c1"># can recompute the diff against the newly packed parent.</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">)</span>
+                <span class="n">dst_recordset</span><span class="o">.</span><span class="n">create_datarecord</span><span class="p">(</span>
+                    <span class="n">variable</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span>
+                    <span class="n">level</span><span class="o">=</span><span class="n">level_map</span><span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">level</span><span class="p">],</span>
+                    <span class="n">forecast</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">forecast</span><span class="p">,</span>
+                    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+                    <span class="n">diff</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">diff</span><span class="o">.</span><span class="n">variable</span> <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">diff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="c1"># Write each time step as soon as it is filled so peak memory</span>
+            <span class="c1"># is one time step, not the whole output.</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_full_window</span><span class="p">(</span><span class="n">grid</span><span class="p">:</span> <span class="n">Grid</span><span class="p">,</span> <span class="n">window</span><span class="p">:</span> <span class="n">GridWindow</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return True when ``window`` covers all of ``grid`` (no horizontal crop).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">window</span> <span class="o">==</span> <span class="n">grid</span><span class="o">.</span><span class="n">full_window</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="extract_subset">
+<a class="viewcode-back" href="../../../_autosummary/arlmet.extract_subset.html#arlmet.extract_subset">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_subset</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">dest</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">levels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">variables</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract a spatial/vertical subset from an ARL file into a new ARL file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : path-like</span>
+<span class="sd">        Input ARL file.</span>
+<span class="sd">    dest : path-like</span>
+<span class="sd">        Output ARL file. Overwrites any existing file. Must not be ``path``.</span>
+<span class="sd">    bbox : tuple[float, float, float, float], optional</span>
+<span class="sd">        Geographic bounding box ``(west, south, east, north)`` in degrees.</span>
+<span class="sd">    levels : iterable of int, optional</span>
+<span class="sd">        ARL level indices to keep. Output levels are compacted and renumbered</span>
+<span class="sd">        from zero while preserving the selected level heights.</span>
+<span class="sd">    variables : iterable of str, optional</span>
+<span class="sd">        Variable names to keep. All variables are included by default.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pathlib.Path</span>
+<span class="sd">        The output path, ``Path(dest)``. Open it with :class:`~arlmet.File`</span>
+<span class="sd">        or :func:`~arlmet.open_dataset` to read the subset.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If ``dest`` is the same file as ``path``, or the cropped grid is too</span>
+<span class="sd">        small to hold the ARL index record.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The subset is written to a temporary file next to ``dest`` and renamed</span>
+<span class="sd">    into place once complete, so an interrupted run never leaves a truncated</span>
+<span class="sd">    file under the final name.</span>
+
+<span class="sd">    Without a horizontal crop (``bbox`` is None or covers the whole grid),</span>
+<span class="sd">    the selected records are copied byte for byte, with only their level</span>
+<span class="sd">    numbers and the index records rewritten, which is much faster than</span>
+<span class="sd">    unpacking and re-packing them. A crop re-packs each record&#39;s window.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import arlmet</span>
+<span class="sd">    &gt;&gt;&gt; out = arlmet.extract_subset(</span>
+<span class="sd">    ...     &quot;met.arl&quot;,</span>
+<span class="sd">    ...     &quot;subset.arl&quot;,</span>
+<span class="sd">    ...     bbox=(-114.0, 39.0, -110.0, 42.0),</span>
+<span class="sd">    ...     levels=[0, 1, 2],</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; ds = arlmet.open_dataset(out)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">reject_same_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+    <span class="n">variable_names</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">variables</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">set</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+        <span class="n">window</span> <span class="o">=</span> <span class="n">resolve_window</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">bbox</span><span class="p">)</span>
+        <span class="n">selected_levels</span> <span class="o">=</span> <span class="n">normalize_levels</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">vertical_axis</span><span class="p">,</span> <span class="n">levels</span><span class="p">)</span>
+        <span class="n">selected_level_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">selected_levels</span><span class="p">)</span>
+        <span class="n">level_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">old_level</span><span class="p">:</span> <span class="n">new_level</span> <span class="k">for</span> <span class="n">new_level</span><span class="p">,</span> <span class="n">old_level</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">selected_levels</span><span class="p">)</span>
+        <span class="p">}</span>
+
+        <span class="n">subset_grid</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">subset</span><span class="p">(</span><span class="n">window</span><span class="p">)</span>
+        <span class="n">subset_axis</span> <span class="o">=</span> <span class="n">VerticalAxis</span><span class="o">.</span><span class="n">from_flag</span><span class="p">(</span>
+            <span class="n">src</span><span class="o">.</span><span class="n">vertical_axis</span><span class="o">.</span><span class="n">flag</span><span class="p">,</span>
+            <span class="n">levels</span><span class="o">=</span><span class="n">src</span><span class="o">.</span><span class="n">vertical_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">selected_levels</span><span class="p">)]</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="n">offset</span><span class="o">=</span><span class="n">src</span><span class="o">.</span><span class="n">vertical_axis</span><span class="o">.</span><span class="n">offset</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">selected_recordsets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">src</span><span class="o">.</span><span class="n">times</span><span class="p">:</span>
+            <span class="n">src_recordset</span> <span class="o">=</span> <span class="n">src</span><span class="p">[</span><span class="n">time</span><span class="p">]</span>
+            <span class="n">selected_records</span> <span class="o">=</span> <span class="n">select_records</span><span class="p">(</span>
+                <span class="n">src_recordset</span><span class="o">.</span><span class="n">records</span><span class="p">,</span>
+                <span class="n">levels</span><span class="o">=</span><span class="n">selected_level_set</span><span class="p">,</span>
+                <span class="n">variables</span><span class="o">=</span><span class="n">variable_names</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">selected_records</span><span class="p">:</span>
+                <span class="n">selected_recordsets</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">src_recordset</span><span class="p">,</span> <span class="n">selected_records</span><span class="p">))</span>
+
+        <span class="n">validate_subset_record_length</span><span class="p">(</span>
+            <span class="n">selected_recordsets</span><span class="p">,</span>
+            <span class="n">subset_grid</span><span class="o">=</span><span class="n">subset_grid</span><span class="p">,</span>
+            <span class="n">subset_axis</span><span class="o">=</span><span class="n">subset_axis</span><span class="p">,</span>
+            <span class="n">level_map</span><span class="o">=</span><span class="n">level_map</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Write to a temporary file that replaces dest only once</span>
+        <span class="c1"># complete, so an interrupted run never leaves a truncated output.</span>
+        <span class="k">with</span> <span class="n">atomic_output</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmp_path</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">_is_full_window</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">window</span><span class="p">):</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
+                    <span class="n">_copy_subset_records</span><span class="p">(</span>
+                        <span class="n">src</span><span class="p">,</span>
+                        <span class="n">out</span><span class="p">,</span>
+                        <span class="n">selected_recordsets</span><span class="p">,</span>
+                        <span class="n">subset_grid</span><span class="o">=</span><span class="n">subset_grid</span><span class="p">,</span>
+                        <span class="n">subset_axis</span><span class="o">=</span><span class="n">subset_axis</span><span class="p">,</span>
+                        <span class="n">level_map</span><span class="o">=</span><span class="n">level_map</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_repack_subset_records</span><span class="p">(</span>
+                    <span class="n">src</span><span class="p">,</span>
+                    <span class="n">tmp_path</span><span class="p">,</span>
+                    <span class="n">selected_recordsets</span><span class="p">,</span>
+                    <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span>
+                    <span class="n">subset_grid</span><span class="o">=</span><span class="n">subset_grid</span><span class="p">,</span>
+                    <span class="n">subset_axis</span><span class="o">=</span><span class="n">subset_axis</span><span class="p">,</span>
+                    <span class="n">level_map</span><span class="o">=</span><span class="n">level_map</span><span class="p">,</span>
+                <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, James Mineau.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.0.4.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
