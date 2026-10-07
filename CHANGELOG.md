@@ -4,6 +4,14 @@ All notable changes to arl-met are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- The version comes from git tags (setuptools-scm). Between releases,
+  `arlmet.__version__` is a dev version such as `0.1.0b3.dev5+g1a2b3c4`
+  instead of the last release's number.
+
 ## [0.1.0b2] - 2026-10-06
 
 ### Added

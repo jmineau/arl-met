@@ -1,14 +1,15 @@
 [build-system]
-requires = ["setuptools>=77.0", "numpy>=1.24"]
+requires = ["setuptools>=77.0", "setuptools-scm>=8", "numpy>=1.24"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "arlmet"
-version = "0.1.0b2"
+dynamic = ["version"]  # from git tags, via setuptools-scm
 description = "Read and write ARL meteorological files."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     {name = "James Mineau", email = "jameskmineau@gmail.com"}
 ]
@@ -68,7 +69,15 @@ source = ["src/arlmet"]
 omit = ["*/tests/*", "*/test_*.py"]
 
 [tool.uv]
-required-version = ">=0.10.4"
+required-version = ">=0.12"
+# Rebuild the editable install when the build config, the C packer or the git
+# state changes, so `__version__` follows new commits and tags.
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "setup.py" },
+    { file = "src/arlmet/_pack.c" },
+    { git = { commit = true, tags = true } },
+]
 
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration
@@ -129,3 +138,8 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "arlmet" = ["py.typed"]
+
+[tool.setuptools_scm]
+# Releases are git tags vX.Y.Z (see RELEASING.md). Between releases the
+# version is the next one as a dev version, e.g. 0.1.0b3.dev3+g1a2b3c4.
+fallback_version = "0.0.0"  # no git metadata at all (e.g. a bare source copy)

@@ -5,7 +5,9 @@ trusted publishing.
 
 ## Versioning
 
-Use PEP 440 version numbers in `pyproject.toml`.
+The version comes from the Git tag, through setuptools-scm, so there is no
+version string to bump. Between releases, builds get a dev version such as
+`0.1.0b3.dev5+g1a2b3c4`. Tags are PEP 440 versions.
 
 Examples:
 
@@ -19,11 +21,10 @@ Git tags should use a leading `v`, for example `v0.1.0a1`.
 
 ## Release checklist
 
-1. Update the version in `pyproject.toml`.
-2. Add a release entry to `CHANGELOG.md`.
-3. Run the project checks you want for the release candidate.
-4. Commit the version and changelog changes.
-5. Create and push a tag, for example:
+1. Add a release entry to `CHANGELOG.md`.
+2. Run the project checks you want for the release candidate.
+3. Commit the changelog change.
+4. Create and push a tag, for example:
 
    ```bash
    git tag v0.1.0a1
@@ -31,8 +32,8 @@ Git tags should use a leading `v`, for example `v0.1.0a1`.
    git push origin v0.1.0a1
    ```
 
-6. Confirm the publish workflow succeeds.
-7. Verify the GitHub Release and PyPI release contents.
+5. Confirm the publish workflow succeeds.
+6. Verify the GitHub Release and PyPI release contents.
 
 ## Build smoke test
 

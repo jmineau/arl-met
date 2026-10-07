@@ -397,14 +397,12 @@ pre-commit run --all-files
 Python ≥ 3.11 required. Runtime dependencies: `numpy`, `pandas`, `pyproj`,
 `xarray`.
 
-**Keep `uv.lock` in sync.** `arlmet` is an editable install, so its own
-version is pinned in `uv.lock`. When you bump the version in `pyproject.toml`
-(e.g. during a release), re-run `uv lock` (or `uv sync`) and commit the updated
-`uv.lock` in the same commit. Otherwise the editable-install pre-commit hook
-re-syncs the lockfile on every run and blocks commits with a dirty tree. Run
-`uv lock` online — `uv lock --offline` re-resolves packages from the local
-cache and can churn many unrelated pins. A correct release bump changes
-exactly one line of `uv.lock`.
+**The version comes from git tags** (setuptools-scm), so there is no version
+string to bump: a release is the tag `vX.Y.Z`, and between releases the version
+is a dev version such as `0.1.0b3.dev5+g1a2b3c4`. `uv.lock` records arlmet's
+version as dynamic. After changing dependencies, run `uv lock` online —
+`uv lock --offline` re-resolves packages from the local cache and can churn
+many unrelated pins.
 
 ## Testing Notes
 
