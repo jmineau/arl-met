@@ -26,18 +26,20 @@ This project uses ``uv`` for local development, dependency management, and CI.
 
    git clone https://github.com/jmineau/arl-met.git
    cd arl-met
-   uv sync --dev
+   uv sync
+   uv run pre-commit install
 
 Common development commands
 ---------------------------
 
 .. code-block:: bash
 
-   uv run pytest -q
-   uv run ruff check .
-   uv run pyrefly check src/arlmet
-   uv run sphinx-build -M html docs docs/_build
-   uv run docstr-coverage src/arlmet --skip-magic --skip-init --skip-property --fail-under 95
+   just test             # the offline tests (just test-network runs the rest)
+   just quality-check    # lint, type check, docstrings, tests
+   just build-docs       # this documentation, into docs/_build/html
+   just docs-serve       # preview it at http://127.0.0.1:8000, rebuilt on every save
+
+``just`` with no arguments lists the rest.
 
 Requirements
 ------------

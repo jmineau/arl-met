@@ -6,6 +6,11 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- The documentation has a version dropdown. The site opens at the latest
+  release, `dev/` follows `main`, and each release keeps its own pages.
+
 ### Changed
 
 - The version comes from git tags (setuptools-scm). Between releases,

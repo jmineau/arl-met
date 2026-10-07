@@ -1,72 +1,116 @@
-# Justfile for arl-met
+# arl-met development tasks. CI runs these same recipes.
 
-# Show available commands
+set positional-arguments
+
+# Show available recipes
 list:
     @just --list
 
-# Sync the local uv environment with dev dependencies
+# Install the project and dev tools into .venv
 sync:
-	@echo "Syncing development environment with uv..."
-	uv sync
+    uv sync
 
-# Refresh the uv lockfile
+# Update uv.lock after changing dependencies
 lock:
-	@echo "Refreshing uv.lock..."
-	uv lock
+    uv lock
 
-# Build HTML documentation using Sphinx
+# Lint and check formatting (no changes)
+lint:
+    uv run ruff check
+    uv run ruff format --check
+
+# Fix lint and format the code
+format:
+    uv run ruff check --fix
+    uv run ruff format
+
+# Type check with pyrefly
+type-check:
+    uv run pyrefly check
+
+# Require docstrings on the public API
+docstr:
+    uv run docstr-coverage src/arlmet --skip-magic --skip-init --skip-property --fail-under 95
+
+# Run the tests in parallel (up to 8 workers; `-n 0` for serial), skipping network and slow ones
+test *args:
+    uv run pytest -n auto --maxprocesses=8 -m "not network and not slow" "$@"
+
+# Run the tests that need live network access (NOAA's S3 archives)
+test-network *args:
+    uv run pytest -m network "$@"
+
+# Run the tests with coverage (coverage.xml, junit.xml for Codecov)
+cov *args:
+    uv run pytest -n auto --maxprocesses=8 -m "not network and not slow" --cov --cov-report=term --cov-report=xml --junitxml=junit.xml -o junit_family=legacy "$@"
+
+# Build the HTML docs, failing on warnings
 build-docs:
-	@echo "Building HTML documentation..."
-	rm -rf docs/_build/
-	uv run sphinx-build -M html docs docs/_build
+    rm -rf docs/_build docs/_autosummary
+    uv run sphinx-build -M html docs docs/_build -W --keep-going
 
-# Clean up build artifacts and cache files
-clean:
-	@echo "Cleaning up generated files..."
-	rm -rf build/
-	rm -rf dist/
-	rm -rf *.egg-info
-	rm -rf .pytest_cache/
-	rm -rf .ruff_cache/
-	rm -rf .coverage
-	rm -rf coverage.xml
-	rm -rf junit.xml
-	rm -rf docs/_build/
-	find . -type d -name __pycache__ -exec rm -rf {} +
-	find . -type f -name '*.pyc' -delete
-	find . -type f -name '*.pyo' -delete
+# Serve the docs at http://127.0.0.1:PORT, rebuilding on every save (Ctrl-C stops)
+docs-serve port="8000":
+    uv run sphinx-autobuild docs docs/_build/html --port "$1" --watch src --re-ignore '_autosummary/'
 
-# Run pre-commit hooks on all files
+# Everything the Code Quality workflow checks, plus the tests
+quality-check: lint type-check docstr test
+
+# Run every pre-commit hook on every file
 pre-commit:
-	@echo "Running pre-commit on all files..."
-	uv run pre-commit run --all-files
+    uv run pre-commit run --all-files
 
-# Run linting, type checking, and tests
-quality-check:
-	@echo "Running quality checks..."
-	@echo "Linting with ruff..."
-	uv run ruff check src/arlmet
-	@echo "Type checking with pyrefly..."
-	uv run pyrefly check src/arlmet
-	just test-no-network
+# Build the sdist and this platform's wheel into dist/ and check them (CI uses cibuildwheel)
+dist:
+    rm -rf dist
+    uv build
+    uv run twine check --strict dist/*
 
-# Run ruff fixes and formatting
-ruff:
-	@echo "Running ruff fixes and formatting..."
-	uv run ruff check --fix src/arlmet
-	uv run ruff format src/arlmet
+# Draft CHANGELOG entries from the commits since the last release
+changelog:
+    @uv run git-cliff --unreleased --strip all
 
-# Run the default test suite, excluding slow tests
-test:
-	@echo "Running default tests (excluding slow tests)..."
-	uv run pytest -v -m "not slow"
+# Print the version setuptools-scm computes from git
+version:
+    @uv run python -m setuptools_scm
 
-# Run tests without live network access
-test-no-network:
-	@echo "Running non-network tests..."
-	uv run pytest -v -m "not network"
+# Tag and push release VERSION (e.g. `just release 0.2.0`); CI publishes it
+release version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    v="$1"
+    test -z "$(git status --porcelain)" || { echo "Working tree is not clean." >&2; exit 1; }
+    test "$(git branch --show-current)" = main || { echo "Release from main." >&2; exit 1; }
+    git fetch --quiet --tags origin main
+    test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" || { echo "main is not in sync with origin/main." >&2; exit 1; }
+    grep -q "^## \[$v\]" CHANGELOG.md || { echo "CHANGELOG.md has no '## [$v]' section." >&2; exit 1; }
+    # PEP 440: the version must be in normal form and newer than every v* tag,
+    # or installers would not see it as the latest release.
+    uv run --no-sync python - "$v" <<'PY'
+    import subprocess
+    import sys
 
-# Run only tests that require live network access
-test-network:
-	@echo "Running network tests..."
-	uv run pytest -v -m network
+    from packaging.version import InvalidVersion, Version
+
+    new = Version(sys.argv[1])
+    if str(new) != sys.argv[1]:
+        sys.exit(f"{sys.argv[1]} normalizes to {new}; release it as {new}.")
+    tags = subprocess.run(["git", "tag", "--list", "v*"], capture_output=True, text=True, check=True).stdout.split()
+    old = []
+    for tag in tags:
+        try:
+            old.append(Version(tag[1:]))
+        except InvalidVersion:
+            pass
+    if old and new <= max(old):
+        sys.exit(f"{new} is not newer than the latest release, v{max(old)}.")
+    PY
+    git tag --annotate "v$v" --message "arl-met $v"
+    git push origin "v$v"
+    echo "Pushed v$v; the Publish workflow builds and releases it."
+
+# Remove build artifacts and caches
+clean:
+    rm -rf build dist src/*.egg-info .pytest_cache .ruff_cache .pyrefly_cache
+    rm -rf .coverage coverage.xml junit.xml htmlcov docs/_build docs/_autosummary
+    find . -path ./.venv -prune -o -type d -name __pycache__ -exec rm -rf {} +
