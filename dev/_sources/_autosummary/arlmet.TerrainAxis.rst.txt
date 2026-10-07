@@ -1,0 +1,29 @@
+﻿arlmet.TerrainAxis
+==================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: TerrainAxis
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   TerrainAxis.__init__
+   TerrainAxis.from_flag
+   TerrainAxis.to_height_agl
+   TerrainAxis.to_pressure
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   TerrainAxis.coord_system
+   TerrainAxis.flag
+   TerrainAxis.levels
+   TerrainAxis.offset

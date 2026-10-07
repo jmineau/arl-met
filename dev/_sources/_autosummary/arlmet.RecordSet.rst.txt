@@ -1,0 +1,29 @@
+﻿arlmet.RecordSet
+================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: RecordSet
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   RecordSet.__init__
+   RecordSet.create_datarecord
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   RecordSet.grid
+   RecordSet.mode
+   RecordSet.record_length
+   RecordSet.records
+   RecordSet.source
+   RecordSet.vertical_axis

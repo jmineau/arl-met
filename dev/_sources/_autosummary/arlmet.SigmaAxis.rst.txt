@@ -1,0 +1,29 @@
+﻿arlmet.SigmaAxis
+================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: SigmaAxis
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   SigmaAxis.__init__
+   SigmaAxis.from_flag
+   SigmaAxis.to_height_agl
+   SigmaAxis.to_pressure
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   SigmaAxis.coord_system
+   SigmaAxis.flag
+   SigmaAxis.levels
+   SigmaAxis.offset

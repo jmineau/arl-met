@@ -1,0 +1,6 @@
+﻿arlmet.pack
+===========
+
+.. currentmodule:: arlmet
+
+.. autofunction:: pack

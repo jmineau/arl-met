@@ -1,0 +1,29 @@
+﻿arlmet.HybridAxis
+=================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: HybridAxis
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   HybridAxis.__init__
+   HybridAxis.from_flag
+   HybridAxis.to_height_agl
+   HybridAxis.to_pressure
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   HybridAxis.coord_system
+   HybridAxis.flag
+   HybridAxis.levels
+   HybridAxis.offset

@@ -1,0 +1,31 @@
+﻿arlmet.archives.Archive
+=======================
+
+.. currentmodule:: arlmet.archives
+
+.. autoclass:: Archive
+
+
+.. rubric:: Methods
+
+.. autosummary::
+
+
+   Archive.__init__
+   Archive.fetch
+   Archive.paths_for_range
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+
+   Archive.FTP_HOST
+   Archive.HTTP_BASE
+   Archive.S3_BUCKET
+   Archive.name
+   Archive.description
+   Archive.start_date
+   Archive.source
