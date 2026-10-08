@@ -405,6 +405,15 @@ The tooling comes from [jmineau/python-template](https://github.com/jmineau/pyth
 (`.copier-answers.yml`); `copier update` pulls in its changes. Releases:
 RELEASING.md.
 
+**Docs.** `docs/api.rst` lists the API by topic. Each class gets a page with
+tables of its attributes and methods, and each member a page of its own
+(`docs/_templates/autosummary/`, `docs/_ext/api_pages.py`). A property's page
+is where its See Also and Examples go (as in pandas), so give each public
+attribute and property a docstring; one without shows an empty row. The docs
+are versioned on GitHub Pages, which serves the gh-pages branch (`dev/`, one
+folder per release, `stable/`); `.github/scripts/docs_versions.py` maintains
+the branch. Never edit gh-pages by hand.
+
 Python ≥ 3.11 required. Runtime dependencies: `numpy`, `pandas`, `pyproj`,
 `xarray`.
 

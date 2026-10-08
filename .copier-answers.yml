@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v1.0.0
+_commit: v1.1.2-2-gc2ee686
 _src_path: gh:jmineau/python-template
 affiliation: University of Utah
 copyright_year: '2025'
@@ -14,3 +14,7 @@ project_short_description: Read and write ARL meteorological files.
 publish_to_pypi: true
 python_min: '3.11'
 repository_name: arl-met
+test_os:
+- ubuntu-latest
+- macos-latest
+- windows-latest

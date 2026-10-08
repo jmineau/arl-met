@@ -98,6 +98,7 @@ exclude_also = [
 [tool.pyrefly]
 project-includes = ["src"]
 preset = "strict"
+python-version = "3.11"  # as CI checks, against the oldest supported Python
 
 [tool.pytest]
 minversion = "9.0"
@@ -107,7 +108,12 @@ addopts = ["-ra"]
 log_level = "INFO"  # show captured logs for failing tests
 # Warnings are errors, so deprecations surface early. Ignore a specific
 # third-party warning with e.g. "ignore:some message:DeprecationWarning:pkg".
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # numpy ignores this one itself (compiled packages such as netCDF4 raise it on
+    # import); pytest's "error" filter would bring it back.
+    "ignore:numpy.ndarray size changed:RuntimeWarning",
+]
 markers = [
     "network: requires live network access to external services such as NOAA S3",
     "slow: expensive runtime, bandwidth, or disk usage; excluded from default test runs",
@@ -131,9 +137,9 @@ ignore = [
 
 [tool.ruff.format]
 docstring-code-format = true
-# ruff also formats code blocks in Markdown; the README's and AGENTS.md's
-# examples keep their hand-aligned comments.
-exclude = ["AGENTS.md", "README.md"]
+# ruff also formats code blocks in Markdown; these keep their examples as written
+# (e.g. hand-aligned comments).
+exclude = ["README.md", "AGENTS.md"]
 
 [tool.ruff.lint]
 select = [
@@ -143,7 +149,7 @@ select = [
     "B",  # flake8-bugbear
     "SIM",  # flake8-simplify
     "I",  # isort
-    "D",  # pydocstyle, numpy convention (below)
+    "D",  # pydocstyle, NumPy convention (below)
     "D213",  # docstring summary on the second line
     "NPY",  # NumPy-specific, incl. NumPy 2 deprecations
     "RUF100",  # unused noqa
@@ -157,14 +163,12 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# Tests need no docstrings; the docstring format rules still apply to them.
-"tests/**" = ["D100", "D101", "D102", "D103", "D104", "D106", "D107"]
+# Tests need no docstrings, and a fixture's names what it provides ("A small
+# grid."); the other docstring rules still apply to them.
+"tests/**" = ["D100", "D101", "D102", "D103", "D104", "D106", "D107", "D401"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
-# Properties are documented in their class's docstring (docstr-coverage skips
-# them too, with --skip-property).
-ignore-decorators = ["property"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["arlmet"]
