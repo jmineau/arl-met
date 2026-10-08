@@ -6,6 +6,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0b3] - 2026-10-07
+
 ### Added
 
 - `File.check()` lists what is wrong with a file that opens: a time step
