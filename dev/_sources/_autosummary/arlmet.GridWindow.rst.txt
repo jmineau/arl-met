@@ -9,6 +9,17 @@
 
 
 
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+
+   ~GridWindow.nx
+   ~GridWindow.ny
+   ~GridWindow.shape
+   ~GridWindow.x_slice
+   ~GridWindow.y_slice
+
 
 
 

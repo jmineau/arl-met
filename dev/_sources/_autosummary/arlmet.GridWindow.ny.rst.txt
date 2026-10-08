@@ -1,0 +1,6 @@
+arlmet.GridWindow.ny
+====================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: GridWindow.ny

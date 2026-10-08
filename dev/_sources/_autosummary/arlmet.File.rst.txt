@@ -14,11 +14,14 @@
 .. autosummary::
    :toctree:
 
+   ~File.grid
    ~File.handle
    ~File.record_length
    ~File.records
    ~File.size
+   ~File.source
    ~File.times
+   ~File.vertical_axis
 
 
 

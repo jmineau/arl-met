@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>arlmet.File &#8212; arl-met 0.1.0b3</title>
+    <title>arlmet.File &#8212; arl-met dev</title>
   
   
   
@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=77659907"></script>
+    <script src="../_static/documentation_options.js?v=b422a461"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -48,18 +48,18 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b3';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="arlmet.File.handle" href="arlmet.File.handle.html" />
+    <link rel="next" title="arlmet.File.grid" href="arlmet.File.grid.html" />
     <link rel="prev" title="arlmet.z_msl" href="arlmet.z_msl.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3" />
+  <meta name="docsearch:version" content="0.1.0b4.dev2+gd1100eb72" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -127,7 +127,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b3</p>
+    <p class="title logo__title">arl-met dev</p>
   
 </a></div>
     
@@ -390,11 +390,14 @@
 </ul>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active has-children"><a aria-current="page" class="current reference internal" href="#">arlmet.File</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.grid.html">arlmet.File.grid</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.handle.html">arlmet.File.handle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.record_length.html">arlmet.File.record_length</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.records.html">arlmet.File.records</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.size.html">arlmet.File.size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.source.html">arlmet.File.source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.times.html">arlmet.File.times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.vertical_axis.html">arlmet.File.vertical_axis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.add_record.html">arlmet.File.add_record</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.check.html">arlmet.File.check</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.close.html">arlmet.File.close</a></li>
@@ -458,7 +461,14 @@
 <li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.window_from_bbox.html">arlmet.Grid.window_from_bbox</a></li>
 </ul>
 </details></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.GridWindow.html">arlmet.GridWindow</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.GridWindow.html">arlmet.GridWindow</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.nx.html">arlmet.GridWindow.nx</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.ny.html">arlmet.GridWindow.ny</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.shape.html">arlmet.GridWindow.shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.x_slice.html">arlmet.GridWindow.x_slice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.y_slice.html">arlmet.GridWindow.y_slice</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.VerticalAxis.html">arlmet.VerticalAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.from_flag.html">arlmet.VerticalAxis.from_flag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.to_height_agl.html">arlmet.VerticalAxis.to_height_agl</a></li>
@@ -614,9 +624,6 @@ before creating records.</p></li>
 <dd class="field-even"><ul class="simple">
 <li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>pathlib.Path</em></a>) – Filesystem path for the ARL file.</p></li>
 <li><p><strong>mode</strong> (<em>{&quot;r&quot;</em><em>, </em><em>&quot;w&quot;}</em>) – Active file mode.</p></li>
-<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – ARL source identifier.</p></li>
-<li><p><strong>grid</strong> (<a class="reference internal" href="arlmet.Grid.html#arlmet.Grid" title="arlmet.Grid"><em>Grid</em></a>) – Horizontal grid metadata.</p></li>
-<li><p><strong>vertical_axis</strong> (<a class="reference internal" href="arlmet.VerticalAxis.html#arlmet.VerticalAxis" title="arlmet.VerticalAxis"><em>VerticalAxis</em></a>) – Vertical coordinate metadata.</p></li>
 <li><p><strong>variables</strong> (<em>VariableAccessor</em>) – Lazy accessor for variable-wise views inherited from RecordCollection.</p></li>
 </ul>
 </dd>
@@ -633,20 +640,29 @@ before creating records.</p></li>
 <p class="rubric">Attributes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.handle.html#arlmet.File.handle" title="arlmet.File.handle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.grid.html#arlmet.File.grid" title="arlmet.File.grid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">grid</span></code></a></p></td>
+<td><p>Horizontal grid metadata; set it in write mode before creating records.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.handle.html#arlmet.File.handle" title="arlmet.File.handle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle</span></code></a></p></td>
 <td><p>Open binary handle to the file, reopened if the file cache closed it.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.record_length.html#arlmet.File.record_length" title="arlmet.File.record_length"><code class="xref py py-obj docutils literal notranslate"><span class="pre">record_length</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.record_length.html#arlmet.File.record_length" title="arlmet.File.record_length"><code class="xref py py-obj docutils literal notranslate"><span class="pre">record_length</span></code></a></p></td>
 <td><p>Length in bytes of each record in the file, from the grid.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.records.html#arlmet.File.records" title="arlmet.File.records"><code class="xref py py-obj docutils literal notranslate"><span class="pre">records</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.records.html#arlmet.File.records" title="arlmet.File.records"><code class="xref py py-obj docutils literal notranslate"><span class="pre">records</span></code></a></p></td>
 <td><p>All DataRecords in the file, in <code class="docutils literal notranslate"><span class="pre">times</span></code> order.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.size.html#arlmet.File.size" title="arlmet.File.size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">size</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.size.html#arlmet.File.size" title="arlmet.File.size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">size</span></code></a></p></td>
 <td><p>Size of the file on disk, in bytes.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.source.html#arlmet.File.source" title="arlmet.File.source"><code class="xref py py-obj docutils literal notranslate"><span class="pre">source</span></code></a></p></td>
+<td><p>ARL source identifier; set it in write mode before creating records.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.times.html#arlmet.File.times" title="arlmet.File.times"><code class="xref py py-obj docutils literal notranslate"><span class="pre">times</span></code></a></p></td>
 <td><p>Return a sorted list of timestamps in the file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.vertical_axis.html#arlmet.File.vertical_axis" title="arlmet.File.vertical_axis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">vertical_axis</span></code></a></p></td>
+<td><p>Vertical coordinate metadata; set it in write mode before creating records.</p></td>
 </tr>
 </tbody>
 </table>
@@ -706,11 +722,11 @@ before creating records.</p></li>
       </div>
     </a>
     <a class="right-next"
-       href="arlmet.File.handle.html"
+       href="arlmet.File.grid.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">arlmet.File.handle</p>
+        <p class="prev-next-title">arlmet.File.grid</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

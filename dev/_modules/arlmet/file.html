@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.file &#8212; arl-met 0.1.0b3</title>
+    <title>arlmet.file &#8212; arl-met dev</title>
   
   
   
@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=77659907"></script>
+    <script src="../../_static/documentation_options.js?v=b422a461"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -47,7 +47,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b3';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3" />
+  <meta name="docsearch:version" content="0.1.0b4.dev2+gd1100eb72" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -124,7 +124,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b3</p>
+    <p class="title logo__title">arl-met dev</p>
   
 </a></div>
     
@@ -508,12 +508,6 @@
 <span class="sd">        Active file mode.</span>
 <span class="sd">    times : list[pandas.Timestamp]</span>
 <span class="sd">        Sorted valid times discovered in the file.</span>
-<span class="sd">    source : str</span>
-<span class="sd">        ARL source identifier.</span>
-<span class="sd">    grid : Grid</span>
-<span class="sd">        Horizontal grid metadata.</span>
-<span class="sd">    vertical_axis : VerticalAxis</span>
-<span class="sd">        Vertical coordinate metadata.</span>
 <span class="sd">    variables : VariableAccessor</span>
 <span class="sd">        Lazy accessor for variable-wise views inherited from RecordCollection.</span>
 
@@ -616,6 +610,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">source</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;ARL source identifier; set it in write mode before creating records.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Source has not been set for this File.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source</span>
@@ -627,6 +622,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">grid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Grid</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Horizontal grid metadata; set it in write mode before creating records.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Grid has not been set for this File.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span>
@@ -640,6 +636,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">vertical_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VerticalAxis</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Vertical coordinate metadata; set it in write mode before creating records.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vaxis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Vertical axis has not been set for this File.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vaxis</span>

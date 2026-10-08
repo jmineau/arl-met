@@ -26,6 +26,6 @@
 .. rubric:: Inherited
 
 
-From :class:`~arlmet.VerticalAxis`: :py:obj:`~arlmet.VerticalAxis.from_flag`
+From :class:`~.VerticalAxis`: :py:obj:`~.VerticalAxis.from_flag`
 
 

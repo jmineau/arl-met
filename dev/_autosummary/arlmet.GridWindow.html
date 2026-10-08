@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>arlmet.GridWindow &#8212; arl-met 0.1.0b3</title>
+    <title>arlmet.GridWindow &#8212; arl-met dev</title>
   
   
   
@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=77659907"></script>
+    <script src="../_static/documentation_options.js?v=b422a461"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -48,18 +48,18 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b3';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="arlmet.VerticalAxis" href="arlmet.VerticalAxis.html" />
+    <link rel="next" title="arlmet.GridWindow.nx" href="arlmet.GridWindow.nx.html" />
     <link rel="prev" title="arlmet.Grid.window_from_bbox" href="arlmet.Grid.window_from_bbox.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3" />
+  <meta name="docsearch:version" content="0.1.0b4.dev2+gd1100eb72" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -127,7 +127,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b3</p>
+    <p class="title logo__title">arl-met dev</p>
   
 </a></div>
     
@@ -390,11 +390,14 @@
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.File.html">arlmet.File</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.grid.html">arlmet.File.grid</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.handle.html">arlmet.File.handle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.record_length.html">arlmet.File.record_length</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.records.html">arlmet.File.records</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.size.html">arlmet.File.size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.source.html">arlmet.File.source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.times.html">arlmet.File.times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.vertical_axis.html">arlmet.File.vertical_axis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.add_record.html">arlmet.File.add_record</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.check.html">arlmet.File.check</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.close.html">arlmet.File.close</a></li>
@@ -458,7 +461,14 @@
 <li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.window_from_bbox.html">arlmet.Grid.window_from_bbox</a></li>
 </ul>
 </details></li>
-<li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">arlmet.GridWindow</a></li>
+<li class="toctree-l1 current active has-children"><a aria-current="page" class="current reference internal" href="#">arlmet.GridWindow</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.nx.html">arlmet.GridWindow.nx</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.ny.html">arlmet.GridWindow.ny</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.shape.html">arlmet.GridWindow.shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.x_slice.html">arlmet.GridWindow.x_slice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.y_slice.html">arlmet.GridWindow.y_slice</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.VerticalAxis.html">arlmet.VerticalAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.from_flag.html">arlmet.VerticalAxis.from_flag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.to_height_agl.html">arlmet.VerticalAxis.to_height_agl</a></li>
@@ -607,18 +617,30 @@
 <li><p><strong>y_stop</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Inclusive start and exclusive stop indices in the y direction.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Variables<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>nx</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of selected x-grid points.</p></li>
-<li><p><strong>ny</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of selected y-grid points.</p></li>
-<li><p><strong>shape</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em>) – Window shape as <code class="docutils literal notranslate"><span class="pre">(ny,</span> <span class="pre">nx)</span></code>.</p></li>
-<li><p><strong>x_slice</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#slice" title="(in Python v3.14)"><em>slice</em></a>) – Slice object for selecting the x range.</p></li>
-<li><p><strong>y_slice</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#slice" title="(in Python v3.14)"><em>slice</em></a>) – Slice object for selecting the y range.</p></li>
-</ul>
-</dd>
 </dl>
 </dd></dl>
 
+<p class="rubric">Attributes</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.GridWindow.nx.html#arlmet.GridWindow.nx" title="arlmet.GridWindow.nx"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nx</span></code></a></p></td>
+<td><p>Number of selected x-grid points.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.GridWindow.ny.html#arlmet.GridWindow.ny" title="arlmet.GridWindow.ny"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ny</span></code></a></p></td>
+<td><p>Number of selected y-grid points.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.GridWindow.shape.html#arlmet.GridWindow.shape" title="arlmet.GridWindow.shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code></a></p></td>
+<td><p>Window shape as <code class="docutils literal notranslate"><span class="pre">(ny,</span> <span class="pre">nx)</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.GridWindow.x_slice.html#arlmet.GridWindow.x_slice" title="arlmet.GridWindow.x_slice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">x_slice</span></code></a></p></td>
+<td><p>Slice object for selecting the x range.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.GridWindow.y_slice.html#arlmet.GridWindow.y_slice" title="arlmet.GridWindow.y_slice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">y_slice</span></code></a></p></td>
+<td><p>Slice object for selecting the y range.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
 </section>
 
 
@@ -641,11 +663,11 @@
       </div>
     </a>
     <a class="right-next"
-       href="arlmet.VerticalAxis.html"
+       href="arlmet.GridWindow.nx.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">arlmet.VerticalAxis</p>
+        <p class="prev-next-title">arlmet.GridWindow.nx</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

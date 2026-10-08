@@ -18,6 +18,6 @@
 .. rubric:: Inherited
 
 
-From :class:`~arlmet.archives.Archive`: :py:obj:`~arlmet.archives.Archive.fetch`, :py:obj:`~arlmet.archives.Archive.paths_for_range`, :py:obj:`~arlmet.archives.Archive.source`, :py:obj:`~arlmet.archives.Archive.start_date`
+From :class:`~.Archive`: :py:obj:`~.Archive.fetch`, :py:obj:`~.Archive.paths_for_range`, :py:obj:`~.Archive.source`, :py:obj:`~.Archive.start_date`
 
 
