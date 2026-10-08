@@ -1,0 +1,6 @@
+arlmet.Projection.is\_latlon
+============================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: Projection.is_latlon

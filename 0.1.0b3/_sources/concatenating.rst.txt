@@ -1,0 +1,110 @@
+Concatenating ARL Files
+=======================
+
+Use :func:`arlmet.concat` to join several ARL files into one, and
+:func:`arlmet.concat_by_time` to do it in batch across a directory. The common
+reason is HYSPLIT's input limit: a simulation accepts at most 12 meteorological
+files when a single grid is used (`Compilation Limits
+<https://www.ready.noaa.gov/hysplitusersguide/S441.htm>`_). Combining many short
+files (e.g. 6-hourly) into fewer long ones (e.g. daily) keeps a long run under
+that cap.
+
+ARL files are flat streams of fixed-size records, so joining them is a
+byte-level append — the same result as ``cat a.arl b.arl > out.arl`` — with no
+repacking. Every record, including ``DIF*`` records and checksums, is preserved
+exactly.
+
+Joining a list of files
+-----------------------
+
+Pass the input paths and an output path. By default the inputs are ordered by
+their earliest valid time, so the output is chronological regardless of the
+order you list them in.
+
+.. code-block:: python
+
+   import arlmet
+
+   arlmet.concat(
+       ["20240101_00_hrrr", "20240101_06_hrrr", "20240101_12_hrrr"],
+       "20240101_hrrr",
+   )
+
+``concat()`` returns the output path as a :class:`pathlib.Path`, so you can pass
+it straight to :class:`arlmet.File` or :func:`arlmet.open_dataset`:
+
+.. code-block:: python
+
+   out = arlmet.concat(paths, "20240101_hrrr")
+   with arlmet.File(out) as combined:
+       print(combined.times)
+
+Pass ``sort=False`` to join the files in exactly the order given, like ``cat``.
+
+What is validated
+-----------------
+
+Before writing, the inputs are scanned and joined only if they form one coherent
+record stream. ``concat()`` raises ``ValueError`` when:
+
+- the inputs disagree on grid or vertical axis (different grids produce different
+  record lengths, which would corrupt the stream)
+- the same valid time appears in more than one input (HYSPLIT behaviour on
+  repeated times is undefined)
+- an input file is empty, or the output path is also one of the inputs
+
+Batch concatenation by time
+---------------------------
+
+:func:`arlmet.concat_by_time` groups every ARL file in a directory into
+time-binned chunks and concatenates each group. Each file is assigned to a bin by
+its **valid times, read from the file's index records** — not parsed from the
+filename — so it is robust to any naming scheme.
+
+.. code-block:: python
+
+   import arlmet
+
+   arlmet.concat_by_time(
+       "hrrr/",                       # directory to scan
+       "daily/",                      # dest_dir (created if missing)
+       freq="1D",                     # one output file per day (keyword-only)
+       pattern="*_hrrr",              # which files to read
+       template="{time:%Y%m%d}_hrrr",  # how to name each output
+   )
+
+``freq`` is a fixed-frequency pandas offset alias giving the size of each output
+chunk: ``"1D"`` is one file per day, ``"6h"`` one per six hours, and so on.
+Files are never split: each file's first and last valid times must floor to the
+same bin, or ``concat_by_time()`` raises ``ValueError`` before writing anything.
+
+``template`` is a ``str.format`` string for the output filenames, given the bin
+start time as ``time`` (a :class:`pandas.Timestamp`). It must keep bins distinct
+at ``freq`` — ``"{time:%Y%m%d}_hrrr"`` with ``freq="6h"`` would name four bins
+the same, which raises ``ValueError``. ``concat_by_time()`` returns the list of
+written paths, in time order.
+
+Limit the range with ``start=`` and ``end=`` to skip files whose first valid
+time falls outside those inclusive bounds (either may be left open):
+
+.. code-block:: python
+
+   arlmet.concat_by_time(
+       "hrrr/",
+       "daily/",
+       freq="1D",
+       pattern="*_hrrr",
+       template="{time:%Y%m%d}_hrrr",
+       start="2024-01-01",
+       end="2024-01-31 23:00",
+   )
+
+Limitations
+-----------
+
+- Concatenated files must share one grid and one vertical axis.
+- Valid times must not repeat across the inputs of a single output file.
+- ``concat_by_time`` does not split files, so no input may cross a ``freq`` bin
+  boundary (e.g. use ``freq="1D"`` for 6-hourly inputs, not ``freq="1h"``).
+- ``pattern`` should match only ARL files; a matched file that cannot be read as
+  ARL raises :class:`arlmet.ARLFormatError` (a ``ValueError``).

@@ -1,0 +1,6 @@
+arlmet.VerticalAxis.from\_flag
+==============================
+
+.. currentmodule:: arlmet
+
+.. automethod:: VerticalAxis.from_flag

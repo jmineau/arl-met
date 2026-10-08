@@ -1,0 +1,6 @@
+arlmet.File.size
+================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: File.size

@@ -1,0 +1,6 @@
+arlmet.Grid.calculate\_coords
+=============================
+
+.. currentmodule:: arlmet
+
+.. automethod:: Grid.calculate_coords

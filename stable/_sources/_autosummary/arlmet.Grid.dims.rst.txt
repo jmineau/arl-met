@@ -1,0 +1,6 @@
+arlmet.Grid.dims
+================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: Grid.dims

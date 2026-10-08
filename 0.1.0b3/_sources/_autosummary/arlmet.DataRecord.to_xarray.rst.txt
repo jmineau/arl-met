@@ -1,0 +1,6 @@
+arlmet.DataRecord.to\_xarray
+============================
+
+.. currentmodule:: arlmet
+
+.. automethod:: DataRecord.to_xarray
