@@ -142,7 +142,7 @@ class Projection:
 
     @property
     def params(self) -> dict[str, Any]:
-        """pyproj parameters for the base projection (a new dict on each access)."""
+        """Parameters of the base projection for pyproj (a new dict on each access)."""
         return self._get_params()
 
     @property
@@ -233,19 +233,6 @@ class GridWindow:
         Inclusive start and exclusive stop indices in the x direction.
     y_start, y_stop : int
         Inclusive start and exclusive stop indices in the y direction.
-
-    Attributes
-    ----------
-    nx : int
-        Number of selected x-grid points.
-    ny : int
-        Number of selected y-grid points.
-    shape : tuple[int, int]
-        Window shape as ``(ny, nx)``.
-    x_slice : slice
-        Slice object for selecting the x range.
-    y_slice : slice
-        Slice object for selecting the y range.
     """
 
     x_start: int
@@ -263,22 +250,27 @@ class GridWindow:
 
     @property
     def nx(self) -> int:
+        """Number of selected x-grid points."""
         return self.x_stop - self.x_start
 
     @property
     def ny(self) -> int:
+        """Number of selected y-grid points."""
         return self.y_stop - self.y_start
 
     @property
     def shape(self) -> tuple[int, int]:
+        """Window shape as ``(ny, nx)``."""
         return (self.ny, self.nx)
 
     @property
     def x_slice(self) -> slice:
+        """Slice object for selecting the x range."""
         return slice(self.x_start, self.x_stop)
 
     @property
     def y_slice(self) -> slice:
+        """Slice object for selecting the y range."""
         return slice(self.y_start, self.y_stop)
 
 

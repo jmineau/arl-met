@@ -93,12 +93,6 @@ class File:
         Active file mode.
     times : list[pandas.Timestamp]
         Sorted valid times discovered in the file.
-    source : str
-        ARL source identifier.
-    grid : Grid
-        Horizontal grid metadata.
-    vertical_axis : VerticalAxis
-        Vertical coordinate metadata.
     variables : VariableAccessor
         Lazy accessor for variable-wise views inherited from RecordCollection.
 
@@ -201,6 +195,7 @@ class File:
 
     @property
     def source(self) -> str:
+        """ARL source identifier; set it in write mode before creating records."""
         if self._source is None:
             raise ValueError("Source has not been set for this File.")
         return self._source
@@ -212,6 +207,7 @@ class File:
 
     @property
     def grid(self) -> Grid:
+        """Horizontal grid metadata; set it in write mode before creating records."""
         if self._grid is None:
             raise ValueError("Grid has not been set for this File.")
         return self._grid
@@ -225,6 +221,7 @@ class File:
 
     @property
     def vertical_axis(self) -> VerticalAxis:
+        """Vertical coordinate metadata; set it in write mode before creating records."""
         if self._vaxis is None:
             raise ValueError("Vertical axis has not been set for this File.")
         return self._vaxis
