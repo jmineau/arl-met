@@ -18,45 +18,42 @@ __all__ = ["RecordCollection", "VariableAccessor", "VariableView"]
 
 
 class RecordCollection(Protocol):
-    """
-    Structural interface for objects exposing ARL data records.
-
-    Attributes
-    ----------
-    mode : Literal["r", "w"]
-        Access mode of the collection, either 'r' for read-only or 'w' for writable.
-    source : str
-        ARL source identifier.
-    grid : Grid
-        Horizontal grid metadata associated with the records.
-    vertical_axis : VerticalAxis
-        Vertical coordinate metadata associated with the records.
-    record_length : int
-        Record length in bytes for the collection, derived from the grid.
-    records : list[DataRecord]
-        Materialized list of records in insertion order.
-    """
+    """Structural interface for objects exposing ARL data records."""
 
     @property
-    def mode(self) -> Literal["r", "w"]: ...
+    def mode(self) -> Literal["r", "w"]:
+        """Access mode of the collection: 'r' for read-only or 'w' for writable."""
+        ...
 
     @property
-    def source(self) -> str: ...
+    def source(self) -> str:
+        """ARL source identifier."""
+        ...
 
     @property
-    def grid(self) -> Grid: ...
+    def grid(self) -> Grid:
+        """Horizontal grid metadata associated with the records."""
+        ...
 
     @property
-    def vertical_axis(self) -> VerticalAxis: ...
+    def vertical_axis(self) -> VerticalAxis:
+        """Vertical coordinate metadata associated with the records."""
+        ...
 
     @property
-    def record_length(self) -> int: ...
+    def record_length(self) -> int:
+        """Record length in bytes for the collection, derived from the grid."""
+        ...
 
     @property
-    def records(self) -> list[DataRecord]: ...
+    def records(self) -> list[DataRecord]:
+        """Materialized list of records in insertion order."""
+        ...
 
     @property
-    def variables(self) -> VariableAccessor: ...
+    def variables(self) -> VariableAccessor:
+        """Dictionary-like accessor for the collection's variables, by name."""
+        ...
 
 
 class VariableView:
