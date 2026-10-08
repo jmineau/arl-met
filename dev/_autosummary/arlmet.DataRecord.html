@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=79fde6bc"></script>
+    <script src="../_static/documentation_options.js?v=49c107cd"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
     <link rel="prev" title="arlmet.RecordSet.create_datarecord" href="arlmet.RecordSet.create_datarecord.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3.dev6+g2ec897a3e" />
+  <meta name="docsearch:version" content="0.1.0b3.dev7+g8d28aeef4" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -638,7 +638,7 @@ record.</p></li>
 <td><p>Return the attached DIF record when present.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="arlmet.DataRecord.dtype.html#arlmet.DataRecord.dtype" title="arlmet.DataRecord.dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dtype</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Data type of the unpacked data (float32 until the data is read).</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="arlmet.DataRecord.forecast.html#arlmet.DataRecord.forecast" title="arlmet.DataRecord.forecast"><code class="xref py py-obj docutils literal notranslate"><span class="pre">forecast</span></code></a></p></td>
 <td><p>Get the forecast hour for this data record.</p></td>
@@ -647,10 +647,10 @@ record.</p></li>
 <td><p>Get the grid associated with this data record.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="arlmet.DataRecord.header.html#arlmet.DataRecord.header" title="arlmet.DataRecord.header"><code class="xref py py-obj docutils literal notranslate"><span class="pre">header</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Header of this data record.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="arlmet.DataRecord.mode.html#arlmet.DataRecord.mode" title="arlmet.DataRecord.mode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mode</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Access mode of the record, inferred from its position.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="arlmet.DataRecord.n_bytes.html#arlmet.DataRecord.n_bytes" title="arlmet.DataRecord.n_bytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_bytes</span></code></a></p></td>
 <td><p>Get the number of bytes in the packed data record (including the header).</p></td>
