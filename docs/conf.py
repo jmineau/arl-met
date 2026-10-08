@@ -51,7 +51,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "pydata_sphinx_theme"
-html_title = f"arl-met {version_match}"
+html_title = f"{project} {version_match}"  # not the full dev version
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 
@@ -76,23 +76,12 @@ html_theme_options = {
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 napoleon_include_init_with_doc = True
-napoleon_include_private_with_doc = False
-napoleon_include_special_with_doc = True
-napoleon_use_admonition_for_examples = False
-napoleon_use_admonition_for_notes = False
-napoleon_use_admonition_for_references = False
-napoleon_use_ivar = True
-napoleon_use_param = True
-napoleon_use_rtype = True
-napoleon_preprocess_types = False
-napoleon_type_aliases = None
-napoleon_attr_annotations = True
+napoleon_use_ivar = True  # what a class page's tables leave in "Attributes"
 
-# Autodoc settings
-autoclass_content = "class"
+# A page per module, class, function, and class member, as in pandas'
+# reference. The page templates are in _templates/autosummary/.
 autodoc_default_options = {
     "member-order": "bysource",
-    "exclude-members": "__weakref__",
 }
 
 # Autosummary settings

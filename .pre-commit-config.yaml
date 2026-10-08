@@ -3,7 +3,9 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^pyrefly-baseline\.json$  # written by pyrefly, if a project uses one
       - id: end-of-file-fixer
+        exclude: ^pyrefly-baseline\.json$
       - id: check-yaml
       - id: check-added-large-files
       - id: check-json

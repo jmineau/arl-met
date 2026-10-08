@@ -1,5 +1,5 @@
 """
-Class pages for the API reference, in the style of pandas'.
+Class and module pages for the API reference, in the style of pandas'.
 
 A class page (``_templates/autosummary/class.rst``) shows the class
 docstring, then a table of its attributes and one of its methods. Each row
@@ -9,7 +9,8 @@ tables, and keeps the class docstring from describing it a second time.
 A member gets a row and a page when the package defines it (not when a
 pydantic model inherits it from ``BaseModel``, or an exception from
 ``Exception``) and it is public. A member a subclass inherits from
-another class of the package is a link to that class's page for it.
+another class of the package is a link to that class's page for it, so
+document the base classes too (a base with no page leaves plain names).
 
 A member without a docstring of its own (a ``#:`` comment or a string
 after it, for data) gets no row when the class docstring describes it
@@ -21,7 +22,6 @@ are dropped, so nothing is described twice.
 
 import enum
 import functools
-import importlib
 import inspect
 
 from sphinx.errors import PycodeError
@@ -141,25 +141,19 @@ def _has_page(cls: type, name: str) -> bool:
     return _is_routine(cls, name) and name not in _described_attributes(cls)
 
 
-def _public_path(cls: type, near: str) -> str | None:
+def _link_name(cls: type) -> str | None:
     """
-    Return the name a base class is documented under, or None if it has none.
+    Return the name to link to a base class by, or None if it has no public name.
 
-    Try the module of the class page that links to it (*near*), the top
-    package, then the module that defines it, and take the first public
-    module that has it.
+    This is the qualified name without its module. The template links to it
+    with a leading dot (``~.Class.member``), which Sphinx matches against the
+    end of every documented name. That finds the page however the docs name
+    the class (``pkg.Cls`` for a class defined in ``pkg.mod``, say), where a
+    full name would miss.
     """
-    if cls.__name__.startswith("_"):
+    if cls.__name__.startswith("_") or "<locals>" in cls.__qualname__:
         return None
-    for module in (near, _package(cls), cls.__module__):
-        if any(part.startswith("_") for part in module.split(".")):
-            continue
-        try:
-            if getattr(importlib.import_module(module), cls.__name__, None) is cls:
-                return f"{module}.{cls.__name__}"
-        except ImportError:
-            continue
-    return None
+    return cls.__qualname__
 
 
 class ClassPage:
@@ -181,28 +175,23 @@ class ClassPage:
         cls = _import_class(fullname)
         if cls is None:
             return names
-        module = fullname.rpartition(".")[0]
         return [
             name
             for name in names
             if _has_page(cls, name)
-            and (
-                _owner(cls, name) is cls
-                or _public_path(_owner(cls, name), module) is None
-            )
+            and (_owner(cls, name) is cls or _link_name(_owner(cls, name)) is None)
         ]
 
     def inherited(self, fullname: str, names: list[str]) -> list[tuple[str, list[str]]]:
         """
         Return the members in *names* that link to a base class's pages.
 
-        Each item is a base class's documented name and the full names of
-        its members, sorted, in the order of the MRO.
+        Each item is a base class's name and the names of its members, sorted, in
+        the order of the MRO.
         """
         cls = _import_class(fullname)
         if cls is None:
             return []
-        module = fullname.rpartition(".")[0]
         bases: dict[type, list[str]] = {}
         for name in names:
             owner = _owner(cls, name)
@@ -218,7 +207,7 @@ class ClassPage:
                         break
         found = []
         for base in cls.__mro__:
-            path = _public_path(base, module) if base in bases else None
+            path = _link_name(base) if base in bases else None
             if path:
                 members = sorted(set(bases[base]), key=str.lower)
                 found.append((path, [f"{path}.{name}" for name in members]))
@@ -263,13 +252,62 @@ def drop_member_sections(app, what, name, obj, options, lines) -> None:
             del lines[start:end]
 
 
+class ModulePage:
+    """
+    What a module page shows besides what the module defines.
+
+    A package often re-exports its public API from submodules and lists it in
+    ``__all__``. autosummary leaves those names out of a module's page, which
+    would leave the package's own page a bare list of submodules. This finds
+    them so ``module.rst`` can list them, linking to the pages of the
+    submodules that define them (no second page, which Sphinx would report as
+    a duplicate). Like ``ClassPage``, it is an object so that Sphinx can
+    pickle it with the configuration.
+    """
+
+    def exported(self, fullname: str) -> list[str]:
+        """
+        Return the public names *fullname* re-exports from its package.
+
+        Each name is where the object is defined (relative to *fullname* when
+        it is under it), for ``module.rst`` to link to. Only classes,
+        exceptions and functions of the module's own package count, and only
+        when ``__all__`` lists them.
+        """
+        try:
+            module = import_by_name(fullname)[1]
+        except ImportError:
+            return []
+        names = []
+        for name in getattr(module, "__all__", ()):
+            obj = getattr(module, name, None)
+            if not (isinstance(obj, type) or inspect.isfunction(obj)):
+                continue
+            home = getattr(obj, "__module__", None)
+            if home in (None, module.__name__):
+                continue
+            if home.split(".")[0] != module.__name__.split(".")[0]:
+                continue
+            if obj.__name__.startswith("_") or "<locals>" in obj.__qualname__:
+                continue
+            path = f"{home}.{obj.__qualname__}"
+            # autosummary wants a name under the current module relative to it.
+            names.append(path.removeprefix(f"{fullname}."))
+        return names
+
+
 def add_template_context(app, config) -> None:
-    """Make ``class_page`` available to the autosummary templates."""
+    """Make ``class_page`` and ``module_page`` available to the autosummary templates."""
     config.autosummary_context.setdefault("class_page", ClassPage())
+    config.autosummary_context.setdefault("module_page", ModulePage())
 
 
 def setup(app):
     """Register the hooks, ahead of napoleon's (priority 500)."""
+    # The hooks need autodoc's event and autosummary's config value, so load
+    # both here: the extension then works wherever conf.py lists it.
+    app.setup_extension("sphinx.ext.autodoc")
+    app.setup_extension("sphinx.ext.autosummary")
     app.connect("config-inited", add_template_context)
     app.connect("autodoc-process-docstring", drop_member_sections, priority=400)
     return {"parallel_read_safe": True, "parallel_write_safe": True}

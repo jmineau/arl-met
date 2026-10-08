@@ -42,8 +42,8 @@
 .. rubric:: Inherited
 
 {% endif %}
-From :class:`~{{ base }}`:
-{%- for member in members %} :py:obj:`~{{ member }}`{{ "," if not loop.last }}{% endfor %}
+From :class:`~.{{ base }}`:
+{%- for member in members %} :py:obj:`~.{{ member }}`{{ "," if not loop.last }}{% endfor %}
 
 {% endfor %}
 {% endif %}
