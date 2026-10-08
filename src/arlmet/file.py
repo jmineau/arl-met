@@ -153,6 +153,7 @@ class File:
 
     @property
     def handle(self) -> BinaryIO:
+        """Open binary handle to the file, reopened if the file cache closed it."""
         # Hot record read/write paths hit this repeatedly, so keep one
         # acquired handle per File instead of reentering the manager. xarray's
         # global file cache closes the least recently used file once it holds
@@ -173,6 +174,7 @@ class File:
 
     @property
     def size(self) -> int:
+        """Size of the file on disk, in bytes."""
         return self.path.stat().st_size
 
     @property
@@ -226,6 +228,7 @@ class File:
 
     @property
     def record_length(self) -> int:
+        """Length in bytes of each record in the file, from the grid."""
         return record_length_from_grid(self.grid)
 
     def create_grid(

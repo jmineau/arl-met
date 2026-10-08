@@ -130,6 +130,7 @@ class VariableView:
 
     @property
     def dtype(self) -> npt.DTypeLike:
+        """Data type of the data cube."""
         return self.data.dtype
 
     @property

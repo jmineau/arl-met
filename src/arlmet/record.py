@@ -165,6 +165,7 @@ class DataRecord:
 
     @property
     def mode(self) -> Literal["r", "w"]:
+        """Access mode of the record, inferred from its position."""
         return "w" if self.position == -1 else "r"
 
     @property
@@ -196,6 +197,12 @@ class DataRecord:
 
     @property
     def header(self) -> Header:
+        """
+        Header of this data record.
+
+        Read from the file in read mode, and checked against the record's
+        variable and level; built from the record's data in write mode.
+        """
         if not isinstance(self._header, Header):
             if self.mode == "r":
                 header = Header.from_bytes(
@@ -330,6 +337,7 @@ class DataRecord:
 
     @property
     def dtype(self) -> np.dtype[Any]:
+        """Data type of the unpacked data (float32 until the data is read)."""
         if self._unpacked is None:
             # Data not loaded yet; assume float32
             return np.dtype(np.float32)
