@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Contributing &#8212; arl-met dev</title>
+    <title>Checking Files &#8212; arl-met dev</title>
   
   
   
@@ -44,7 +44,7 @@
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="_static/copybutton.js?v=f281be69"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'contributing';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'checking';</script>
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
@@ -55,6 +55,8 @@
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ARL File Format" href="format.html" />
+    <link rel="prev" title="Vertical Coordinates" href="vertical.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="0.1.0b3.dev8+gca70bc080" />
@@ -146,7 +148,7 @@
 </li>
 
 
-<li class="nav-item ">
+<li class="nav-item current active">
   <a class="nav-link nav-internal" href="user-guides.html">
     User Guides
   </a>
@@ -258,10 +260,8 @@
       
       
       
-        
-      
       <dialog id="pst-primary-sidebar-modal"></dialog>
-      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
         
 
   
@@ -283,7 +283,7 @@
 </li>
 
 
-<li class="nav-item ">
+<li class="nav-item current active">
   <a class="nav-link nav-internal" href="user-guides.html">
     User Guides
   </a>
@@ -360,6 +360,33 @@
     
   </div>
   
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="downloading.html">Downloading Archived Meteorology</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cropping.html">Cropping ARL Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="writing.html">Writing ARL Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concatenating.html">Concatenating ARL Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sampling.html">Sampling Points</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vertical.html">Vertical Coordinates</a></li>
+<li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Checking Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="format.html">ARL File Format</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
   
   <div class="sidebar-primary-items__end sidebar-primary__section">
       <div class="sidebar-primary-item">
@@ -395,7 +422,10 @@
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Contributing</span></li>
+    
+    <li class="breadcrumb-item"><a href="user-guides.html" class="nav-link">User Guides</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Checking Files</span></li>
   </ul>
 </nav>
 </div>
@@ -412,16 +442,73 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="contributing">
-<h1>Contributing<a class="headerlink" href="#contributing" title="Link to this heading">#</a></h1>
-<p>See the project contribution guide in
-<a class="reference external" href="https://github.com/jmineau/arl-met/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
-<p>For local development commands, installation, and documentation build steps,
-see <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a>.</p>
-<p>This project is developed with the help of AI coding agents, directed and
-reviewed by the maintainer, who owns the design and the science. If you
-contribute with an agent, <code class="docutils literal notranslate"><span class="pre">AGENTS.md</span></code> at the repository root is the
-orientation file it should read.</p>
+  <section id="checking-files">
+<h1>Checking Files<a class="headerlink" href="#checking-files" title="Link to this heading">#</a></h1>
+<p>Use <a class="reference internal" href="_autosummary/arlmet.File.check.html#arlmet.File.check" title="arlmet.File.check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.File.check()</span></code></a> to find damage that does not stop a file from
+opening. Opening a file already raises <a class="reference internal" href="_autosummary/arlmet.ARLFormatError.html#arlmet.ARLFormatError" title="arlmet.ARLFormatError"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.ARLFormatError</span></code></a> when it is
+cut short. A file can also hold a time step written partway, skip a time step,
+or have records overwritten with other bytes, and still open. HYSPLIT then stops
+partway through a run, or reads bad values. Checking a file before a run, or
+after downloading or cropping it, finds these first.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+
+<span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;20210226_18-23_hrrr&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">problem</span> <span class="ow">in</span> <span class="n">met</span><span class="o">.</span><span class="n">check</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">problem</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>2021-02-26 19:00 has 43 of the 298 data records the first time step has.
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">check()</span></code> returns one sentence per problem, and an empty list for a file
+with none.</p>
+<section id="what-is-checked">
+<h2>What is checked<a class="headerlink" href="#what-is-checked" title="Link to this heading">#</a></h2>
+<p>The checks follow how HYSPLIT reads a file (<code class="docutils literal notranslate"><span class="pre">metset.f</span></code>):</p>
+<ul class="simple">
+<li><p><strong>Every time step has as many data records as the first.</strong> HYSPLIT steps from
+one index record to the next by the first time step’s record count, so a
+shorter time step makes it lose its place, and the file seems to end early.</p></li>
+<li><p><strong>The time steps are as far apart as the first two.</strong> HYSPLIT stops with
+<code class="docutils literal notranslate"><span class="pre">meteorological</span> <span class="pre">data</span> <span class="pre">time</span> <span class="pre">interval</span> <span class="pre">varies</span></code> when the spacing changes, as it
+does where a time step is missing.</p></li>
+<li><p><strong>Every data record’s header can be read</strong>, and names the variable, level, and
+hour its index record lists. A record overwritten with null bytes, or copied
+from another time step, fails this.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">check()</span></code> reads each record’s 50-byte header. For a 1 GB HRRR block that takes
+a few seconds the first time the file is read from disk, and under a second
+once it is cached.</p>
+</section>
+<section id="what-is-not-checked">
+<h2>What is not checked<a class="headerlink" href="#what-is-not-checked" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>The values.</strong> Index records hold a checksum for each record, but NOAA’s GDAS
+and NAM12 files store 0 for the precipitation and fluxes taken from a 6-hour
+forecast, so <code class="docutils literal notranslate"><span class="pre">check()</span></code> does not compare them.</p></li>
+<li><p><strong>Hours the file should hold but does not.</strong> A file cut after a whole time step
+looks complete. Compare <a class="reference internal" href="_autosummary/arlmet.File.times.html#arlmet.File.times" title="arlmet.File.times"><code class="xref py py-attr docutils literal notranslate"><span class="pre">arlmet.File.times</span></code></a> with the hours you expect,
+for example from the file’s name.</p></li>
+</ul>
+</section>
+<section id="checking-a-folder">
+<h2>Checking a folder<a class="headerlink" href="#checking-a-folder" title="Link to this heading">#</a></h2>
+<p>To check a folder of files, catch the files that do not open as well:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+
+<span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;hrrr&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*_hrrr&quot;</span><span class="p">)):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+            <span class="n">problems</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">check</span><span class="p">()</span>
+    <span class="k">except</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">ARLFormatError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="n">problems</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">problems</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+</section>
 </section>
 
 
@@ -434,6 +521,24 @@ orientation file it should read.</p>
                 <footer class="prev-next-footer d-print-none">
                   
 <div class="prev-next-area">
+    <a class="left-prev"
+       href="vertical.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Vertical Coordinates</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="format.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">ARL File Format</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
 </div>
                 </footer>
               
@@ -446,9 +551,23 @@ orientation file it should read.</p>
 
 
   <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-is-checked">What is checked</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-is-not-checked">What is not checked</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#checking-a-folder">Checking a folder</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
 
   <div class="tocsection sourcelink">
-    <a href="_sources/contributing.rst.txt">
+    <a href="_sources/checking.rst.txt">
       <i class="fa-solid fa-file-lines"></i> Show Source
     </a>
   </div>

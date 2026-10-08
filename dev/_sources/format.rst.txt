@@ -117,6 +117,9 @@ Opening a file scans its index records. :class:`arlmet.ARLFormatError` (a
   record has no preceding parent record
 - a valid time is repeated with different content
 
+A file can also be damaged in ways that open cleanly, such as a time step
+written partway. :meth:`arlmet.File.check` finds them (:doc:`checking`).
+
 Some NOAA archive files (e.g. HRRR) repeat a whole time step, index record and
 data records, byte for byte. arl-met keeps the first copy, ignores the repeat,
 and emits an :class:`arlmet.ARLFormatWarning`. Rewriting such a file (e.g. with

@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=49c107cd"></script>
+    <script src="../_static/documentation_options.js?v=a55ee976"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
     <link rel="prev" title="arlmet.z_msl" href="arlmet.z_msl.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3.dev7+g8d28aeef4" />
+  <meta name="docsearch:version" content="0.1.0b3.dev8+gca70bc080" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -396,6 +396,7 @@
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.size.html">arlmet.File.size</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.times.html">arlmet.File.times</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.add_record.html">arlmet.File.add_record</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.check.html">arlmet.File.check</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.close.html">arlmet.File.close</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.create_grid.html">arlmet.File.create_grid</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.create_recordset.html">arlmet.File.create_recordset</a></li>
@@ -656,25 +657,28 @@ before creating records.</p></li>
 <tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.add_record.html#arlmet.File.add_record" title="arlmet.File.add_record"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_record</span></code></a>(time, variable, level, *, forecast)</p></td>
 <td><p>Add one writable DataRecord, creating its RecordSet if needed.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.close.html#arlmet.File.close" title="arlmet.File.close"><code class="xref py py-obj docutils literal notranslate"><span class="pre">close</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.check.html#arlmet.File.check" title="arlmet.File.check"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check</span></code></a>()</p></td>
+<td><p>Return what is wrong with this file that opening it does not catch.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.close.html#arlmet.File.close" title="arlmet.File.close"><code class="xref py py-obj docutils literal notranslate"><span class="pre">close</span></code></a>()</p></td>
 <td><p>Flush pending writes and close the managed binary file handle.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.create_grid.html#arlmet.File.create_grid" title="arlmet.File.create_grid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_grid</span></code></a>(nx, ny, *, pole_lat, pole_lon, ...)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.create_grid.html#arlmet.File.create_grid" title="arlmet.File.create_grid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_grid</span></code></a>(nx, ny, *, pole_lat, pole_lon, ...)</p></td>
 <td><p>Create and attach the horizontal grid metadata for a writable file.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.create_recordset.html#arlmet.File.create_recordset" title="arlmet.File.create_recordset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_recordset</span></code></a>(time, *[, forecast])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.create_recordset.html#arlmet.File.create_recordset" title="arlmet.File.create_recordset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_recordset</span></code></a>(time, *[, forecast])</p></td>
 <td><p>Create a writable RecordSet for one valid time.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.extract_subset.html#arlmet.File.extract_subset" title="arlmet.File.extract_subset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extract_subset</span></code></a>(dest, *[, bbox, levels, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.extract_subset.html#arlmet.File.extract_subset" title="arlmet.File.extract_subset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extract_subset</span></code></a>(dest, *[, bbox, levels, ...])</p></td>
 <td><p>Write a spatial/vertical subset of this file to a new ARL file.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.flush.html#arlmet.File.flush" title="arlmet.File.flush"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flush</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.flush.html#arlmet.File.flush" title="arlmet.File.flush"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flush</span></code></a>()</p></td>
 <td><p>Write pending record sets to disk and release their in-memory data.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.sample_points.html#arlmet.File.sample_points" title="arlmet.File.sample_points"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample_points</span></code></a>(points, variables, *[, time, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.sample_points.html#arlmet.File.sample_points" title="arlmet.File.sample_points"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample_points</span></code></a>(points, variables, *[, time, ...])</p></td>
 <td><p>Sample fields from this file at arbitrary lon/lat/z points.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="arlmet.File.to_dataset.html#arlmet.File.to_dataset" title="arlmet.File.to_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_dataset</span></code></a>(*[, drop_variables, bbox, levels])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="arlmet.File.to_dataset.html#arlmet.File.to_dataset" title="arlmet.File.to_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_dataset</span></code></a>(*[, drop_variables, bbox, levels])</p></td>
 <td><p>Project this file into the simplified analysis Dataset representation.</p></td>
 </tr>
 </tbody>
