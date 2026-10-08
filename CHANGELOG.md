@@ -8,6 +8,11 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `File.check()` lists what is wrong with a file that opens: a time step
+  with fewer records than the first, time steps that are not evenly
+  spaced, and data records whose header cannot be read or names another
+  variable, level, or hour. Each would make HYSPLIT stop partway or read
+  bad values (#47). Guide: *Checking Files*.
 - The documentation has a version dropdown. The site opens at the latest
   release, `dev/` follows `main`, and each release keeps its own pages.
 

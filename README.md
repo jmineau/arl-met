@@ -23,6 +23,7 @@ format used by HYSPLIT and related workflows. It supports:
 - vertical helper functions such as `pressure()`, `z_agl()`, and `z_msl()`
 - point sampling with `sample_points()`
 - joining files with `concat()` and `concat_by_time()` (e.g. 6-hourly into daily)
+- finding damage that does not stop a file from opening (a time step written partway, a missing time step) with `File.check()`
 
 ## Status
 
@@ -118,6 +119,15 @@ arlmet.concat(["20240101_00_hrrr", "20240101_06_hrrr"], "20240101_hrrr")
 arlmet.concat_by_time(
     "hrrr/", "daily/", freq="1D", pattern="*_hrrr", template="{time:%Y%m%d}_hrrr"
 )
+```
+
+Check a file for damage before a HYSPLIT run:
+
+```python
+import arlmet
+
+with arlmet.File("20210226_18-23_hrrr") as met:
+    print(met.check())  # [] for a whole file
 ```
 
 Use the low-level writer for irregular layouts:

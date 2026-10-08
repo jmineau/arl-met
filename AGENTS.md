@@ -61,6 +61,12 @@ plain `ValueError`/`TypeError`. Some NOAA HRRR archive files repeat a whole
 time step byte for byte (#16): read-mode scanning skips a byte-identical repeat
 with an `ARLFormatWarning` and raises `ARLFormatError` if the repeat differs.
 Write-mode `create_recordset` for an existing time still raises.
+`File.check()` finds what opens cleanly but HYSPLIT cannot use: a time step
+with fewer records than the first (HYSPLIT steps between index records by
+that count), uneven time steps (HYSPLIT's STOP 23), and data record headers
+that do not parse or do not match the index. It does not compare checksums:
+NOAA's GDAS and NAM12 files store 0 for the fields taken from a 6-hour
+forecast (accumulated precipitation, fluxes), half the records of each.
 
 ### Differential records
 Some variable names begin with `DIF` (e.g., `DIFZ`). These are in-stream
@@ -357,6 +363,7 @@ with arlmet.File("file.arl") as f:
     coords = f.grid.calculate_coords()  # {name: (dims, values)}
     arr = rec.read()            # np.ndarray (full grid)
     arr = rec.read(window=...)  # np.ndarray (cropped tile)
+    problems = f.check()        # list[str]: damage that opens cleanly; [] if none
 
 # Low-level writing for irregular files
 with arlmet.File("out.arl", mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as f:

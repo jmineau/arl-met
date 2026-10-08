@@ -208,6 +208,133 @@ class TestDuplicateTimeSteps:
                 arl.create_recordset(TIMES[0])
 
 
+def write_steps(path, steps) -> None:
+    """Write one time step per ``(time, variables)``, with PRSS at level 0 and TEMP at level 1."""
+    levels = {"PRSS": 0, "TEMP": 1}
+    with File(
+        path,
+        mode="w",
+        source="TEST",
+        grid=make_test_grid(),
+        vertical_axis=PressureAxis(levels=[0.0, 1000.0]),
+    ) as arl:
+        for i, (time, variables) in enumerate(steps):
+            rs = arl.create_recordset(pd.Timestamp(time))
+            for name in variables:
+                rs.create_datarecord(
+                    name, level=levels[name], forecast=i, data=field(i, 1000.0)
+                )
+
+
+#: Byte position of the second time step's TEMP record in a two-step file.
+SECOND_TEMP = STEP_LENGTH + 2 * RECORD_LENGTH
+
+
+class TestCheck:
+    def test_whole_file_has_no_problems(self, tmp_path):
+        path = tmp_path / "whole.arl"
+        write_two_step_file(path)
+
+        with File(path) as arl:
+            assert arl.check() == []
+
+    def test_time_step_written_partway(self, tmp_path):
+        path = tmp_path / "partway.arl"
+        write_steps(
+            path,
+            [
+                ("2024-07-18 00:00", ["PRSS", "TEMP"]),
+                ("2024-07-18 03:00", ["PRSS"]),
+                ("2024-07-18 06:00", ["PRSS", "TEMP"]),
+            ],
+        )
+
+        with File(path) as arl:
+            assert arl.times[1] == pd.Timestamp("2024-07-18 03:00")
+            assert arl.check() == [
+                "2024-07-18 03:00 has 1 of the 2 data records the first time step has."
+            ]
+
+    def test_missing_time_step(self, tmp_path):
+        path = tmp_path / "gap.arl"
+        both = ["PRSS", "TEMP"]
+        write_steps(
+            path,
+            [
+                ("2024-07-18 00:00", both),
+                ("2024-07-18 03:00", both),
+                ("2024-07-18 09:00", both),
+            ],
+        )
+
+        with File(path) as arl:
+            assert arl.check() == [
+                "2024-07-18 03:00 to 2024-07-18 09:00 is 6 h; the first two "
+                "time steps are 3 h apart."
+            ]
+
+    def test_quarter_hour_time_steps_are_whole(self, tmp_path):
+        path = tmp_path / "quarter.arl"
+        both = ["PRSS", "TEMP"]
+        write_steps(
+            path,
+            [
+                ("2024-07-18 00:00", both),
+                ("2024-07-18 00:15", both),
+                ("2024-07-18 00:30", both),
+            ],
+        )
+
+        with File(path) as arl:
+            assert arl.check() == []
+
+    def test_record_header_of_null_bytes(self, tmp_path):
+        """A record whose bytes were lost reads as nulls, but the file opens."""
+        path = tmp_path / "nulls.arl"
+        write_two_step_file(path)
+        raw = bytearray(path.read_bytes())
+        raw[SECOND_TEMP : SECOND_TEMP + 2] = b"\x00\x00"
+        path.write_bytes(bytes(raw))
+
+        with File(path) as arl:
+            problems = arl.check()
+
+        assert len(problems) == 1
+        assert problems[0].startswith(
+            f"2024-07-18 03:00: the TEMP record at level 1 (byte {SECOND_TEMP}) "
+            "cannot be read."
+        )
+
+    def test_record_from_another_time_step(self, tmp_path):
+        path = tmp_path / "copied.arl"
+        write_two_step_file(path)
+        raw = bytearray(path.read_bytes())
+        first_temp = 2 * RECORD_LENGTH
+        raw[SECOND_TEMP : SECOND_TEMP + RECORD_LENGTH] = raw[
+            first_temp : first_temp + RECORD_LENGTH
+        ]
+        path.write_bytes(bytes(raw))
+
+        with File(path) as arl:
+            assert arl.check() == [
+                f"2024-07-18 03:00: the TEMP record at level 1 (byte {SECOND_TEMP}) "
+                "is for 2024-07-18 00:00."
+            ]
+
+    def test_write_mode_raises(self, tmp_path):
+        with (
+            File(
+                tmp_path / "new.arl",
+                mode="w",
+                source="TEST",
+                grid=make_test_grid(),
+                vertical_axis=PressureAxis(levels=[0.0, 1000.0]),
+            ) as arl,
+            pytest.raises(ValueError),
+        ):
+            arl.check()
+
+
 class TestIndexLongitudeWrap:
     def _projected_grid(self, **overrides) -> Grid:
         params = dict(

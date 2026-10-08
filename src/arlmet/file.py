@@ -6,6 +6,7 @@ import os
 import warnings
 from collections import OrderedDict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
+from itertools import pairwise
 from pathlib import Path
 from types import TracebackType
 from typing import TYPE_CHECKING, Any, BinaryIO, Literal, Self, cast
@@ -42,6 +43,27 @@ def _open_binary(path: str | os.PathLike[str], mode: str) -> BinaryIO:
     """
     # open() only narrows to BinaryIO for literal modes.
     return cast(BinaryIO, open(path, mode + "b"))
+
+
+def _with_diffs(rs: RecordSet) -> list[DataRecord]:
+    """Return the records of *rs* in index order, each followed by its DIF record."""
+    records = []
+    for record in rs.records:
+        records.append(record)
+        if record.diff is not None:
+            records.append(record.diff)
+    return records
+
+
+def _at(time: pd.Timestamp) -> str:
+    """Format a valid time for a message."""
+    return f"{time:%Y-%m-%d %H:%M}"
+
+
+def _span(delta: pd.Timedelta) -> str:
+    """Format a time difference in hours, or minutes when it is not whole hours."""
+    minutes = int(delta / pd.Timedelta(minutes=1))
+    return f"{minutes // 60} h" if minutes % 60 == 0 else f"{minutes} min"
 
 
 class File:
@@ -590,6 +612,87 @@ class File:
             if a != b:
                 return False
         return True
+
+    def check(self) -> list[str]:
+        """
+        Return what is wrong with this file that opening it does not catch.
+
+        Opening a file raises :class:`ARLFormatError` when it is cut short.
+        A file can also be damaged in ways that open cleanly: a time step
+        written partway, a missing time step, or a record overwritten with
+        other bytes. HYSPLIT then stops partway through a run or reads bad
+        values. ``check`` looks for these the way HYSPLIT reads a file:
+
+        - every time step has as many data records as the first, since
+          HYSPLIT steps from one index record to the next by that count;
+        - the time steps are as far apart as the first two, since HYSPLIT
+          stops when the spacing changes;
+        - every data record's header can be read, and names the variable,
+          level, and time its index record lists.
+
+        It reads each record's 50-byte header, not its values. The
+        checksums in the index records are not compared: NOAA's GDAS and
+        NAM12 files store 0 for the precipitation and fluxes taken from a
+        6-hour forecast, so a mismatch does not mean the file is damaged.
+
+        Returns
+        -------
+        list of str
+            One sentence per problem. Empty when none is found.
+
+        Raises
+        ------
+        ValueError
+            If the file is open for writing.
+
+        Examples
+        --------
+        A time step written partway:
+
+        >>> with arlmet.File("20210226_18-23_hrrr") as met:
+        ...     met.check()
+        ['2021-02-26 19:00 has 43 of the 298 data records the first time step has.']
+        """
+        _require_mode(self, "r")
+        problems = []
+        recordsets = [self._recordsets[time] for time in self.times]
+
+        if recordsets:
+            n_first = len(_with_diffs(recordsets[0]))
+            for rs in recordsets[1:]:
+                n = len(_with_diffs(rs))
+                if n != n_first:
+                    problems.append(
+                        f"{_at(rs.time)} has {n} of the {n_first} data records "
+                        "the first time step has."
+                    )
+
+        if len(recordsets) > 2:
+            step = recordsets[1].time - recordsets[0].time
+            for before, after in pairwise(recordsets[1:]):
+                if after.time - before.time != step:
+                    problems.append(
+                        f"{_at(before.time)} to {_at(after.time)} is "
+                        f"{_span(after.time - before.time)}; the first two time "
+                        f"steps are {_span(step)} apart."
+                    )
+
+        for rs in recordsets:
+            for record in _with_diffs(rs):
+                where = (
+                    f"{_at(rs.time)}: the {record.variable} record at level "
+                    f"{record.level} (byte {record.position})"
+                )
+                try:
+                    header = record.header
+                except ARLFormatError as exc:
+                    problems.append(f"{where} cannot be read. {exc}")
+                    continue
+                # A record header holds the hour; the minutes are only in the
+                # index record.
+                if header.time != rs.time.floor("h"):
+                    problems.append(f"{where} is for {_at(header.time)}.")
+        return problems
 
     def flush(self) -> None:
         """
