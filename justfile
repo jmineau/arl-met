@@ -44,14 +44,14 @@ test-network *args:
 cov *args:
     uv run pytest -n auto --maxprocesses=8 -m "not network and not slow" --cov --cov-report=term --cov-report=xml --junitxml=junit.xml -o junit_family=legacy "$@"
 
-# Build the HTML docs, failing on warnings
+# Build the HTML docs, running every example, failing on warnings
 build-docs:
     rm -rf docs/_build docs/_autosummary
     uv run sphinx-build -M html docs docs/_build -W --keep-going
 
 # Serve the docs at http://127.0.0.1:PORT, rebuilding on every save (Ctrl-C stops)
 docs-serve port="8000":
-    uv run sphinx-autobuild docs docs/_build/html --port "$1" --watch src --re-ignore '_autosummary/'
+    uv run sphinx-autobuild docs docs/_build/html --port "$1" --watch src --re-ignore '_autosummary/' --re-ignore '_build/' --re-ignore '__pycache__/'
 
 # Everything the Code Quality workflow checks, plus the tests
 quality-check: lint type-check docstr test
