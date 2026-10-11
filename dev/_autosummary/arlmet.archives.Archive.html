@@ -30,6 +30,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=283e4333" />
   
@@ -39,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=fe9c907a"></script>
+    <script src="../_static/documentation_options.js?v=ad95a34f"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +60,7 @@
     <link rel="prev" title="arlmet.archives.get_archive" href="arlmet.archives.get_archive.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev3+gbc60d71d1" />
+  <meta name="docsearch:version" content="0.1.0b4.dev4+g1bdba41c5" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -607,7 +608,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="arlmet.archives.Archive">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">arlmet.archives.</span></span><span class="sig-name descname"><span class="pre">Archive</span></span><a class="reference internal" href="../_modules/arlmet/archives.html#Archive"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.archives.Archive" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
 <p>Abstract base class for NOAA ARL meteorology archives.</p>
 <p>An archive is one ARL-formatted product in NOAA’s archive (e.g. HRRR 3 km):
 its filename convention, path layout, and start date. Download files with
@@ -618,8 +619,8 @@ encode the filename convention for their product. A subclass that sets
 <dl class="field-list simple">
 <dt class="field-odd">Variables<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Short archive identifier used by callers and config files (stable).</p></li>
-<li><p><strong>description</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Human-readable product description.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – Short archive identifier used by callers and config files (stable).</p></li>
+<li><p><strong>description</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – Human-readable product description.</p></li>
 </ul>
 </dd>
 </dl>

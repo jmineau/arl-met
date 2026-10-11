@@ -30,6 +30,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=283e4333" />
   
@@ -39,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=fe9c907a"></script>
+    <script src="../_static/documentation_options.js?v=ad95a34f"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +60,7 @@
     <link rel="prev" title="arlmet.IndexRecord.vertical_axis" href="arlmet.IndexRecord.vertical_axis.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev3+gbc60d71d1" />
+  <meta name="docsearch:version" content="0.1.0b4.dev4+g1bdba41c5" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -614,8 +615,8 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>file</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.BinaryIO" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinaryIO</span></code></a></span>) – The file to read from.</p></li>
-<li><p><strong>position</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – The byte position in the file where the index record starts.</p></li>
+<li><p><strong>file</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.BinaryIO" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinaryIO</span></code></a></span>) – The file to read from.</p></li>
+<li><p><strong>position</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – The byte position in the file where the index record starts.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -626,7 +627,7 @@
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#EOFError" title="(in Python v3.14)"><strong>EOFError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">position</span></code> is at the end of the file.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#EOFError" title="(in Python v3.15)"><strong>EOFError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">position</span></code> is at the end of the file.</p></li>
 <li><p><a class="reference internal" href="arlmet.ARLFormatError.html#arlmet.ARLFormatError" title="arlmet.ARLFormatError"><strong>ARLFormatError</strong></a> – If the bytes at <code class="docutils literal notranslate"><span class="pre">position</span></code> are not a valid index record.</p></li>
 </ul>
 </dd>
