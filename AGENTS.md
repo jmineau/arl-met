@@ -396,7 +396,7 @@ just test-network        # the tests that download from NOAA S3
 just lint                # ruff check + format check (`just format` fixes)
 just type-check          # pyrefly, strict preset
 just quality-check       # lint, type check, docstrings (`just docstr`), tests
-just build-docs          # Sphinx; warnings are errors (`just docs-serve` previews)
+just build-docs          # Sphinx, running every example; warnings are errors (`just docs-serve` previews)
 just dist                # sdist + this platform's wheel, checked with twine
 just pre-commit          # every pre-commit hook on every file
 ```
@@ -423,6 +423,59 @@ is a dev version such as `0.1.0b3.dev5+g1a2b3c4`. `uv.lock` records arlmet's
 version as dynamic. After changing dependencies, run `uv lock` online —
 `uv lock --offline` re-resolves packages from the local cache and can churn
 many unrelated pins.
+
+## Examples in the docs
+
+Examples run when the docs build, so they show real output, and the build fails
+when one breaks.
+
+- **A figure in a docstring:** put a `.. plot::` directive in the Examples
+  section. Its code runs (doctest `>>>` lines work), and the figure appears
+  under it.
+
+  ```rst
+  Examples
+  --------
+  .. plot::
+
+     >>> import matplotlib.pyplot as plt
+     >>> _ = plt.plot([0, 1, 2], [0, 1, 4])
+  ```
+
+- **Code in an `.rst` page:** a `.. ipython:: python` block runs, and shows each
+  line with its output, as in an IPython session. Changing a
+  `.. code-block:: python` to `.. ipython:: python` is enough to make it run. For
+  a figure, put `@savefig name.png` on the line above the plotting call.
+
+  ```rst
+  .. ipython:: python
+
+     import matplotlib.pyplot as plt
+     import arlmet
+
+     arlmet.__version__
+
+     @savefig squares.png width=5in
+     plt.plot([0, 1, 2], [0, 1, 4]);
+  ```
+
+  A block that raises or warns fails the build; `:okexcept:` or `:okwarning:`
+  under the directive allows one that is meant to. All `.rst` pages share one
+  session, so each page imports and defines what it uses.
+- **When they run:** `just build-docs` runs everything, as CI does;
+  `just docs-serve` reruns a page's blocks whenever that page is rebuilt.
+- **Notebooks, and code cells in Markdown pages,** are off in this project.
+  `copier update --data docs_notebooks=true` turns them on; it adds myst-nb, and
+  Jupyter with it, to the dev tools.
+- **Data:** the docs build on GitHub Actions, so an example uses synthetic data,
+  a small file in the repository, or a public download, never a machine-specific
+  path. Seed random numbers so the figures don't change from build to build.
+- **ARL files:** the repository has no sample ARL file. An example that needs
+  one builds a small file with `arlmet.write_dataset`, as the tests do, so it
+  runs anywhere. Downloads from NOAA's archives (`arlmet[archives]`) are several
+  gigabytes, so an example never fetches one; it shows the call as a plain
+  `code-block`. If an example needs an extra, add `arlmet[extra]` to the `dev`
+  group, so `uv sync` installs it here and in CI.
 
 ## Testing Notes
 
