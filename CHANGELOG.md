@@ -6,6 +6,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- The concatenating guide, the `concat` module docstring and the README gave 12 as HYSPLIT's limit for a single grid. The 12 is the cap when the `CONTROL` file lists each met file as its own grid (one number); two numbers, `1 N`, give one grid with `N` files in time, up to 128 per grid. They now say so, and that joining files still helps a run of more than 128 files and tools that write the one-number form, such as STILT-R (#50)
+
 ## [0.1.0b3] - 2026-10-07
 
 ### Added
