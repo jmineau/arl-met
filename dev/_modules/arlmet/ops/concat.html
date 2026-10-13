@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../../_static/documentation_options.js?v=ad95a34f"></script>
+    <script src="../../../_static/documentation_options.js?v=cac4e503"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev4+g1bdba41c5" />
+  <meta name="docsearch:version" content="0.1.0b4.dev6+gf206a95ee" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -418,9 +418,11 @@
 <span class="sd">ARL files are flat streams of fixed-size records, so joining several files is a</span>
 <span class="sd">byte-level append — the same operation as ``cat a.arl b.arl &gt; out.arl``. This is</span>
 <span class="sd">the standard way to combine short (e.g. 6-hourly) met files into longer (e.g.</span>
-<span class="sd">daily) files: HYSPLIT limits a simulation to at most 12 meteorological input</span>
-<span class="sd">files when a single grid is specified, so longer per-file coverage is the only</span>
-<span class="sd">way to span a long run. See the HYSPLIT user guide, &quot;Compilation Limits&quot;:</span>
+<span class="sd">daily) files: HYSPLIT&#39;s ``CONTROL`` file takes at most 12 meteorological files</span>
+<span class="sd">when its number of input data grids is one number (each file its own grid) and</span>
+<span class="sd">at most 128 per grid when it is two numbers, ``1 N`` (one grid with ``N`` files),</span>
+<span class="sd">so longer per-file coverage keeps a long run under either limit. See the HYSPLIT</span>
+<span class="sd">user guide, &quot;Compilation Limits&quot;:</span>
 <span class="sd">https://www.ready.noaa.gov/hysplitusersguide/S441.htm</span>
 
 <span class="sd">The original idea and the HRRR use case come from Derek Mallia&#39;s</span>
