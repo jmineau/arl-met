@@ -107,7 +107,7 @@ arlmet.extract_subset(
 )  # returns the output path (a pathlib.Path)
 ```
 
-Join short files into longer ones (HYSPLIT accepts at most 12 met files per run):
+Join short files into longer ones (HYSPLIT accepts at most 128 met files for one grid, and 12 when each file is its own grid):
 
 ```python
 import arlmet

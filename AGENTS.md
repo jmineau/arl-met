@@ -521,9 +521,12 @@ when one breaks.
 ## Format References
 
 - HYSPLIT ARL format overview: https://www.ready.noaa.gov/hysplitusersguide/S141.htm
-- HYSPLIT "Compilation Limits" (max 12 met files per simulation with a single
-  grid — the reason `concat`/`concat_by_time` exist):
-  https://www.ready.noaa.gov/hysplitusersguide/S441.htm
+- HYSPLIT `CONTROL` file, the "number of input data grids" line: one number `N`
+  makes each file its own grid; two numbers `1 N` are one grid with `N` files
+  in time: https://www.ready.noaa.gov/hysplitusersguide/S310.htm
+- HYSPLIT "Compilation Limits" (at most 12 met files with the one-number form,
+  and 128 files per grid with `1 N` — the reason `concat`/`concat_by_time`
+  exist): https://www.ready.noaa.gov/hysplitusersguide/S441.htm
 - GDAS packing details: https://www.ready.noaa.gov/gdas1.php
 - READY archive catalog: https://www.ready.noaa.gov/archives.php
 - ARLreader notes: https://github.com/martin-rdz/ARLreader/blob/master/working_with_ARLformat.md

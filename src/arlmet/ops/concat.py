@@ -4,9 +4,11 @@ Concatenate ARL meteorology files into a single ARL file.
 ARL files are flat streams of fixed-size records, so joining several files is a
 byte-level append — the same operation as ``cat a.arl b.arl > out.arl``. This is
 the standard way to combine short (e.g. 6-hourly) met files into longer (e.g.
-daily) files: HYSPLIT limits a simulation to at most 12 meteorological input
-files when a single grid is specified, so longer per-file coverage is the only
-way to span a long run. See the HYSPLIT user guide, "Compilation Limits":
+daily) files: HYSPLIT's ``CONTROL`` file takes at most 12 meteorological files
+when its number of input data grids is one number (each file its own grid) and
+at most 128 per grid when it is two numbers, ``1 N`` (one grid with ``N`` files),
+so longer per-file coverage keeps a long run under either limit. See the HYSPLIT
+user guide, "Compilation Limits":
 https://www.ready.noaa.gov/hysplitusersguide/S441.htm
 
 The original idea and the HRRR use case come from Derek Mallia's

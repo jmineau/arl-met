@@ -3,11 +3,23 @@ Concatenating ARL Files
 
 Use :func:`arlmet.concat` to join several ARL files into one, and
 :func:`arlmet.concat_by_time` to do it in batch across a directory. The common
-reason is HYSPLIT's input limit: a simulation accepts at most 12 meteorological
-files when a single grid is used (`Compilation Limits
-<https://www.ready.noaa.gov/hysplitusersguide/S441.htm>`_). Combining many short
-files (e.g. 6-hourly) into fewer long ones (e.g. daily) keeps a long run under
-that cap.
+reason is HYSPLIT's limit on how many meteorological files one simulation
+reads. The line of the ``CONTROL`` file that gives the number of input data
+grids takes one number or two (`CONTROL file
+<https://www.ready.noaa.gov/hysplitusersguide/S310.htm>`_), and the limit
+depends on which (`Compilation Limits
+<https://www.ready.noaa.gov/hysplitusersguide/S441.htm>`_):
+
+- One number, ``N``, makes each of the ``N`` files its own grid. HYSPLIT then
+  accepts at most 12 files.
+- Two numbers, ``1 N``, are one grid with ``N`` files in time. HYSPLIT then
+  accepts up to 128 files per grid. HYSPLIT's GUI does not offer this form; it
+  is for a ``CONTROL`` file written by hand or by a tool.
+
+Combining many short files (e.g. 6-hourly) into fewer long ones (e.g. daily)
+keeps a long run under either cap. It is still needed when a run takes more than
+128 files, and when the tool that writes the ``CONTROL`` file gives one number,
+as STILT-R does.
 
 ARL files are flat streams of fixed-size records, so joining them is a
 byte-level append — the same result as ``cat a.arl b.arl > out.arl`` — with no
