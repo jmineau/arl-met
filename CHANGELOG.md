@@ -8,6 +8,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `DataRecord.verify_checksum()` returned `False` for every record whose stored checksum is 0. A stored 0 means no checksum was recorded (HYSPLIT's writer leaves 0 for a record it did not pack, and its reader never compares checksums), so it now returns `True` for them. NOAA's GDAS, GFS and NAM12 files store 0 for the precipitation and fluxes taken from a 6-hour forecast at 00, 06, 12 and 18 UTC, so half of those records were reported as damaged. The *Checking Files* and *ARL File Format* guides now say how to check the values (#56)
+
 - The concatenating guide, the `concat` module docstring and the README gave 12 as HYSPLIT's limit for a single grid. The 12 is the cap when the `CONTROL` file lists each met file as its own grid (one number); two numbers, `1 N`, give one grid with `N` files in time, up to 128 per grid. They now say so, and that joining files still helps a run of more than 128 files and tools that write the one-number form, such as STILT-R (#50)
 
 ## [0.1.0b3] - 2026-10-07

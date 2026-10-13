@@ -64,9 +64,17 @@ Write-mode `create_recordset` for an existing time still raises.
 `File.check()` finds what opens cleanly but HYSPLIT cannot use: a time step
 with fewer records than the first (HYSPLIT steps between index records by
 that count), uneven time steps (HYSPLIT's STOP 23), and data record headers
-that do not parse or do not match the index. It does not compare checksums:
-NOAA's GDAS and NAM12 files store 0 for the fields taken from a 6-hour
-forecast (accumulated precipitation, fluxes), half the records of each.
+that do not parse or do not match the index. It reads headers only and does
+not compare checksums; `DataRecord.verify_checksum()` checks one record.
+
+### Checksums
+A stored checksum of 0 means none was recorded, and `verify_checksum()`
+returns True for it. NOAA's GDAS and NAM12 files store 0 for the fields taken
+from a 6-hour forecast (accumulated precipitation, fluxes) at 00, 06, 12 and
+18 UTC, half the records of each, and their data are good. HYSPLIT's writer
+(`pakrec`/`pakndx`) resets its checksum table to 0 at each time step and
+fills in only the records it packs, and its reader (`metinp`) never compares
+checksums. A computed checksum is 0 only when every packed byte is 0.
 
 ### Differential records
 Some variable names begin with `DIF` (e.g., `DIFZ`). These are in-stream
@@ -78,8 +86,9 @@ at the same time and level.
 
 ### Packing
 ARL packs floats as unsigned bytes relative to the previous row or column value.
-The packer and unpacker are in `packing.py`. The checksum is XOR of all packed
-bytes. Do not modify `pack`/`unpack` without pack/unpack round-trip test coverage.
+The packer and unpacker are in `packing.py`. The checksum is the sum of all
+packed bytes, less 255 each time it reaches 256 (HYSPLIT's `pakout`), so it is
+1 to 255 unless every byte is 0. Do not modify `pack`/`unpack` without pack/unpack round-trip test coverage.
 
 ### Large-grid letter codes
 When `nx` or `ny` exceeds 999, ARL encodes the overflow digit as a letter (`A`=1,

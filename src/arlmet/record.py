@@ -306,6 +306,10 @@ class DataRecord:
     def checksum(self) -> int:
         """
         Get the stored checksum for this data record.
+
+        A stored 0 means no checksum was recorded: a computed checksum is 0
+        only when every packed byte is 0. NOAA's GDAS and NAM12 files store
+        0 for the fields taken from a 6-hour forecast.
         """
         if self._checksum is None:
             if self.mode == "r":
@@ -320,10 +324,24 @@ class DataRecord:
         """
         Verify the packed payload against the checksum stored in metadata.
 
+        A stored checksum of 0 means none was recorded, so there is nothing
+        to compare and the record is not reported as a mismatch. HYSPLIT's
+        writer sets every checksum of a time step to 0 and fills in a
+        record's checksum only when it packs that record, and HYSPLIT does
+        not compare checksums when it reads a file. NOAA's GDAS and NAM12
+        files store 0 for the precipitation and fluxes taken from a 6-hour
+        forecast (at 00, 06, 12 and 18 UTC), and their values are good.
+
         Returns
         -------
         bool
-            True if the checksum matches, False otherwise.
+            False if the record has a stored checksum that the packed payload
+            does not match, True otherwise.
+
+        See Also
+        --------
+        arlmet.DataRecord.checksum : The stored checksum.
+        arlmet.calculate_checksum : The checksum of a packed payload.
         """
         if self.mode == "r":
             packed = self.recordset.file._read_at(
@@ -332,8 +350,10 @@ class DataRecord:
         else:
             packed = self._pack().tobytes()
 
-        calculated_checksum = calculate_checksum(packed=packed)
-        return calculated_checksum == self.checksum
+        stored = self.checksum
+        if stored == 0:  # none recorded
+            return True
+        return calculate_checksum(packed=packed) == stored
 
     @property
     def dtype(self) -> np.dtype[Any]:
