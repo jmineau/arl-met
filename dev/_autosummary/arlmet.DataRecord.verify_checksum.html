@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=cac4e503"></script>
+    <script src="../_static/documentation_options.js?v=3d8be15b"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.DataRecord.to_xarray" href="arlmet.DataRecord.to_xarray.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev6+gf206a95ee" />
+  <meta name="docsearch:version" content="0.1.0b4.dev7+g58588e776" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -612,14 +612,31 @@
 <dt class="sig sig-object py" id="arlmet.DataRecord.verify_checksum">
 <span class="sig-prename descclassname"><span class="pre">DataRecord.</span></span><span class="sig-name descname"><span class="pre">verify_checksum</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/record.html#DataRecord.verify_checksum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.DataRecord.verify_checksum" title="Link to this definition">#</a></dt>
 <dd><p>Verify the packed payload against the checksum stored in metadata.</p>
+<p>A stored checksum of 0 means none was recorded, so there is nothing
+to compare and the record is not reported as a mismatch. HYSPLIT’s
+writer sets every checksum of a time step to 0 and fills in a
+record’s checksum only when it packs that record, and HYSPLIT does
+not compare checksums when it reads a file. NOAA’s GDAS and NAM12
+files store 0 for the precipitation and fluxes taken from a 6-hour
+forecast (at 00, 06, 12 and 18 UTC), and their values are good.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>True if the checksum matches, False otherwise.</p>
+<dd class="field-odd"><p>False if the record has a stored checksum that the packed payload
+does not match, True otherwise.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
 </dd>
 </dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="arlmet.DataRecord.checksum.html#arlmet.DataRecord.checksum" title="arlmet.DataRecord.checksum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">arlmet.DataRecord.checksum</span></code></a></dt><dd><p>The stored checksum.</p>
+</dd>
+<dt><a class="reference internal" href="arlmet.calculate_checksum.html#arlmet.calculate_checksum" title="arlmet.calculate_checksum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">arlmet.calculate_checksum</span></code></a></dt><dd><p>The checksum of a packed payload.</p>
+</dd>
+</dl>
+</div>
 </dd></dl>
 
 </section>

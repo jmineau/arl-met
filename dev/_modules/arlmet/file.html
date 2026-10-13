@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=cac4e503"></script>
+    <script src="../../_static/documentation_options.js?v=3d8be15b"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev6+gf206a95ee" />
+  <meta name="docsearch:version" content="0.1.0b4.dev7+g58588e776" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1054,10 +1054,9 @@
 <span class="sd">        - every data record&#39;s header can be read, and names the variable,</span>
 <span class="sd">          level, and time its index record lists.</span>
 
-<span class="sd">        It reads each record&#39;s 50-byte header, not its values. The</span>
-<span class="sd">        checksums in the index records are not compared: NOAA&#39;s GDAS and</span>
-<span class="sd">        NAM12 files store 0 for the precipitation and fluxes taken from a</span>
-<span class="sd">        6-hour forecast, so a mismatch does not mean the file is damaged.</span>
+<span class="sd">        It reads each record&#39;s 50-byte header, not its values, so it does</span>
+<span class="sd">        not compare checksums. :meth:`arlmet.DataRecord.verify_checksum` compares</span>
+<span class="sd">        one record&#39;s packed bytes with its stored checksum.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>

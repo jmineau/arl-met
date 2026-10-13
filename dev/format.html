@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=cac4e503"></script>
+    <script src="_static/documentation_options.js?v=3d8be15b"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Checking Files" href="checking.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev6+gf206a95ee" />
+  <meta name="docsearch:version" content="0.1.0b4.dev7+g58588e776" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -529,7 +529,7 @@ HYSPLIT pattern:</p>
 │ - Variable ID (4)    │ - One byte per grid point    │
 │ - Date/Time          │ - Difference encoding        │
 │ - Level indicator    │ - Precision maintained       │
-│ - Checksum info      │                              │
+│ - Packing scale      │                              │
 └──────────────────────┴──────────────────────────────┘
 </pre></div>
 </div>
@@ -561,6 +561,19 @@ written partway. <a class="reference internal" href="_autosummary/arlmet.File.ch
 data records, byte for byte. arl-met keeps the first copy, ignores the repeat,
 and emits an <a class="reference internal" href="_autosummary/arlmet.ARLFormatWarning.html#arlmet.ARLFormatWarning" title="arlmet.ARLFormatWarning"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.ARLFormatWarning</span></code></a>. Rewriting such a file (e.g. with
 <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a>) produces a clean file without the repeat.</p>
+</section>
+<section id="checksums">
+<h3>Checksums<a class="headerlink" href="#checksums" title="Link to this heading">#</a></h3>
+<p>Each time step’s index record holds a checksum for each data record: the sum of
+the record’s packed bytes, less 255 each time the sum reaches 256
+(<a class="reference internal" href="_autosummary/arlmet.calculate_checksum.html#arlmet.calculate_checksum" title="arlmet.calculate_checksum"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.calculate_checksum()</span></code></a>). <a class="reference internal" href="_autosummary/arlmet.DataRecord.verify_checksum.html#arlmet.DataRecord.verify_checksum" title="arlmet.DataRecord.verify_checksum"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.DataRecord.verify_checksum()</span></code></a>
+compares a record’s packed bytes with it.</p>
+<p>A stored checksum of 0 means none was recorded, and <code class="docutils literal notranslate"><span class="pre">verify_checksum()</span></code>
+returns <code class="docutils literal notranslate"><span class="pre">True</span></code> for it. HYSPLIT’s writer fills in a checksum only for the
+records it packs in a time step, and HYSPLIT does not compare checksums when it
+reads a file. NOAA’s GDAS and NAM12 files store 0 for the precipitation and
+fluxes taken from a 6-hour forecast, at 00, 06, 12 and 18 UTC; their values are
+good.</p>
 </section>
 </section>
 <section id="variable-organization">
@@ -664,6 +677,7 @@ source workflow that produced it.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#individual-data-record-structure">3. Individual Data Record Structure</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#packing-algorithm">4. Packing Algorithm</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#malformed-files">Malformed files</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#checksums">Checksums</a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#variable-organization">Variable Organization</a><ul class="pst-show_toc_level nav section-nav flex-column">

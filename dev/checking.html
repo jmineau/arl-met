@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=cac4e503"></script>
+    <script src="_static/documentation_options.js?v=3d8be15b"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Vertical Coordinates" href="vertical.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev6+gf206a95ee" />
+  <meta name="docsearch:version" content="0.1.0b4.dev7+g58588e776" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -484,13 +484,28 @@ once it is cached.</p>
 <section id="what-is-not-checked">
 <h2>What is not checked<a class="headerlink" href="#what-is-not-checked" title="Link to this heading">#</a></h2>
 <ul class="simple">
-<li><p><strong>The values.</strong> Index records hold a checksum for each record, but NOAA’s GDAS
-and NAM12 files store 0 for the precipitation and fluxes taken from a 6-hour
-forecast, so <code class="docutils literal notranslate"><span class="pre">check()</span></code> does not compare them.</p></li>
+<li><p><strong>The values.</strong> <code class="docutils literal notranslate"><span class="pre">check()</span></code> reads only the headers. To compare each record’s
+packed bytes with the checksum its index record holds, call
+<a class="reference internal" href="_autosummary/arlmet.DataRecord.verify_checksum.html#arlmet.DataRecord.verify_checksum" title="arlmet.DataRecord.verify_checksum"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.DataRecord.verify_checksum()</span></code></a>, which reads the whole record (see
+below).</p></li>
 <li><p><strong>Hours the file should hold but does not.</strong> A file cut after a whole time step
 looks complete. Compare <a class="reference internal" href="_autosummary/arlmet.File.times.html#arlmet.File.times" title="arlmet.File.times"><code class="xref py py-attr docutils literal notranslate"><span class="pre">arlmet.File.times</span></code></a> with the hours you expect,
 for example from the file’s name.</p></li>
 </ul>
+</section>
+<section id="checking-the-values">
+<h2>Checking the values<a class="headerlink" href="#checking-the-values" title="Link to this heading">#</a></h2>
+<p>Each index record holds a checksum of each data record’s packed bytes.
+<a class="reference internal" href="_autosummary/arlmet.DataRecord.verify_checksum.html#arlmet.DataRecord.verify_checksum" title="arlmet.DataRecord.verify_checksum"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.DataRecord.verify_checksum()</span></code></a> returns <code class="docutils literal notranslate"><span class="pre">False</span></code> when a record’s
+bytes do not match it:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;gdas1.sep25.w1&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+    <span class="n">bad</span> <span class="o">=</span> <span class="p">[</span><span class="n">record</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">met</span><span class="o">.</span><span class="n">records</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">record</span><span class="o">.</span><span class="n">verify_checksum</span><span class="p">()]</span>
+</pre></div>
+</div>
+<p>This reads every byte of the file. A stored checksum of 0 means none was
+recorded, and <code class="docutils literal notranslate"><span class="pre">verify_checksum()</span></code> returns <code class="docutils literal notranslate"><span class="pre">True</span></code> for it: NOAA’s GDAS and
+NAM12 files store 0 for the precipitation and fluxes taken from a 6-hour
+forecast, at 00, 06, 12 and 18 UTC, and those values are good.</p>
 </section>
 <section id="checking-a-folder">
 <h2>Checking a folder<a class="headerlink" href="#checking-a-folder" title="Link to this heading">#</a></h2>
@@ -561,6 +576,7 @@ for example from the file’s name.</p></li>
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-is-checked">What is checked</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-is-not-checked">What is not checked</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#checking-the-values">Checking the values</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#checking-a-folder">Checking a folder</a></li>
 </ul>
   </nav></div>
