@@ -58,7 +58,7 @@ for bad file content: unparseable headers/index records, a size that is not a
 whole number of records, an index record declaring more data records than
 remain, inconsistent index metadata. Keep programmer errors (bad arguments) as
 plain `ValueError`/`TypeError`. Some NOAA HRRR archive files repeat a whole
-time step byte for byte (#16): read-mode scanning skips a byte-identical repeat
+time step byte for byte: read-mode scanning skips a byte-identical repeat
 with an `ARLFormatWarning` and raises `ARLFormatError` if the repeat differs.
 Write-mode `create_recordset` for an existing time still raises.
 `File.check()` finds what opens cleanly but HYSPLIT cannot use: a time step
