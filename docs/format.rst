@@ -92,7 +92,7 @@ Each data record consists of::
    │ - Variable ID (4)    │ - One byte per grid point    │
    │ - Date/Time          │ - Difference encoding        │
    │ - Level indicator    │ - Precision maintained       │
-   │ - Checksum info      │                              │
+   │ - Packing scale      │                              │
    └──────────────────────┴──────────────────────────────┘
 
 4. Packing Algorithm
@@ -124,6 +124,21 @@ Some NOAA archive files (e.g. HRRR) repeat a whole time step, index record and
 data records, byte for byte. arl-met keeps the first copy, ignores the repeat,
 and emits an :class:`arlmet.ARLFormatWarning`. Rewriting such a file (e.g. with
 :func:`arlmet.extract_subset`) produces a clean file without the repeat.
+
+Checksums
+~~~~~~~~~
+
+Each time step's index record holds a checksum for each data record: the sum of
+the record's packed bytes, less 255 each time the sum reaches 256
+(:func:`arlmet.calculate_checksum`). :meth:`arlmet.DataRecord.verify_checksum`
+compares a record's packed bytes with it.
+
+A stored checksum of 0 means none was recorded, and ``verify_checksum()``
+returns ``True`` for it. HYSPLIT's writer fills in a checksum only for the
+records it packs in a time step, and HYSPLIT does not compare checksums when it
+reads a file. NOAA's GDAS and NAM12 files store 0 for the precipitation and
+fluxes taken from a 6-hour forecast, at 00, 06, 12 and 18 UTC; their values are
+good.
 
 Variable Organization
 ---------------------

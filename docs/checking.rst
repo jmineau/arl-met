@@ -45,12 +45,30 @@ once it is cached.
 What is not checked
 -------------------
 
-- **The values.** Index records hold a checksum for each record, but NOAA's GDAS
-  and NAM12 files store 0 for the precipitation and fluxes taken from a 6-hour
-  forecast, so ``check()`` does not compare them.
+- **The values.** ``check()`` reads only the headers. To compare each record's
+  packed bytes with the checksum its index record holds, call
+  :meth:`arlmet.DataRecord.verify_checksum`, which reads the whole record (see
+  below).
 - **Hours the file should hold but does not.** A file cut after a whole time step
   looks complete. Compare :attr:`arlmet.File.times` with the hours you expect,
   for example from the file's name.
+
+Checking the values
+-------------------
+
+Each index record holds a checksum of each data record's packed bytes.
+:meth:`arlmet.DataRecord.verify_checksum` returns ``False`` when a record's
+bytes do not match it:
+
+.. code-block:: python
+
+   with arlmet.File("gdas1.sep25.w1") as met:
+       bad = [record for record in met.records if not record.verify_checksum()]
+
+This reads every byte of the file. A stored checksum of 0 means none was
+recorded, and ``verify_checksum()`` returns ``True`` for it: NOAA's GDAS and
+NAM12 files store 0 for the precipitation and fluxes taken from a 6-hour
+forecast, at 00, 06, 12 and 18 UTC, and those values are good.
 
 Checking a folder
 -----------------

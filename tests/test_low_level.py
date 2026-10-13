@@ -548,6 +548,53 @@ class TestDataRecordModeGuards:
             arl._manager.close()
 
 
+def set_stored_checksum(path, variable: str, checksum: int) -> None:
+    """Rewrite one variable's checksum in the file's first index record."""
+    raw = bytearray(path.read_bytes())
+    index_end = Header.N_BYTES + 400  # one 20x20 record
+    start = raw.index(variable.encode("ascii"), Header.N_BYTES, index_end) + 4
+    raw[start : start + 3] = f"{checksum:3d}".encode("ascii")
+    path.write_bytes(bytes(raw))
+
+
+class TestVerifyChecksum:
+    def test_stored_zero_means_none_recorded(self, tmp_path):
+        # NOAA's GDAS and NAM12 files store 0 for the fields taken from a
+        # 6-hour forecast; their data are good.
+        path = tmp_path / "zero_checksum.arl"
+        time, data = write_single_record_file(path)
+        set_stored_checksum(path, "TEMP", 0)
+
+        with File(path) as arl:
+            record = arl[time][(0, "TEMP")]
+            assert record.checksum == 0
+            assert record.verify_checksum() is True
+            np.testing.assert_allclose(record.read(), data)
+
+    def test_stored_checksum_that_does_not_match(self, tmp_path):
+        path = tmp_path / "wrong_checksum.arl"
+        time, _ = write_single_record_file(path)
+        with File(path) as arl:
+            stored = arl[time][(0, "TEMP")].checksum
+        set_stored_checksum(path, "TEMP", stored % 255 + 1)
+
+        with File(path) as arl:
+            assert arl[time][(0, "TEMP")].verify_checksum() is False
+
+    def test_damaged_payload(self, tmp_path):
+        path = tmp_path / "damaged.arl"
+        time, _ = write_single_record_file(path)
+        raw = bytearray(path.read_bytes())
+        data_start = 2 * Header.N_BYTES + 400  # after the index record
+        raw[data_start : data_start + 10] = bytes(10)
+        path.write_bytes(bytes(raw))
+
+        with File(path) as arl:
+            record = arl[time][(0, "TEMP")]
+            assert record.checksum != 0
+            assert record.verify_checksum() is False
+
+
 class TestRecordCollectionForecasts:
     def test_recordset_derives_index_forecast_from_mixed_record_forecasts(
         self, tmp_path

@@ -627,10 +627,9 @@ class File:
         - every data record's header can be read, and names the variable,
           level, and time its index record lists.
 
-        It reads each record's 50-byte header, not its values. The
-        checksums in the index records are not compared: NOAA's GDAS and
-        NAM12 files store 0 for the precipitation and fluxes taken from a
-        6-hour forecast, so a mismatch does not mean the file is damaged.
+        It reads each record's 50-byte header, not its values, so it does
+        not compare checksums. :meth:`arlmet.DataRecord.verify_checksum` compares
+        one record's packed bytes with its stored checksum.
 
         Returns
         -------
