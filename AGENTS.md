@@ -1,3 +1,10 @@
+# AGENTS.md
+
+Orientation for contributors and coding agents working on arl-met.
+Contribution mechanics are in [CONTRIBUTING.md](CONTRIBUTING.md); reference
+material (HYSPLIT routines arl-met mirrors, the import graph, the vertical-axis
+conversion table, benchmarks) is in the [developer notes](docs/development.rst).
+
 > **Keep this file current.** If you change the module layout, the build/test
 > commands, or learn a new invariant or gotcha, update the matching section in
 > the same change. A section that no longer matches the code is worse than no
@@ -9,533 +16,242 @@
 > they are not covered. Some agents stop reading `AGENTS.md` once a local
 > instruction file exists, so import or reference it from yours.
 
-# AGENTS.md — Developer and Agent Guide for arl-met
+## What this is
 
-This document gives a new engineer or agent the context needed to contribute
-to `arl-met` without redoing discovery. Read it before touching any source file.
+arl-met (import `arlmet`) reads, writes, crops, samples, and joins NOAA ARL
+packed meteorology files, the input format of HYSPLIT and STILT. The public API
+is listed in `docs/api.rst` and shown in the README and the user guides. Its main
+downstream user is PYSTILT, which downloads met with `arlmet.archives`, crops it
+with `extract_subset` before HYSPLIT runs, and reads headers through `File`, so
+the speed and memory use of those paths matter.
 
-## What This Package Does
-
-`arl-met` reads, writes, and manipulates NOAA ARL binary meteorology files.
-These files are the main data format consumed by HYSPLIT and PYSTILT
-(the Python STILT implementation). The package provides:
-
-- a low-level file/record model (`File`, `RecordSet`, `DataRecord`)
-- an xarray-native Dataset path (`open_dataset`, `write_dataset`) for the common case
-- a direct subset extractor (`extract_subset`) — crops before unpack, HYSPLIT-style
-- a point-sampling API (`sample_points`)
-- a file concatenator (`concat`) — joins ARL files into one, byte-level append
-- a batch concatenator (`concat_by_time`) — groups a directory by valid time
-- vertical helpers (`pressure`, `z_agl`, `z_msl`)
-
-The primary caller is PYSTILT. PYSTILT uses `extract_subset` and `sample_points`
-in the inner loop of particle trajectory calculations.
-
-## ARL Format Constraints That Bite Developers
-
-These are the format rules that cause silent bugs or confusing failures if ignored.
-
-### Record layout
-Each ARL file is a flat sequence of fixed-size binary records. Every record is
-`Header.N_BYTES + nx * ny` bytes (`50 + nx*ny`). Records contain one 2D field
-(one variable, one level, one time).
-
-### Index record
-The first record at each time step is always an index record (`variable="INDX"`).
-The index encodes the grid, vertical axis, and a per-level variable manifest. It
-must fit in exactly one record block (`50 + nx*ny` bytes). If a cropped grid is
-too small, the index record overflows. `validate_subset_record_size()` in
-`subset.py` checks this before writing.
-
-Of the 12 projection fields, only the longitudes (`pole_lon`, `tangent_lon`,
-`sync_lon`) are wrapped from 0-360 to [-180, 180] on read. HYSPLIT reads all 12
-raw (`metset.f`, `12F7.0`); `sync_x`/`sync_y` are grid indices and can
-legitimately exceed 180, so never wrap them.
-
-### Malformed files
-`File._scan` raises `ARLFormatError` (a `ValueError` subclass, `exceptions.py`)
-for bad file content: unparseable headers/index records, a size that is not a
-whole number of records, an index record declaring more data records than
-remain, inconsistent index metadata. Keep programmer errors (bad arguments) as
-plain `ValueError`/`TypeError`. Some NOAA HRRR archive files repeat a whole
-time step byte for byte: read-mode scanning skips a byte-identical repeat
-with an `ARLFormatWarning` and raises `ARLFormatError` if the repeat differs.
-Write-mode `create_recordset` for an existing time still raises.
-`File.check()` finds what opens cleanly but HYSPLIT cannot use: a time step
-with fewer records than the first (HYSPLIT steps between index records by
-that count), uneven time steps (HYSPLIT's STOP 23), and data record headers
-that do not parse or do not match the index. It reads headers only and does
-not compare checksums; `DataRecord.verify_checksum()` checks one record.
-
-### Checksums
-A stored checksum of 0 means none was recorded, and `verify_checksum()`
-returns True for it. NOAA's GDAS and NAM12 files store 0 for the fields taken
-from a 6-hour forecast (accumulated precipitation, fluxes) at 00, 06, 12 and
-18 UTC, half the records of each, and their data are good. HYSPLIT's writer
-(`pakrec`/`pakndx`) resets its checksum table to 0 at each time step and
-fills in only the records it packs, and its reader (`metinp`) never compares
-checksums. A computed checksum is 0 only when every packed byte is 0.
-
-### Differential records
-Some variable names begin with `DIF` (e.g., `DIFZ`). These are in-stream
-correction fields. The documented behavior is in the HYSPLIT user guide. Do not
-assume every `DIF*` field is an automatic correction for the prior record. Only
-implement the documented subset of DIFF behavior. In arl-met's low-level model,
-a DIF record belongs to the immediately preceding non-DIF record in the stream
-at the same time and level.
-
-### Packing
-ARL packs floats as unsigned bytes relative to the previous row or column value.
-The packer and unpacker are in `packing.py`. The checksum is the sum of all
-packed bytes, less 255 each time it reaches 256 (HYSPLIT's `pakout`), so it is
-1 to 255 unless every byte is 0. Do not modify `pack`/`unpack` without pack/unpack round-trip test coverage.
-
-### Large-grid letter codes
-When `nx` or `ny` exceeds 999, ARL encodes the overflow digit as a letter (`A`=1,
-`B`=2, ...). `split_grid_component` and the inverse in `header.py` handle this.
-`Header.grid` holds the thousands; the index record's fixed portion stores only
-the remainder, but `IndexRecord.nx`/`ny` are always the **full** sizes (the
-remainder is derived in `tobytes()`, and `IndexRecord.__post_init__` rejects a
-`header.grid` that does not match). `IndexRecord.index_length` is computed from
-the fields, never stored.
-
-### Vertical flag and the polymorphic axis model
-`VerticalAxis` is an **abstract base class**. The ARL vertical flag determines
-the subclass, constructed via `VerticalAxis.from_flag(flag, levels, offset=)`:
-
-| Flag | Subclass | `to_pressure` | `to_height_agl` |
-|------|----------|---------------|-----------------|
-| 1 | `SigmaAxis` | sigma → pressure formula | hypsometric integration (PRSS + TEMP) |
-| 2 | `PressureAxis` | returns stored levels | HGTS − terrain (requires HGTS + SHGT) |
-| 3 | `TerrainAxis` | raises ValueError | returns stored levels (already AGL) |
-| 4 | `HybridAxis` | hybrid → pressure formula | hypsometric integration (PRSS + TEMP) |
-| 5 | (not implemented) | raises NotImplementedError | raises NotImplementedError |
-
-**This mirrors HYSPLIT's `prfcom` dispatcher exactly.** Each coordinate system
-has one correct method — the flag IS the type. Key consequences:
-
-- **Sigma/hybrid files never have HGTS.** Heights are always hypsometric.
-- **Pressure files always have HGTS.** `z_agl`/`z_msl` require it — no
-  hypsometric fallback.
-- **Do not add HGTS-first fallback paths.** The previous code tried this; it
-  was removed to match HYSPLIT.
-
-Direct `VerticalAxis(...)` construction is not allowed (abstract). Use
-`VerticalAxis.from_flag(...)` or a subclass constructor directly (e.g.
-`PressureAxis(levels=[...])`).
-
-The conversion inputs are explicit keyword-only parameters shared by every
-subclass: `to_pressure(*, surface_pressure=None)` and
-`to_height_agl(*, surface_pressure=None, temperature=None, hgts=None,
-terrain=None)`. Each subclass uses only what its coordinate system needs and
-raises `ValueError` naming a missing input (`_require` in `vertical.py`).
-
-## Module Layout
+## Layout
 
 ```
 src/arlmet/
-  __init__.py      public exports
-  record.py        _require_mode helper + DataRecord (single 2D packed field)
-  collection.py    RecordCollection protocol, VariableView, VariableAccessor
-  recordset.py     RecordSet — the records for one valid time
-  file.py          File — top-level file handle, scan, factories
-  grid.py          Grid, GridWindow, Projection — horizontal geometry only
-  vertical.py      VerticalAxis (ABC), SigmaAxis, PressureAxis, TerrainAxis, HybridAxis
-  header.py        Header, helper functions — 50-byte record header codec
-  exceptions.py    ARLFormatError, ARLFormatWarning — malformed file content
-  index.py         IndexRecord, VarInfo, LvlInfo — index record codec
-  packing.py       pack(), unpack(), calculate_checksum()
-  xarray/          open_dataset(), write_dataset(), vertical helpers
-    __init__.py    re-exports all public xarray symbols
-    _backend.py    ArlVariableArray (xarray BackendArray)
-    _entrypoint.py ARLBackendEntrypoint — xr.open_dataset(path, engine="arl")
-    _coords.py     arl_grid coord codec + Dataset vertical-axis helpers
-    _accessor.py   ARLDatasetAccessor (ds.arl.grid, .vertical_axis, .source)
-    _vertical.py   pressure(), z_agl(), z_msl()
-    dataset.py     open_dataset() / write_dataset() — flat Dataset read/write path
-  ops/             operations on ARL files (subset, sample, concat)
-    __init__.py    re-exports extract_subset, sample_points, concat, concat_by_time
-    subset.py      extract_subset(), resolve_window(), normalize_levels()
-    sample.py      sample_points()
-    concat.py      concat(), concat_by_time() — join ARL files into one
-  archives.py      Archive + HRRRArchive, NAMArchive, GDASArchive, ... — NOAA archive downloads; ARCHIVES registry, get_archive()
-tests/
-  test_grid.py
-  test_low_level.py
-  test_memory.py
-  test_metadata.py
-  test_packing.py
-  test_pkg.py
-  test_sample.py
-  test_concat.py
-  test_format_errors.py
-  test_archives.py
-  test_subset.py
-  test_vertical.py
-  test_writer.py
+  file.py        File: file handle, scan of index records, check(), factories
+  recordset.py   RecordSet: the records of one valid time
+  record.py      DataRecord: one packed 2D field (one variable, level, time)
+  collection.py  RecordCollection protocol, VariableView, VariableAccessor
+  header.py      Header: the 50-byte record header codec
+  index.py       IndexRecord, VarInfo, LvlInfo: the index record codec
+  grid.py        Projection, Grid, GridWindow: horizontal geometry only
+  vertical.py    VerticalAxis (ABC): SigmaAxis, PressureAxis, TerrainAxis, HybridAxis
+  packing.py     pack(), unpack(), calculate_checksum()
+  _pack.c        C extension arlmet._pack: the packing encoder (pack_core)
+  exceptions.py  ARLFormatError, ARLFormatWarning
+  _io.py         atomic_output(), reject_same_file(): safe output paths
+  _time.py       ensure_timestamp()
+  archives.py    Archive and its subclasses, ARCHIVES, get_archive(): NOAA downloads
+  ops/           subset.py (extract_subset), sample.py, concat.py (concat, concat_by_time)
+  xarray/        dataset.py (open/write_dataset), the engine="arl" backend, the ds.arl
+                 accessor, the arl_grid coordinate codec, pressure/z_agl/z_msl
+tests/           one test_<area>.py per area, plus test_memory.py and test_subset_slow.py
+docs/            Sphinx site (PyData theme): user guides, API reference, developer notes
 ```
 
-## Dependency Graph (runtime)
+`ops/` and `xarray/` sit on top of `file.py`. `File.extract_subset`,
+`File.sample_points` and `File.to_dataset` import them inside the method, which
+keeps the import graph one-way; keep it that way. `archives.py` imports `fsspec`
+and `ops.subset` only inside the methods that use them, so `import
+arlmet.archives` works without the `archives` extra.
 
-Arrows show runtime imports. TYPE_CHECKING-only imports are not shown.
+## ARL format rules
 
-```
-grid, packing, exceptions             ← leaf nodes
-header → exceptions, grid
-index  → exceptions, grid, header, vertical
-vertical  (no imports — leaf node)
-record    → exceptions, grid, header, packing, vertical
-             (delayed import: xarray, inside DataRecord.to_xarray only)
-collection → grid, record, vertical
-recordset → collection, grid, header, index, record, vertical
-file      → collection, exceptions, grid, header, index, record, recordset, vertical
-             (delayed: ops.subset in File.extract_subset, ops.sample in
-              File.sample_points — ops sits on top of file, so file's use of
-              ops is lazy to keep the file↔ops dependency one-way at import time)
-ops/__init__ → ops.concat, ops.subset, ops.sample   (re-exports the public ops)
-ops.subset   → exceptions, file, grid, header, index, packing, record, vertical
-ops.sample   → grid, vertical   (TYPE_CHECKING: file, record, recordset)
-ops.concat   → exceptions, file, index
-xarray/   → file, grid, ops.subset, vertical  (TYPE_CHECKING: record, recordset)
-archives  → ops.subset
-```
+The format facts that cause silent bugs when ignored.
 
-Delayed (in-function-body) imports: `DataRecord.to_xarray()` → `xarray`; `File.extract_subset()` → `ops.subset` and
-`File.sample_points()` → `ops.sample` (ops depends on file, so file imports ops
-lazily to avoid a cycle). All other inter-module dependencies are explicit
-top-level imports.
+- **Records.** A file is a flat sequence of fixed-size records of
+  `Header.N_BYTES + nx * ny` bytes (50 + nx*ny), one 2D field each. Each time
+  step starts with an index record (`INDX`) that describes the grid, the
+  vertical axis and each level's variables, and must fit in one record. A crop
+  too small for its index record is refused before anything is written
+  (`validate_subset_record_length` in `ops/subset.py`).
+- **Projection fields.** Of the 12 projection values in the index record, only
+  the longitudes (`pole_lon`, `tangent_lon`, `sync_lon`) are wrapped to
+  [-180, 180] on read. HYSPLIT reads all 12 raw (`metset.f`); `sync_x`/`sync_y`
+  are grid indices and can exceed 180, so never wrap them.
+- **Grids over 999 cells.** The thousands of `nx`/`ny` are a letter in the header
+  (`A` = 1000, ...; `header.py`). `Header.grid` holds the thousands and the index
+  record's fixed part only the remainder, but `IndexRecord.nx`/`ny` are always the
+  full sizes; `IndexRecord.__post_init__` rejects a `header.grid` that does not
+  match, and `index_length` is computed, never stored.
+- **Packing.** Values are packed as unsigned bytes of differences from the
+  previous value (HYSPLIT's `pakout`/`pakinp`). `pack` and `unpack` are in
+  `packing.py`; the encoder loop is the C extension `_pack.c`. Do not change
+  either without a pack/unpack round-trip test.
+- **Checksums.** The index record stores a checksum per data record: the sum of
+  its packed bytes, less 255 each time it reaches 256, so 1 to 255 unless every
+  byte is 0. A stored 0 means none was recorded, and `verify_checksum()` returns
+  True for it: HYSPLIT's writer leaves 0 for records it did not pack, and its
+  reader never compares checksums. NOAA's GDAS and NAM12 files store 0 for the
+  6-hour-forecast fields at 00, 06, 12 and 18 UTC, and their data are good.
+- **`DIF*` records** are in-stream corrections. On read, a `DIF*` record belongs
+  to the nearest preceding non-`DIF` record of the same time step, and
+  `DataRecord.read()` returns parent + diff. Implement only the documented subset
+  of DIFF behavior; do not assume every `DIF*` name corrects the record before it.
+- **Malformed content raises `ARLFormatError`** (a `ValueError` subclass) from
+  `File._scan`: unparseable headers or index records, a size that is not a whole
+  number of records, an index record declaring more records than remain,
+  inconsistent index metadata. Bad arguments stay plain `ValueError`/`TypeError`.
+  A time step repeated byte for byte (some NOAA HRRR files) is skipped with an
+  `ARLFormatWarning`; a repeat that differs raises. `File.check()` lists damage
+  that opens cleanly but stops HYSPLIT (short or unevenly spaced time steps, bad
+  data record headers); it reads headers only, not values.
+- **The vertical flag is the type.** `VerticalAxis.from_flag(flag, levels,
+  offset=)` builds the subclass, mirroring HYSPLIT's `prfcom`: 1 `SigmaAxis`,
+  2 `PressureAxis`, 3 `TerrainAxis`, 4 `HybridAxis`; any other flag (including
+  5, WRF) raises `ValueError`. Sigma and hybrid files never have `HGTS`, so their
+  heights are hypsometric (`PRSS` + `TEMP`); pressure files always have `HGTS`,
+  and their heights come from it. Never add a fallback across flags ("use `HGTS`
+  if present", or a hypsometric fallback for pressure files). Each subclass uses
+  only the keyword-only inputs it needs and raises `ValueError` naming a missing one.
+- **Rotated grids** (`orientation != 0`) raise `NotImplementedError` in `Projection`.
 
-## Design Invariants — Do Not Violate
+## Design invariants
 
-1. **`grid.py` is horizontal-only.** `Grid` owns projection, shape, and
-   coordinate generation. Vertical geometry belongs in `vertical.py`.
-   Wind rotation (`Grid.meridian_convergence`, `Grid.rotate_winds`) lives here
-   too: it is a property of the horizontal projection, computed from
-   `pyproj.Proj(grid.crs).get_factors(...).meridian_convergence`.
+1. **`grid.py` is horizontal only.** Vertical geometry is in `vertical.py`. Wind
+   rotation (`Grid.meridian_convergence`, `Grid.rotate_winds`) belongs to the
+   projection and stays in `grid.py`.
+2. **`level` is the stored vertical dimension.** `open_dataset` returns lazy
+   NumPy-backed arrays (`ArlVariableArray`; dask only through `xr.open_dataset(...,
+   chunks=)`) and adds no derived 3D coordinates (`z_agl`, `z_msl` are helpers).
+3. **No live Python objects in xarray attrs.** Attrs are plain values (the grid is
+   the scalar `arl_grid` coordinate's attrs), so datasets survive netCDF.
+4. **`extract_subset` crops before unpacking.** With a bbox it passes a
+   `GridWindow` to `DataRecord.read(window=...)`, which decodes only that tile.
+   Without a horizontal crop it does not unpack: `_copy_subset_records` copies
+   each record's bytes (DIF records included), renumbers the header's level, and
+   rebuilds the index records. Keep both paths writing the same index records.
+5. **Windowing matches HYSPLIT's `xtrct_grid`.** On lat/lon grids a cell is kept
+   when its center is inside the bbox, edges included, and `west > east` crosses
+   the dateline. On projected grids the SW and NE corners are mapped to grid
+   indices and rounded like Fortran `NINT`. `test_grid.py` holds the reference.
+   A bbox is `(west, south, east, north)` in degrees (EPSG:4326), never projected.
+6. **`write_dataset` handles the common case only:** the flat Dataset that
+   `open_dataset` returns (surface variables without `level`, upper-air variables
+   on one `level` coordinate, `forecast_hour(time)` as the index-record forecast).
+   DIF records are written from `attrs["diff"] = "DIF..."` on the parent.
+   Per-variable forecast hours and other irregular layouts use `File`.
+7. **No backward compatibility.** When a metadata representation changes, change
+   every read and write path together; no code that accepts old attrs or formats.
+8. **Writers stream one time step at a time.** `DataRecord._flush()` drops its
+   buffers after writing (the record becomes mode "r"), and the writers call
+   `File.flush()` after each time step. `File`, `RecordSet` and `DataRecord` form
+   reference cycles, so any buffer a written `File` keeps lives until the cycle
+   collector runs. `tests/test_memory.py` guards peak and retained memory.
+9. **`DataRecord.read()` never caches; `.data` is the cache.** Lazy
+    `open_dataset` arrays keep their records alive, so a caching `read()` would
+    hold the whole file.
+10. **Handles come from xarray's `CachingFileManager`**, so files reopen after
+    `close()` or xarray's LRU cache closing them (`File.handle` reacquires). It
+    gets bare "r"/"w" through `_open_binary`: xarray turns only "w" into "a" on
+    reopen, so "wb" would truncate the output each time.
+11. **Outputs appear only when complete.** `extract_subset`, `write_dataset` and
+    archive downloads write a hidden `.<name>.<random>.partial` file and rename
+    it on success (`_io.atomic_output`); `extract_subset` and `write_dataset`
+    refuse an output that is their input (`_io.reject_same_file`).
+12. **Metadata types are immutable values.** `Projection`, `Grid`, `GridWindow`,
+    `Header` and `IndexRecord` are frozen dataclasses; `VerticalAxis` blocks
+    assignment and stores `levels` read-only. Hashing uses the defining fields,
+    and `cached_property` (`Grid.crs`, `Grid.origin`) is safe only because of
+    this. Build a new value (`dataclasses.replace`, `Grid.subset`); never mutate.
+13. **The public API is explicit.** `arlmet/__init__.py`, `ops/__init__.py` and
+    `xarray/__init__.py` re-export it, and the modules define `__all__` (all but
+    `ops/subset.py` and `ops/sample.py`). Options after the obvious leading
+    arguments are keyword-only. `unpack` keeps six positional arguments (the
+    wheel smoke test in `publish.yml` calls it that way); only `window` is
+    keyword-only.
+14. **Names.** Outputs are `dest` (a file) or `dest_dir` (a directory).
+    `source` means only the 4-character ARL source ID (`File.source`,
+    `ds.attrs["source"]`); the download classes are archives and their server is
+    the `mirror`. `open_dataset`/`write_dataset` keep xarray's `filename_or_obj`.
+15. **Containers follow `File.times`.** `File[int]`, `iter(File)` and
+    `File.records` use sorted valid-time order, not on-disk order. `key in rs`
+    accepts the `(level, variable)` keys `rs[key]` takes, and a bare variable
+    name meaning "at any level".
 
-2. **`level` is the stored vertical dimension.** Do not store derived 3D
-   coordinates (`z_agl`, `z_msl`) as default xarray coordinates. They are
-   opt-in helpers.
+## Commands
 
-3. **NumPy first.** Default `open_dataset` uses NumPy-backed lazy
-  arrays (`ArlVariableArray`).
+The environment is uv-managed (`uv sync`, which also builds `_pack`); every task
+is a `just` recipe, and CI runs the same recipes (`just` lists them).
 
-4. **No live Python objects in xarray attrs.** All attrs must be JSON-serializable
-   so datasets survive netCDF round-trips.
+| Task | Command |
+|---|---|
+| Set up / refresh `.venv` | `uv sync` |
+| Everything CI checks (lint, types, docstrings, tests) | `just quality-check` |
+| Tests (no network/slow) | `just test` (parallel; extra args go to pytest) |
+| Tests that download from NOAA S3 | `just test-network` |
+| Lint / fix and format / type check (pyrefly, strict) | `just lint` / `just format` / `just type-check` |
+| Docs (runs every example; warnings are errors) / live preview | `just build-docs` / `just docs-serve` |
+| All pre-commit hooks / build and check dists | `just pre-commit` / `just dist` |
+| Draft changelog entries | `just changelog` |
 
-5. **`extract_subset` crops before unpack.** The performance gain comes from
-   passing a `GridWindow` to `DataRecord.read(window=...)`, which decodes only
-   the requested tile. Do not revert to "open full dataset, then subset".
-   Without a crop (the window is the full grid) it does not unpack at all:
-   `_copy_subset_records` copies each selected record's bytes (DIF records
-   included), rewriting only the header's level field, and rebuilds the index
-   records. Keep the two paths producing the same index records.
+After editing dependencies, run `uv lock` online (`--offline` churns unrelated
+pins) and commit `uv.lock` with them. Python 3.11+; runtime dependencies are
+numpy, pandas, pyproj, typing_extensions and xarray (fsspec, s3fs for `[archives]`).
 
-6. **`window_from_bbox` uses HYSPLIT-inclusive windowing.** The grid index
-   selection matches `xtrct_grid.f`: pixels are included if their center falls
-   within the bbox (inclusive on both edges). See `grid.py:window_from_bbox`
-   and `test_grid.py` for the reference behavior.
+## Docs
 
-7. **bbox input is lat/lon only.** `extract_subset` and `open_dataset` accept
-   `bbox=(west, south, east, north)` in degrees EPSG:4326. Projected inputs are
-   not supported yet. A future `bbox_crs` parameter should raise on anything
-   other than `"EPSG:4326"` until full reprojection is implemented.
+`docs/api.rst` lists the API by topic. Each class gets a page with tables of its
+attributes and methods, and each member a page of its own
+(`docs/_templates/autosummary/`, `docs/_ext/api_pages.py`); a property's page is
+where its See Also and Examples go, so give every public attribute and property a
+docstring. A new public function gets a user guide (a gerund page such as
+`cropping.rst`, listed in `docs/user-guides.rst`), its API entry, and a README
+line in the same change. Examples run when the docs build, so they show real
+output and a broken one fails the build:
 
-8. **`write_dataset` is intentionally common-case only.** It writes the flat
-  Dataset representation returned by `open_dataset`: surface variables have no
-  `level` dimension, upper-air variables share one `level` coordinate, and
-  `forecast_hour(time)` represents only the index-record forecast. DIF writing
-  is supported through explicit parent metadata (`DataArray.attrs["diff"] =
-  "DIF..."`), but per-variable forecast heterogeneity and other irregular
-  layouts should still use the low-level `File` API instead.
-
-9. **No backward compatibility.** When metadata representations change, update
-   all write/read paths together. Do not add fallback code paths that accept old
-   formats or legacy attrs. Datasets produced by older versions of the library
-   are not supported; users must re-open files with the current library version.
-
-10. **The flag IS the type — no cross-flag fallbacks.** Vertical coordinate
-    dispatch is handled by polymorphic `VerticalAxis` subclasses, mirroring
-    HYSPLIT's `prfcom`. Each coordinate system has exactly one correct method
-    for deriving pressure and height. Do not add "if HGTS present, use it"
-    fallbacks for sigma/hybrid, or hypsometric fallbacks for pressure files.
-
-11. **Writers stream one time step at a time.** `DataRecord._flush()` drops
-    `_unpacked`/`_packed`/`_bytes` after writing (the record flips to mode
-    "r"), and `extract_subset`/`write_dataset` call `File.flush()` after each
-    time step. Do not reintroduce whole-file buffering: `File`, `RecordSet`,
-    and `DataRecord` form reference cycles, so any buffer a written File keeps
-    lives until the cycle collector runs (this was the extract_subset
-    "leak"). `tests/test_memory.py` guards peak and retained memory.
-
-12. **`DataRecord.read()` never caches; `.data` is the cache.** `read()` is
-    a pure disk read (new array each call). Lazy `open_dataset()` arrays keep
-    their source records alive, so a caching `read()` made them accumulate
-    the whole file. Only `DataRecord.data` stores the full field.
-
-13. **File handle management.** `File` gets its handle from xarray's
-    `CachingFileManager` so read-mode files can reopen after `close()` (lazy
-    `open_dataset` arrays read after the File is closed). The manager is given
-    bare mode "r"/"w" through `_open_binary` because xarray only switches "w"
-    to "a" on reopen — passing "wb" made any reopen truncate the output.
-    `File.handle` reacquires when xarray's global LRU cache
-    (`file_cache_maxsize`, default 128) has closed the cached handle.
-
-14. **Metadata types are immutable values.** `Projection`, `Grid`,
-    `GridWindow`, `Header`, and `IndexRecord` are frozen dataclasses;
-    `VerticalAxis` blocks attribute assignment and stores `levels` as a
-    read-only array. Equality and hashing follow the defining fields only, so
-    a Grid can key a dict. Derived values are either computed on access
-    (`Projection.params` returns a new dict) or cached with
-    `functools.cached_property` (`Grid.crs`, `Grid.origin`), which is safe
-    only because nothing they depend on can change. Never mutate these; build
-    a new one (`dataclasses.replace`, `Grid.subset`, a new axis).
-
-15. **Public API is explicit.** Every public module defines `__all__`.
-    Options after the obvious leading arguments are keyword-only (`File`
-    metadata, `create_datarecord`/`add_record` record options,
-    `open_dataset`/`to_dataset` options, `DataRecord.to_xarray(squeeze=)`,
-    `VerticalAxis` conversion inputs). `unpack` keeps its six positional
-    arguments (the CI wheel smoke test calls it positionally); only `window`
-    is keyword-only.
-
-16. **Containers follow `File.times`.** `File[int]`, `iter(File)`, and
-    `File.records` use sorted valid-time order, not on-disk order.
-    `key in rs` accepts every key `rs[key]` accepts (`(level, variable)`),
-    plus a bare variable name meaning "present at any level".
-
-## Public API Summary
-
-```python
-import arlmet
-
-# Read — analysis view
-ds = arlmet.open_dataset("file.arl")
-ds = arlmet.open_dataset("file.arl", bbox=(-112, 40, -111, 41), levels=[0, 1, 2])
-ds = xr.open_dataset("file.arl", engine="arl", chunks={"time": 1})  # xarray backend
-
-# Read/write — common-case Dataset path
-ds = arlmet.open_dataset("file.arl")
-ds["TEMP"] -= 273.15
-ds["WWND"].attrs["diff"] = "DIFW"
-arlmet.write_dataset(ds, "out.arl")
-
-# Path-parameter naming (all ops): inputs are `path` / `paths`, outputs are
-# `dest` (a file) / `dest_dir` (a directory). `source` means only the ARL
-# 4-character source ID (File.source, ds.attrs["source"]); the download
-# classes are "archives" and their server is the "mirror".
-# open_dataset/write_dataset keep xarray's `filename_or_obj`.
-
-# Download from NOAA's ARL archives (pip install "arlmet[archives]")
-from arlmet.archives import ARCHIVES, get_archive, HRRRArchive
-files = get_archive("hrrr").fetch("2024-07-18", "2024-07-19", dest_dir="met/",
-                                   mirror="s3", bbox=(-114, 39, -110, 42))
-
-# Direct subset extraction (fast, crop-before-unpack); returns Path(dest)
-out = arlmet.extract_subset("in.arl", "out.arl", bbox=(-130, 20, -60, 60))
-arlmet.extract_subset("in.arl", "out.arl", levels=[0, 1, 2], variables=["UWND", "VWND"])
-
-# Point sampling: files = path, File, or a sequence of either. The result is a
-# copy of `points` (all columns + index kept) plus one column per variable.
-# Point time: `time` column, else time=, else the inputs' single valid time;
-# a `time` column plus time= raises ValueError.
-import pandas as pd
-points = pd.DataFrame({"lon": [-111.9], "lat": [40.7], "z": [850.0]})
-result = arlmet.sample_points("file.arl", points, ["UWND", "VWND"], z_kind="pressure")
-# Grid-relative -> east/north winds on projected grids (both components required)
-result = arlmet.sample_points("file.arl", points, ["UWND", "VWND"], earth_relative=True)
-
-# Concatenate ARL files into one (byte-level append; orders by valid time);
-# returns Path(dest)
-arlmet.concat(["20240101_00_hrrr", "20240101_06_hrrr"], "20240101_hrrr")
-
-# Batch concat: group a directory of files into chunks by valid time
-# (time read from each file's index record, not its name); freq is keyword-only
-arlmet.concat_by_time("hrrr/", "daily/", freq="1D", pattern="*_hrrr",
-                        template="{time:%Y%m%d}_hrrr")
-
-# Vertical helpers (operate on open_dataset output)
-p = arlmet.pressure(ds)           # DataArray of pressure levels
-h_agl = arlmet.z_agl(ds)         # height above ground
-h_msl = arlmet.z_msl(ds)         # height above MSL
-
-# Same conversions on NumPy arrays (keyword-only inputs; ValueError if missing)
-p = vaxis.to_pressure(surface_pressure=prss)                 # sigma/hybrid
-z = vaxis.to_height_agl(surface_pressure=prss, temperature=temp)
-z = paxis.to_height_agl(hgts=hgts, terrain=shgt[..., None])  # pressure levels
-
-# Low-level
-with arlmet.File("file.arl") as f:
-    print(f.grid, f.vertical_axis, f.times)
-    rs = f[f.times[0]]          # RecordSet (f[0] is the same: sorted times)
-    rec = rs[(1, "TEMP")]       # DataRecord; (1, "TEMP") in rs tests for it
-    coords = f.grid.calculate_coords()  # {name: (dims, values)}
-    arr = rec.read()            # np.ndarray (full grid)
-    arr = rec.read(window=...)  # np.ndarray (cropped tile)
-    problems = f.check()        # list[str]: damage that opens cleanly; [] if none
-
-# Low-level writing for irregular files
-with arlmet.File("out.arl", mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as f:
-  rs = f.create_recordset(times[0], forecast=0)
-  rs.create_datarecord("PRSS", 0, forecast=0, data=prss)
-  rs.create_datarecord("TEMP", 1, forecast=3, data=temp)
-  rs.create_datarecord("WWND", 1, forecast=3, data=wwnd, diff="DIFW")
-  f.add_record(times[1], "PRSS", 0, forecast=0, data=prss)  # creates the RecordSet
-  f.flush()  # write this time step and free its buffers; call once per time step
-```
-
-## sample_points z_kind Reference
-
-| `z_kind` | `z` units | flag=1/4 (sigma/hybrid) requires | flag=2 (pressure) requires | flag=3 (terrain) |
-|----------|-----------|----------------------------------|----------------------------|-------------------|
-| `"native"` | level index | — | — | — |
-| `"pressure"` | hPa | PRSS | — (stored levels) | raises ValueError |
-| `"agl"` | meters | PRSS + TEMP (hypsometric) | HGTS + SHGT | — (stored levels) |
-| `"msl"` | meters | PRSS + TEMP + SHGT | HGTS | SHGT |
-
-## Development Workflow
-
-Driven by [`just`](https://github.com/casey/just) and uv; CI runs the same
-recipes (`just` lists them all):
-
-```bash
-uv sync                  # .venv with the package (builds _pack) and the dev tools
-just test                # offline tests, in parallel; extra args go to pytest
-just test-network        # the tests that download from NOAA S3
-just lint                # ruff check + format check (`just format` fixes)
-just type-check          # pyrefly, strict preset
-just quality-check       # lint, type check, docstrings (`just docstr`), tests
-just build-docs          # Sphinx, running every example; warnings are errors (`just docs-serve` previews)
-just dist                # sdist + this platform's wheel, checked with twine
-just pre-commit          # every pre-commit hook on every file
-```
-
-The tooling comes from [jmineau/python-template](https://github.com/jmineau/python-template)
-(`.copier-answers.yml`); `copier update` pulls in its changes. Releases:
-RELEASING.md.
-
-**Docs.** `docs/api.rst` lists the API by topic. Each class gets a page with
-tables of its attributes and methods, and each member a page of its own
-(`docs/_templates/autosummary/`, `docs/_ext/api_pages.py`). A property's page
-is where its See Also and Examples go (as in pandas), so give each public
-attribute and property a docstring; one without shows an empty row. The docs
-are versioned on GitHub Pages, which serves the gh-pages branch (`dev/`, one
-folder per release, `stable/`); `.github/scripts/docs_versions.py` maintains
-the branch. Never edit gh-pages by hand.
-
-Python ≥ 3.11 required. Runtime dependencies: `numpy`, `pandas`, `pyproj`,
-`xarray`.
-
-**The version comes from git tags** (setuptools-scm), so there is no version
-string to bump: a release is the tag `vX.Y.Z`, and between releases the version
-is a dev version such as `0.1.0b3.dev5+g1a2b3c4`. `uv.lock` records arlmet's
-version as dynamic. After changing dependencies, run `uv lock` online —
-`uv lock --offline` re-resolves packages from the local cache and can churn
-many unrelated pins.
-
-## Examples in the docs
-
-Examples run when the docs build, so they show real output, and the build fails
-when one breaks.
-
-- **A figure in a docstring:** put a `.. plot::` directive in the Examples
-  section. Its code runs (doctest `>>>` lines work), and the figure appears
-  under it.
-
-  ```rst
-  Examples
-  --------
-  .. plot::
-
-     >>> import matplotlib.pyplot as plt
-     >>> _ = plt.plot([0, 1, 2], [0, 1, 4])
-  ```
-
-- **Code in an `.rst` page:** a `.. ipython:: python` block runs, and shows each
-  line with its output, as in an IPython session. Changing a
-  `.. code-block:: python` to `.. ipython:: python` is enough to make it run. For
-  a figure, put `@savefig name.png` on the line above the plotting call.
-
-  ```rst
-  .. ipython:: python
-
-     import matplotlib.pyplot as plt
-     import arlmet
-
-     arlmet.__version__
-
-     @savefig squares.png width=5in
-     plt.plot([0, 1, 2], [0, 1, 4]);
-  ```
-
-  A block that raises or warns fails the build; `:okexcept:` or `:okwarning:`
-  under the directive allows one that is meant to. All `.rst` pages share one
-  session, so each page imports and defines what it uses.
-- **When they run:** `just build-docs` runs everything, as CI does;
-  `just docs-serve` reruns a page's blocks whenever that page is rebuilt.
-- **Notebooks, and code cells in Markdown pages,** are off in this project.
-  `copier update --data docs_notebooks=true` turns them on; it adds myst-nb, and
-  Jupyter with it, to the dev tools.
+- **A figure in a docstring:** a `.. plot::` directive in the Examples section
+  runs its code (doctest `>>>` lines work) and shows the figure under it.
+- **Code in an `.rst` page:** a `.. ipython:: python` block runs and shows each
+  line with its output; `@savefig name.png` on the line above a plotting call
+  saves its figure. A block that raises or warns fails the build (`:okexcept:` or
+  `:okwarning:` allows one meant to). All `.rst` pages share one session, so each
+  page imports and defines what it uses.
+- `just build-docs` runs everything, as CI does; `just docs-serve` reruns a page's
+  blocks when that page is rebuilt. Notebooks and Markdown code cells are off
+  (`copier update --data docs_notebooks=true` turns them on).
 - **Data:** the docs build on GitHub Actions, so an example uses synthetic data,
   a small file in the repository, or a public download, never a machine-specific
-  path. Seed random numbers so the figures don't change from build to build.
-- **ARL files:** the repository has no sample ARL file. An example that needs
-  one builds a small file with `arlmet.write_dataset`, as the tests do, so it
-  runs anywhere. Downloads from NOAA's archives (`arlmet[archives]`) are several
-  gigabytes, so an example never fetches one; it shows the call as a plain
-  `code-block`. If an example needs an extra, add `arlmet[extra]` to the `dev`
-  group, so `uv sync` installs it here and in CI.
+  path. Seed random numbers so figures don't change between builds.
+- **ARL files:** the repository has no sample ARL file. An example builds a small
+  one with `arlmet.write_dataset`, as the tests do. Archive downloads are
+  gigabytes, so an example shows the call as a plain `code-block` and never runs
+  it. If an example needs an extra, add `arlmet[extra]` to the `dev` group.
 
-## Testing Notes
+## Tests
 
-- Tests write small synthetic ARL files; no real meteorology files are needed.
-- When writing a synthetic file, the grid must be large enough that
-  `50 + nx*ny >= len(index_record.tobytes())`. A 20x20 grid is usually safe
-  for a few variables and levels.
-- `test_subset.py`, `test_sample.py`, and `test_concat.py` cover the newest APIs.
-- `test_writer.py` covers round-trip correctness.
-- `test_memory.py` bounds writer memory with `tracemalloc` (peak during
-  `extract_subset`/`write_dataset`, and memory retained after return with the
-  GC disabled, and a lazy-Dataset `write_dataset`). `extract_subset` is
-  measured on both its byte-copy (no bbox) and repack (bbox) paths. Keep its
-  grids ~200x200 so array buffers dominate Python object overhead.
-- `just test` runs the offline tests (`-m "not network and not slow"`, as CI
-  does). A bare `pytest` also runs the network tests, which hit NOAA S3.
-  Warnings are errors; a test that expects one asserts it with `pytest.warns`.
-- For performance benchmarks, use real files downloaded from the archives,
-  e.g. the July 2024 NCEP/NCAR Reanalysis month
-  (`get_archive("reanalysis").fetch("2024-07-01", "2024-07-01", dest_dir=...)`
-  gives `RP202407.gbl`: 73x144, 124 times, 18 levels). On it, `extract_subset`
-  takes ~2.1 s for the `bbox=(-170, 10, -40, 70)` crop (repack path) and
-  ~0.3 s for `levels=[0, 1, 2, 3, 4]` without a bbox (byte-copy path; ~1.5 s
-  before it existed). A 614x428 NAM12 day (`get_archive("nam12")`) takes
-  ~0.27 s for the same levels (was ~3.3 s).
+- Tests build small synthetic ARL files whose grid must hold the index record
+  (`50 + nx*ny >= len(index.tobytes())`); 20x20 fits a few variables and levels.
+- `just test` runs `-m "not network and not slow"`, as CI does. A bare `pytest`
+  also runs the network tests, which download from NOAA S3. CI runs the fast
+  network tests on every run and the slow ones (`test_subset_slow.py`: parity of
+  `extract_subset` with HYSPLIT's `xtrct_grid` on real files) only when started by
+  hand.
+- Markers are strict and warnings are errors (assert expected ones with `pytest.warns`).
+- `test_memory.py` bounds writer memory with `tracemalloc`; keep its grids about
+  200x200 so array buffers dominate. It can fail when pytest's temp directory is
+  on a filesystem with a large block size (Python sizes file buffers from
+  `st_blksize`); point `TMPDIR` at a local disk.
 
-## Known Limitations and Open Work
+## Commits, changelog, releases
 
-- **Flag 5 (WRF) vertical axes are not implemented.** Flags 1–4 are fully
-  supported via polymorphic `VerticalAxis` subclasses. Adding flag 5 means
-  adding a `WrfAxis` subclass with `to_pressure` and `to_height_agl` methods.
-- **No `bbox_crs` support yet.** The parameter should be accepted and raise on
-  non-EPSG:4326 inputs as a future extension point.
-- **DIFF variable handling is partial.** Read/rewrite/subset preservation is
-  supported for in-stream `DIF*` records, and generated DIF writing follows the
-  documented residual-after-pack pattern. Complex multi-record DIFF chains are
-  not tested.
-- **`write_dataset` is intentionally conservative.** It supports the common
-  Dataset shape only. DIF generation is supported via `attrs["diff"]`, but
-  files with per-variable forecast heterogeneity or other irregular layouts
-  should be authored through `File`.
+- Conventional Commits (`fix(record): ...`, `docs: ...`, `!` if breaking).
+  User-visible changes go under `## [Unreleased]` in `CHANGELOG.md`.
+- The version comes from git tags (setuptools-scm); there is no version string to
+  bump, and a release does not change `uv.lock`. Steps are in
+  [RELEASING.md](RELEASING.md). **Do not cut a release, create a tag, or push
+  unless the maintainer asks.**
+- Docs are versioned on GitHub Pages from the gh-pages branch (`dev/`, one folder
+  per release, `stable/`), which `.github/scripts/docs_versions.py` maintains.
+  Never edit gh-pages by hand.
+- Tooling comes from [jmineau/python-template](https://github.com/jmineau/python-template)
+  via copier; `copier update` pulls in its changes (never edit `.copier-answers.yml`).
 
-## Format References
+## Gotchas
 
-- HYSPLIT ARL format overview: https://www.ready.noaa.gov/hysplitusersguide/S141.htm
-- HYSPLIT `CONTROL` file, the "number of input data grids" line: one number `N`
-  makes each file its own grid; two numbers `1 N` are one grid with `N` files
-  in time: https://www.ready.noaa.gov/hysplitusersguide/S310.htm
-- HYSPLIT "Compilation Limits" (at most 12 met files with the one-number form,
-  and 128 files per grid with `1 N` — the reason `concat`/`concat_by_time`
-  exist): https://www.ready.noaa.gov/hysplitusersguide/S441.htm
-- GDAS packing details: https://www.ready.noaa.gov/gdas1.php
-- READY archive catalog: https://www.ready.noaa.gov/archives.php
-- ARLreader notes: https://github.com/martin-rdz/ARLreader/blob/master/working_with_ARLformat.md
+- `ruff format` skips `README.md` and `AGENTS.md` (hand-aligned examples).
+- `docs/_autosummary/` is generated; `just build-docs` deletes and rebuilds it.
+- uv rebuilds the editable install when `_pack.c`, `setup.py`, `pyproject.toml`
+  or the git state change (`[tool.uv] cache-keys`), so `__version__` follows new
+  commits and tags.
