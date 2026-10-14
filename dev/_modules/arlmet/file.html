@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=ea210f4b"></script>
+    <script src="../../_static/documentation_options.js?v=37447d0a"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev9+g06b6a9ea4" />
+  <meta name="docsearch:version" content="0.1.0b4.dev11+g142bfffe4" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -978,8 +978,10 @@
 
             <span class="c1"># Read data records for this index record</span>
             <span class="n">position</span> <span class="o">+=</span> <span class="n">record_length</span>  <span class="c1"># start of data records</span>
-            <span class="n">prev_dr</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">for</span> <span class="n">lvl</span> <span class="ow">in</span> <span class="n">index</span><span class="o">.</span><span class="n">levels</span><span class="p">:</span>
+                <span class="c1"># A DIF record corrects the data record just before it on the</span>
+                <span class="c1"># same level, so each level starts without a parent.</span>
+                <span class="n">prev_dr</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">lvl</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
                     <span class="n">checksum</span> <span class="o">=</span> <span class="n">lvl</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">checksum</span>
                     <span class="n">reserved</span> <span class="o">=</span> <span class="n">lvl</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">reserved</span>
@@ -990,7 +992,15 @@
                             <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
                                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: difference record found for &quot;</span>
                                 <span class="sa">f</span><span class="s2">&quot;variable &#39;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">&#39; at byte </span><span class="si">{</span><span class="n">position</span><span class="si">}</span><span class="s2"> without &quot;</span>
-                                <span class="s2">&quot;a preceding data record.&quot;</span>
+                                <span class="sa">f</span><span class="s2">&quot;a preceding data record at level </span><span class="si">{</span><span class="n">lvl</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">.&quot;</span>
+                            <span class="p">)</span>
+                        <span class="k">if</span> <span class="n">prev_dr</span><span class="o">.</span><span class="n">diff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: difference record &#39;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">&#39; at &quot;</span>
+                                <span class="sa">f</span><span class="s2">&quot;byte </span><span class="si">{</span><span class="n">position</span><span class="si">}</span><span class="s2"> follows &#39;</span><span class="si">{</span><span class="n">prev_dr</span><span class="o">.</span><span class="n">diff</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39;, &quot;</span>
+                                <span class="sa">f</span><span class="s2">&quot;which already corrects &#39;</span><span class="si">{</span><span class="n">prev_dr</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39; at &quot;</span>
+                                <span class="sa">f</span><span class="s2">&quot;level </span><span class="si">{</span><span class="n">lvl</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">; a data record has at most &quot;</span>
+                                <span class="s2">&quot;one difference record.&quot;</span>
                             <span class="p">)</span>
                         <span class="n">prev_dr</span><span class="o">.</span><span class="n">_create_diff</span><span class="p">(</span>
                             <span class="n">position</span><span class="o">=</span><span class="n">position</span><span class="p">,</span>

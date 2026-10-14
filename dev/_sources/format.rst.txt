@@ -68,7 +68,17 @@ Differential records
 
 Some ARL streams include trailing ``DIF*`` records. These are separate on-disk
 records that belong to the immediately preceding non-``DIF`` parent record at
-the same time and level.
+the same time and level. NOAA's HRRR files have one for the precipitation
+(``DIFR`` after ``TPP1``) and one for the vertical velocity on every level
+(``DIFW`` after ``WWND``).
+
+A parent has at most one DIF record. arl-met pairs a DIF record with the
+record directly before it on its level, whatever the DIF's name; HYSPLIT's own
+reader pairs ``DIFW`` with the vertical velocity and ``DIFT`` with the
+turbulence kinetic energy of its level by name. Producers write each DIF right
+after its parent, where the two agree. A DIF record with no parent before it on
+its level, or a second DIF record after the same parent, is malformed
+(:class:`arlmet.ARLFormatError`).
 
 arl-met preserves that stream structure in the low-level API. When reading a
 parent record through :class:`arlmet.DataRecord`, the returned values are the
@@ -113,8 +123,9 @@ Opening a file scans its index records. :class:`arlmet.ARLFormatError` (a
 - a record header or index record cannot be parsed (e.g. a non-ARL file)
 - the file size is not a whole number of records, or an index record declares
   more data records than remain in the file (a truncated download)
-- index records disagree on source, grid, or vertical axis, or a ``DIF*``
-  record has no preceding parent record
+- index records disagree on source, grid, or vertical axis
+- a ``DIF*`` record has no parent before it on its level, or follows another
+  ``DIF*`` record
 - a valid time is repeated with different content
 
 A file can also be damaged in ways that open cleanly, such as a time step
