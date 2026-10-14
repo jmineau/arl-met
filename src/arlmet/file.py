@@ -23,7 +23,7 @@ from arlmet.exceptions import ARLFormatError, ARLFormatWarning
 from arlmet.grid import Grid, Projection
 from arlmet.header import record_length_from_grid
 from arlmet.index import IndexRecord
-from arlmet.record import DataRecord, _require_mode
+from arlmet.record import DataRecord, _corrects, _require_mode
 from arlmet.recordset import RecordSet
 from arlmet.vertical import VerticalAxis
 
@@ -155,7 +155,6 @@ class File:
         # Initialize recordsets as an ordered dict to preserve time order
         # Mapping: time -> RecordSet
         self._recordsets: OrderedDict[pd.Timestamp, RecordSet] = OrderedDict()
-        self._diff_parents: dict[str, str] = {}
         self.variables = VariableAccessor(self)
 
         # Scan the file to populate recordsets in read mode
@@ -374,23 +373,6 @@ class File:
             position=position, source=source, grid=grid, time=ts, forecast=forecast
         )
 
-    def _register_diff_binding(self, diff_name: str, parent_name: str) -> None:
-        """Record and validate the explicit parent binding for a generated DIF name."""
-        _require_mode(self, "w")
-        if not diff_name.startswith("DIF"):
-            raise ValueError(
-                f"Generated diff record names must start with 'DIF', got '{diff_name}'."
-            )
-
-        bound_parent = self._diff_parents.get(diff_name)
-        if bound_parent is not None and bound_parent != parent_name:
-            raise ValueError(
-                f"Difference record '{diff_name}' is already bound to parent "
-                f"'{bound_parent}', not '{parent_name}'."
-            )
-
-        self._diff_parents[diff_name] = parent_name
-
     def add_record(
         self,
         time: pd.Timestamp | str,
@@ -424,7 +406,8 @@ class File:
             later with ``record[:] = values``.
         diff : str or sequence of str, optional
             Name of a trailing DIF record to derive from the parent field, or
-            the names of several, written in order (see
+            the names of several, written in order. Each must be one HYSPLIT's
+            name table pairs with ``variable`` at ``level`` (see
             :meth:`RecordSet.create_datarecord`).
 
         Returns
@@ -451,9 +434,15 @@ class File:
             If the file is not valid ARL: an unparseable index record, a size
             that is not a whole number of records, an index record that
             declares more data records than remain, inconsistent metadata
-            between index records, a ``DIF*`` record with no data record
-            before it on its level, a variable listed twice on one level, or
+            between index records, a variable listed twice on one level, or
             a time step repeated with different content.
+
+        Warns
+        -----
+        ARLFormatWarning
+            If a time step is repeated byte for byte (the copy is skipped),
+            or a ``DIF*`` record has no record before it on its level that
+            HYSPLIT's name table pairs it with (it is applied to nothing).
         """
         # Scan the file to populate recordsets in read mode
         fh = self.handle
@@ -462,6 +451,10 @@ class File:
         # Extent (position, n_bytes) of each time step's first occurrence,
         # used to compare against any repeated copy of the same time.
         extents: dict[pd.Timestamp, tuple[int, int]] = {}
+        # The first byte of each (name, level) of DIF record that pairs with
+        # nothing, and how many there are, for one warning after the scan.
+        unpaired: dict[tuple[str, int], int] = {}
+        n_unpaired = 0
 
         while fh.tell() < size:
             # Get starting position of each recordset
@@ -552,28 +545,34 @@ class File:
             # Read data records for this index record
             position += record_length  # start of data records
             for lvl in index.levels:
-                # A DIF record corrects the nearest data record before it on
-                # the same level, so each level starts without a parent. Several
-                # DIF records in a row all correct that record, as HYSPLIT adds
-                # each one it reads.
-                prev_dr = None
+                # A DIF record corrects the nearest record before it on its
+                # level that HYSPLIT's name table pairs it with (_corrects),
+                # whatever lies between; several DIF records can correct one
+                # record, as HYSPLIT adds each one it reads.
+                level_records: list[DataRecord] = []
                 for var, info in lvl.variables:
                     checksum = info.checksum
                     reserved = info.reserved
 
                     if var.startswith("DIF"):
-                        if prev_dr is None:
-                            raise ARLFormatError(
-                                f"{self.path}: difference record found for "
-                                f"variable '{var}' at byte {position} without "
-                                f"a preceding data record at level {lvl.level}."
-                            )
-                        prev_dr._create_diff(
-                            position=position,
-                            variable=var,
-                            checksum=checksum,
-                            reserved=reserved,
+                        parent = next(
+                            (
+                                dr
+                                for dr in reversed(level_records)
+                                if _corrects(var, dr.variable, lvl.level)
+                            ),
+                            None,
                         )
+                        if parent is None:
+                            unpaired.setdefault((var, lvl.level), position)
+                            n_unpaired += 1
+                        else:
+                            parent._create_diff(
+                                position=position,
+                                variable=var,
+                                checksum=checksum,
+                                reserved=reserved,
+                            )
                     else:
                         if (lvl.level, var) in rs:
                             raise ARLFormatError(
@@ -590,13 +589,29 @@ class File:
                             reserved=reserved,
                         )
 
-                        # Keep track of previous data record for diff assignment
-                        prev_dr = dr
+                        level_records.append(dr)
 
                     position += record_length  # go to next record
 
             # Move file pointer to the start of the next index record
             fh.seek(position)
+
+        if unpaired:
+            found = [
+                f"{name} at level {level} (byte {first})"
+                for (name, level), first in list(unpaired.items())[:5]
+            ]
+            if len(unpaired) > 5:
+                found.append(f"and {len(unpaired) - 5} more")
+            warnings.warn(
+                f"{self.path}: {n_unpaired} DIF record(s) have no record before "
+                "them on their level that HYSPLIT's name table pairs them with, "
+                "so they are not applied and a rewrite or subset leaves them out: "
+                f"{', '.join(found)}. DIFW corrects WWND or DZDT, DIFT corrects "
+                "TKEN or TKEU, and at the surface any DIF* corrects TPP* or PRT*.",
+                ARLFormatWarning,
+                stacklevel=3,
+            )
 
     def _same_bytes(self, first: int, second: int, n_bytes: int) -> bool:
         """

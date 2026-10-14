@@ -200,18 +200,18 @@ def test_extract_subset_preserves_diff_records(tmp_path):
         source, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
     ) as arl:
         rs = arl.create_recordset(time0)
-        rs.create_datarecord("WWND", level=0, forecast=0, data=data, diff="DIFW")
+        rs.create_datarecord("TPP1", level=0, forecast=0, data=data, diff="DIFR")
 
     bbox = (22.0, -8.0, 33.0, 3.0)
     extract_subset(source, destination, bbox=bbox)
 
     with File(source) as original, File(destination) as subset:
         source_window = original.grid.window_from_bbox(bbox)
-        source_record = original[time0][(0, "WWND")]
-        subset_record = subset[time0][(0, "WWND")]
+        source_record = original[time0][(0, "TPP1")]
+        subset_record = subset[time0][(0, "TPP1")]
 
         assert subset_record.diffs
-        assert subset_record.diffs[0].variable == "DIFW"
+        assert subset_record.diffs[0].variable == "DIFR"
 
         np.testing.assert_allclose(
             subset_record.read(),
@@ -256,15 +256,15 @@ def test_extract_subset_recomputes_diff_records_no_systematic_bias(tmp_path):
         source, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
     ) as arl:
         rs = arl.create_recordset(time0)
-        rs.create_datarecord("WWND", level=0, forecast=0, data=data, diff="DIFW")
+        rs.create_datarecord("TPP1", level=0, forecast=0, data=data, diff="DIFR")
 
     bbox = (25.0, -5.0, 70.0, 40.0)
     extract_subset(source, destination, bbox=bbox)
 
     with File(source) as original, File(destination) as subset:
         source_window = original.grid.window_from_bbox(bbox)
-        source_record = original[time0][(0, "WWND")]
-        subset_record = subset[time0][(0, "WWND")]
+        source_record = original[time0][(0, "TPP1")]
+        subset_record = subset[time0][(0, "TPP1")]
 
         diff_grid = subset_record.read() - source_record.read(window=source_window)
         mean_signed_bias = float(diff_grid.mean())
@@ -480,8 +480,8 @@ def test_extract_subset_byte_copy_matches_repack(tmp_path, monkeypatch, kwargs):
     "kwargs",
     [
         {},
-        {"levels": [3, 1]},
-        {"levels": [1, 3], "variables": ["WWND"]},
+        {"levels": [3, 0, 1]},
+        {"levels": [0, 1, 3], "variables": ["WWND"]},
         {"levels": [0, 2, 3], "variables": ["T02M", "WWND", "UWND"]},
         {"bbox": (19.5, -10.5, 39.5, 9.5), "levels": [0, 1, 4]},
     ],
@@ -550,13 +550,13 @@ def test_extract_subset_byte_copy_rejects_mismatched_record_header(tmp_path):
     source.write_bytes(bytes(raw))
 
     with pytest.raises(ARLFormatError, match="header mismatch"):
-        extract_subset(source, destination, levels=[1])
+        extract_subset(source, destination, levels=[0, 1])
     assert not destination.exists()
 
 
 def test_extract_subset_validation_counts_diff_records(tmp_path):
-    # A 16x8 crop has 178-byte records: room for an index listing WWND
-    # (174 bytes) but not WWND plus its DIFW record (182 bytes).
+    # A 16x8 crop has 178-byte records: room for an index listing TPP1
+    # (174 bytes) but not TPP1 plus its DIFR record (182 bytes).
     source = tmp_path / "source.arl"
     destination = tmp_path / "subset.arl"
     grid = make_test_grid()
@@ -570,7 +570,7 @@ def test_extract_subset_validation_counts_diff_records(tmp_path):
         vertical_axis=PressureAxis(levels=[1000.0]),
     ) as arl:
         rs = arl.create_recordset(pd.Timestamp("2024-07-18"), forecast=0)
-        rs.create_datarecord("WWND", level=0, forecast=0, data=data, diff="DIFW")
+        rs.create_datarecord("TPP1", level=0, forecast=0, data=data, diff="DIFR")
 
     with pytest.raises(ValueError, match="too small to encode an ARL index record"):
         extract_subset(source, destination, bbox=(22.0, -8.0, 37.0, -1.0))

@@ -23,6 +23,44 @@ if TYPE_CHECKING:
 
 __all__ = ["DataRecord"]
 
+# HYSPLIT's reader (metinp.f) adds each DIF record into a field it picks by the
+# DIF's name. Above the surface, DIFW goes into the vertical velocity (filled by
+# WWND or DZDT) and DIFT into the TKE (TKEN or TKEU); any other name is skipped.
+# At the surface it matches the first three letters only, so every DIF* name goes
+# into the precipitation (TPP* or PRT*). The field holds the last of its records
+# read on the level, so a DIF corrects the nearest such record before it.
+_UPPER_DIF_PARENTS = {"DIFW": ("WWND", "DZDT"), "DIFT": ("TKEN", "TKEU")}
+_SURFACE_DIF_PARENTS = ("TPP", "PRT")
+
+
+def _corrects(dif: str, parent: str, level: int) -> bool:
+    """Return True when a ``dif`` record at ``level`` corrects a ``parent`` record."""
+    if level == 0:
+        return parent[:3] in _SURFACE_DIF_PARENTS
+    return parent in _UPPER_DIF_PARENTS.get(dif, ())
+
+
+def _dif_parents(dif: str, level: int) -> str:
+    """Name the records a ``dif`` record at ``level`` corrects, for a message."""
+    if level == 0:
+        return "TPP* or PRT* (at the surface, any DIF* name)"
+    parents = _UPPER_DIF_PARENTS.get(dif)
+    if parents is None:
+        return "no record (above the surface only DIFW and DIFT correct one)"
+    return " or ".join(parents)
+
+
+def _check_dif_parent(dif: str, parent: str, level: int) -> None:
+    """Raise ValueError unless a ``dif`` record at ``level`` corrects ``parent``."""
+    if not dif.startswith("DIF"):
+        raise ValueError(f"Difference record names must start with 'DIF', got '{dif}'.")
+    if not _corrects(dif, parent, level):
+        raise ValueError(
+            f"A {dif} record at level {level} corrects {_dif_parents(dif, level)}, "
+            f"not {parent}: a DIF record is paired with its parent by HYSPLIT's "
+            "name table."
+        )
+
 
 def _require_mode(obj: Any, *allowed_modes: str) -> None:
     """Raise UnsupportedOperation when *obj.mode* is not in *allowed_modes*."""
@@ -169,10 +207,14 @@ class DataRecord:
         """
         The ``DIF*`` records that correct this record, in stream order.
 
-        A ``DIF*`` record holds what packing lost from the record before it:
-        the original values minus the packed ones. A record has none, one,
-        or, rarely, several; :meth:`read` returns the record plus each of
-        them, added in stream order, as HYSPLIT does.
+        A ``DIF*`` record holds what packing lost from its parent: the
+        original values minus the packed ones. It is paired with its parent
+        by HYSPLIT's name table: ``DIFW`` corrects ``WWND`` or ``DZDT``,
+        ``DIFT`` corrects ``TKEN`` or ``TKEU``, and at the surface any
+        ``DIF*`` corrects ``TPP*`` or ``PRT*``, in each case the nearest such
+        record before it on its level. A record has none, one, or, rarely,
+        several; :meth:`read` returns the record plus each of them, added in
+        stream order, as HYSPLIT does.
 
         See Also
         --------

@@ -68,7 +68,8 @@ Write constraints
   path. The file is written to a temporary name and renamed into place when
   complete, so an interrupted write never leaves a truncated file
 - generated DIF names must be declared on the parent variable with
-  ``attrs["diff"]`` and must start with ``DIF``
+  ``attrs["diff"]``, must start with ``DIF``, and must be one HYSPLIT's name
+  table pairs with the parent (see below)
 - Dataset DIF writing is parent-led; do not add ``DIF*`` variables as separate
   Dataset data variables
 - surface-only datasets must pass ``vertical_axis=`` explicitly to
@@ -97,6 +98,11 @@ the usual case, and the Dataset path writes one.
 Validation rules:
 
 - DIF names must start with ``DIF``
+- each DIF name must be one that HYSPLIT's name table pairs with the parent at
+  its level: ``DIFW`` with ``WWND`` or ``DZDT`` and ``DIFT`` with ``TKEN`` or
+  ``TKEU`` above the surface, any ``DIF*`` name with ``TPP*`` or ``PRT*`` at
+  the surface (level 0); any other pair raises ``ValueError``, since a reader
+  would not pair it (*ARL File Format* has the table)
 - generated DIF records inherit the parent time, level, and forecast
 - the same DIF name cannot be rebound to a different parent variable during one
   write

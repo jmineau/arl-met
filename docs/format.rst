@@ -66,27 +66,47 @@ Each record set contains:
 Differential records
 ~~~~~~~~~~~~~~~~~~~~
 
-Some ARL streams include trailing ``DIF*`` records. These are separate on-disk
-records that belong to the nearest preceding non-``DIF`` parent record at the
-same time and level. A DIF record holds what packing lost from its parent (the
-original values minus the packed ones). NOAA's HRRR files have one for the
-precipitation (``DIFR`` after ``TPP1``) and one for the vertical velocity on
-every level (``DIFW`` after ``WWND``).
+Some ARL streams include ``DIF*`` records. These are separate on-disk records
+that correct a data record of the same time and level, their parent: a DIF
+record holds what packing lost from its parent (the original values minus the
+packed ones). NOAA's HRRR files have one for the precipitation (``DIFR`` after
+``TPP1``) and one for the vertical velocity on every level (``DIFW`` after
+``WWND``).
+
+A DIF record is paired with its parent by name, as HYSPLIT's reader
+(``metinp``) pairs it:
+
+.. list-table::
+   :header-rows: 1
+
+   * - DIF record
+     - Level
+     - Parent
+   * - ``DIFW``
+     - above the surface
+     - ``WWND`` or ``DZDT``
+   * - ``DIFT``
+     - above the surface
+     - ``TKEN`` or ``TKEU``
+   * - any ``DIF*``
+     - surface (level 0)
+     - ``TPP*`` or ``PRT*``
+
+The parent is the nearest record before the DIF on its level that the table
+allows, whatever lies between them: HYSPLIT adds the DIF into a field that holds
+the last such record it read. NOAA's ``era52arl`` lists ``DIFW`` and ``DIFR``
+last on each level, after ``RELH`` and ``USTR``, and they still correct ``WWND``
+and ``TPP1``. A DIF record with another name above the surface, or with no
+parent before it on its level, is applied to nothing, as HYSPLIT skips it, and
+opening the file warns where it is (:class:`arlmet.ARLFormatWarning`).
 
 A parent can have several DIF records in a row (``WWND``, ``DIFW``, ``DIFW``).
 HYSPLIT's reader adds each one it reads into its field, one after another, so
 arl-met reads them the same way: the parent's value is
 ``(parent + DIF) + DIF``, added in stream order in ``float32``. No producer we
 know of writes more than one. When one does, its index record may list the same
-``DIF*`` name more than once on a level.
-
-arl-met pairs a DIF record with the nearest data record before it on its level,
-whatever the DIF's name; HYSPLIT's own reader pairs ``DIFW`` with the vertical
-velocity and ``DIFT`` with the turbulence kinetic energy of its level by name,
-and adds any ``DIF*`` record at the surface to the precipitation. Producers
-write each DIF right after its parent, where the two agree. A DIF record with
-no parent before it on its level is malformed (:class:`arlmet.ARLFormatError`),
-and so is a level that lists a variable other than a ``DIF*`` twice.
+``DIF*`` name more than once on a level. A level that lists a variable other
+than a ``DIF*`` twice is malformed (:class:`arlmet.ARLFormatError`).
 
 arl-met preserves that stream structure in the low-level API. When reading a
 parent record through :class:`arlmet.DataRecord`, the returned values are the
@@ -94,6 +114,13 @@ parent plus each of its :attr:`~arlmet.DataRecord.diffs`. An uncropped
 :func:`~arlmet.extract_subset` copies every DIF record's bytes; a crop or a
 rewrite packs the combined values again, writing the same DIF records after
 each parent, whose values agree with the source's within the DIFs' precision.
+Both write each DIF record right after its parent, so a DIF that the source
+lists later on its level (as ``era52arl`` does) moves up, and the index record
+lists the new order; a DIF record that corrects nothing is left out. A subset
+that leaves out level 0 makes its lowest level the surface, where a ``DIFW`` or
+``DIFT`` would correct nothing, so :func:`~arlmet.extract_subset` refuses one
+that would move a DIF record there (HYSPLIT's ``xtrct_grid`` always keeps
+level 0).
 
 When arl-met generates a DIF record while writing, it follows the producer-side
 HYSPLIT pattern:
@@ -103,7 +130,9 @@ HYSPLIT pattern:
    write parent -> unpack packed parent -> diff = target - unpacked_parent -> write DIF
 
 With several DIF names, each DIF is the target minus the unpacked parent and
-the unpacked DIF records before it.
+the unpacked DIF records before it. The writer refuses a DIF name the table
+does not pair with the parent at its level (``ValueError``), so what it writes
+reads back with the same pairs.
 
 3. Individual Data Record Structure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

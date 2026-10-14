@@ -247,6 +247,13 @@ def write_dataset(
     flat Dataset API. ``forecast_hour(time)`` supplies only the ARL index-record
     forecast written for each time step.
 
+    A variable whose ``attrs["diff"]`` names a ``DIF*`` record is written with
+    that DIF record after it on each level (see
+    :meth:`arlmet.RecordSet.create_datarecord`). The name must be one
+    HYSPLIT's name table pairs with the variable: ``DIFW`` for ``WWND`` or
+    ``DZDT`` and ``DIFT`` for ``TKEN`` or ``TKEU`` above the surface, any
+    ``DIF*`` name for ``TPP*`` or ``PRT*`` at the surface.
+
     Parameters
     ----------
     ds : xarray.Dataset
@@ -267,8 +274,9 @@ def write_dataset(
     ------
     ValueError
         If the Dataset does not match the layout above, a slice is partly NaN
-        or non-finite, or ``filename_or_obj`` is the file ``ds`` was opened
-        from.
+        or non-finite, an ``attrs["diff"]`` name is not one the name table
+        pairs with its variable, or ``filename_or_obj`` is the file ``ds`` was
+        opened from.
 
     Notes
     -----

@@ -15,7 +15,7 @@ from arlmet.collection import VariableAccessor
 from arlmet.grid import Grid
 from arlmet.header import Header, split_grid_component
 from arlmet.index import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
-from arlmet.record import DataRecord, _require_mode
+from arlmet.record import DataRecord, _check_dif_parent, _require_mode
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
@@ -174,12 +174,22 @@ class RecordSet:
             names to write several DIF records after the parent, in order;
             each holds what packing left after the parent and the DIF records
             before it, so a reader that adds them all (as HYSPLIT does) gets
-            back to the field. One is the usual case.
+            back to the field. One is the usual case. Each name must be one
+            that HYSPLIT's name table pairs with ``variable`` at ``level``:
+            ``DIFW`` with ``WWND`` or ``DZDT``, ``DIFT`` with ``TKEN`` or
+            ``TKEU``, and at the surface (level 0) any ``DIF*`` name with
+            ``TPP*`` or ``PRT*``.
 
         Returns
         -------
         DataRecord
             Writable data record for the requested variable and level.
+
+        Raises
+        ------
+        ValueError
+            If ``variable`` is a ``DIF*`` name, or a ``diff`` name is not one
+            the name table pairs with ``variable`` at ``level``.
         """
         _require_mode(self, "w")
         if variable.startswith("DIF"):
@@ -188,7 +198,7 @@ class RecordSet:
             )
         diff_names = (diff,) if isinstance(diff, str) else tuple(diff or ())
         for name in diff_names:
-            self.file._register_diff_binding(diff_name=name, parent_name=variable)
+            _check_dif_parent(name, variable, level)
         dr = self._create_datarecord(
             position=-1, variable=variable, level=level, forecast=forecast
         )
