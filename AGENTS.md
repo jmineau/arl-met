@@ -65,10 +65,10 @@ when it downloads, so it imports without the `archives` extra.
   unless every byte is 0. A stored 0 means none was recorded, so
   `verify_checksum()` returns True for it (HYSPLIT writes 0 for records it did not
   pack and never compares checksums; `docs/format.rst` has the NOAA cases).
-- **`DIF*` records** are in-stream corrections. On read, a `DIF*` record belongs
-  to the nearest preceding non-`DIF` record of the same time step, and
-  `DataRecord.read()` returns parent + diff. Implement only the documented subset
-  of DIFF behavior; do not assume every `DIF*` name corrects the record before it.
+- **`DIF*` records** are in-stream corrections. Each belongs to the nearest
+  earlier non-`DIF` record of its time step and level; `read()` adds all of them
+  (`DataRecord.diffs`; a name may repeat) in stream order, as HYSPLIT's `metinp`
+  does. Implement only documented DIFF behavior; HYSPLIT pairs some by name.
 - **Malformed content raises `ARLFormatError`** (a `ValueError` subclass) from
   `File._scan` (the cases are in `docs/format.rst`); bad arguments stay plain
   `ValueError`/`TypeError`. A time step repeated byte for byte (some NOAA HRRR

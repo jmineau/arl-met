@@ -41,7 +41,7 @@ Strengths:
 Known limitations:
 
 - `write_dataset()` is intentionally conservative and targets the flat common-case Dataset contract
-- a `DIF*` record belongs to the data record just before it on its level, whatever its name, and a record has at most one; a file with a `DIF*` record that breaks either rule is rejected as malformed
+- a `DIF*` record belongs to the nearest data record before it on its level, whatever its name (HYSPLIT pairs `DIFW` and `DIFT` by name); several in a row are all added to that record, as HYSPLIT adds them, and a `DIF*` record with no data record before it on its level is rejected as malformed
 - WRF vertical flag 5 and rotated grids are not implemented
 
 ## Installation

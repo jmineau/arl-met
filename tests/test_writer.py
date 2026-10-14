@@ -116,8 +116,8 @@ class TestWriter:
         assert index0.forecast == 0
         assert index0.vertical_flag == 2
         assert [lvl.height for lvl in index0.levels] == [0.0, 1000.0]
-        assert list(index0.levels[0].variables) == ["PRSS"]
-        assert list(index0.levels[1].variables) == ["TEMP"]
+        assert [name for name, _ in index0.levels[0].variables] == ["PRSS"]
+        assert [name for name, _ in index0.levels[1].variables] == ["TEMP"]
 
         reopened = File(path)
         assert reopened.source == "TEST"
@@ -369,8 +369,8 @@ class TestWriter:
         with File(written_path) as reopened:
             time0 = pd.Timestamp("2024-07-18 00:00")
             record = reopened[time0][(1, "TEMP")]
-            assert record.diff is not None
-            assert record.diff.variable == "DIFT"
+            assert record.diffs
+            assert record.diffs[0].variable == "DIFT"
 
         reopened_ds = open_dataset(written_path)
         np.testing.assert_allclose(reopened_ds["TEMP"].values, ds["TEMP"].values)

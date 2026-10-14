@@ -46,13 +46,8 @@ def _open_binary(path: str | os.PathLike[str], mode: str) -> BinaryIO:
 
 
 def _with_diffs(rs: RecordSet) -> list[DataRecord]:
-    """Return the records of *rs* in index order, each followed by its DIF record."""
-    records = []
-    for record in rs.records:
-        records.append(record)
-        if record.diff is not None:
-            records.append(record.diff)
-    return records
+    """Return the records of *rs* in index order, each followed by its DIF records."""
+    return [rec for record in rs.records for rec in (record, *record.diffs)]
 
 
 def _at(time: pd.Timestamp) -> str:
@@ -404,7 +399,7 @@ class File:
         *,
         forecast: int,
         data: npt.ArrayLike | None = None,
-        diff: str | None = None,
+        diff: str | Sequence[str] | None = None,
     ) -> DataRecord:
         """
         Add one writable DataRecord, creating its RecordSet if needed.
@@ -427,8 +422,10 @@ class File:
         data : array-like, optional
             ``(ny, nx)`` field values. When omitted, assign the whole field
             later with ``record[:] = values``.
-        diff : str, optional
-            Name of a trailing DIF record to derive from the parent field.
+        diff : str or sequence of str, optional
+            Name of a trailing DIF record to derive from the parent field, or
+            the names of several, written in order (see
+            :meth:`RecordSet.create_datarecord`).
 
         Returns
         -------
@@ -454,8 +451,9 @@ class File:
             If the file is not valid ARL: an unparseable index record, a size
             that is not a whole number of records, an index record that
             declares more data records than remain, inconsistent metadata
-            between index records, or a time step repeated with different
-            content.
+            between index records, a ``DIF*`` record with no data record
+            before it on its level, a variable listed twice on one level, or
+            a time step repeated with different content.
         """
         # Scan the file to populate recordsets in read mode
         fh = self.handle
@@ -554,28 +552,21 @@ class File:
             # Read data records for this index record
             position += record_length  # start of data records
             for lvl in index.levels:
-                # A DIF record corrects the data record just before it on the
-                # same level, so each level starts without a parent.
+                # A DIF record corrects the nearest data record before it on
+                # the same level, so each level starts without a parent. Several
+                # DIF records in a row all correct that record, as HYSPLIT adds
+                # each one it reads.
                 prev_dr = None
-                for var in lvl.variables:
-                    checksum = lvl.variables[var].checksum
-                    reserved = lvl.variables[var].reserved
+                for var, info in lvl.variables:
+                    checksum = info.checksum
+                    reserved = info.reserved
 
                     if var.startswith("DIF"):
-                        # Assign as diff record to previous data record
                         if prev_dr is None:
                             raise ARLFormatError(
                                 f"{self.path}: difference record found for "
                                 f"variable '{var}' at byte {position} without "
                                 f"a preceding data record at level {lvl.level}."
-                            )
-                        if prev_dr.diff is not None:
-                            raise ARLFormatError(
-                                f"{self.path}: difference record '{var}' at "
-                                f"byte {position} follows '{prev_dr.diff.variable}', "
-                                f"which already corrects '{prev_dr.variable}' at "
-                                f"level {lvl.level}; a data record has at most "
-                                "one difference record."
                             )
                         prev_dr._create_diff(
                             position=position,
@@ -584,6 +575,12 @@ class File:
                             reserved=reserved,
                         )
                     else:
+                        if (lvl.level, var) in rs:
+                            raise ARLFormatError(
+                                f"{self.path}: index record for {index.time} "
+                                f"lists '{var}' twice at level {lvl.level} "
+                                f"(again at byte {position})."
+                            )
                         # Create data record
                         dr = rs._create_datarecord(
                             position=position,

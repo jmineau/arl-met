@@ -1,6 +1,5 @@
 """Binary codecs for ARL index records: VarInfo, LvlInfo, and IndexRecord."""
 
-from collections import OrderedDict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import Any, BinaryIO, ClassVar
@@ -53,13 +52,15 @@ class LvlInfo:
         Level index.
     height : float
         Height in units of the vertical coordinate system.
-    variables : dict[str, VarInfo]
-        Dictionary mapping variable names to VarInfo (checksum and reserved).
+    variables : list[tuple[str, VarInfo]]
+        Each record on the level, in stream order: its variable name and its
+        VarInfo (checksum and reserved). A ``DIF*`` name can appear more than
+        once, as when two difference records follow one parent.
     """
 
     level: int
     height: float
-    variables: OrderedDict[str, VarInfo]
+    variables: list[tuple[str, VarInfo]]
 
 
 @dataclass(frozen=True)
@@ -327,7 +328,7 @@ class IndexRecord:
         for level in self.levels:
             chunks.append(format_fixed_width_float(level.height, 6))
             chunks.append(f"{len(level.variables):2d}")
-            for name, info in level.variables.items():
+            for name, info in level.variables:
                 reserved = (info.reserved or " ")[:1]
                 chunks.append(f"{name:<4}{info.checksum:3d}{reserved}")
         return "".join(chunks).encode("ascii")
@@ -452,16 +453,17 @@ class IndexRecord:
         for i in range(nz):
             height = float(extended[cursor : cursor + 6].strip())
 
-            vars: OrderedDict[str, VarInfo] = OrderedDict()
+            vars: list[tuple[str, VarInfo]] = []
             num_vars = int(extended[cursor + 6 : cursor + 8].strip())
             for j in range(num_vars):
                 start = cursor + 8 + j * 8
                 end = start + 8
                 name = extended[start : start + 4].strip()
-                vars[name] = VarInfo(
+                info = VarInfo(
                     checksum=int(extended[start + 4 : start + 7].strip()),
                     reserved=extended[start + 7 : end].strip(),
                 )
+                vars.append((name, info))
 
             lvls.append(LvlInfo(level=i, height=height, variables=vars))
             cursor += 8 + num_vars * 8
