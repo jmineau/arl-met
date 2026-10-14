@@ -79,7 +79,8 @@ the API reference for the full object model.
 Development
 -----------
 
-See :doc:`contributing` for contribution guidance.
+See :doc:`contributing` for contribution guidance and :doc:`development` for
+notes on arl-met's internals.
 
 Indices and tables
 ==================

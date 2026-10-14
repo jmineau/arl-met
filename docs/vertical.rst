@@ -115,7 +115,7 @@ cannot be reassigned. Build a new axis instead (for example
 Limitations
 -----------
 
-- WRF vertical flag 5 is not implemented; the helpers raise
-  ``NotImplementedError`` for it.
+- WRF vertical flag 5 is not implemented: opening a flag-5 file raises
+  ``ValueError`` (``Unsupported vertical flag 5``).
 - ``pressure()`` for terrain-following files (flag=3) requires a stored ``PRES``
   field; it is not derived.
