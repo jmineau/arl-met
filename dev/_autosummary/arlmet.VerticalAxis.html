@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=e4ff9623"></script>
+    <script src="../_static/documentation_options.js?v=06aa3904"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.GridWindow.y_slice" href="arlmet.GridWindow.y_slice.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
+  <meta name="docsearch:version" content="0.1.0b4.dev15+g6490cdded" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -496,6 +496,11 @@
 <li class="toctree-l2"><a class="reference internal" href="arlmet.HybridAxis.to_pressure.html">arlmet.HybridAxis.to_pressure</a></li>
 </ul>
 </details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.WrfAxis.html">arlmet.WrfAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.WrfAxis.to_height_agl.html">arlmet.WrfAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.WrfAxis.to_pressure.html">arlmet.WrfAxis.to_pressure</a></li>
+</ul>
+</details></li>
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.Header.html">arlmet.Header</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -619,13 +624,14 @@ equally. Build a new axis to change one.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>levels</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeAliasType</span></code></span>) – Native level values stored in the file (1-D).</p></li>
-<li><p><strong>offset</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Pressure offset used by sigma and hybrid coordinate conversions.</p></li>
+<li><p><strong>offset</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Pressure offset [hPa] stored in the index record: the sigma offset,
+or WRF’s model-top pressure for flag 5.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Variables<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
 <li><p><strong>flag</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a>) – ARL vertical coordinate flag (1=sigma, 2=pressure, 3=terrain,
-4=hybrid).</p></li>
+4=hybrid, 5=WRF).</p></li>
 <li><p><strong>coord_system</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – Human-readable coordinate system name.</p></li>
 <li><p><strong>levels</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Read-only <code class="docutils literal notranslate"><span class="pre">float64</span></code> array of native level values.</p></li>
 <li><p><strong>offset</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a>) – Pressure offset stored in the index record.</p></li>

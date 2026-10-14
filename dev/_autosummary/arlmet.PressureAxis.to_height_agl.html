@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=e4ff9623"></script>
+    <script src="../_static/documentation_options.js?v=06aa3904"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.PressureAxis" href="arlmet.PressureAxis.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
+  <meta name="docsearch:version" content="0.1.0b4.dev15+g6490cdded" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -496,6 +496,11 @@
 <li class="toctree-l2"><a class="reference internal" href="arlmet.HybridAxis.to_pressure.html">arlmet.HybridAxis.to_pressure</a></li>
 </ul>
 </details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.WrfAxis.html">arlmet.WrfAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.WrfAxis.to_height_agl.html">arlmet.WrfAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.WrfAxis.to_pressure.html">arlmet.WrfAxis.to_pressure</a></li>
+</ul>
+</details></li>
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.Header.html">arlmet.Header</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -610,7 +615,7 @@
 <h1>arlmet.PressureAxis.to_height_agl<a class="headerlink" href="#arlmet-pressureaxis-to-height-agl" title="Link to this heading">#</a></h1>
 <dl class="py method">
 <dt class="sig sig-object py" id="arlmet.PressureAxis.to_height_agl">
-<span class="sig-prename descclassname"><span class="pre">PressureAxis.</span></span><span class="sig-name descname"><span class="pre">to_height_agl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_pressure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hgts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">terrain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/vertical.html#PressureAxis.to_height_agl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.PressureAxis.to_height_agl" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">PressureAxis.</span></span><span class="sig-name descname"><span class="pre">to_height_agl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_pressure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pressure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hgts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">terrain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/vertical.html#PressureAxis.to_height_agl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.PressureAxis.to_height_agl" title="Link to this definition">#</a></dt>
 <dd><p>Height AGL [m] as <code class="docutils literal notranslate"><span class="pre">hgts</span></code> (geopotential height, HGTS) minus <code class="docutils literal notranslate"><span class="pre">terrain</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>

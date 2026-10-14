@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=e4ff9623"></script>
+    <script src="../_static/documentation_options.js?v=06aa3904"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.File.flush" href="arlmet.File.flush.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
+  <meta name="docsearch:version" content="0.1.0b4.dev15+g6490cdded" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -496,6 +496,11 @@
 <li class="toctree-l2"><a class="reference internal" href="arlmet.HybridAxis.to_pressure.html">arlmet.HybridAxis.to_pressure</a></li>
 </ul>
 </details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.WrfAxis.html">arlmet.WrfAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.WrfAxis.to_height_agl.html">arlmet.WrfAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.WrfAxis.to_pressure.html">arlmet.WrfAxis.to_pressure</a></li>
+</ul>
+</details></li>
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.Header.html">arlmet.Header</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -631,13 +636,14 @@ is given, the file must contain exactly one time, which is used.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code>: fractional ARL level index.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;pressure&quot;</span></code>: hPa. Sigma/hybrid files (flag 1/4) need
 <code class="docutils literal notranslate"><span class="pre">PRSS</span></code>; pressure files (flag 2) use the stored levels;
-terrain-following files (flag 3) raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
+terrain-following files (flag 3) raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>; WRF
+files (flag 5) use the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;agl&quot;</span></code>: metres above ground level. Sigma/hybrid files
-integrate hypsometrically from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> and <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>; pressure
-files use <code class="docutils literal notranslate"><span class="pre">HGTS</span> <span class="pre">-</span> <span class="pre">SHGT</span></code>; terrain-following files use the
-stored levels.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code>: metres above mean sea level. Sigma/hybrid files add
-<code class="docutils literal notranslate"><span class="pre">SHGT</span></code> to the hypsometric AGL height; pressure files use
+integrate hypsometrically from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> and <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>, WRF files
+from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> through <code class="docutils literal notranslate"><span class="pre">PRES</span></code> with <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>; pressure files use
+<code class="docutils literal notranslate"><span class="pre">HGTS</span> <span class="pre">-</span> <span class="pre">SHGT</span></code>; terrain-following files use the stored levels.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code>: metres above mean sea level. Sigma/hybrid/WRF files
+add <code class="docutils literal notranslate"><span class="pre">SHGT</span></code> to the hypsometric AGL height; pressure files use
 <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>; terrain-following files add <code class="docutils literal notranslate"><span class="pre">SHGT</span></code> to the stored
 levels.</p></li>
 </ul>

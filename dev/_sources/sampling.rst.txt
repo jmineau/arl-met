@@ -64,13 +64,15 @@ The ``z`` column is interpreted according to ``z_kind`` (default
      - none
    * - ``"pressure"``
      - hPa
-     - ``PRSS`` for sigma/hybrid files
+     - ``PRSS`` for sigma/hybrid files; ``PRES`` for WRF files (flag=5)
    * - ``"agl"``
      - metres above ground level
-     - flag=2: ``HGTS`` + ``SHGT``; flag=1/4: ``PRSS`` + ``TEMP``; flag=3: none
+     - flag=2: ``HGTS`` + ``SHGT``; flag=1/4: ``PRSS`` + ``TEMP``; flag=3: none;
+       flag=5: ``PRSS`` + ``PRES`` + ``TEMP``
    * - ``"msl"``
      - metres above mean sea level
-     - flag=2: ``HGTS``; flag=1/4: ``PRSS`` + ``TEMP`` + ``SHGT``; flag=3: ``SHGT``
+     - flag=2: ``HGTS``; flag=1/4: ``PRSS`` + ``TEMP`` + ``SHGT``; flag=3: ``SHGT``;
+       flag=5: ``PRSS`` + ``PRES`` + ``TEMP`` + ``SHGT``
 
 .. code-block:: python
 
@@ -169,5 +171,6 @@ Limitations
 - ``z_kind="agl"`` and ``"msl"`` use different field requirements depending on
   the vertical flag: pressure files (flag=2) require ``HGTS``; sigma/hybrid
   files (flag=1/4) use hypsometric integration from ``PRSS`` and ``TEMP``;
-  terrain-following files (flag=3) use the stored level heights directly. See
+  terrain-following files (flag=3) use the stored level heights directly; WRF
+  files (flag=5) integrate from ``PRSS`` through the ``PRES`` field. See
   the :doc:`vertical` guide.

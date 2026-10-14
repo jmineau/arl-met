@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=e4ff9623"></script>
+    <script src="_static/documentation_options.js?v=06aa3904"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
     <link rel="search" title="Search" href="search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
+  <meta name="docsearch:version" content="0.1.0b4.dev15+g6490cdded" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -452,7 +452,13 @@ each time step and filled only for the records packed</p></td>
 <td><p>choose the vertical conversion from the vertical flag</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.VerticalAxis.from_flag.html#arlmet.VerticalAxis.from_flag" title="arlmet.VerticalAxis.from_flag"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.VerticalAxis.from_flag()</span></code></a> and its subclasses</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xtrct_grid.f</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prfwrf</span></code></p></td>
+<td><p>the WRF (flag 5) profile: pressure from the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field, heights from
+WRF’s hybrid coefficients (read from a side file, <code class="docutils literal notranslate"><span class="pre">hybrid_wrfvcoords.txt</span></code>)</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.WrfAxis.html#arlmet.WrfAxis" title="arlmet.WrfAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.WrfAxis</span></code></a>: pressure from <code class="docutils literal notranslate"><span class="pre">PRES</span></code>; heights hypsometric
+from <code class="docutils literal notranslate"><span class="pre">PRES</span></code>, since the coefficients are not in the ARL file</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xtrct_grid.f</span></code></p></td>
 <td><p>crop a met file to a grid window</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.Grid.window_from_bbox.html#arlmet.Grid.window_from_bbox" title="arlmet.Grid.window_from_bbox"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.Grid.window_from_bbox()</span></code></a>, <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a>
 (<code class="docutils literal notranslate"><span class="pre">tests/test_subset_slow.py</span></code> compares the two on real files)</p></td>
@@ -465,9 +471,9 @@ each time step and filled only for the records packed</p></td>
 <h2>Vertical-axis conversions<a class="headerlink" href="#vertical-axis-conversions" title="Link to this heading">#</a></h2>
 <p>Each subclass of <a class="reference internal" href="_autosummary/arlmet.VerticalAxis.html#arlmet.VerticalAxis" title="arlmet.VerticalAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.VerticalAxis</span></code></a> converts its levels with
 keyword-only inputs (<code class="docutils literal notranslate"><span class="pre">to_pressure(*,</span> <span class="pre">surface_pressure=None)</span></code> and
-<code class="docutils literal notranslate"><span class="pre">to_height_agl(*,</span> <span class="pre">surface_pressure=None,</span> <span class="pre">temperature=None,</span> <span class="pre">hgts=None,</span>
-<span class="pre">terrain=None)</span></code>), uses only the ones its coordinate system needs, and raises
-<code class="docutils literal notranslate"><span class="pre">ValueError</span></code> naming a missing one.</p>
+<code class="docutils literal notranslate"><span class="pre">to_height_agl(*,</span> <span class="pre">surface_pressure=None,</span> <span class="pre">temperature=None,</span> <span class="pre">pressure=None,</span>
+<span class="pre">hgts=None,</span> <span class="pre">terrain=None)</span></code>), uses only the ones its coordinate system needs, and
+raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> naming a missing one.</p>
 <div class="pst-scrollable-table-container"><table class="table">
 <thead>
 <tr class="row-odd"><th class="head"><p>Flag</p></th>
@@ -497,10 +503,25 @@ keyword-only inputs (<code class="docutils literal notranslate"><span class="pre
 <td><p><code class="docutils literal notranslate"><span class="pre">surface_pressure</span> <span class="pre">*</span> <span class="pre">sigma</span> <span class="pre">+</span> <span class="pre">floor(level)</span></code>; the first level is the surface</p></td>
 <td><p>hypsometric, as for flag 1</p></td>
 </tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.WrfAxis.html#arlmet.WrfAxis" title="arlmet.WrfAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">WrfAxis</span></code></a></p></td>
+<td><p>raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> (needs WRF’s hybrid coefficients; use <code class="docutils literal notranslate"><span class="pre">PRES</span></code>)</p></td>
+<td><p>hypsometric, from <code class="docutils literal notranslate"><span class="pre">surface_pressure</span></code> (PRSS) through <code class="docutils literal notranslate"><span class="pre">pressure</span></code>
+(PRES) with <code class="docutils literal notranslate"><span class="pre">temperature</span></code> (TEMP)</p></td>
+</tr>
 </tbody>
 </table>
 </div>
-<p>Any other flag, including 5 (WRF), raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> in <code class="docutils literal notranslate"><span class="pre">from_flag</span></code>.</p>
+<p>Any other flag raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> in <code class="docutils literal notranslate"><span class="pre">from_flag</span></code>.</p>
+<p>Flag 5 is what HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code> writes for a WRF run with
+<code class="docutils literal notranslate"><span class="pre">hybrid_opt=2</span></code>: the levels are WRF’s mass-level eta (<code class="docutils literal notranslate"><span class="pre">ZNU</span></code>) with 1.0 for
+the surface, and the offset is WRF’s model top <code class="docutils literal notranslate"><span class="pre">P_TOP</span></code> in hPa. HYSPLIT’s
+<code class="docutils literal notranslate"><span class="pre">prfcom</span></code> sends a flag-5 file to <code class="docutils literal notranslate"><span class="pre">prfwrf</span></code> only when the file has <code class="docutils literal notranslate"><span class="pre">MUBA</span></code> and
+<code class="docutils literal notranslate"><span class="pre">MUPE</span></code> and <code class="docutils literal notranslate"><span class="pre">hybrid_wrfvcoords.txt</span></code> sits beside it; otherwise <code class="docutils literal notranslate"><span class="pre">metini</span></code>
+treats it as flag 1 and <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> integrates heights between the <code class="docutils literal notranslate"><span class="pre">PRES</span></code>
+levels. <code class="docutils literal notranslate"><span class="pre">WrfAxis</span></code> heights follow that <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> path with arl-met’s
+hypsometric helper (dry temperature; the first layer uses the first level’s
+temperature).</p>
 </section>
 <section id="module-layout">
 <h2>Module layout<a class="headerlink" href="#module-layout" title="Link to this heading">#</a></h2>
@@ -514,7 +535,7 @@ keyword-only inputs (<code class="docutils literal notranslate"><span class="pre
   index.py       IndexRecord, VarInfo, LvlInfo: the index record codec
   grid.py        Projection, Grid, GridWindow: horizontal geometry only
   vertical.py    VerticalAxis (abstract) and SigmaAxis, PressureAxis,
-                 TerrainAxis, HybridAxis
+                 TerrainAxis, HybridAxis, WrfAxis
   packing.py     pack(), unpack(), calculate_checksum()
   _pack.c        C extension arlmet._pack: the packing encoder (pack_core)
   exceptions.py  ARLFormatError, ARLFormatWarning

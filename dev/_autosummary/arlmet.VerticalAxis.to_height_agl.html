@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=e4ff9623"></script>
+    <script src="../_static/documentation_options.js?v=06aa3904"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.VerticalAxis.from_flag" href="arlmet.VerticalAxis.from_flag.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
+  <meta name="docsearch:version" content="0.1.0b4.dev15+g6490cdded" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -496,6 +496,11 @@
 <li class="toctree-l2"><a class="reference internal" href="arlmet.HybridAxis.to_pressure.html">arlmet.HybridAxis.to_pressure</a></li>
 </ul>
 </details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.WrfAxis.html">arlmet.WrfAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.WrfAxis.to_height_agl.html">arlmet.WrfAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.WrfAxis.to_pressure.html">arlmet.WrfAxis.to_pressure</a></li>
+</ul>
+</details></li>
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.Header.html">arlmet.Header</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
@@ -610,16 +615,19 @@
 <h1>arlmet.VerticalAxis.to_height_agl<a class="headerlink" href="#arlmet-verticalaxis-to-height-agl" title="Link to this heading">#</a></h1>
 <dl class="py method">
 <dt class="sig sig-object py" id="arlmet.VerticalAxis.to_height_agl">
-<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">VerticalAxis.</span></span><span class="sig-name descname"><span class="pre">to_height_agl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_pressure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hgts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">terrain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/vertical.html#VerticalAxis.to_height_agl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.VerticalAxis.to_height_agl" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">VerticalAxis.</span></span><span class="sig-name descname"><span class="pre">to_height_agl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_pressure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pressure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hgts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">terrain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/vertical.html#VerticalAxis.to_height_agl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.VerticalAxis.to_height_agl" title="Link to this definition">#</a></dt>
 <dd><p>Compute height above ground level [m] at each level.</p>
 <p>Each axis uses only the inputs its coordinate system needs (matching
 HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfcom</span></code>) and ignores the rest.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>surface_pressure</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeAliasType</span></code> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Surface pressure [hPa] (<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>). Required for sigma and hybrid.</p></li>
+<li><p><strong>surface_pressure</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeAliasType</span></code> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Surface pressure [hPa] (<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>). Required for sigma, hybrid and
+WRF.</p></li>
 <li><p><strong>temperature</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeAliasType</span></code> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Temperature [K] at each level (<code class="docutils literal notranslate"><span class="pre">TEMP</span></code>), levels on the last
-axis. Required for sigma and hybrid.</p></li>
+axis. Required for sigma, hybrid and WRF.</p></li>
+<li><p><strong>pressure</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeAliasType</span></code> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Pressure [hPa] at each level (<code class="docutils literal notranslate"><span class="pre">PRES</span></code>), the same shape as
+<code class="docutils literal notranslate"><span class="pre">temperature</span></code>. Required for WRF.</p></li>
 <li><p><strong>hgts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeAliasType</span></code> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Geopotential height [m MSL] at each level (<code class="docutils literal notranslate"><span class="pre">HGTS</span></code>). Required
 for pressure axes.</p></li>
 <li><p><strong>terrain</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeAliasType</span></code> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Terrain height [m] (<code class="docutils literal notranslate"><span class="pre">SHGT</span></code>), broadcastable to <code class="docutils literal notranslate"><span class="pre">hgts</span></code>.

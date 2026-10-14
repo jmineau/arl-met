@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=e4ff9623"></script>
+    <script src="_static/documentation_options.js?v=06aa3904"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Concatenating ARL Files" href="concatenating.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
+  <meta name="docsearch:version" content="0.1.0b4.dev15+g6490cdded" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -502,15 +502,17 @@ column raises <code class="docutils literal notranslate"><span class="pre">Value
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;pressure&quot;</span></code></p></td>
 <td><p>hPa</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">PRSS</span></code> for sigma/hybrid files</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PRSS</span></code> for sigma/hybrid files; <code class="docutils literal notranslate"><span class="pre">PRES</span></code> for WRF files (flag=5)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;agl&quot;</span></code></p></td>
 <td><p>metres above ground level</p></td>
-<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>; flag=3: none</p></td>
+<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>; flag=3: none;
+flag=5: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">PRES</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code></p></td>
 <td><p>metres above mean sea level</p></td>
-<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=3: <code class="docutils literal notranslate"><span class="pre">SHGT</span></code></p></td>
+<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=3: <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>;
+flag=5: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">PRES</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code></p></td>
 </tr>
 </tbody>
 </table>
@@ -600,7 +602,8 @@ raise <code class="docutils literal notranslate"><span class="pre">ValueError</s
 <li><p><code class="docutils literal notranslate"><span class="pre">z_kind=&quot;agl&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code> use different field requirements depending on
 the vertical flag: pressure files (flag=2) require <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>; sigma/hybrid
 files (flag=1/4) use hypsometric integration from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> and <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>;
-terrain-following files (flag=3) use the stored level heights directly. See
+terrain-following files (flag=3) use the stored level heights directly; WRF
+files (flag=5) integrate from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> through the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field. See
 the <a class="reference internal" href="vertical.html"><span class="doc">Vertical Coordinates</span></a> guide.</p></li>
 </ul>
 </section>

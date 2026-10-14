@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=e4ff9623"></script>
+    <script src="../../_static/documentation_options.js?v=06aa3904"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
+  <meta name="docsearch:version" content="0.1.0b4.dev15+g6490cdded" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1221,13 +1221,14 @@
 <span class="sd">            - ``&quot;native&quot;``: fractional ARL level index.</span>
 <span class="sd">            - ``&quot;pressure&quot;``: hPa. Sigma/hybrid files (flag 1/4) need</span>
 <span class="sd">              ``PRSS``; pressure files (flag 2) use the stored levels;</span>
-<span class="sd">              terrain-following files (flag 3) raise ``ValueError``.</span>
+<span class="sd">              terrain-following files (flag 3) raise ``ValueError``; WRF</span>
+<span class="sd">              files (flag 5) use the ``PRES`` field.</span>
 <span class="sd">            - ``&quot;agl&quot;``: metres above ground level. Sigma/hybrid files</span>
-<span class="sd">              integrate hypsometrically from ``PRSS`` and ``TEMP``; pressure</span>
-<span class="sd">              files use ``HGTS - SHGT``; terrain-following files use the</span>
-<span class="sd">              stored levels.</span>
-<span class="sd">            - ``&quot;msl&quot;``: metres above mean sea level. Sigma/hybrid files add</span>
-<span class="sd">              ``SHGT`` to the hypsometric AGL height; pressure files use</span>
+<span class="sd">              integrate hypsometrically from ``PRSS`` and ``TEMP``, WRF files</span>
+<span class="sd">              from ``PRSS`` through ``PRES`` with ``TEMP``; pressure files use</span>
+<span class="sd">              ``HGTS - SHGT``; terrain-following files use the stored levels.</span>
+<span class="sd">            - ``&quot;msl&quot;``: metres above mean sea level. Sigma/hybrid/WRF files</span>
+<span class="sd">              add ``SHGT`` to the hypsometric AGL height; pressure files use</span>
 <span class="sd">              ``HGTS``; terrain-following files add ``SHGT`` to the stored</span>
 <span class="sd">              levels.</span>
 
