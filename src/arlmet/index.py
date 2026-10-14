@@ -131,7 +131,8 @@ class IndexRecord:
     nz : int
         Number of vertical levels.
     vertical_flag : int
-        Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain, 4=hybrid).
+        Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain,
+        4=hybrid, 5=WRF).
     levels : sequence of LvlInfo
         Variable manifests for each stored vertical level.
 

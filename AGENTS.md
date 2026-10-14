@@ -31,7 +31,7 @@ headers through `File`, so the speed and memory use of those paths matter.
 src/arlmet/
   file.py, recordset.py, record.py  File > RecordSet (one valid time) > DataRecord (one 2D field)
   header.py, index.py               codecs of the 50-byte record header and the index record
-  grid.py, vertical.py              horizontal geometry; VerticalAxis and its four subclasses
+  grid.py, vertical.py              horizontal geometry; VerticalAxis and its five subclasses
   packing.py, _pack.c               pack, unpack, checksum; the C extension for the encoder
   collection.py                     RecordCollection protocol, VariableView, VariableAccessor
   exceptions.py, _io.py, _time.py   ARLFormatError/Warning; atomic outputs; timestamps
@@ -75,12 +75,12 @@ when it downloads, so it imports without the `archives` extra.
   files) is skipped with an `ARLFormatWarning`; a repeat that differs raises.
   `File.check()` finds damage that opens cleanly; it reads headers, not values.
 - **The vertical flag is the type.** `VerticalAxis.from_flag(flag, levels,
-  offset=)` builds the subclass, mirroring HYSPLIT's `prfcom`: 1 `SigmaAxis`,
-  2 `PressureAxis`, 3 `TerrainAxis`, 4 `HybridAxis`; any other flag (including
-  5, WRF) raises `ValueError`. Sigma and hybrid heights are hypsometric (`PRSS` +
-  `TEMP`; those files have no `HGTS`); pressure-file heights come from `HGTS`.
-  Never add a fallback across flags. Each subclass takes only the keyword-only
-  inputs it needs and raises `ValueError` naming a missing one.
+  offset=)` builds the subclass, mirroring HYSPLIT's `prfcom`: 1 `SigmaAxis`, 2
+  `PressureAxis`, 3 `TerrainAxis`, 4 `HybridAxis`, 5 `WrfAxis`, else `ValueError`.
+  Sigma, hybrid and WRF heights are hypsometric (`PRSS` + `TEMP`; no `HGTS`); WRF
+  pressure is the `PRES` field (eta needs coefficients the file lacks); pressure
+  files take heights from `HGTS`. Never add a fallback across flags. Each subclass
+  takes only the keyword-only inputs it needs; a missing one raises `ValueError`.
 - **Rotated grids** (`orientation != 0`) raise `NotImplementedError` in `Projection`.
 
 ## Design invariants

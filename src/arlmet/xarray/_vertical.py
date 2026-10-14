@@ -13,6 +13,7 @@ from arlmet.vertical import (
     PressureAxis,
     SigmaAxis,
     TerrainAxis,
+    WrfAxis,
     hypsometric_z_agl,
 )
 
@@ -30,7 +31,7 @@ def _hypsometric_z_agl(
     Thin xarray wrapper around :func:`arlmet.vertical.hypsometric_z_agl`.
     ``p_levels`` must be ordered from high to low pressure (surface to top).
     For flag=2, ``p_levels`` is 1D ``(level,)`` and is broadcast to match
-    ``temp``. For flags 1/4, ``p_levels`` has the same shape as ``temp``.
+    ``temp``. For flags 1/4/5, ``p_levels`` has the same shape as ``temp``.
     """
     if "level" not in temp.dims:
         raise ValueError("'TEMP' must have a 'level' dimension.")
@@ -122,6 +123,9 @@ def pressure(ds: xr.Dataset) -> xr.DataArray:
         - **flag=3**: returns the ``PRES`` data variable (3D pressure field in
           hPa) if present in the dataset. Terrain-following ARL files typically
           store this field. Raises ``ValueError`` if ``PRES`` is absent.
+        - **flag=5** (WRF): returns the ``PRES`` data variable, as HYSPLIT's
+          ``prfwrf`` does; WRF's hybrid levels need coefficients the file does
+          not store. Raises ``ValueError`` if ``PRES`` is absent.
     """
     vaxis = ds.arl.vertical_axis
 
@@ -138,6 +142,14 @@ def pressure(ds: xr.Dataset) -> xr.DataArray:
             raise ValueError(
                 "pressure() for terrain-following (flag=3) files requires a 'PRES' "
                 "(3D pressure) variable in the dataset."
+            )
+        return ds["PRES"]
+
+    if isinstance(vaxis, WrfAxis):
+        if "PRES" not in ds:
+            raise ValueError(
+                "pressure() for WRF (flag=5) files requires a 'PRES' (3D pressure) "
+                "variable in the dataset."
             )
         return ds["PRES"]
 
@@ -164,6 +176,9 @@ def z_agl(ds: xr.Dataset) -> xr.DataArray:
           temperature. Requires ``PRSS`` and ``TEMP``.
         - **flag=3**: the stored 1D ``height`` non-dim coord ``(level,)`` —
           terrain-following levels are heights AGL.
+        - **flag=5** (WRF): hypsometric integration of the ``PRES`` field from
+          surface pressure with temperature. Requires ``PRSS``, ``TEMP`` and
+          ``PRES``.
     """
     vaxis = ds.arl.vertical_axis
 
@@ -191,6 +206,15 @@ def z_agl(ds: xr.Dataset) -> xr.DataArray:
                 "Dataset has no 'height' coordinate and no 'HGTS' variable."
             )
         return ds.coords["height"]
+
+    if isinstance(vaxis, WrfAxis):
+        for name in ("PRSS", "TEMP", "PRES"):
+            if name not in ds:
+                raise ValueError(
+                    f"z_agl() for WRF (flag=5) files requires '{name}' in dataset."
+                )
+        temp = ds["TEMP"]
+        return _hypsometric_z_agl(ds["PRES"].transpose(*temp.dims), ds["PRSS"], temp)
 
     raise NotImplementedError(f"z_agl() is not supported for {type(vaxis).__name__}.")
 
