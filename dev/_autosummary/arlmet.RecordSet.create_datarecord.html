@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=19cdbb88"></script>
+    <script src="../_static/documentation_options.js?v=e4ff9623"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.RecordSet.vertical_axis" href="arlmet.RecordSet.vertical_axis.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev12+g676b6484c" />
+  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -626,7 +626,11 @@ field minus the packed parent, what packing lost. Give several
 names to write several DIF records after the parent, in order;
 each holds what packing left after the parent and the DIF records
 before it, so a reader that adds them all (as HYSPLIT does) gets
-back to the field. One is the usual case.</p></li>
+back to the field. One is the usual case. Each name must be one
+that HYSPLIT’s name table pairs with <code class="docutils literal notranslate"><span class="pre">variable</span></code> at <code class="docutils literal notranslate"><span class="pre">level</span></code>:
+<code class="docutils literal notranslate"><span class="pre">DIFW</span></code> with <code class="docutils literal notranslate"><span class="pre">WWND</span></code> or <code class="docutils literal notranslate"><span class="pre">DZDT</span></code>, <code class="docutils literal notranslate"><span class="pre">DIFT</span></code> with <code class="docutils literal notranslate"><span class="pre">TKEN</span></code> or
+<code class="docutils literal notranslate"><span class="pre">TKEU</span></code>, and at the surface (level 0) any <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> name with
+<code class="docutils literal notranslate"><span class="pre">TPP*</span></code> or <code class="docutils literal notranslate"><span class="pre">PRT*</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -634,6 +638,10 @@ back to the field. One is the usual case.</p></li>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="arlmet.DataRecord.html#arlmet.DataRecord" title="arlmet.record.DataRecord"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataRecord</span></code></a></span></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">variable</span></code> is a <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> name, or a <code class="docutils literal notranslate"><span class="pre">diff</span></code> name is not one
+    the name table pairs with <code class="docutils literal notranslate"><span class="pre">variable</span></code> at <code class="docutils literal notranslate"><span class="pre">level</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>

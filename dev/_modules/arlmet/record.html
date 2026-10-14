@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=19cdbb88"></script>
+    <script src="../../_static/documentation_options.js?v=e4ff9623"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev12+g676b6484c" />
+  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -437,6 +437,44 @@
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;DataRecord&quot;</span><span class="p">]</span>
 
+<span class="c1"># HYSPLIT&#39;s reader (metinp.f) adds each DIF record into a field it picks by the</span>
+<span class="c1"># DIF&#39;s name. Above the surface, DIFW goes into the vertical velocity (filled by</span>
+<span class="c1"># WWND or DZDT) and DIFT into the TKE (TKEN or TKEU); any other name is skipped.</span>
+<span class="c1"># At the surface it matches the first three letters only, so every DIF* name goes</span>
+<span class="c1"># into the precipitation (TPP* or PRT*). The field holds the last of its records</span>
+<span class="c1"># read on the level, so a DIF corrects the nearest such record before it.</span>
+<span class="n">_UPPER_DIF_PARENTS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;DIFW&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;WWND&quot;</span><span class="p">,</span> <span class="s2">&quot;DZDT&quot;</span><span class="p">),</span> <span class="s2">&quot;DIFT&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;TKEN&quot;</span><span class="p">,</span> <span class="s2">&quot;TKEU&quot;</span><span class="p">)}</span>
+<span class="n">_SURFACE_DIF_PARENTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;TPP&quot;</span><span class="p">,</span> <span class="s2">&quot;PRT&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_corrects</span><span class="p">(</span><span class="n">dif</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return True when a ``dif`` record at ``level`` corrects a ``parent`` record.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">level</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">parent</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="ow">in</span> <span class="n">_SURFACE_DIF_PARENTS</span>
+    <span class="k">return</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">_UPPER_DIF_PARENTS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">dif</span><span class="p">,</span> <span class="p">())</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_dif_parents</span><span class="p">(</span><span class="n">dif</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Name the records a ``dif`` record at ``level`` corrects, for a message.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">level</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;TPP* or PRT* (at the surface, any DIF* name)&quot;</span>
+    <span class="n">parents</span> <span class="o">=</span> <span class="n">_UPPER_DIF_PARENTS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">dif</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">parents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;no record (above the surface only DIFW and DIFT correct one)&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot; or &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parents</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_dif_parent</span><span class="p">(</span><span class="n">dif</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raise ValueError unless a ``dif`` record at ``level`` corrects ``parent``.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">dif</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;DIF&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Difference record names must start with &#39;DIF&#39;, got &#39;</span><span class="si">{</span><span class="n">dif</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_corrects</span><span class="p">(</span><span class="n">dif</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">level</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;A </span><span class="si">{</span><span class="n">dif</span><span class="si">}</span><span class="s2"> record at level </span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s2"> corrects </span><span class="si">{</span><span class="n">_dif_parents</span><span class="p">(</span><span class="n">dif</span><span class="p">,</span><span class="w"> </span><span class="n">level</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;not </span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s2">: a DIF record is paired with its parent by HYSPLIT&#39;s &quot;</span>
+            <span class="s2">&quot;name table.&quot;</span>
+        <span class="p">)</span>
+
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_require_mode</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="n">allowed_modes</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raise UnsupportedOperation when *obj.mode* is not in *allowed_modes*.&quot;&quot;&quot;</span>
@@ -585,10 +623,14 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        The ``DIF*`` records that correct this record, in stream order.</span>
 
-<span class="sd">        A ``DIF*`` record holds what packing lost from the record before it:</span>
-<span class="sd">        the original values minus the packed ones. A record has none, one,</span>
-<span class="sd">        or, rarely, several; :meth:`read` returns the record plus each of</span>
-<span class="sd">        them, added in stream order, as HYSPLIT does.</span>
+<span class="sd">        A ``DIF*`` record holds what packing lost from its parent: the</span>
+<span class="sd">        original values minus the packed ones. It is paired with its parent</span>
+<span class="sd">        by HYSPLIT&#39;s name table: ``DIFW`` corrects ``WWND`` or ``DZDT``,</span>
+<span class="sd">        ``DIFT`` corrects ``TKEN`` or ``TKEU``, and at the surface any</span>
+<span class="sd">        ``DIF*`` corrects ``TPP*`` or ``PRT*``, in each case the nearest such</span>
+<span class="sd">        record before it on its level. A record has none, one, or, rarely,</span>
+<span class="sd">        several; :meth:`read` returns the record plus each of them, added in</span>
+<span class="sd">        stream order, as HYSPLIT does.</span>
 
 <span class="sd">        See Also</span>
 <span class="sd">        --------</span>

@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=19cdbb88"></script>
+    <script src="../_static/documentation_options.js?v=e4ff9623"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.write_dataset" href="arlmet.write_dataset.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev12+g676b6484c" />
+  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -628,8 +628,10 @@ or <a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_data
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a></span></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">dest</span></code> is the same file as <code class="docutils literal notranslate"><span class="pre">path</span></code>, or the cropped grid is too
-    small to hold the ARL index record.</p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">dest</span></code> is the same file as <code class="docutils literal notranslate"><span class="pre">path</span></code>, the cropped grid is too
+    small to hold the ARL index record, or <code class="docutils literal notranslate"><span class="pre">levels</span></code> leaves out level 0
+    and so moves a record with <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> records to the surface, where
+    HYSPLIT’s name table would not pair them with it.</p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
@@ -639,7 +641,9 @@ file under the final name.</p>
 <p>Without a horizontal crop (<code class="docutils literal notranslate"><span class="pre">bbox</span></code> is None or covers the whole grid),
 the selected records are copied byte for byte, with only their level
 numbers and the index records rewritten, which is much faster than
-unpacking and re-packing them. A crop re-packs each record’s window.</p>
+unpacking and re-packing them. A crop re-packs each record’s window.
+Either way each <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> record is written right after the record it
+corrects, and the index record lists the records in that order.</p>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">out</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>

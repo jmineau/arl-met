@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=19cdbb88"></script>
+    <script src="_static/documentation_options.js?v=e4ff9623"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Cropping ARL Data" href="cropping.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev12+g676b6484c" />
+  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -509,7 +509,8 @@ compact file</p></li>
 path. The file is written to a temporary name and renamed into place when
 complete, so an interrupted write never leaves a truncated file</p></li>
 <li><p>generated DIF names must be declared on the parent variable with
-<code class="docutils literal notranslate"><span class="pre">attrs[&quot;diff&quot;]</span></code> and must start with <code class="docutils literal notranslate"><span class="pre">DIF</span></code></p></li>
+<code class="docutils literal notranslate"><span class="pre">attrs[&quot;diff&quot;]</span></code>, must start with <code class="docutils literal notranslate"><span class="pre">DIF</span></code>, and must be one HYSPLIT’s name
+table pairs with the parent (see below)</p></li>
 <li><p>Dataset DIF writing is parent-led; do not add <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> variables as separate
 Dataset data variables</p></li>
 <li><p>surface-only datasets must pass <code class="docutils literal notranslate"><span class="pre">vertical_axis=</span></code> explicitly to
@@ -536,6 +537,11 @@ the usual case, and the Dataset path writes one.</p>
 <p>Validation rules:</p>
 <ul class="simple">
 <li><p>DIF names must start with <code class="docutils literal notranslate"><span class="pre">DIF</span></code></p></li>
+<li><p>each DIF name must be one that HYSPLIT’s name table pairs with the parent at
+its level: <code class="docutils literal notranslate"><span class="pre">DIFW</span></code> with <code class="docutils literal notranslate"><span class="pre">WWND</span></code> or <code class="docutils literal notranslate"><span class="pre">DZDT</span></code> and <code class="docutils literal notranslate"><span class="pre">DIFT</span></code> with <code class="docutils literal notranslate"><span class="pre">TKEN</span></code> or
+<code class="docutils literal notranslate"><span class="pre">TKEU</span></code> above the surface, any <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> name with <code class="docutils literal notranslate"><span class="pre">TPP*</span></code> or <code class="docutils literal notranslate"><span class="pre">PRT*</span></code> at
+the surface (level 0); any other pair raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>, since a reader
+would not pair it (<em>ARL File Format</em> has the table)</p></li>
 <li><p>generated DIF records inherit the parent time, level, and forecast</p></li>
 <li><p>the same DIF name cannot be rebound to a different parent variable during one
 write</p></li>

@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=19cdbb88"></script>
+    <script src="../../_static/documentation_options.js?v=e4ff9623"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev12+g676b6484c" />
+  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -429,7 +429,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span><span class="p">,</span> <span class="n">split_grid_component</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.index</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span><span class="p">,</span> <span class="n">LvlInfo</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">,</span> <span class="n">_derive_index_forecast</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span><span class="p">,</span> <span class="n">_require_mode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span><span class="p">,</span> <span class="n">_check_dif_parent</span><span class="p">,</span> <span class="n">_require_mode</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerticalAxis</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
@@ -592,12 +592,22 @@
 <span class="sd">            names to write several DIF records after the parent, in order;</span>
 <span class="sd">            each holds what packing left after the parent and the DIF records</span>
 <span class="sd">            before it, so a reader that adds them all (as HYSPLIT does) gets</span>
-<span class="sd">            back to the field. One is the usual case.</span>
+<span class="sd">            back to the field. One is the usual case. Each name must be one</span>
+<span class="sd">            that HYSPLIT&#39;s name table pairs with ``variable`` at ``level``:</span>
+<span class="sd">            ``DIFW`` with ``WWND`` or ``DZDT``, ``DIFT`` with ``TKEN`` or</span>
+<span class="sd">            ``TKEU``, and at the surface (level 0) any ``DIF*`` name with</span>
+<span class="sd">            ``TPP*`` or ``PRT*``.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        DataRecord</span>
 <span class="sd">            Writable data record for the requested variable and level.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``variable`` is a ``DIF*`` name, or a ``diff`` name is not one</span>
+<span class="sd">            the name table pairs with ``variable`` at ``level``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">variable</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;DIF&quot;</span><span class="p">):</span>
@@ -606,7 +616,7 @@
             <span class="p">)</span>
         <span class="n">diff_names</span> <span class="o">=</span> <span class="p">(</span><span class="n">diff</span><span class="p">,)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">diff</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">diff</span> <span class="ow">or</span> <span class="p">())</span>
         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">diff_names</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">_register_diff_binding</span><span class="p">(</span><span class="n">diff_name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">parent_name</span><span class="o">=</span><span class="n">variable</span><span class="p">)</span>
+            <span class="n">_check_dif_parent</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
         <span class="n">dr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_datarecord</span><span class="p">(</span>
             <span class="n">position</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">variable</span><span class="o">=</span><span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="n">forecast</span>
         <span class="p">)</span>

@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=19cdbb88"></script>
+    <script src="../_static/documentation_options.js?v=e4ff9623"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.File.vertical_axis" href="arlmet.File.vertical_axis.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev12+g676b6484c" />
+  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -626,7 +626,8 @@ created here derives its index-record forecast from its records; call
 <li><p><strong>data</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeAliasType</span></code> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – <code class="docutils literal notranslate"><span class="pre">(ny,</span> <span class="pre">nx)</span></code> field values. When omitted, assign the whole field
 later with <code class="docutils literal notranslate"><span class="pre">record[:]</span> <span class="pre">=</span> <span class="pre">values</span></code>.</p></li>
 <li><p><strong>diff</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>] | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Name of a trailing DIF record to derive from the parent field, or
-the names of several, written in order (see
+the names of several, written in order. Each must be one HYSPLIT’s
+name table pairs with <code class="docutils literal notranslate"><span class="pre">variable</span></code> at <code class="docutils literal notranslate"><span class="pre">level</span></code> (see
 <a class="reference internal" href="arlmet.RecordSet.create_datarecord.html#arlmet.RecordSet.create_datarecord" title="arlmet.RecordSet.create_datarecord"><code class="xref py py-meth docutils literal notranslate"><span class="pre">RecordSet.create_datarecord()</span></code></a>).</p></li>
 </ul>
 </dd>

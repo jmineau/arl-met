@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../../_static/documentation_options.js?v=19cdbb88"></script>
+    <script src="../../../_static/documentation_options.js?v=e4ff9623"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev12+g676b6484c" />
+  <meta name="docsearch:version" content="0.1.0b4.dev13+gfcf157889" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -666,6 +666,13 @@
 <span class="sd">    flat Dataset API. ``forecast_hour(time)`` supplies only the ARL index-record</span>
 <span class="sd">    forecast written for each time step.</span>
 
+<span class="sd">    A variable whose ``attrs[&quot;diff&quot;]`` names a ``DIF*`` record is written with</span>
+<span class="sd">    that DIF record after it on each level (see</span>
+<span class="sd">    :meth:`arlmet.RecordSet.create_datarecord`). The name must be one</span>
+<span class="sd">    HYSPLIT&#39;s name table pairs with the variable: ``DIFW`` for ``WWND`` or</span>
+<span class="sd">    ``DZDT`` and ``DIFT`` for ``TKEN`` or ``TKEU`` above the surface, any</span>
+<span class="sd">    ``DIF*`` name for ``TPP*`` or ``PRT*`` at the surface.</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    ds : xarray.Dataset</span>
@@ -686,8 +693,9 @@
 <span class="sd">    ------</span>
 <span class="sd">    ValueError</span>
 <span class="sd">        If the Dataset does not match the layout above, a slice is partly NaN</span>
-<span class="sd">        or non-finite, or ``filename_or_obj`` is the file ``ds`` was opened</span>
-<span class="sd">        from.</span>
+<span class="sd">        or non-finite, an ``attrs[&quot;diff&quot;]`` name is not one the name table</span>
+<span class="sd">        pairs with its variable, or ``filename_or_obj`` is the file ``ds`` was</span>
+<span class="sd">        opened from.</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
