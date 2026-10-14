@@ -102,19 +102,28 @@ axis ``offset`` is WRF's model-top pressure in hPa:
    p = arlmet.pressure(ds)  # the PRES field
    z = arlmet.z_agl(ds)     # hypsometric, from PRSS through PRES with TEMP
 
-On hybrid levels, eta alone does not give pressure: that also takes WRF's
-hybrid coefficients, which ``arw2arl`` writes to a separate text file
-(``hybrid_wrfvcoords.txt``), not to the ARL file. ``arw2arl`` always writes the
-3D pressure field ``PRES``, and HYSPLIT reads pressure from it, so arl-met does
+On hybrid levels, eta alone does not give pressure. WRF's hybrid levels follow
+the terrain near the ground and flatten toward constant pressure higher up: the
+pressure of a level is ``c3 * mu + c4 + p_top``, where ``mu`` is the dry-air
+mass of the column (dry surface pressure minus ``p_top``) and each level has its
+own pair ``c3`` and ``c4`` (``c3`` is about eta and ``c4`` is zero near the
+ground). ``arw2arl`` writes those coefficients to a separate text file
+(``hybrid_wrfvcoords.txt``), not to the ARL file. It always writes the 3D
+pressure field ``PRES``, and HYSPLIT reads pressure from it, so arl-met does
 too: ``WrfAxis.to_pressure()`` raises ``ValueError`` and ``pressure()`` returns
 ``PRES``.
 
 Heights come from the same hypsometric integration as sigma files, between the
-``PRES`` levels. That is what HYSPLIT does for a flag-5 file unless the file
-also holds WRF's dry column mass (``MUBA``, ``MUPE``) and the coefficient file
-sits beside it, in which case HYSPLIT's ``prfwrf`` builds heights from the
-coefficients. On a made-up WRF column the two differ by less than 1% (less
-than half a meter in the lowest 2 km).
+``PRES`` levels: each layer is ``(R_d / g) * T * ln(p_below / p_above)`` thick.
+That is what HYSPLIT's ``prfsig`` does for a flag-5 file, unless the file also
+holds WRF's dry column mass (``MUBA``, ``MUPE``) and the coefficient file sits
+beside it. Then HYSPLIT's ``prfwrf`` builds the heights from the coefficients
+and WRF's dry inverse density, with no temperature, the way WRF itself defines
+them. On a made-up dry WRF column the two differ by less than 1% (less than half
+a meter in the lowest 2 km, 74 m at 10 km). ``prfsig`` uses virtual temperature
+and arl-met uses ``TEMP``, as it does for flags 1 and 4, so in moist air
+arl-met's heights run slightly low (about 0.6% of a layer's thickness for 10 g/kg
+of water vapor).
 
 Height above mean sea level
 ---------------------------
