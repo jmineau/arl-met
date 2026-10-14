@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=3d8be15b"></script>
+    <script src="_static/documentation_options.js?v=ea210f4b"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Sampling Points" href="sampling.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev7+g58588e776" />
+  <meta name="docsearch:version" content="0.1.0b4.dev9+g06b6a9ea4" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -558,8 +558,8 @@ cannot be reassigned. Build a new axis instead (for example
 <section id="limitations">
 <h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading">#</a></h2>
 <ul class="simple">
-<li><p>WRF vertical flag 5 is not implemented; the helpers raise
-<code class="docutils literal notranslate"><span class="pre">NotImplementedError</span></code> for it.</p></li>
+<li><p>WRF vertical flag 5 is not implemented: opening a flag-5 file raises
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code> (<code class="docutils literal notranslate"><span class="pre">Unsupported</span> <span class="pre">vertical</span> <span class="pre">flag</span> <span class="pre">5</span></code>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">pressure()</span></code> for terrain-following files (flag=3) requires a stored <code class="docutils literal notranslate"><span class="pre">PRES</span></code>
 field; it is not derived.</p></li>
 </ul>
