@@ -354,8 +354,9 @@ class TestWriter:
         written_path = tmp_path / "written.arl"
 
         self.write_sample_file(source_path)
-        ds = open_dataset(source_path)
-        ds["TEMP"].attrs["diff"] = "DIFT"
+        # DIFT corrects the TKE, so write the upper-air field as TKEN.
+        ds = open_dataset(source_path).rename({"TEMP": "TKEN"})
+        ds["TKEN"].attrs["diff"] = "DIFT"
 
         write_dataset(ds, written_path)
 
@@ -368,12 +369,12 @@ class TestWriter:
 
         with File(written_path) as reopened:
             time0 = pd.Timestamp("2024-07-18 00:00")
-            record = reopened[time0][(1, "TEMP")]
+            record = reopened[time0][(1, "TKEN")]
             assert record.diffs
             assert record.diffs[0].variable == "DIFT"
 
         reopened_ds = open_dataset(written_path)
-        np.testing.assert_allclose(reopened_ds["TEMP"].values, ds["TEMP"].values)
+        np.testing.assert_allclose(reopened_ds["TKEN"].values, ds["TKEN"].values)
 
     def test_write_dataset_rejects_invalid_diff_attr_name(self, tmp_path):
         source_path = tmp_path / "source.arl"
@@ -416,17 +417,17 @@ class TestWriter:
 
         assert source.read_bytes() == copy.read_bytes()
 
-    def test_write_dataset_rejects_conflicting_diff_bindings(self, tmp_path):
+    def test_write_dataset_rejects_a_diff_the_name_table_does_not_pair(self, tmp_path):
         source_path = tmp_path / "source.arl"
         written_path = tmp_path / "written.arl"
 
         self.write_sample_file(source_path)
         ds = open_dataset(source_path)
-        ds["PRSS"].attrs["diff"] = "DIFX"
-        ds["TEMP"].attrs["diff"] = "DIFX"
+        ds["TEMP"].attrs["diff"] = "DIFT"
 
-        with pytest.raises(ValueError, match="already bound to parent"):
+        with pytest.raises(ValueError, match="corrects TKEN or TKEU, not TEMP"):
             write_dataset(ds, written_path)
+        assert not written_path.exists()
 
     def test_open_dataset_uses_lazy_variable_arrays(self, tmp_path):
         source_path = tmp_path / "source.arl"

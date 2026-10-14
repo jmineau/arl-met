@@ -14,7 +14,7 @@ from arlmet.grid import Grid, GridWindow
 from arlmet.header import Header, record_length_from_grid, split_grid_component
 from arlmet.index import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
 from arlmet.packing import calculate_checksum
-from arlmet.record import DataRecord
+from arlmet.record import DataRecord, _corrects, _dif_parents
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
@@ -196,6 +196,33 @@ def validate_subset_record_length(
             )
 
 
+def validate_subset_difs(
+    selected_recordsets: Sequence[tuple[RecordSet, Sequence[DataRecord]]],
+    *,
+    level_map: dict[int, int],
+) -> None:
+    """
+    Fail early when renumbering levels would leave a DIF record unpaired.
+
+    Leaving out level 0 makes the lowest kept level the subset's surface,
+    where HYSPLIT's name table pairs a ``DIF*`` record only with ``TPP*`` or
+    ``PRT*``, so a ``DIFW`` there would correct nothing on read.
+    """
+    for _, selected_records in selected_recordsets:
+        for record in selected_records:
+            level = level_map[record.level]
+            for dif in record.diffs:
+                if not _corrects(dif.variable, record.variable, level):
+                    raise ValueError(
+                        f"The subset puts level {record.level} at level {level}, "
+                        f"where a {dif.variable} record corrects "
+                        f"{_dif_parents(dif.variable, level)}, so the "
+                        f"{dif.variable} record of {record.variable} would "
+                        "correct nothing. Keep level 0, or leave out "
+                        f"{record.variable} with variables=."
+                    )
+
+
 # Byte offsets of the level field in a record header (see Header.FIELDS).
 _LEVEL_START, _LEVEL_STOP = Header.FIELDS["level"][:2]
 
@@ -213,10 +240,10 @@ def _copy_subset_records(
     Write an uncropped subset by copying record bytes instead of re-packing.
 
     Without a horizontal crop a record's packed bytes do not depend on which
-    other records are kept, so each selected record (and its DIF records) is
-    copied verbatim with only the header's level field renumbered. Only the
-    index records are rebuilt, with checksums recomputed from the copied
-    bytes and blank reserved flags, as a re-pack writes them.
+    other records are kept, so each selected record, followed by its DIF
+    records, is copied verbatim with only the header's level field
+    renumbered. Only the index records are rebuilt, with checksums recomputed
+    from the copied bytes and blank reserved flags, as a re-pack writes them.
 
     The output decodes to exactly the source values. For records that
     re-packing reproduces byte for byte (those written by arlmet without a
@@ -355,8 +382,10 @@ def extract_subset(
     Raises
     ------
     ValueError
-        If ``dest`` is the same file as ``path``, or the cropped grid is too
-        small to hold the ARL index record.
+        If ``dest`` is the same file as ``path``, the cropped grid is too
+        small to hold the ARL index record, or ``levels`` leaves out level 0
+        and so moves a record with ``DIF*`` records to the surface, where
+        HYSPLIT's name table would not pair them with it.
 
     Notes
     -----
@@ -368,6 +397,8 @@ def extract_subset(
     the selected records are copied byte for byte, with only their level
     numbers and the index records rewritten, which is much faster than
     unpacking and re-packing them. A crop re-packs each record's window.
+    Either way each ``DIF*`` record is written right after the record it
+    corrects, and the index record lists the records in that order.
 
     Examples
     --------
@@ -408,6 +439,7 @@ def extract_subset(
             if selected_records:
                 selected_recordsets.append((src_recordset, selected_records))
 
+        validate_subset_difs(selected_recordsets, level_map=level_map)
         validate_subset_record_length(
             selected_recordsets,
             subset_grid=subset_grid,

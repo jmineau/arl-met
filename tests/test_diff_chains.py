@@ -4,7 +4,9 @@ Tests for streams that carry many DIF records.
 Several parents have a DIF each, in one time step, on several levels, in
 several time steps. NOAA's HRRR files are like this (``TPP1`` + ``DIFR`` at the
 surface, ``WWND`` + ``DIFW`` on every level). A parent can also have several DIF
-records in a row, which HYSPLIT adds one after another. The tests read, rewrite
+records in a row, which HYSPLIT adds one after another, and a DIF record need not
+follow its parent: HYSPLIT pairs it by name (NOAA's ``era52arl`` lists it last on
+its level). The tests read, rewrite
 and subset such streams and check the results against values worked out here,
 not against arlmet's output:
 
@@ -22,7 +24,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from arlmet import ARLFormatError, File, extract_subset, open_dataset, write_dataset
+from arlmet import (
+    ARLFormatError,
+    ARLFormatWarning,
+    File,
+    extract_subset,
+    open_dataset,
+    write_dataset,
+)
 from arlmet.grid import Grid, GridWindow, Projection
 from arlmet.header import Header
 from arlmet.index import IndexRecord, LvlInfo, VarInfo
@@ -386,12 +395,9 @@ class TestRead:
                     expected[window.y_slice, window.x_slice],
                 )
 
-    def test_dif_goes_with_the_nearest_record_before_it_whatever_its_name(
-        self, tmp_path
-    ):
-        # arl-met binds a DIF by position. HYSPLIT's own reader adds DIFW to the
-        # vertical velocity by name, so the two differ on a stream like this one;
-        # producers write DIFW right after WWND, where they agree.
+    def test_dif_goes_with_the_record_its_name_pairs_with(self, tmp_path):
+        # HYSPLIT's reader adds DIFW to the vertical velocity by name, so a
+        # record between WWND and its DIFW does not take the correction.
         path = tmp_path / "out_of_place.arl"
         rng = np.random.default_rng(1)
         wwnd = raw_record(TIME0, 1, "WWND", noise(rng), exponent=5, initial_value=10.0)
@@ -400,13 +406,13 @@ class TestRead:
         path.write_bytes(raw_time_step(TIME0, [[], [wwnd, temp, difw], [], []]))
 
         with File(path) as arl:
-            assert not arl[TIME0][(1, "WWND")].diffs
-            assert arl[TIME0][(1, "TEMP")].diffs[0].variable == "DIFW"
+            assert arl[TIME0][(1, "WWND")].diffs[0].variable == "DIFW"
+            assert not arl[TIME0][(1, "TEMP")].diffs
             np.testing.assert_array_equal(
-                arl[TIME0][(1, "WWND")].read(), reference_unpack(wwnd)
+                arl[TIME0][(1, "WWND")].read(), combined([wwnd, difw])
             )
             np.testing.assert_array_equal(
-                arl[TIME0][(1, "TEMP")].read(), combined([temp, difw])
+                arl[TIME0][(1, "TEMP")].read(), reference_unpack(temp)
             )
 
     def test_a_variable_listed_twice_on_a_level_is_malformed(self, tmp_path):
@@ -426,14 +432,17 @@ class TestRead:
     @pytest.mark.parametrize(
         "where", ["first on a level", "first in a time step"], ids=str
     )
-    def test_dif_without_a_parent_on_its_level_is_malformed(self, tmp_path, where):
+    def test_dif_without_a_parent_on_its_level_is_applied_to_nothing(
+        self, tmp_path, where
+    ):
         path = tmp_path / "orphan.arl"
         rng = np.random.default_rng(3)
         tpp1, difr = parent_and_dif(rng, TIME0, 0, "TPP1", start=2.0)
         uwnd = raw_record(TIME0, 1, "UWND", noise(rng), exponent=5)
         if where == "first on a level":
             # Level 0 ends with a parent, TPP1; the DIFR that opens level 1 follows
-            # a record, but not one on its own level.
+            # a record, but not one on its own level (and above the surface the
+            # name table pairs DIFR with nothing).
             orphan = raw_record(TIME0, 1, "DIFR", noise(rng), exponent=0)
             stream = raw_time_step(TIME0, [[tpp1], [orphan, uwnd], [], []])
             position = 2 * RECORD_BYTES
@@ -447,11 +456,25 @@ class TestRead:
             position = 5 * RECORD_BYTES
         path.write_bytes(stream)
 
-        with pytest.raises(
-            ARLFormatError, match="without a preceding data record"
-        ) as e:
-            File(path)
-        assert f"at byte {position}" in str(e.value)
+        # The file opens; the DIF record corrects nothing and one warning
+        # says where it is.
+        with (
+            pytest.warns(ARLFormatWarning, match="1 DIF record") as caught,
+            File(path) as arl,
+        ):
+            with_difs = [
+                (time, r.variable) for time in arl.times for r in arl[time] if r.diffs
+            ]
+            np.testing.assert_array_equal(
+                arl[TIME0][(1, "UWND")].read(), reference_unpack(uwnd)
+            )
+        if where == "first on a level":
+            assert with_difs == []
+        else:
+            assert with_difs == [(TIME0, "TPP1")]
+        assert len(caught) == 1
+        assert "not applied" in str(caught[0].message)
+        assert f"(byte {position})" in str(caught[0].message)
 
     def test_time_step_without_a_dif_reads_and_check_counts_it_missing(self, tmp_path):
         path = tmp_path / "missing_dif.arl"
@@ -513,22 +536,80 @@ class TestWrite:
                     record.read(), target, rtol=0, atol=tolerance
                 )
 
-    def test_a_dif_name_stays_bound_to_one_parent_across_time_steps(self, tmp_path):
+    @pytest.mark.parametrize(
+        ("level", "parent", "dif", "message"),
+        [
+            (
+                1,
+                "TEMP",
+                "DIFW",
+                "A DIFW record at level 1 corrects WWND or DZDT, not TEMP",
+            ),
+            (
+                2,
+                "WWND",
+                "DIFT",
+                "A DIFT record at level 2 corrects TKEN or TKEU, not WWND",
+            ),
+            (3, "UWND", "DIFX", r"corrects no record \(above the surface only DIFW"),
+            (1, "TPP1", "DIFR", r"corrects no record \(above the surface only DIFW"),
+            (0, "WWND", "DIFW", r"corrects TPP\* or PRT\* \(at the surface, any DIF\*"),
+        ],
+    )
+    def test_a_dif_the_name_table_does_not_pair_is_refused(
+        self, tmp_path, level, parent, dif, message
+    ):
+        # A reader would not pair this DIF with its parent, so it is not written.
         data = np.ones((NY, NX), dtype=np.float32)
         with File(
-            tmp_path / "bound.arl",
+            tmp_path / "refused.arl",
             mode="w",
             source="TEST",
             grid=GRID,
             vertical_axis=AXIS,
         ) as arl:
-            first = arl.create_recordset(TIME0, forecast=0)
-            first.create_datarecord("WWND", 1, forecast=0, data=data, diff="DIFW")
-            second = arl.create_recordset(TIME0 + pd.Timedelta(hours=1), forecast=0)
-            # The same pair at another time and level is fine.
-            second.create_datarecord("WWND", 2, forecast=0, data=data, diff="DIFW")
-            with pytest.raises(ValueError, match="'DIFW' is already bound to parent"):
-                second.create_datarecord("TEMP", 1, forecast=0, data=data, diff="DIFW")
+            rs = arl.create_recordset(TIME0, forecast=0)
+            with pytest.raises(ValueError, match=message):
+                rs.create_datarecord(parent, level, forecast=0, data=data, diff=dif)
+            with pytest.raises(ValueError, match=message):
+                arl.add_record(TIME0, parent, level, forecast=0, data=data, diff=[dif])
+            # Neither call left a record behind.
+            assert not list(rs)
+            rs.create_datarecord("T02M", 0, forecast=0, data=data)
+
+    def test_every_pair_the_name_table_makes_is_written_and_read_back(self, tmp_path):
+        # Above the surface DIFW goes with WWND or DZDT and DIFT with TKEN or
+        # TKEU; at the surface any DIF* name goes with TPP* or PRT*.
+        path = tmp_path / "table.arl"
+        pairs = {
+            (0, "TPP6"): "DIFR",
+            (0, "PRT3"): "DIFW",
+            (1, "WWND"): "DIFW",
+            (1, "TKEU"): "DIFT",
+            (2, "DZDT"): "DIFW",
+            (2, "TKEN"): "DIFT",
+        }
+        rng = np.random.default_rng(17)
+        targets = {
+            key: rng.standard_normal((NY, NX)).astype(np.float32) for key in pairs
+        }
+        with File(path, mode="w", source="TEST", grid=GRID, vertical_axis=AXIS) as arl:
+            for (level, name), dif in pairs.items():
+                arl.add_record(
+                    TIME0, name, level, forecast=0, data=targets[level, name], diff=dif
+                )
+
+        with File(path) as arl:
+            assert arl.check() == []
+            for (level, name), dif in pairs.items():
+                record = arl[TIME0][(level, name)]
+                assert [d.variable for d in record.diffs] == [dif]
+                np.testing.assert_allclose(
+                    record.read(),
+                    targets[level, name],
+                    rtol=0,
+                    atol=2 * record.diffs[0].header.precision + 1e-6,
+                )
 
     def test_a_dif_record_is_not_created_on_its_own(self, tmp_path):
         with File(
@@ -612,10 +693,10 @@ def index_listing(path: Path, time: pd.Timestamp) -> list[tuple[int, str, int, s
 SUBSETS = [
     pytest.param({}, id="all"),
     pytest.param({"levels": [0, 2, 3]}, id="levels"),
-    pytest.param({"levels": [3, 1]}, id="unsorted-levels"),
+    pytest.param({"levels": [3, 0, 1]}, id="unsorted-levels"),
     pytest.param({"variables": ["TPP1", "WWND"]}, id="variables"),
     pytest.param(
-        {"levels": [2], "variables": ["UWND", "TKEN"]}, id="levels-and-variables"
+        {"levels": [2, 0], "variables": ["UWND", "TKEN"]}, id="levels-and-variables"
     ),
 ]
 
@@ -797,20 +878,20 @@ class TestRewrite:
         source = tmp_path / "flat.arl"
         subset = tmp_path / "subset.arl"
         flat = np.full((NY, NX), 127)
-        parent = raw_record(TIME0, 1, "WWND", flat, initial_value=10.0)
-        dif = raw_record(TIME0, 1, "DIFW", flat, initial_value=0.25)
-        source.write_bytes(raw_time_step(TIME0, [[], [parent, dif], [], []]))
+        parent = raw_record(TIME0, 0, "TPP1", flat, initial_value=10.0)
+        dif = raw_record(TIME0, 0, "DIFR", flat, initial_value=0.25)
+        source.write_bytes(raw_time_step(TIME0, [[parent, dif], [], [], []]))
 
-        extract_subset(source, subset, bbox=CROP, levels=[1])
+        extract_subset(source, subset, bbox=CROP, levels=[0])
 
         ((_, step),) = walk(subset, nx=15, ny=15).items()
         ((parent_h, new_parent), (dif_h, new_dif)) = step
-        assert (parent_h.variable, dif_h.variable) == ("WWND", "DIFW")
+        assert (parent_h.variable, dif_h.variable) == ("TPP1", "DIFR")
         with File(subset) as out:
             assert (out.grid.nx, out.grid.ny) == (15, 15)
             assert out.check() == []
             np.testing.assert_array_equal(
-                out[TIME0][(0, "WWND")].read(), np.full((15, 15), 10.25)
+                out[TIME0][(0, "TPP1")].read(), np.full((15, 15), 10.25)
             )
         np.testing.assert_array_equal(
             reference_unpack(new_parent, nx=15, ny=15), np.full((15, 15), 10.25)
@@ -907,8 +988,8 @@ class TestDataset:
 # HYSPLIT's reader (metinp) adds each DIFW it reads into the vertical velocity of
 # its level, each DIFT into the TKE and, at the surface, each DIF* into the
 # precipitation, one after another, so two DIF records after one parent both
-# count. arl-met reads them the same way: every DIF record after a parent on its
-# level, up to the next data record, is added to it in stream order.
+# count. arl-met reads them the same way: every DIF record that the name table
+# pairs with a parent is added to it in stream order.
 
 # The DIF records after each parent in ``chain_step``, by level.
 CHAINS = {
@@ -1258,3 +1339,409 @@ class TestSeveralDifs:
             np.testing.assert_array_equal(
                 ds["WWND"].sel(time=TIME0, level=level).values, expected
             )
+
+
+# --- Pairing by name ----------------------------------------------------------
+#
+# HYSPLIT's reader (metinp) pairs a DIF record by its name, not its place: DIFW
+# goes into the vertical velocity of its level (filled by WWND or DZDT), DIFT
+# into the TKE (TKEN or TKEU), and at the surface any DIF* into the
+# precipitation (TPP* or PRT*). NOAA's era52arl lists DIFW and DIFR last on each
+# level, after RELH and USTR, so the record before a DIF is not its parent.
+
+# Each DIF in ``era5_like_step``'s file and the record it corrects.
+ERA5_PARENT_OF = {"DIFR": "TPP1", "DIFW": "WWND"}
+
+
+def era5_like_step(rng: np.random.Generator, time: pd.Timestamp) -> list[list[bytes]]:
+    """
+    One time step in era52arl's default order, each level's DIF record last.
+
+    Level 0 has ``TPP1 USTR DIFR``; levels 1 to 3 have ``UWND WWND RELH DIFW``.
+    """
+
+    def rec(level: int, name: str, start: float) -> bytes:
+        exponent = 0 if name.startswith("DIF") else 5
+        return raw_record(
+            time, level, name, noise(rng), exponent=exponent, initial_value=start
+        )
+
+    return [
+        [rec(0, "TPP1", 1.0), rec(0, "USTR", 0.25), rec(0, "DIFR", 0.5)],
+        *(
+            [
+                rec(level, "UWND", 2.0),
+                rec(level, "WWND", 3.0),
+                rec(level, "RELH", 50.0),
+                rec(level, "DIFW", 0.5),
+            ]
+            for level in (1, 2, 3)
+        ),
+    ]
+
+
+def write_era5_like_file(path: Path, n_steps: int = 2) -> list[pd.Timestamp]:
+    """Write ``n_steps`` hourly time steps from ``era5_like_step``."""
+    rng = np.random.default_rng(0)
+    times = list(pd.date_range(TIME0, periods=n_steps, freq="h"))
+    path.write_bytes(
+        b"".join(raw_time_step(time, era5_like_step(rng, time)) for time in times)
+    )
+    return times
+
+
+def expected_values(path: Path) -> dict[tuple[pd.Timestamp, int, str], np.ndarray]:
+    """
+    Each data record's values in a file of ``era5_like_step``, by name pairing.
+
+    A parent is its record plus its DIF; any other record is its own values.
+    """
+    expected = {}
+    for time, step in walk(path).items():
+        records = {(h.level, h.variable): raw for h, raw in step}
+        for (level, name), raw in records.items():
+            if name.startswith("DIF"):
+                continue
+            difs = [d for d, parent in ERA5_PARENT_OF.items() if parent == name]
+            expected[time, level, name] = combined(
+                [raw, *(records[level, dif] for dif in difs)]
+            )
+    return expected
+
+
+def raw_index_listing(path: Path, *, nx: int = NX, ny: int = NY) -> list[list[str]]:
+    """Each time step's ``level:name`` entries as its index record lists them."""
+    length = Header.N_BYTES + nx * ny
+    raw = path.read_bytes()
+    listings = []
+    with open(path, "rb") as handle:
+        for start in range(0, len(raw), length):
+            if (
+                Header.from_bytes(raw[start : start + Header.N_BYTES]).variable
+                != "INDX"
+            ):
+                continue
+            index = IndexRecord.from_position(handle, start)
+            listings.append(
+                [
+                    f"{lvl.level}:{name}"
+                    for lvl in index.levels
+                    for name, _ in lvl.variables
+                ]
+            )
+    return listings
+
+
+def disk_listing(path: Path, *, nx: int = NX, ny: int = NY) -> list[list[str]]:
+    """Each time step's ``level:name`` records in the order they are on disk."""
+    return [
+        [f"{h.level}:{h.variable}" for h, _ in step]
+        for step in walk(path, nx=nx, ny=ny).values()
+    ]
+
+
+class TestPairByName:
+    def test_era52arl_layout_pairs_each_dif_with_its_parent(self, tmp_path):
+        path = tmp_path / "era5_like.arl"
+        times = write_era5_like_file(path)
+        expected = expected_values(path)
+
+        with File(path) as arl:
+            assert arl.check() == []
+            for time in times:
+                for record in arl[time]:
+                    level, name = record.level, record.variable
+                    assert [d.variable for d in record.diffs] == [
+                        d for d, parent in ERA5_PARENT_OF.items() if parent == name
+                    ]
+                    np.testing.assert_array_equal(
+                        record.read(), expected[time, level, name]
+                    )
+
+    def test_open_dataset_adds_the_dif_to_its_parent(self, tmp_path):
+        path = tmp_path / "era5_like.arl"
+        write_era5_like_file(path, n_steps=1)
+        expected = expected_values(path)
+
+        ds = open_dataset(path)
+
+        np.testing.assert_array_equal(
+            ds["TPP1"].sel(time=TIME0).values, expected[TIME0, 0, "TPP1"]
+        )
+        np.testing.assert_array_equal(
+            ds["USTR"].sel(time=TIME0).values, expected[TIME0, 0, "USTR"]
+        )
+        for level in (1, 2, 3):
+            for name in ("WWND", "RELH"):
+                np.testing.assert_array_equal(
+                    ds[name].sel(time=TIME0, level=level).values,
+                    expected[TIME0, level, name],
+                )
+
+    @pytest.mark.parametrize(
+        ("names", "parent"),
+        [
+            # The nearest record before the DIF that its name allows.
+            (["WWND", "DZDT", "DIFW"], "DZDT"),
+            (["DZDT", "WWND", "DIFW"], "WWND"),
+            (["WWND", "TEMP", "TKEN", "DIFW"], "WWND"),
+            (["TKEU", "WWND", "DIFT"], "TKEU"),
+            (["TKEN", "DIFT", "TKEU", "DIFT"], None),  # checked in the test
+        ],
+        ids=["dzdt-last", "wwnd-last", "others-between", "tkeu", "two-parents"],
+    )
+    def test_dif_goes_with_the_nearest_record_its_name_allows(
+        self, tmp_path, names, parent
+    ):
+        path = tmp_path / "upper.arl"
+        rng = np.random.default_rng(23)
+        records = [
+            raw_record(
+                TIME0, 1, name, noise(rng), exponent=0 if name.startswith("DIF") else 5
+            )
+            for name in names
+        ]
+        path.write_bytes(raw_time_step(TIME0, [[], records, [], []]))
+
+        with File(path) as arl:
+            rs = arl[TIME0]
+            got = {r.variable: [d.variable for d in r.diffs] for r in rs}
+            if parent is None:
+                # Each DIFT corrects the TKE record nearest before it.
+                assert got == {"TKEN": ["DIFT"], "TKEU": ["DIFT"]}
+                np.testing.assert_array_equal(
+                    rs[(1, "TKEN")].read(), combined(records[:2])
+                )
+                np.testing.assert_array_equal(
+                    rs[(1, "TKEU")].read(), combined(records[2:])
+                )
+                return
+            dif = records[-1]
+            for record, raw in zip(rs, records[:-1], strict=True):
+                if record.variable == parent:
+                    assert got[parent] == [names[-1]]
+                    np.testing.assert_array_equal(record.read(), combined([raw, dif]))
+                else:
+                    assert not record.diffs
+                    np.testing.assert_array_equal(record.read(), reference_unpack(raw))
+
+    def test_at_the_surface_any_dif_corrects_the_precipitation(self, tmp_path):
+        # HYSPLIT matches the first three letters at the surface: DIFW there
+        # adds into the precipitation, and PRT* fills it like TPP*.
+        path = tmp_path / "surface.arl"
+        rng = np.random.default_rng(29)
+        names = ["PRT6", "T02M", "DIFW", "DIFR"]
+        records = [raw_record(TIME0, 0, name, noise(rng)) for name in names]
+        path.write_bytes(raw_time_step(TIME0, [records, [], [], []]))
+
+        with File(path) as arl:
+            prt6 = arl[TIME0][(0, "PRT6")]
+            assert [d.variable for d in prt6.diffs] == ["DIFW", "DIFR"]
+            assert not arl[TIME0][(0, "T02M")].diffs
+            np.testing.assert_array_equal(
+                prt6.read(), combined([records[0], records[2], records[3]])
+            )
+
+    @pytest.mark.parametrize(
+        ("level", "names", "unpaired"),
+        [
+            (1, ["WWND", "DIFX"], "DIFX"),  # a name the table does not know
+            (1, ["WWND", "DIFR"], "DIFR"),  # DIFR pairs only at the surface
+            (1, ["TEMP", "DIFW"], "DIFW"),  # no WWND or DZDT on the level
+            (1, ["DIFW", "WWND"], "DIFW"),  # the parent comes after the DIF
+            (0, ["T02M", "DIFR"], "DIFR"),  # no TPP* or PRT* at the surface
+        ],
+        ids=["unknown-name", "upper-difr", "no-parent", "parent-after", "surface"],
+    )
+    def test_a_dif_the_name_table_does_not_pair_is_applied_to_nothing(
+        self, tmp_path, level, names, unpaired
+    ):
+        path = tmp_path / "unpaired.arl"
+        rng = np.random.default_rng(31)
+        records = [raw_record(TIME0, level, name, noise(rng)) for name in names]
+        levels: list[list[bytes]] = [[], [], [], []]
+        levels[level] = records
+        path.write_bytes(raw_time_step(TIME0, levels))
+
+        with (
+            pytest.warns(ARLFormatWarning) as caught,
+            File(path) as arl,
+        ):
+            data = {r.variable: r for r in arl[TIME0]}
+            assert not any(r.diffs for r in data.values())
+            for name, raw in zip(names, records, strict=True):
+                if name in data:
+                    np.testing.assert_array_equal(
+                        data[name].read(), reference_unpack(raw)
+                    )
+        (warning,) = caught
+        message = str(warning.message)
+        assert f"{unpaired} at level {level} (byte" in message
+        assert "not applied" in message
+        assert "DIFW corrects WWND or DZDT" in message
+
+    def test_one_warning_counts_every_unpaired_dif(self, tmp_path):
+        path = tmp_path / "unpaired.arl"
+        rng = np.random.default_rng(37)
+        levels = [
+            [raw_record(TIME0, level, name, noise(rng)) for name in ("TEMP", "DIFW")]
+            for level in range(4)
+        ]
+        path.write_bytes(raw_time_step(TIME0, levels))
+
+        with pytest.warns(ARLFormatWarning) as caught, File(path):
+            pass
+        (warning,) = caught
+        assert "4 DIF record(s)" in str(warning.message)
+
+    def test_low_level_rewrite_puts_each_dif_after_its_parent(self, tmp_path):
+        source = tmp_path / "era5_like.arl"
+        rewritten = tmp_path / "rewritten.arl"
+        write_era5_like_file(source)
+
+        with (
+            File(source) as src,
+            File(
+                rewritten,
+                mode="w",
+                source=src.source,
+                grid=src.grid,
+                vertical_axis=src.vertical_axis,
+            ) as dst,
+        ):
+            for time in src.times:
+                rs = dst.create_recordset(time, forecast=src[time].forecast)
+                for record in src[time]:
+                    rs.create_datarecord(
+                        record.variable,
+                        record.level,
+                        forecast=record.header.forecast,
+                        data=record.read(),
+                        diff=[d.variable for d in record.diffs],
+                    )
+
+        moved = [
+            ["0:TPP1", "0:DIFR", "0:USTR"],
+            *([f"{n}:UWND", f"{n}:WWND", f"{n}:DIFW", f"{n}:RELH"] for n in (1, 2, 3)),
+        ]
+        moved_step = [entry for level in moved for entry in level]
+        assert disk_listing(rewritten) == [moved_step] * 2
+        assert raw_index_listing(rewritten) == disk_listing(rewritten)
+        expected = expected_values(source)
+        with File(rewritten) as out:
+            assert out.check() == []
+            for time in out.times:
+                for record in out[time]:
+                    atol = 2 * max(
+                        (d.header.precision for d in record.diffs), default=0
+                    )
+                    np.testing.assert_allclose(
+                        record.read(),
+                        expected[time, record.level, record.variable],
+                        rtol=0,
+                        atol=atol + 1e-6,
+                    )
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            pytest.param({}, id="all"),
+            pytest.param({"levels": [0, 2]}, id="levels"),
+            pytest.param({"variables": ["WWND", "USTR", "TPP1"]}, id="variables"),
+        ],
+    )
+    def test_uncropped_subset_copies_each_dif_after_its_parent(self, tmp_path, kwargs):
+        source = tmp_path / "era5_like.arl"
+        subset = tmp_path / "subset.arl"
+        write_era5_like_file(source)
+
+        extract_subset(source, subset, **kwargs)
+
+        # The index lists the records in the order they are on disk, each DIF
+        # right after its parent.
+        listing = disk_listing(subset)
+        assert raw_index_listing(subset) == listing
+        for step in listing:
+            for before, entry in pairwise(step):
+                level, name = entry.split(":")
+                if name.startswith("DIF"):
+                    assert before == f"{level}:{ERA5_PARENT_OF[name]}"
+        # Each record is the source's bytes with its level renumbered, and the
+        # values are exactly the source's, DIF included.
+        kept = sorted(kwargs.get("levels", range(4)))
+        source_records = {
+            (time, h.level, h.variable): raw
+            for time, step in walk(source).items()
+            for h, raw in step
+        }
+        for time, step in walk(subset).items():
+            for header, raw in step:
+                old = source_records[time, kept[header.level], header.variable]
+                assert raw[:10] == old[:10] and raw[12:] == old[12:]
+        expected = expected_values(source)
+        with File(subset) as out:
+            assert out.check() == []
+            n_difs = 0
+            for time in out.times:
+                for record in out[time]:
+                    n_difs += len(record.diffs)
+                    np.testing.assert_array_equal(
+                        record.read(),
+                        expected[time, kept[record.level], record.variable],
+                    )
+            assert n_difs > 0
+
+    def test_cropped_subset_writes_each_dif_after_its_parent(self, tmp_path):
+        source = tmp_path / "era5_like.arl"
+        subset = tmp_path / "subset.arl"
+        write_era5_like_file(source)
+
+        extract_subset(source, subset, bbox=WIDE_CROP)
+
+        with File(source) as src:
+            window = src.grid.window_from_bbox(WIDE_CROP)
+        nx, ny = window.nx, window.ny
+        listing = disk_listing(subset, nx=nx, ny=ny)
+        assert raw_index_listing(subset, nx=nx, ny=ny) == listing
+        for step in listing:
+            for before, entry in pairwise(step):
+                level, name = entry.split(":")
+                if name.startswith("DIF"):
+                    assert before == f"{level}:{ERA5_PARENT_OF[name]}"
+        expected = expected_values(source)
+        with File(subset) as out:
+            assert out.check() == []
+            for time in out.times:
+                for record in out[time]:
+                    target = expected[time, record.level, record.variable]
+                    target = target[window.y_slice, window.x_slice]
+                    if record.variable in ERA5_PARENT_OF.values():
+                        assert [d.variable for d in record.diffs] == [
+                            d for d, p in ERA5_PARENT_OF.items() if p == record.variable
+                        ]
+                        atol = 2 * record.diffs[0].header.precision + 1e-6
+                    else:
+                        assert not record.diffs
+                        atol = 0
+                    np.testing.assert_allclose(record.read(), target, rtol=0, atol=atol)
+
+    @pytest.mark.parametrize("bbox", [None, WIDE_CROP], ids=["copy", "crop"])
+    def test_a_subset_that_moves_a_dif_to_the_surface_is_refused(self, tmp_path, bbox):
+        # Leaving out level 0 makes level 1 the surface, where a DIFW record
+        # would correct nothing (HYSPLIT's xtrct_grid always keeps level 0).
+        source = tmp_path / "era5_like.arl"
+        subset = tmp_path / "subset.arl"
+        write_era5_like_file(source, n_steps=1)
+
+        with pytest.raises(ValueError, match="puts level 1 at level 0") as caught:
+            extract_subset(source, subset, bbox=bbox, levels=[1, 2])
+        assert "DIFW record of WWND would correct nothing" in str(caught.value)
+        assert not subset.exists()
+
+        # Without the records that carry a DIF, the same levels are fine.
+        extract_subset(source, subset, bbox=bbox, levels=[1, 2], variables=["RELH"])
+        with File(subset) as out:
+            assert [(r.level, r.variable) for r in out[TIME0]] == [
+                (0, "RELH"),
+                (1, "RELH"),
+            ]

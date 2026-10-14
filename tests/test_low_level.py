@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from arlmet import ARLFormatError, File
+from arlmet import ARLFormatError, ARLFormatWarning, File
 from arlmet.collection import VariableAccessor
 from arlmet.grid import Grid, GridWindow, Projection
 from arlmet.header import Header
@@ -345,15 +345,15 @@ class TestDataRecordModeGuards:
         ) as arl:
             rs = arl.create_recordset(time)
             record = rs.create_datarecord(
-                "WWND", level=0, forecast=0, data=base, diff="DIFW"
+                "TPP1", level=0, forecast=0, data=base, diff="DIFR"
             )
             assert record.diffs
-            assert record.diffs[0].variable == "DIFW"
+            assert record.diffs[0].variable == "DIFR"
 
         with File(path) as reopened:
-            record = reopened[time][(0, "WWND")]
+            record = reopened[time][(0, "TPP1")]
             assert record.diffs
-            assert record.diffs[0].variable == "DIFW"
+            assert record.diffs[0].variable == "DIFR"
             combined = record.read()
             # Reading a parent + DIF pair caches neither field.
             assert record._unpacked is None
@@ -373,8 +373,8 @@ class TestDataRecordModeGuards:
                 atol=max(record.header.precision, record.diffs[0].header.precision),
             )
 
-    def test_write_rejects_conflicting_diff_bindings(self, tmp_path):
-        path = tmp_path / "conflicting_diff.arl"
+    def test_write_rejects_a_diff_the_name_table_does_not_pair(self, tmp_path):
+        path = tmp_path / "unpaired_diff.arl"
         grid = make_test_grid()
         vertical_axis = PressureAxis(levels=[1000.0])
         data = np.ones((grid.ny, grid.nx), dtype=np.float32)
@@ -387,10 +387,11 @@ class TestDataRecordModeGuards:
             vertical_axis=vertical_axis,
         ) as arl:
             rs = arl.create_recordset(pd.Timestamp("2024-07-18 00:00"))
-            rs.create_datarecord("WWND", level=0, forecast=0, data=data, diff="DIFW")
-            with pytest.raises(ValueError, match="already bound to parent"):
+            # At the surface any DIF* name corrects precipitation only.
+            rs.create_datarecord("TPP1", level=0, forecast=0, data=data, diff="DIFW")
+            with pytest.raises(ValueError, match=r"corrects TPP\* or PRT\*.*not TEMP"):
                 rs.create_datarecord(
-                    "TEMP", level=0, forecast=0, data=data, diff="DIFW"
+                    "TEMP", level=0, forecast=0, data=data, diff="DIFR"
                 )
 
     def test_write_rejects_invalid_diff_name(self, tmp_path):
@@ -409,7 +410,7 @@ class TestDataRecordModeGuards:
             rs = arl.create_recordset(pd.Timestamp("2024-07-18 00:00"))
             with pytest.raises(ValueError, match="must start with 'DIF'"):
                 rs.create_datarecord(
-                    "WWND", level=0, forecast=0, data=data, diff="WDIFF"
+                    "TPP1", level=0, forecast=0, data=data, diff="WDIFF"
                 )
 
     def test_writable_record_rejects_non_mutable_header_after_pack(
@@ -894,7 +895,7 @@ class TestFileLowLevelBehavior:
         with pytest.raises(ARLFormatError, match="vertical axis mismatch"):
             File(path)
 
-    def test_scan_rejects_diff_record_without_preceding_record(
+    def test_scan_warns_on_diff_record_without_preceding_record(
         self, tmp_path, monkeypatch
     ):
         path = tmp_path / "scan_diff.arl"
@@ -920,8 +921,11 @@ class TestFileLowLevelBehavior:
 
         monkeypatch.setattr("arlmet.file.IndexRecord.from_position", fake_from_position)
 
-        with pytest.raises(ARLFormatError, match="difference record found"):
-            File(path)
+        with (
+            pytest.warns(ARLFormatWarning, match=r"1 DIF record\(s\) .* not applied"),
+            File(path) as arl,
+        ):
+            assert list(arl[0]) == []
 
     def test_scan_stops_cleanly_on_eof_and_assigns_diff_after_data_record(
         self, tmp_path, monkeypatch
@@ -951,8 +955,8 @@ class TestFileLowLevelBehavior:
                     level=0,
                     height=1000.0,
                     variables=[
-                        ("TEMP", VarInfo(checksum=1, reserved="")),
-                        ("DIFW", VarInfo(checksum=2, reserved="R")),
+                        ("TPP1", VarInfo(checksum=1, reserved="")),
+                        ("DIFR", VarInfo(checksum=2, reserved="R")),
                     ],
                 )
             ],
@@ -967,9 +971,9 @@ class TestFileLowLevelBehavior:
 
         monkeypatch.setattr("arlmet.file.IndexRecord.from_position", diff_from_position)
         with File(diff_path) as arl:
-            record = arl[pd.Timestamp("2024-07-18 00:00")][(0, "TEMP")]
+            record = arl[pd.Timestamp("2024-07-18 00:00")][(0, "TPP1")]
             assert record._diffs
-            assert record._diffs[0].variable == "DIFW"
+            assert record._diffs[0].variable == "DIFR"
 
 
 def assert_buffers_released(record: DataRecord) -> None:
@@ -989,7 +993,7 @@ class TestFileFlushAndHandle:
         temp = np.linspace(270.0, 290.0, grid.nx * grid.ny, dtype=np.float32).reshape(
             grid.ny, grid.nx
         )
-        wwnd = np.linspace(-0.3, 0.3, grid.nx * grid.ny, dtype=np.float32).reshape(
+        tpp = np.linspace(-0.3, 0.3, grid.nx * grid.ny, dtype=np.float32).reshape(
             grid.ny, grid.nx
         )
 
@@ -998,40 +1002,40 @@ class TestFileFlushAndHandle:
         ) as arl:
             rs0 = arl.create_recordset(time0, forecast=0)
             temp0 = rs0.create_datarecord("TEMP", level=0, forecast=0, data=temp)
-            wwnd0 = rs0.create_datarecord(
-                "WWND", level=0, forecast=0, data=wwnd, diff="DIFW"
+            tpp0 = rs0.create_datarecord(
+                "TPP1", level=0, forecast=0, data=tpp, diff="DIFR"
             )
             arl.flush()
 
             # The first time step is on disk and no longer held in memory.
             assert rs0.position == 0
-            for record in (temp0, wwnd0, *wwnd0.diffs):
+            for record in (temp0, tpp0, *tpp0.diffs):
                 assert_buffers_released(record)
             with pytest.raises(io.UnsupportedOperation):
                 rs0.create_datarecord("UWND", level=0, forecast=0, data=temp)
 
             rs1 = arl.create_recordset(time1, forecast=0)
             temp1 = rs1.create_datarecord("TEMP", level=0, forecast=0, data=temp + 1)
-            wwnd1 = rs1.create_datarecord(
-                "WWND", level=0, forecast=0, data=wwnd, diff="DIFW"
+            tpp1 = rs1.create_datarecord(
+                "TPP1", level=0, forecast=0, data=tpp, diff="DIFR"
             )
 
         # close() flushes the remaining time step the same way.
-        for record in (temp1, wwnd1, *wwnd1.diffs):
+        for record in (temp1, tpp1, *tpp1.diffs):
             assert_buffers_released(record)
 
         with File(path) as arl:
             assert arl.times == [time0, time1]
             for time, expected_temp in ((time0, temp), (time1, temp + 1)):
                 temp_record = arl[time][(0, "TEMP")]
-                wwnd_record = arl[time][(0, "WWND")]
+                tpp_record = arl[time][(0, "TPP1")]
                 np.testing.assert_allclose(
                     temp_record.read(),
                     expected_temp,
                     atol=temp_record.header.precision,
                 )
                 np.testing.assert_allclose(
-                    wwnd_record.read(), wwnd, atol=wwnd_record.header.precision
+                    tpp_record.read(), tpp, atol=tpp_record.header.precision
                 )
 
     def test_closing_writer_twice_keeps_written_data(self, tmp_path):
@@ -1318,14 +1322,14 @@ class TestAddRecord:
             grid=grid,
             vertical_axis=PressureAxis(levels=[1000.0]),
         ) as arl:
-            record = arl.add_record(time, "WWND", 0, forecast=3, data=data, diff="DIFW")
+            record = arl.add_record(time, "TPP1", 0, forecast=3, data=data, diff="DIFR")
             assert record.diffs
 
         with File(path) as arl:
-            record = arl[time][(0, "WWND")]
+            record = arl[time][(0, "TPP1")]
             assert record.forecast == 3
             assert record.diffs
-            assert record.diffs[0].variable == "DIFW"
+            assert record.diffs[0].variable == "DIFR"
 
     def test_add_record_requires_forecast(self, tmp_path):
         grid = make_test_grid()
