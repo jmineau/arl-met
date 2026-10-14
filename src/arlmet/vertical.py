@@ -20,6 +20,7 @@ __all__ = [
     "PressureAxis",
     "TerrainAxis",
     "HybridAxis",
+    "WrfAxis",
     "hypsometric_z_agl",
 ]
 
@@ -134,13 +135,14 @@ class VerticalAxis(ABC):
     levels : array-like of float
         Native level values stored in the file (1-D).
     offset : float, default 0.0
-        Pressure offset used by sigma and hybrid coordinate conversions.
+        Pressure offset [hPa] stored in the index record: the sigma offset,
+        or WRF's model-top pressure for flag 5.
 
     Attributes
     ----------
     flag : int
         ARL vertical coordinate flag (1=sigma, 2=pressure, 3=terrain,
-        4=hybrid).
+        4=hybrid, 5=WRF).
     coord_system : str
         Human-readable coordinate system name.
     levels : numpy.ndarray
@@ -215,8 +217,8 @@ class VerticalAxis(ABC):
         Raises
         ------
         ValueError
-            If a required input is missing, or the axis has no pressure
-            coordinate (terrain-following).
+            If a required input is missing, or the levels alone do not give
+            pressure (terrain-following and WRF axes; read the ``PRES`` field).
         """
         ...
 
@@ -226,6 +228,7 @@ class VerticalAxis(ABC):
         *,
         surface_pressure: npt.ArrayLike | None = None,
         temperature: npt.ArrayLike | None = None,
+        pressure: npt.ArrayLike | None = None,
         hgts: npt.ArrayLike | None = None,
         terrain: npt.ArrayLike | None = None,
     ) -> npt.NDArray[np.float64]:
@@ -238,10 +241,14 @@ class VerticalAxis(ABC):
         Parameters
         ----------
         surface_pressure : array-like, optional
-            Surface pressure [hPa] (``PRSS``). Required for sigma and hybrid.
+            Surface pressure [hPa] (``PRSS``). Required for sigma, hybrid and
+            WRF.
         temperature : array-like, optional
             Temperature [K] at each level (``TEMP``), levels on the last
-            axis. Required for sigma and hybrid.
+            axis. Required for sigma, hybrid and WRF.
+        pressure : array-like, optional
+            Pressure [hPa] at each level (``PRES``), the same shape as
+            ``temperature``. Required for WRF.
         hgts : array-like, optional
             Geopotential height [m MSL] at each level (``HGTS``). Required
             for pressure axes.
@@ -304,6 +311,7 @@ class SigmaAxis(VerticalAxis):
         *,
         surface_pressure: npt.ArrayLike | None = None,
         temperature: npt.ArrayLike | None = None,
+        pressure: npt.ArrayLike | None = None,
         hgts: npt.ArrayLike | None = None,
         terrain: npt.ArrayLike | None = None,
     ) -> npt.NDArray[np.float64]:
@@ -330,6 +338,7 @@ class PressureAxis(VerticalAxis):
         *,
         surface_pressure: npt.ArrayLike | None = None,
         temperature: npt.ArrayLike | None = None,
+        pressure: npt.ArrayLike | None = None,
         hgts: npt.ArrayLike | None = None,
         terrain: npt.ArrayLike | None = None,
     ) -> npt.NDArray[np.float64]:
@@ -360,6 +369,7 @@ class TerrainAxis(VerticalAxis):
         *,
         surface_pressure: npt.ArrayLike | None = None,
         temperature: npt.ArrayLike | None = None,
+        pressure: npt.ArrayLike | None = None,
         hgts: npt.ArrayLike | None = None,
         terrain: npt.ArrayLike | None = None,
     ) -> npt.NDArray[np.float64]:
@@ -392,11 +402,78 @@ class HybridAxis(VerticalAxis):
         *,
         surface_pressure: npt.ArrayLike | None = None,
         temperature: npt.ArrayLike | None = None,
+        pressure: npt.ArrayLike | None = None,
         hgts: npt.ArrayLike | None = None,
         terrain: npt.ArrayLike | None = None,
     ) -> npt.NDArray[np.float64]:
         """Height AGL [m] by hypsometric integration of ``surface_pressure`` and ``temperature``."""
         return _hypsometric_height(self, surface_pressure, temperature)
+
+
+class WrfAxis(VerticalAxis):
+    """
+    Flag=5. WRF hybrid sigma-pressure levels, as HYSPLIT's ``arw2arl`` writes them.
+
+    ``arw2arl`` writes flag 5 for a WRF run with ``hybrid_opt=2`` (flag 1
+    otherwise). The stored levels are WRF's eta on the mass levels (``ZNU``),
+    bottom up, with 1.0 for the surface, and ``offset`` is WRF's model-top
+    pressure ``P_TOP`` [hPa].
+
+    Eta alone does not give pressure on hybrid levels: that also takes WRF's
+    hybrid coefficients, which ``arw2arl`` writes to a separate text file
+    (``hybrid_wrfvcoords.txt``), not to the ARL file. So pressure is the
+    ``PRES`` field, as in HYSPLIT's ``prfwrf``, and heights are hypsometric from
+    ``PRSS`` up through ``PRES`` with ``TEMP``, as in HYSPLIT's ``prfsig``, which
+    HYSPLIT uses for a flag-5 file when it does not have the coefficients.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from arlmet import WrfAxis
+    >>> axis = WrfAxis(levels=[1.0, 0.995, 0.98], offset=50.0)
+    >>> z = axis.to_height_agl(
+    ...     surface_pressure=850.0,
+    ...     temperature=np.array([285.0, 284.0]),
+    ...     pressure=np.array([845.0, 832.0]),
+    ... )
+    >>> np.round(z, 1)
+    array([ 49.2, 178.3])
+    """
+
+    flag = 5
+    coord_system = "wrf"
+
+    @override
+    def to_pressure(
+        self, *, surface_pressure: npt.ArrayLike | None = None
+    ) -> npt.NDArray[np.float64]:
+        """Raise ValueError: WRF hybrid levels need the ``PRES`` field for pressure."""
+        raise ValueError(
+            "WRF hybrid (flag=5) levels give pressure only with WRF's hybrid "
+            "coefficients, which ARL files do not store; use the PRES field, "
+            "as HYSPLIT does."
+        )
+
+    @override
+    def to_height_agl(
+        self,
+        *,
+        surface_pressure: npt.ArrayLike | None = None,
+        temperature: npt.ArrayLike | None = None,
+        pressure: npt.ArrayLike | None = None,
+        hgts: npt.ArrayLike | None = None,
+        terrain: npt.ArrayLike | None = None,
+    ) -> npt.NDArray[np.float64]:
+        """Height AGL [m] by hypsometric integration of ``pressure`` (PRES) from ``surface_pressure`` with ``temperature``."""
+        _require("surface_pressure", surface_pressure, self)
+        _require("temperature", temperature, self)
+        _require("pressure", pressure, self)
+        assert (
+            surface_pressure is not None
+            and temperature is not None
+            and pressure is not None
+        )
+        return hypsometric_z_agl(pressure, surface_pressure, temperature)
 
 
 def _hypsometric_height(
@@ -418,4 +495,5 @@ _FLAG_MAP: dict[int, type[VerticalAxis]] = {
     2: PressureAxis,
     3: TerrainAxis,
     4: HybridAxis,
+    5: WrfAxis,
 }

@@ -41,7 +41,7 @@ Vertical coordinate flags
    * - 4
      - hybrid sigma-pressure
    * - 5
-     - WRF (not implemented)
+     - WRF hybrid sigma-pressure
 
 Pressure
 --------
@@ -59,6 +59,8 @@ The result depends on the vertical flag:
   conversion as HYSPLIT's ``metlvl.f``. ``PRSS`` must be present in the dataset.
 - **flag=3 (terrain-following):** returns the ``PRES`` data variable if present,
   and raises ``ValueError`` otherwise.
+- **flag=5 (WRF):** returns the ``PRES`` data variable, as HYSPLIT does, and
+  raises ``ValueError`` if it is absent (see `WRF files`_ below).
 
 Height above ground level
 --------------------------
@@ -77,10 +79,42 @@ dispatcher — each coordinate system has exactly one correct method:
   files do not store ``HGTS``.
 - **flag=3 (terrain-following):** returns the stored 1D ``height`` coordinate —
   terrain-following levels are already heights AGL.
+- **flag=5 (WRF):** hypsometric integration from ``PRSS`` up through the
+  ``PRES`` field, with ``TEMP``. Requires all three.
 
 The hypsometric integration uses the temperature at the lowest level for the
 surface-to-first-level layer, and the mean temperature of the bounding levels
 for each layer above.
+
+WRF files
+---------
+
+HYSPLIT's WRF converter, ``arw2arl``, writes vertical flag 5 when WRF ran with
+hybrid levels (``hybrid_opt=2``), and flag 1 (sigma) otherwise. The file's
+levels are WRF's eta on the mass levels, with 1.0 for the surface, and the
+axis ``offset`` is WRF's model-top pressure in hPa:
+
+.. code-block:: python
+
+   ds = arlmet.open_dataset("wrfout_d01.arl")
+   ds.arl.vertical_axis     # WrfAxis(n=34)
+   ds.coords["eta"]         # eta of each level
+   p = arlmet.pressure(ds)  # the PRES field
+   z = arlmet.z_agl(ds)     # hypsometric, from PRSS through PRES with TEMP
+
+On hybrid levels, eta alone does not give pressure: that also takes WRF's
+hybrid coefficients, which ``arw2arl`` writes to a separate text file
+(``hybrid_wrfvcoords.txt``), not to the ARL file. ``arw2arl`` always writes the
+3D pressure field ``PRES``, and HYSPLIT reads pressure from it, so arl-met does
+too: ``WrfAxis.to_pressure()`` raises ``ValueError`` and ``pressure()`` returns
+``PRES``.
+
+Heights come from the same hypsometric integration as sigma files, between the
+``PRES`` levels. That is what HYSPLIT does for a flag-5 file unless the file
+also holds WRF's dry column mass (``MUBA``, ``MUPE``) and the coefficient file
+sits beside it, in which case HYSPLIT's ``prfwrf`` builds heights from the
+coefficients. On a made-up WRF column the two differ by less than 1% (less
+than half a meter in the lowest 2 km).
 
 Height above mean sea level
 ---------------------------
@@ -108,6 +142,9 @@ coordinate system needs; a missing one raises ``ValueError`` naming it.
    paxis = arlmet.PressureAxis(levels=[1000.0, 925.0, 850.0])
    z = paxis.to_height_agl(hgts=hgts, terrain=shgt[..., None])
 
+   waxis = arlmet.WrfAxis(levels=[1.0, 0.995, 0.98], offset=50.0)
+   z = waxis.to_height_agl(surface_pressure=prss, temperature=temp, pressure=pres)
+
 Vertical axes are immutable: ``levels`` is a read-only array and attributes
 cannot be reassigned. Build a new axis instead (for example
 ``arlmet.VerticalAxis.from_flag(vaxis.flag, levels, offset=vaxis.offset)``).
@@ -115,7 +152,7 @@ cannot be reassigned. Build a new axis instead (for example
 Limitations
 -----------
 
-- WRF vertical flag 5 is not implemented: opening a flag-5 file raises
-  ``ValueError`` (``Unsupported vertical flag 5``).
+- WRF files (flag=5) need the ``PRES`` field for pressure and heights; the
+  hybrid coefficients that would give them from eta are not in the ARL file.
 - ``pressure()`` for terrain-following files (flag=3) requires a stored ``PRES``
   field; it is not derived.

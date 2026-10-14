@@ -42,7 +42,8 @@ Known limitations:
 
 - `write_dataset()` is intentionally conservative and targets the flat common-case Dataset contract
 - `DIF*` records are paired with their parent by HYSPLIT's name table only (`DIFW` with `WWND` or `DZDT`, `DIFT` with `TKEN` or `TKEU`, any surface `DIF*` with `TPP*` or `PRT*`); any other `DIF*` record is applied to nothing, with a warning, and the writers refuse other pairs
-- WRF vertical flag 5 and rotated grids are not implemented
+- rotated grids are not implemented
+- on WRF hybrid files (vertical flag 5), pressure is the `PRES` field and heights are integrated from it: the ARL file does not hold WRF's hybrid coefficients
 
 ## Installation
 

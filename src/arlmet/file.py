@@ -785,13 +785,14 @@ class File:
             - ``"native"``: fractional ARL level index.
             - ``"pressure"``: hPa. Sigma/hybrid files (flag 1/4) need
               ``PRSS``; pressure files (flag 2) use the stored levels;
-              terrain-following files (flag 3) raise ``ValueError``.
+              terrain-following files (flag 3) raise ``ValueError``; WRF
+              files (flag 5) use the ``PRES`` field.
             - ``"agl"``: metres above ground level. Sigma/hybrid files
-              integrate hypsometrically from ``PRSS`` and ``TEMP``; pressure
-              files use ``HGTS - SHGT``; terrain-following files use the
-              stored levels.
-            - ``"msl"``: metres above mean sea level. Sigma/hybrid files add
-              ``SHGT`` to the hypsometric AGL height; pressure files use
+              integrate hypsometrically from ``PRSS`` and ``TEMP``, WRF files
+              from ``PRSS`` through ``PRES`` with ``TEMP``; pressure files use
+              ``HGTS - SHGT``; terrain-following files use the stored levels.
+            - ``"msl"``: metres above mean sea level. Sigma/hybrid/WRF files
+              add ``SHGT`` to the hypsometric AGL height; pressure files use
               ``HGTS``; terrain-following files add ``SHGT`` to the stored
               levels.
 

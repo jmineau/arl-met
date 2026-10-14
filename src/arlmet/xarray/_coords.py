@@ -39,6 +39,7 @@ _PHYS_COORD: dict[int, tuple[str, str, str]] = {
     2: ("pressure", "air_pressure", "hPa"),
     3: ("height", "height", "m"),
     4: ("sigma", "atmosphere_hybrid_sigma_pressure_coordinate", "1"),
+    5: ("eta", "atmosphere_hybrid_sigma_pressure_coordinate", "1"),
 }
 
 

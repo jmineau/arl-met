@@ -36,6 +36,11 @@ for choice. The Fortran routines it matches:
    * - ``prfcom``
      - choose the vertical conversion from the vertical flag
      - :meth:`arlmet.VerticalAxis.from_flag` and its subclasses
+   * - ``prfwrf``
+     - the WRF (flag 5) profile: pressure from the ``PRES`` field, heights from
+       WRF's hybrid coefficients (read from a side file, ``hybrid_wrfvcoords.txt``)
+     - :class:`arlmet.WrfAxis`: pressure from ``PRES``; heights hypsometric
+       from ``PRES``, since the coefficients are not in the ARL file
    * - ``xtrct_grid.f``
      - crop a met file to a grid window
      - :meth:`arlmet.Grid.window_from_bbox`, :func:`arlmet.extract_subset`
@@ -46,9 +51,9 @@ Vertical-axis conversions
 
 Each subclass of :class:`arlmet.VerticalAxis` converts its levels with
 keyword-only inputs (``to_pressure(*, surface_pressure=None)`` and
-``to_height_agl(*, surface_pressure=None, temperature=None, hgts=None,
-terrain=None)``), uses only the ones its coordinate system needs, and raises
-``ValueError`` naming a missing one.
+``to_height_agl(*, surface_pressure=None, temperature=None, pressure=None,
+hgts=None, terrain=None)``), uses only the ones its coordinate system needs, and
+raises ``ValueError`` naming a missing one.
 
 .. list-table::
    :header-rows: 1
@@ -73,8 +78,23 @@ terrain=None)``), uses only the ones its coordinate system needs, and raises
      - :class:`~arlmet.HybridAxis`
      - ``surface_pressure * sigma + floor(level)``; the first level is the surface
      - hypsometric, as for flag 1
+   * - 5
+     - :class:`~arlmet.WrfAxis`
+     - raises ``ValueError`` (needs WRF's hybrid coefficients; use ``PRES``)
+     - hypsometric, from ``surface_pressure`` (PRSS) through ``pressure``
+       (PRES) with ``temperature`` (TEMP)
 
-Any other flag, including 5 (WRF), raises ``ValueError`` in ``from_flag``.
+Any other flag raises ``ValueError`` in ``from_flag``.
+
+Flag 5 is what HYSPLIT's ``arw2arl`` writes for a WRF run with
+``hybrid_opt=2``: the levels are WRF's mass-level eta (``ZNU``) with 1.0 for
+the surface, and the offset is WRF's model top ``P_TOP`` in hPa. HYSPLIT's
+``prfcom`` sends a flag-5 file to ``prfwrf`` only when the file has ``MUBA`` and
+``MUPE`` and ``hybrid_wrfvcoords.txt`` sits beside it; otherwise ``metini``
+treats it as flag 1 and ``prfsig`` integrates heights between the ``PRES``
+levels. ``WrfAxis`` heights follow that ``prfsig`` path with arl-met's
+hypsometric helper (dry temperature; the first layer uses the first level's
+temperature).
 
 Module layout
 -------------
@@ -91,7 +111,7 @@ Module layout
      index.py       IndexRecord, VarInfo, LvlInfo: the index record codec
      grid.py        Projection, Grid, GridWindow: horizontal geometry only
      vertical.py    VerticalAxis (abstract) and SigmaAxis, PressureAxis,
-                    TerrainAxis, HybridAxis
+                    TerrainAxis, HybridAxis, WrfAxis
      packing.py     pack(), unpack(), calculate_checksum()
      _pack.c        C extension arlmet._pack: the packing encoder (pack_core)
      exceptions.py  ARLFormatError, ARLFormatWarning

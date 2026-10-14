@@ -77,6 +77,7 @@ constructing a new axis.
    PressureAxis
    TerrainAxis
    HybridAxis
+   WrfAxis
 
 Binary Metadata And Packing
 ---------------------------

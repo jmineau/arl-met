@@ -16,7 +16,14 @@ from .ops import concat, concat_by_time, extract_subset, sample_points
 from .packing import calculate_checksum, pack, unpack
 from .record import DataRecord
 from .recordset import RecordSet
-from .vertical import HybridAxis, PressureAxis, SigmaAxis, TerrainAxis, VerticalAxis
+from .vertical import (
+    HybridAxis,
+    PressureAxis,
+    SigmaAxis,
+    TerrainAxis,
+    VerticalAxis,
+    WrfAxis,
+)
 from .xarray import open_dataset, pressure, write_dataset, z_agl, z_msl
 
 __version__ = importlib.metadata.version("arlmet")
@@ -40,6 +47,7 @@ __all__ = [
     "PressureAxis",
     "TerrainAxis",
     "HybridAxis",
+    "WrfAxis",
     "Header",
     "IndexRecord",
     "calculate_checksum",

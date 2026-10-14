@@ -8,6 +8,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- WRF hybrid files (vertical flag 5, which HYSPLIT's `arw2arl` writes for a WRF run with `hybrid_opt=2`) open, crop, rewrite and sample; they used to raise `ValueError: Unsupported vertical flag 5` everywhere. The new `WrfAxis` holds WRF's mass-level eta (an `eta` coordinate in `open_dataset`) and the model-top pressure (`offset`). Eta gives pressure only with WRF's hybrid coefficients, which `arw2arl` writes to a side file and not to the ARL file, so, as in HYSPLIT, pressure is the `PRES` field: `pressure()` returns it and `WrfAxis.to_pressure()` raises `ValueError`. `z_agl()`, `z_msl()` and `WrfAxis.to_height_agl()` integrate hypsometrically from `PRSS` through `PRES` with `TEMP`, and `sample_points` uses the same for `z_kind="pressure"`, `"agl"` and `"msl"`. `VerticalAxis.to_height_agl()` takes a new `pressure=` argument for it, which the other axes ignore (#19)
+
 - Files with several `DIF*` records in a row after one data record open and read: `DataRecord.read()` (and `open_dataset`) adds each to the record in stream order, in float32, as HYSPLIT's reader does (`(parent + DIF) + DIF`). They used to be refused. An uncropped `extract_subset` copies every one byte for byte; a crop or a rewrite writes the same `DIF*` records after each parent, with values that agree within the DIFs' precision. `RecordSet.create_datarecord(diff=)` and `File.add_record(diff=)` take several names (`diff=["DIFW", "DIFW"]`): each DIF holds what packing left after the parent and the DIFs before it. An index record that lists the same `DIF*` name twice on a level is read as written; a level that lists any other variable twice raises `ARLFormatError` (#24)
 
 ### Changed

@@ -12,6 +12,7 @@ from arlmet.vertical import (
     SigmaAxis,
     TerrainAxis,
     VerticalAxis,
+    WrfAxis,
 )
 
 
@@ -39,6 +40,13 @@ class TestFromFlag:
         assert isinstance(ax, HybridAxis)
         assert ax.flag == 4
         assert ax.coord_system == "hybrid"
+
+    def test_returns_wrf_axis(self):
+        ax = VerticalAxis.from_flag(5, levels=[1.0, 0.995, 0.98], offset=50.0)
+        assert isinstance(ax, WrfAxis)
+        assert ax.flag == 5
+        assert ax.coord_system == "wrf"
+        assert ax.offset == 50.0
 
     def test_unknown_flag_raises(self):
         with pytest.raises(ValueError, match="Unsupported vertical flag 99"):
@@ -104,6 +112,18 @@ class TestMissingInputs:
         with pytest.raises(ValueError, match="terrain="):
             ax.to_height_agl(hgts=[100.0, 1000.0])
 
+    def test_wrf_height_requires_surface_pressure_temperature_and_pres(self):
+        ax = WrfAxis(levels=[1.0, 0.995, 0.98], offset=50.0)
+        inputs = {
+            "surface_pressure": 850.0,
+            "temperature": [285.0, 284.0],
+            "pressure": [845.0, 832.0],
+        }
+        for name in inputs:
+            given = {k: v for k, v in inputs.items() if k != name}
+            with pytest.raises(ValueError, match=f"{name}="):
+                ax.to_height_agl(**given)
+
     def test_sigma_height_matches_hypsometric(self):
         ax = SigmaAxis(levels=[1.0, 0.9])
         z = ax.to_height_agl(surface_pressure=[1000.0], temperature=[[280.0, 280.0]])
@@ -166,6 +186,13 @@ class TestToPressure:
         with pytest.raises(ValueError, match="Terrain-following"):
             ax.to_pressure()
 
+    def test_wrf_raises_and_points_to_pres(self):
+        # Pressure on WRF hybrid levels needs WRF's hybrid coefficients, which
+        # arw2arl writes to hybrid_wrfvcoords.txt, not to the ARL file.
+        ax = WrfAxis(levels=[1.0, 0.995, 0.98], offset=50.0)
+        with pytest.raises(ValueError, match="PRES"):
+            ax.to_pressure(surface_pressure=[850.0])
+
     def test_sigma_returns_2d_array(self):
         ax = SigmaAxis(levels=[1.0, 0.9], offset=0.0)
         result = ax.to_pressure(surface_pressure=np.array([1000.0, 900.0, 800.0]))
@@ -185,6 +212,44 @@ class TestToHeightAgl:
         ax = TerrainAxis(levels=[0.0, 100.0, 500.0])
         result = ax.to_height_agl()
         np.testing.assert_allclose(result, [0.0, 100.0, 500.0])
+
+    def test_wrf_hypsometric_from_pres_by_hand(self):
+        # dz = (R_D / G) * T * ln(p_below / p_above), R_D / G = 287.05 / 9.80665
+        # = 29.27095 m/K. Layer 1 (PRSS 850 -> PRES 820) uses T(level 1) = 279;
+        # each layer above uses the mean T of its two levels.
+        #   z1 = 29.27095 * 279.0 * ln(850 / 820) = 293.4422
+        #   z2 = z1 + 29.27095 * 278.5 * ln(820 / 790) = 597.2772
+        #   z3 = z2 + 29.27095 * 277.5 * ln(790 / 760) = 911.7431
+        ax = WrfAxis(levels=[1.0, 0.99, 0.95, 0.9], offset=50.0)
+        z = ax.to_height_agl(
+            surface_pressure=850.0,
+            temperature=np.array([279.0, 278.0, 277.0]),
+            pressure=np.array([820.0, 790.0, 760.0]),
+        )
+        np.testing.assert_allclose(z, [293.4422, 597.2772, 911.7431], atol=1e-3)
+
+    def test_wrf_height_per_point(self):
+        # Two points, levels on the last axis; the class docstring's example
+        # is the first row: 29.27095 * 285 * ln(850 / 845) = 49.2168 and
+        # 49.2168 + 29.27095 * 284.5 * ln(845 / 832) = 178.3292.
+        ax = WrfAxis(levels=[1.0, 0.995, 0.98], offset=50.0)
+        z = ax.to_height_agl(
+            surface_pressure=np.array([850.0, 850.0]),
+            temperature=np.array([[285.0, 284.0], [279.0, 278.0]]),
+            pressure=np.array([[845.0, 832.0], [820.0, 790.0]]),
+        )
+        np.testing.assert_allclose(
+            z, [[49.2168, 178.3292], [293.4422, 597.2772]], atol=1e-3
+        )
+
+    def test_wrf_ignores_hgts(self):
+        # Never a fallback across flags: HGTS does not enter a WRF height.
+        ax = WrfAxis(levels=[1.0, 0.99], offset=50.0)
+        args = {"surface_pressure": 850.0, "temperature": [279.0], "pressure": [820.0]}
+        np.testing.assert_array_equal(
+            ax.to_height_agl(**args),
+            ax.to_height_agl(**args, hgts=[5000.0], terrain=[1000.0]),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -499,3 +564,144 @@ class TestZMslHelper:
         ds = arlmet.open_dataset(path).drop_vars("SHGT")
         with pytest.raises(ValueError, match="SHGT"):
             arlmet.z_msl(ds)
+
+
+# ---------------------------------------------------------------------------
+# WRF (flag 5) files: written by arlmet, as HYSPLIT's arw2arl lays them out
+# ---------------------------------------------------------------------------
+
+# arw2arl's index: level 0 is the surface with height 1.0, then WRF's half-level
+# eta (ZNU) bottom up; the reserved projection field holds P_TOP in hPa.
+_WRF_LEVELS = [1.0, 0.99, 0.95, 0.9]
+_WRF_PTOP = 50.0
+_WRF_PRES = [820.0, 790.0, 760.0]
+_WRF_TEMP = [279.0, 278.0, 277.0]
+# Hand-worked heights for PRSS 850 hPa (see test_wrf_hypsometric_from_pres_by_hand)
+_WRF_Z = [293.4422, 597.2772, 911.7431]
+
+
+def _write_wrf_file(path, *, with_pres: bool = True):
+    """Write a minimal WRF (flag=5) ARL file: PRSS 850 hPa, SHGT 1300 m."""
+    grid = _make_latlon_grid()
+    vaxis = WrfAxis(levels=_WRF_LEVELS, offset=_WRF_PTOP)
+    ny, nx = grid.ny, grid.nx
+
+    def full(value):
+        return np.full((ny, nx), value, dtype=np.float32)
+
+    with File(path, mode="w", source="AWRF", grid=grid, vertical_axis=vaxis) as f:
+        rs = f.create_recordset(pd.Timestamp("2024-01-01"))
+        rs.create_datarecord("SHGT", level=0, forecast=0, data=full(1300.0))
+        rs.create_datarecord("PRSS", level=0, forecast=0, data=full(850.0))
+        for k, (p, t) in enumerate(zip(_WRF_PRES, _WRF_TEMP, strict=True), start=1):
+            if with_pres:
+                rs.create_datarecord("PRES", level=k, forecast=0, data=full(p))
+            rs.create_datarecord("TEMP", level=k, forecast=0, data=full(t))
+
+
+class TestWrfFile:
+    def test_index_record_stores_flag_5_and_model_top(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        _write_wrf_file(path)
+        raw = path.read_bytes()
+        # The index record's fixed part follows the 50-byte header: the
+        # vertical flag is its bytes 102:104 (I2), as HYSPLIT's metset reads it.
+        assert raw[14:18] == b"INDX"
+        assert raw[50 + 102 : 50 + 104] == b" 5"
+        with File(path) as f:
+            assert f.vertical_axis == WrfAxis(levels=_WRF_LEVELS, offset=_WRF_PTOP)
+            np.testing.assert_allclose(f.vertical_axis.levels, _WRF_LEVELS)
+
+    def test_open_dataset_has_eta_coordinate(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        _write_wrf_file(path)
+        ds = arlmet.open_dataset(path)
+        assert ds.attrs["vertical_flag"] == 5
+        np.testing.assert_allclose(ds.coords["eta"].values, _WRF_LEVELS[1:])
+        assert ds.coords["eta"].attrs["surface"] == 1.0
+        assert ds.coords["eta"].attrs["offset"] == _WRF_PTOP
+        assert ds.arl.vertical_axis == WrfAxis(levels=_WRF_LEVELS, offset=_WRF_PTOP)
+
+    def test_write_dataset_round_trip(self, tmp_path):
+        src = tmp_path / "wrf.arl"
+        dest = tmp_path / "wrf_copy.arl"
+        _write_wrf_file(src)
+        ds = arlmet.open_dataset(src)
+        arlmet.write_dataset(ds, dest)
+        with File(src) as a, File(dest) as b:
+            assert b.vertical_axis == a.vertical_axis
+        back = arlmet.open_dataset(dest)
+        np.testing.assert_array_equal(back["PRES"].values, ds["PRES"].values)
+        np.testing.assert_array_equal(back["TEMP"].values, ds["TEMP"].values)
+
+    def test_extract_subset_keeps_flag_and_model_top(self, tmp_path):
+        src = tmp_path / "wrf.arl"
+        dest = tmp_path / "wrf_sub.arl"
+        _write_wrf_file(src)
+        arlmet.extract_subset(src, dest, levels=[0, 2])
+        with File(dest) as f:
+            assert f.vertical_axis == WrfAxis(levels=[1.0, 0.95], offset=_WRF_PTOP)
+            np.testing.assert_allclose(f[0][(1, "PRES")].read(), 790.0)
+
+    def test_pressure_is_the_pres_field(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        _write_wrf_file(path)
+        ds = arlmet.open_dataset(path)
+        p = arlmet.pressure(ds)
+        np.testing.assert_allclose(p.isel(time=0, lat=0, lon=0).values, _WRF_PRES)
+
+    def test_pressure_without_pres_raises(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        _write_wrf_file(path, with_pres=False)
+        ds = arlmet.open_dataset(path)
+        with pytest.raises(ValueError, match="PRES"):
+            arlmet.pressure(ds)
+        with pytest.raises(ValueError, match="PRES"):
+            arlmet.z_agl(ds)
+
+    def test_z_agl_and_z_msl_by_hand(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        _write_wrf_file(path)
+        ds = arlmet.open_dataset(path)
+        z = arlmet.z_agl(ds).isel(time=0, lat=0, lon=0).values
+        np.testing.assert_allclose(z, _WRF_Z, atol=1e-2)
+        z_msl = arlmet.z_msl(ds).isel(time=0, lat=0, lon=0).values
+        np.testing.assert_allclose(z_msl, np.add(_WRF_Z, 1300.0), atol=1e-2)
+
+    def test_sample_points_in_pressure_agl_and_msl(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        _write_wrf_file(path)
+        # A quarter of the way from level 1 to level 2: TEMP 279 -> 278 and
+        # PRES 820 -> 790 are linear in the target coordinate.
+        z_quarter = _WRF_Z[0] + 0.25 * (_WRF_Z[1] - _WRF_Z[0])
+        point = {"lon": [-105.0], "lat": [45.0], "time": [pd.Timestamp("2024-01-01")]}
+        with File(path) as f:
+            by_p = f.sample_points({**point, "z": [812.5]}, ["TEMP"], z_kind="pressure")
+            agl = f.sample_points(
+                {**point, "z": [z_quarter]}, ["TEMP", "pressure"], z_kind="agl"
+            )
+            msl = f.sample_points(
+                {**point, "z": [z_quarter + 1300.0]}, ["TEMP", "pressure"], z_kind="msl"
+            )
+        np.testing.assert_allclose(by_p["TEMP"].iloc[0], 278.75, atol=1e-4)
+        for result in (agl, msl):
+            np.testing.assert_allclose(result["TEMP"].iloc[0], 278.75, atol=1e-3)
+            np.testing.assert_allclose(result["pressure"].iloc[0], 812.5, atol=1e-2)
+
+    def test_sample_points_below_first_level_uses_the_surface(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        _write_wrf_file(path)
+        # The virtual pressure profile starts at PRSS (850 hPa) at 0 m AGL.
+        point = {"lon": [-105.0], "lat": [45.0], "z": [0.5 * _WRF_Z[0]]}
+        with File(path) as f:
+            agl = f.sample_points(point, ["pressure"], z_kind="agl")
+        np.testing.assert_allclose(agl["pressure"].iloc[0], 835.0, atol=1e-2)
+
+    def test_sample_points_without_pres_raises(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        _write_wrf_file(path, with_pres=False)
+        point = {"lon": [-105.0], "lat": [45.0], "z": [500.0]}
+        with File(path) as f:
+            for z_kind in ("pressure", "agl"):
+                with pytest.raises(ValueError, match="PRES"):
+                    f.sample_points(point, ["TEMP"], z_kind=z_kind)
