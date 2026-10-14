@@ -553,8 +553,10 @@ class File:
 
             # Read data records for this index record
             position += record_length  # start of data records
-            prev_dr = None
             for lvl in index.levels:
+                # A DIF record corrects the data record just before it on the
+                # same level, so each level starts without a parent.
+                prev_dr = None
                 for var in lvl.variables:
                     checksum = lvl.variables[var].checksum
                     reserved = lvl.variables[var].reserved
@@ -565,7 +567,15 @@ class File:
                             raise ARLFormatError(
                                 f"{self.path}: difference record found for "
                                 f"variable '{var}' at byte {position} without "
-                                "a preceding data record."
+                                f"a preceding data record at level {lvl.level}."
+                            )
+                        if prev_dr.diff is not None:
+                            raise ARLFormatError(
+                                f"{self.path}: difference record '{var}' at "
+                                f"byte {position} follows '{prev_dr.diff.variable}', "
+                                f"which already corrects '{prev_dr.variable}' at "
+                                f"level {lvl.level}; a data record has at most "
+                                "one difference record."
                             )
                         prev_dr._create_diff(
                             position=position,

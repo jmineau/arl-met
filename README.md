@@ -41,7 +41,7 @@ Strengths:
 Known limitations:
 
 - `write_dataset()` is intentionally conservative and targets the flat common-case Dataset contract
-- complex multi-record DIFF chains are not tested
+- a `DIF*` record belongs to the data record just before it on its level, whatever its name, and a record has at most one; a file with a `DIF*` record that breaks either rule is rejected as malformed
 - WRF vertical flag 5 and rotated grids are not implemented
 
 ## Installation
