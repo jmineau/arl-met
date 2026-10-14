@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=37447d0a"></script>
+    <script src="_static/documentation_options.js?v=19cdbb88"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Checking Files" href="checking.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev11+g142bfffe4" />
+  <meta name="docsearch:version" content="0.1.0b4.dev12+g676b6484c" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -509,26 +509,37 @@
 <section id="differential-records">
 <h3>Differential records<a class="headerlink" href="#differential-records" title="Link to this heading">#</a></h3>
 <p>Some ARL streams include trailing <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> records. These are separate on-disk
-records that belong to the immediately preceding non-<code class="docutils literal notranslate"><span class="pre">DIF</span></code> parent record at
-the same time and level. NOAA’s HRRR files have one for the precipitation
-(<code class="docutils literal notranslate"><span class="pre">DIFR</span></code> after <code class="docutils literal notranslate"><span class="pre">TPP1</span></code>) and one for the vertical velocity on every level
-(<code class="docutils literal notranslate"><span class="pre">DIFW</span></code> after <code class="docutils literal notranslate"><span class="pre">WWND</span></code>).</p>
-<p>A parent has at most one DIF record. arl-met pairs a DIF record with the
-record directly before it on its level, whatever the DIF’s name; HYSPLIT’s own
-reader pairs <code class="docutils literal notranslate"><span class="pre">DIFW</span></code> with the vertical velocity and <code class="docutils literal notranslate"><span class="pre">DIFT</span></code> with the
-turbulence kinetic energy of its level by name. Producers write each DIF right
-after its parent, where the two agree. A DIF record with no parent before it on
-its level, or a second DIF record after the same parent, is malformed
-(<a class="reference internal" href="_autosummary/arlmet.ARLFormatError.html#arlmet.ARLFormatError" title="arlmet.ARLFormatError"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.ARLFormatError</span></code></a>).</p>
+records that belong to the nearest preceding non-<code class="docutils literal notranslate"><span class="pre">DIF</span></code> parent record at the
+same time and level. A DIF record holds what packing lost from its parent (the
+original values minus the packed ones). NOAA’s HRRR files have one for the
+precipitation (<code class="docutils literal notranslate"><span class="pre">DIFR</span></code> after <code class="docutils literal notranslate"><span class="pre">TPP1</span></code>) and one for the vertical velocity on
+every level (<code class="docutils literal notranslate"><span class="pre">DIFW</span></code> after <code class="docutils literal notranslate"><span class="pre">WWND</span></code>).</p>
+<p>A parent can have several DIF records in a row (<code class="docutils literal notranslate"><span class="pre">WWND</span></code>, <code class="docutils literal notranslate"><span class="pre">DIFW</span></code>, <code class="docutils literal notranslate"><span class="pre">DIFW</span></code>).
+HYSPLIT’s reader adds each one it reads into its field, one after another, so
+arl-met reads them the same way: the parent’s value is
+<code class="docutils literal notranslate"><span class="pre">(parent</span> <span class="pre">+</span> <span class="pre">DIF)</span> <span class="pre">+</span> <span class="pre">DIF</span></code>, added in stream order in <code class="docutils literal notranslate"><span class="pre">float32</span></code>. No producer we
+know of writes more than one. When one does, its index record may list the same
+<code class="docutils literal notranslate"><span class="pre">DIF*</span></code> name more than once on a level.</p>
+<p>arl-met pairs a DIF record with the nearest data record before it on its level,
+whatever the DIF’s name; HYSPLIT’s own reader pairs <code class="docutils literal notranslate"><span class="pre">DIFW</span></code> with the vertical
+velocity and <code class="docutils literal notranslate"><span class="pre">DIFT</span></code> with the turbulence kinetic energy of its level by name,
+and adds any <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> record at the surface to the precipitation. Producers
+write each DIF right after its parent, where the two agree. A DIF record with
+no parent before it on its level is malformed (<a class="reference internal" href="_autosummary/arlmet.ARLFormatError.html#arlmet.ARLFormatError" title="arlmet.ARLFormatError"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.ARLFormatError</span></code></a>),
+and so is a level that lists a variable other than a <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> twice.</p>
 <p>arl-met preserves that stream structure in the low-level API. When reading a
 parent record through <a class="reference internal" href="_autosummary/arlmet.DataRecord.html#arlmet.DataRecord" title="arlmet.DataRecord"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.DataRecord</span></code></a>, the returned values are the
-combined field <code class="docutils literal notranslate"><span class="pre">parent</span> <span class="pre">+</span> <span class="pre">diff</span></code>. The attached DIF record remains available in
-the low-level model for exact rewrite and subset preservation.</p>
+parent plus each of its <a class="reference internal" href="_autosummary/arlmet.DataRecord.diffs.html#arlmet.DataRecord.diffs" title="arlmet.DataRecord.diffs"><code class="xref py py-attr docutils literal notranslate"><span class="pre">diffs</span></code></a>. An uncropped
+<a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">extract_subset()</span></code></a> copies every DIF record’s bytes; a crop or a
+rewrite packs the combined values again, writing the same DIF records after
+each parent, whose values agree with the source’s within the DIFs’ precision.</p>
 <p>When arl-met generates a DIF record while writing, it follows the producer-side
 HYSPLIT pattern:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>write parent -&gt; unpack packed parent -&gt; diff = target - unpacked_parent -&gt; write DIF
 </pre></div>
 </div>
+<p>With several DIF names, each DIF is the target minus the unpacked parent and
+the unpacked DIF records before it.</p>
 </section>
 <section id="individual-data-record-structure">
 <h3>3. Individual Data Record Structure<a class="headerlink" href="#individual-data-record-structure" title="Link to this heading">#</a></h3>
@@ -561,8 +572,8 @@ HYSPLIT pattern:</p>
 <li><p>the file size is not a whole number of records, or an index record declares
 more data records than remain in the file (a truncated download)</p></li>
 <li><p>index records disagree on source, grid, or vertical axis</p></li>
-<li><p>a <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> record has no parent before it on its level, or follows another
-<code class="docutils literal notranslate"><span class="pre">DIF*</span></code> record</p></li>
+<li><p>a <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> record has no parent before it on its level</p></li>
+<li><p>a level lists a variable other than a <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> record twice</p></li>
 <li><p>a valid time is repeated with different content</p></li>
 </ul>
 <p>A file can also be damaged in ways that open cleanly, such as a time step

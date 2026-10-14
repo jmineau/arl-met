@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=37447d0a"></script>
+    <script src="../../_static/documentation_options.js?v=19cdbb88"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev11+g142bfffe4" />
+  <meta name="docsearch:version" content="0.1.0b4.dev12+g676b6484c" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -521,7 +521,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_bytes</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># The packed record bytes</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_packed</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Packed payload</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_unpacked</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># The unpacked data</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="p">:</span> <span class="n">DataRecord</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># The difference DataRecord if applicable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># The DIF records after this one</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_derive_diff_on_pack</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_checksum</span> <span class="o">=</span> <span class="n">checksum</span>  <span class="c1"># The stored checksum if applicable</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_reserved</span> <span class="o">=</span> <span class="n">reserved</span>  <span class="c1"># Reserved field if applicable</span>
@@ -547,17 +547,13 @@
         <span class="n">reserved</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataRecord</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Create a DataRecord of the difference between this record and *other*.</span>
-
-<span class="sd">        The values are ``self - other``.</span>
+<span class="sd">        Attach a DIF record after this record and any DIF records it already has.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        DataRecord</span>
-<span class="sd">            A new DataRecord representing the difference.</span>
+<span class="sd">            The new DIF record.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Difference record already exists.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">variable</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;DIF&quot;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Difference record names must start with &#39;DIF&#39;, got &#39;</span><span class="si">{</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
@@ -576,7 +572,7 @@
             <span class="n">checksum</span><span class="o">=</span><span class="n">checksum</span><span class="p">,</span>
             <span class="n">reserved</span><span class="o">=</span><span class="n">reserved</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span> <span class="o">=</span> <span class="n">diff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">diff</span>
 
     <span class="nd">@property</span>
@@ -585,9 +581,26 @@
         <span class="k">return</span> <span class="s2">&quot;w&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;r&quot;</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">diff</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataRecord</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the attached DIF record when present.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">diffs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The ``DIF*`` records that correct this record, in stream order.</span>
+
+<span class="sd">        A ``DIF*`` record holds what packing lost from the record before it:</span>
+<span class="sd">        the original values minus the packed ones. A record has none, one,</span>
+<span class="sd">        or, rarely, several; :meth:`read` returns the record plus each of</span>
+<span class="sd">        them, added in stream order, as HYSPLIT does.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        arlmet.DataRecord.read : The record&#39;s values with its DIF records added.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; record = met[0][(1, &quot;WWND&quot;)]</span>
+<span class="sd">        &gt;&gt;&gt; [dif.variable for dif in record.diffs]</span>
+<span class="sd">        [&#39;DIFW&#39;]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
@@ -835,7 +848,8 @@
 
 <span class="sd">        Each call returns a new array and nothing is cached on the record, so</span>
 <span class="sd">        reading many records does not accumulate memory. Use :attr:`data` for</span>
-<span class="sd">        a cached full-grid copy.</span>
+<span class="sd">        a cached full-grid copy. Each of the record&#39;s :attr:`diffs` is added,</span>
+<span class="sd">        in stream order, as HYSPLIT does.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -872,8 +886,8 @@
             <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">unpacked</span> <span class="o">=</span> <span class="n">unpacked</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">diff</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="p">:</span>
+            <span class="n">unpacked</span> <span class="o">=</span> <span class="n">unpacked</span> <span class="o">+</span> <span class="n">diff</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">unpacked</span></div>
 
@@ -942,11 +956,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_packed</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_bytes</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_checksum</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="p">,</span> <span class="n">DataRecord</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_header</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;forecast&quot;</span><span class="p">:</span> <span class="n">forecast</span><span class="p">}</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_packed</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_bytes</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_checksum</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">diff</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="p">:</span>
+            <span class="n">diff</span><span class="o">.</span><span class="n">_header</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;forecast&quot;</span><span class="p">:</span> <span class="n">forecast</span><span class="p">}</span>
+            <span class="n">diff</span><span class="o">.</span><span class="n">_packed</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">diff</span><span class="o">.</span><span class="n">_bytes</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">diff</span><span class="o">.</span><span class="n">_checksum</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_pack</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Pack cached unpacked data and update header state for writing.&quot;&quot;&quot;</span>
@@ -966,25 +980,37 @@
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_checksum</span> <span class="o">=</span> <span class="n">calculate_checksum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_packed</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
 
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="p">,</span> <span class="n">DataRecord</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derive_diff_on_pack</span><span class="p">:</span>
-                <span class="n">reconstructed</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span>
-                    <span class="n">packed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_packed</span><span class="o">.</span><span class="n">tobytes</span><span class="p">(),</span>
-                    <span class="n">nx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span>
-                    <span class="n">ny</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span>
-                    <span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span>
-                    <span class="n">exponent</span><span class="o">=</span><span class="n">exponent</span><span class="p">,</span>
-                    <span class="n">initial_value</span><span class="o">=</span><span class="n">initial_value</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_unpacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_unpacked</span> <span class="o">-</span> <span class="n">reconstructed</span><span class="p">,</span>
-                    <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_invalidate_write_cache</span><span class="p">()</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_pack</span><span class="p">()</span>
-            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="p">,</span> <span class="n">DataRecord</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_packed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_pack</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derive_diff_on_pack</span><span class="p">:</span>
+                <span class="c1"># Each DIF is what packing left of the target after this record</span>
+                <span class="c1"># and the DIF records before it, so a reader that adds them in</span>
+                <span class="c1"># order (as HYSPLIT does) gets back to the target.</span>
+                <span class="n">reconstructed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unpack_packed</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">diff</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="p">:</span>
+                    <span class="n">diff</span><span class="o">.</span><span class="n">_unpacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_unpacked</span> <span class="o">-</span> <span class="n">reconstructed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+                    <span class="p">)</span>
+                    <span class="n">diff</span><span class="o">.</span><span class="n">_invalidate_write_cache</span><span class="p">()</span>
+                    <span class="n">diff</span><span class="o">.</span><span class="n">_pack</span><span class="p">()</span>
+                    <span class="n">reconstructed</span> <span class="o">=</span> <span class="n">reconstructed</span> <span class="o">+</span> <span class="n">diff</span><span class="o">.</span><span class="n">_unpack_packed</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">diff</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">diff</span><span class="o">.</span><span class="n">_packed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">diff</span><span class="o">.</span><span class="n">_pack</span><span class="p">()</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_packed</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_unpack_packed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Unpack this writable record&#39;s packed payload, as a reader would.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_packed</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_header</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Record must be packed before it is unpacked.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">unpack</span><span class="p">(</span>
+            <span class="n">packed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_packed</span><span class="o">.</span><span class="n">tobytes</span><span class="p">(),</span>
+            <span class="n">nx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span>
+            <span class="n">ny</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span>
+            <span class="n">precision</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_header</span><span class="p">[</span><span class="s2">&quot;precision&quot;</span><span class="p">],</span>
+            <span class="n">exponent</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_header</span><span class="p">[</span><span class="s2">&quot;exponent&quot;</span><span class="p">],</span>
+            <span class="n">initial_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_header</span><span class="p">[</span><span class="s2">&quot;initial_value&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_flush</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>

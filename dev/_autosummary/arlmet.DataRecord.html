@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=37447d0a"></script>
+    <script src="../_static/documentation_options.js?v=19cdbb88"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.RecordSet.create_datarecord" href="arlmet.RecordSet.create_datarecord.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev11+g142bfffe4" />
+  <meta name="docsearch:version" content="0.1.0b4.dev12+g676b6484c" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -424,7 +424,7 @@
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.bytes.html">arlmet.DataRecord.bytes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.checksum.html">arlmet.DataRecord.checksum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.data.html">arlmet.DataRecord.data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.diff.html">arlmet.DataRecord.diff</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.diffs.html">arlmet.DataRecord.diffs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.dtype.html">arlmet.DataRecord.dtype</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.forecast.html">arlmet.DataRecord.forecast</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.grid.html">arlmet.DataRecord.grid</a></li>
@@ -646,8 +646,8 @@ record.</p></li>
 <tr class="row-odd"><td><p><a class="reference internal" href="arlmet.DataRecord.data.html#arlmet.DataRecord.data" title="arlmet.DataRecord.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a></p></td>
 <td><p>Get the data for this record.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="arlmet.DataRecord.diff.html#arlmet.DataRecord.diff" title="arlmet.DataRecord.diff"><code class="xref py py-obj docutils literal notranslate"><span class="pre">diff</span></code></a></p></td>
-<td><p>Return the attached DIF record when present.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="arlmet.DataRecord.diffs.html#arlmet.DataRecord.diffs" title="arlmet.DataRecord.diffs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">diffs</span></code></a></p></td>
+<td><p>The <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> records that correct this record, in stream order.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="arlmet.DataRecord.dtype.html#arlmet.DataRecord.dtype" title="arlmet.DataRecord.dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dtype</span></code></a></p></td>
 <td><p>Data type of the unpacked data (float32 until the data is read).</p></td>

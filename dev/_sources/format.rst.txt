@@ -67,23 +67,33 @@ Differential records
 ~~~~~~~~~~~~~~~~~~~~
 
 Some ARL streams include trailing ``DIF*`` records. These are separate on-disk
-records that belong to the immediately preceding non-``DIF`` parent record at
-the same time and level. NOAA's HRRR files have one for the precipitation
-(``DIFR`` after ``TPP1``) and one for the vertical velocity on every level
-(``DIFW`` after ``WWND``).
+records that belong to the nearest preceding non-``DIF`` parent record at the
+same time and level. A DIF record holds what packing lost from its parent (the
+original values minus the packed ones). NOAA's HRRR files have one for the
+precipitation (``DIFR`` after ``TPP1``) and one for the vertical velocity on
+every level (``DIFW`` after ``WWND``).
 
-A parent has at most one DIF record. arl-met pairs a DIF record with the
-record directly before it on its level, whatever the DIF's name; HYSPLIT's own
-reader pairs ``DIFW`` with the vertical velocity and ``DIFT`` with the
-turbulence kinetic energy of its level by name. Producers write each DIF right
-after its parent, where the two agree. A DIF record with no parent before it on
-its level, or a second DIF record after the same parent, is malformed
-(:class:`arlmet.ARLFormatError`).
+A parent can have several DIF records in a row (``WWND``, ``DIFW``, ``DIFW``).
+HYSPLIT's reader adds each one it reads into its field, one after another, so
+arl-met reads them the same way: the parent's value is
+``(parent + DIF) + DIF``, added in stream order in ``float32``. No producer we
+know of writes more than one. When one does, its index record may list the same
+``DIF*`` name more than once on a level.
+
+arl-met pairs a DIF record with the nearest data record before it on its level,
+whatever the DIF's name; HYSPLIT's own reader pairs ``DIFW`` with the vertical
+velocity and ``DIFT`` with the turbulence kinetic energy of its level by name,
+and adds any ``DIF*`` record at the surface to the precipitation. Producers
+write each DIF right after its parent, where the two agree. A DIF record with
+no parent before it on its level is malformed (:class:`arlmet.ARLFormatError`),
+and so is a level that lists a variable other than a ``DIF*`` twice.
 
 arl-met preserves that stream structure in the low-level API. When reading a
 parent record through :class:`arlmet.DataRecord`, the returned values are the
-combined field ``parent + diff``. The attached DIF record remains available in
-the low-level model for exact rewrite and subset preservation.
+parent plus each of its :attr:`~arlmet.DataRecord.diffs`. An uncropped
+:func:`~arlmet.extract_subset` copies every DIF record's bytes; a crop or a
+rewrite packs the combined values again, writing the same DIF records after
+each parent, whose values agree with the source's within the DIFs' precision.
 
 When arl-met generates a DIF record while writing, it follows the producer-side
 HYSPLIT pattern:
@@ -91,6 +101,9 @@ HYSPLIT pattern:
 .. code-block:: text
 
    write parent -> unpack packed parent -> diff = target - unpacked_parent -> write DIF
+
+With several DIF names, each DIF is the target minus the unpacked parent and
+the unpacked DIF records before it.
 
 3. Individual Data Record Structure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,8 +137,8 @@ Opening a file scans its index records. :class:`arlmet.ARLFormatError` (a
 - the file size is not a whole number of records, or an index record declares
   more data records than remain in the file (a truncated download)
 - index records disagree on source, grid, or vertical axis
-- a ``DIF*`` record has no parent before it on its level, or follows another
-  ``DIF*`` record
+- a ``DIF*`` record has no parent before it on its level
+- a level lists a variable other than a ``DIF*`` record twice
 - a valid time is repeated with different content
 
 A file can also be damaged in ways that open cleanly, such as a time step

@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=37447d0a"></script>
+    <script src="_static/documentation_options.js?v=19cdbb88"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Cropping ARL Data" href="cropping.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev11+g142bfffe4" />
+  <meta name="docsearch:version" content="0.1.0b4.dev12+g676b6484c" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -527,6 +527,12 @@ Dataset data variables</p></li>
 arl-met writes the parent record first, immediately unpacks the packed parent,
 computes the residual <code class="docutils literal notranslate"><span class="pre">target</span> <span class="pre">-</span> <span class="pre">unpacked_parent</span></code>, and writes that residual as
 the trailing DIF record.</p>
+<p>The low-level writer also takes several names, <code class="docutils literal notranslate"><span class="pre">diff=[&quot;DIFW&quot;,</span> <span class="pre">&quot;DIFW&quot;]</span></code>, and
+writes that many DIF records after the parent, in order. Each holds what
+packing left after the parent and the DIF records before it, so a reader that
+adds them all, as HYSPLIT and arl-met do, gets back to the target. This is how
+a crop or rewrite keeps a parent’s DIF records when a file has several; one is
+the usual case, and the Dataset path writes one.</p>
 <p>Validation rules:</p>
 <ul class="simple">
 <li><p>DIF names must start with <code class="docutils literal notranslate"><span class="pre">DIF</span></code></p></li>
