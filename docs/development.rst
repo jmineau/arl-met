@@ -76,6 +76,41 @@ terrain=None)``), uses only the ones its coordinate system needs, and raises
 
 Any other flag, including 5 (WRF), raises ``ValueError`` in ``from_flag``.
 
+Module layout
+-------------
+
+.. code-block:: text
+
+   src/arlmet/
+     __init__.py    public exports
+     file.py        File: file handle, scan of index records, check(), factories
+     recordset.py   RecordSet: the records of one valid time
+     record.py      DataRecord (one packed 2D field) and the _require_mode helper
+     collection.py  RecordCollection protocol, VariableView, VariableAccessor
+     header.py      Header: the 50-byte record header codec, grid letter helpers
+     index.py       IndexRecord, VarInfo, LvlInfo: the index record codec
+     grid.py        Projection, Grid, GridWindow: horizontal geometry only
+     vertical.py    VerticalAxis (abstract) and SigmaAxis, PressureAxis,
+                    TerrainAxis, HybridAxis
+     packing.py     pack(), unpack(), calculate_checksum()
+     _pack.c        C extension arlmet._pack: the packing encoder (pack_core)
+     exceptions.py  ARLFormatError, ARLFormatWarning
+     _io.py         atomic_output(), reject_same_file(): safe output paths
+     _time.py       ensure_timestamp()
+     archives.py    Archive, HRRRArchive, NAMArchive, GDASArchive, ...;
+                    ARCHIVES registry, get_archive(): NOAA archive downloads
+     ops/
+       subset.py    extract_subset(), resolve_window(), normalize_levels()
+       sample.py    sample_points()
+       concat.py    concat(), concat_by_time()
+     xarray/
+       dataset.py     open_dataset(), write_dataset(): the flat Dataset path
+       _entrypoint.py ARLBackendEntrypoint: xr.open_dataset(path, engine="arl")
+       _backend.py    ArlVariableArray (xarray BackendArray)
+       _coords.py     the arl_grid coordinate codec, vertical-axis coordinates
+       _accessor.py   ds.arl.grid, .vertical_axis, .source
+       _vertical.py   pressure(), z_agl(), z_msl()
+
 Module imports
 --------------
 
