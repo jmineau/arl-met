@@ -1,7 +1,6 @@
 """Tests for arlmet.metadata module."""
 
 import io
-from collections import OrderedDict
 from dataclasses import FrozenInstanceError
 
 import pytest
@@ -105,12 +104,8 @@ class TestIndexRecord:
             nz=2,
             vertical_flag=4,
             levels=[
-                LvlInfo(
-                    level=0, height=1.0, variables=OrderedDict({"PRSS": VarInfo(0, "")})
-                ),
-                LvlInfo(
-                    level=1, height=0.5, variables=OrderedDict({"TEMP": VarInfo(0, "")})
-                ),
+                LvlInfo(level=0, height=1.0, variables=[("PRSS", VarInfo(0, ""))]),
+                LvlInfo(level=1, height=0.5, variables=[("TEMP", VarInfo(0, ""))]),
             ],
         )
 
@@ -160,11 +155,7 @@ def _index_record(nx: int, ny: int, *, grid: tuple[int, int] | None = None):
         ny=ny,
         nz=1,
         vertical_flag=2,
-        levels=[
-            LvlInfo(
-                level=0, height=1000.0, variables=OrderedDict({"PRSS": VarInfo(7, "")})
-            )
-        ],
+        levels=[LvlInfo(level=0, height=1000.0, variables=[("PRSS", VarInfo(7, ""))])],
     )
 
 

@@ -87,6 +87,13 @@ arl-met writes the parent record first, immediately unpacks the packed parent,
 computes the residual ``target - unpacked_parent``, and writes that residual as
 the trailing DIF record.
 
+The low-level writer also takes several names, ``diff=["DIFW", "DIFW"]``, and
+writes that many DIF records after the parent, in order. Each holds what
+packing left after the parent and the DIF records before it, so a reader that
+adds them all, as HYSPLIT and arl-met do, gets back to the target. This is how
+a crop or rewrite keeps a parent's DIF records when a file has several; one is
+the usual case, and the Dataset path writes one.
+
 Validation rules:
 
 - DIF names must start with ``DIF``

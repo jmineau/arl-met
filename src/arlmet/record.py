@@ -105,7 +105,7 @@ class DataRecord:
         self._bytes: bytes | None = None  # The packed record bytes
         self._packed: npt.NDArray[np.uint8] | None = None  # Packed payload
         self._unpacked: npt.NDArray[Any] | None = None  # The unpacked data
-        self._diff: DataRecord | None = None  # The difference DataRecord if applicable
+        self._diffs: list[DataRecord] = []  # The DIF records after this one
         self._derive_diff_on_pack = False
         self._checksum = checksum  # The stored checksum if applicable
         self._reserved = reserved  # Reserved field if applicable
@@ -131,17 +131,13 @@ class DataRecord:
         reserved: str | None = None,
     ) -> DataRecord:
         """
-        Create a DataRecord of the difference between this record and *other*.
-
-        The values are ``self - other``.
+        Attach a DIF record after this record and any DIF records it already has.
 
         Returns
         -------
         DataRecord
-            A new DataRecord representing the difference.
+            The new DIF record.
         """
-        if self._diff is not None:
-            raise ValueError("Difference record already exists.")
         if not variable.startswith("DIF"):
             raise ValueError(
                 f"Difference record names must start with 'DIF', got '{variable}'."
@@ -160,7 +156,7 @@ class DataRecord:
             checksum=checksum,
             reserved=reserved,
         )
-        self._diff = diff
+        self._diffs.append(diff)
         return diff
 
     @property
@@ -169,9 +165,26 @@ class DataRecord:
         return "w" if self.position == -1 else "r"
 
     @property
-    def diff(self) -> DataRecord | None:
-        """Return the attached DIF record when present."""
-        return self._diff
+    def diffs(self) -> tuple[DataRecord, ...]:
+        """
+        The ``DIF*`` records that correct this record, in stream order.
+
+        A ``DIF*`` record holds what packing lost from the record before it:
+        the original values minus the packed ones. A record has none, one,
+        or, rarely, several; :meth:`read` returns the record plus each of
+        them, added in stream order, as HYSPLIT does.
+
+        See Also
+        --------
+        arlmet.DataRecord.read : The record's values with its DIF records added.
+
+        Examples
+        --------
+        >>> record = met[0][(1, "WWND")]
+        >>> [dif.variable for dif in record.diffs]
+        ['DIFW']
+        """
+        return tuple(self._diffs)
 
     @property
     def bytes(self) -> bytes:
@@ -414,7 +427,8 @@ class DataRecord:
 
         Each call returns a new array and nothing is cached on the record, so
         reading many records does not accumulate memory. Use :attr:`data` for
-        a cached full-grid copy.
+        a cached full-grid copy. Each of the record's :attr:`diffs` is added,
+        in stream order, as HYSPLIT does.
 
         Parameters
         ----------
@@ -451,8 +465,8 @@ class DataRecord:
             window=window,
         )
 
-        if self._diff is not None:
-            unpacked = unpacked + self._diff.read(window=window)
+        for diff in self._diffs:
+            unpacked = unpacked + diff.read(window=window)
 
         return unpacked
 
@@ -517,11 +531,11 @@ class DataRecord:
         self._packed = None
         self._bytes = None
         self._checksum = None
-        if isinstance(self._diff, DataRecord):
-            self._diff._header = {"forecast": forecast}
-            self._diff._packed = None
-            self._diff._bytes = None
-            self._diff._checksum = None
+        for diff in self._diffs:
+            diff._header = {"forecast": forecast}
+            diff._packed = None
+            diff._bytes = None
+            diff._checksum = None
 
     def _pack(self) -> npt.NDArray[np.uint8]:
         """Pack cached unpacked data and update header state for writing."""
@@ -541,25 +555,37 @@ class DataRecord:
 
             self._checksum = calculate_checksum(self._packed.tobytes())
 
-            if isinstance(self._diff, DataRecord) and self._derive_diff_on_pack:
-                reconstructed = unpack(
-                    packed=self._packed.tobytes(),
-                    nx=self.grid.nx,
-                    ny=self.grid.ny,
-                    precision=precision,
-                    exponent=exponent,
-                    initial_value=initial_value,
-                )
-                self._diff._unpacked = np.asarray(
-                    self._unpacked - reconstructed,
-                    dtype=np.float32,
-                )
-                self._diff._invalidate_write_cache()
-                self._diff._pack()
-            elif isinstance(self._diff, DataRecord) and self._diff._packed is None:
-                self._diff._pack()
+            if self._derive_diff_on_pack:
+                # Each DIF is what packing left of the target after this record
+                # and the DIF records before it, so a reader that adds them in
+                # order (as HYSPLIT does) gets back to the target.
+                reconstructed = self._unpack_packed()
+                for diff in self._diffs:
+                    diff._unpacked = np.asarray(
+                        self._unpacked - reconstructed, dtype=np.float32
+                    )
+                    diff._invalidate_write_cache()
+                    diff._pack()
+                    reconstructed = reconstructed + diff._unpack_packed()
+            else:
+                for diff in self._diffs:
+                    if diff._packed is None:
+                        diff._pack()
 
         return self._packed
+
+    def _unpack_packed(self) -> npt.NDArray[np.float32]:
+        """Unpack this writable record's packed payload, as a reader would."""
+        if self._packed is None or not isinstance(self._header, dict):
+            raise ValueError("Record must be packed before it is unpacked.")
+        return unpack(
+            packed=self._packed.tobytes(),
+            nx=self.grid.nx,
+            ny=self.grid.ny,
+            precision=self._header["precision"],
+            exponent=self._header["exponent"],
+            initial_value=self._header["initial_value"],
+        )
 
     def _flush(self) -> None:
         """

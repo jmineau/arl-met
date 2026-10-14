@@ -6,9 +6,17 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Files with several `DIF*` records in a row after one data record open and read: `DataRecord.read()` (and `open_dataset`) adds each to the record in stream order, in float32, as HYSPLIT's reader does (`(parent + DIF) + DIF`). They used to be refused. An uncropped `extract_subset` copies every one byte for byte; a crop or a rewrite writes the same `DIF*` records after each parent, with values that agree within the DIFs' precision. `RecordSet.create_datarecord(diff=)` and `File.add_record(diff=)` take several names (`diff=["DIFW", "DIFW"]`): each DIF holds what packing left after the parent and the DIFs before it. An index record that lists the same `DIF*` name twice on a level is read as written; a level that lists any other variable twice raises `ARLFormatError` (#24)
+
+### Changed
+
+- **Breaking:** `DataRecord.diffs` (a tuple, empty when there is none) replaces `DataRecord.diff` (one record or `None`), since a record can have several `DIF*` records. `LvlInfo.variables` (in `IndexRecord.levels`) is a list of `(name, VarInfo)` pairs in stream order instead of a dict, so it can hold a repeated `DIF*` name (#24)
+
 ### Fixed
 
-- A `DIF*` record that opens a level was paired with the last record of the level above, so the file opened and reading that record failed with a header mismatch. It now raises `ARLFormatError` when the file is opened, as a `DIF*` record with no parent already did: a `DIF*` record belongs to the data record just before it on its level. Two `DIF*` records in a row (a second correction for one record) raised a bare `ValueError`; they now raise `ARLFormatError` too, naming the file, the byte and the records. `ARLFormatError` is a `ValueError`, so handlers that catch `ValueError` still work (#24)
+- A `DIF*` record that opens a level was paired with the last record of the level above, so the file opened and reading that record failed with a header mismatch. It now raises `ARLFormatError` when the file is opened, as a `DIF*` record with no parent already did: a `DIF*` record belongs to the nearest data record before it on its level. `ARLFormatError` is a `ValueError`, so handlers that catch `ValueError` still work (#24)
 
 - `DataRecord.verify_checksum()` returned `False` for every record whose stored checksum is 0. A stored 0 means no checksum was recorded (HYSPLIT's writer leaves 0 for a record it did not pack, and its reader never compares checksums), so it now returns `True` for them. NOAA's GDAS, GFS and NAM12 files store 0 for the precipitation and fluxes taken from a 6-hour forecast at 00, 06, 12 and 18 UTC, so half of those records were reported as damaged. The *Checking Files* and *ARL File Format* guides now say how to check the values (#56)
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import io
 from collections import OrderedDict
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from typing import TYPE_CHECKING, Literal
 
 import numpy.typing as npt
@@ -151,7 +151,7 @@ class RecordSet:
         *,
         forecast: int,
         data: npt.ArrayLike | None = None,
-        diff: str | None = None,
+        diff: str | Sequence[str] | None = None,
     ) -> DataRecord:
         """
         Create a writable DataRecord attached to this time step.
@@ -168,8 +168,13 @@ class RecordSet:
         data : numpy.ndarray, optional
             Initial ``(ny, nx)`` field values to assign. When omitted, assign
             the whole field later with ``record[:] = values``.
-        diff : str, optional
-            Name of a trailing DIF record to derive from the parent field.
+        diff : str or sequence of str, optional
+            Name of a trailing DIF record to derive from the parent field: the
+            field minus the packed parent, what packing lost. Give several
+            names to write several DIF records after the parent, in order;
+            each holds what packing left after the parent and the DIF records
+            before it, so a reader that adds them all (as HYSPLIT does) gets
+            back to the field. One is the usual case.
 
         Returns
         -------
@@ -181,17 +186,30 @@ class RecordSet:
             raise ValueError(
                 "Create DIF records through the parent record using diff='DIF...'."
             )
-        if diff is not None:
-            self.file._register_diff_binding(diff_name=diff, parent_name=variable)
+        diff_names = (diff,) if isinstance(diff, str) else tuple(diff or ())
+        for name in diff_names:
+            self.file._register_diff_binding(diff_name=name, parent_name=variable)
         dr = self._create_datarecord(
             position=-1, variable=variable, level=level, forecast=forecast
         )
-        if diff is not None:
-            dr._create_diff(position=-1, variable=diff, forecast=forecast)
-            dr._derive_diff_on_pack = True
+        for name in diff_names:
+            dr._create_diff(position=-1, variable=name, forecast=forecast)
+        dr._derive_diff_on_pack = bool(diff_names)
         if data is not None:
             dr[:] = data
         return dr
+
+    def _records_by_level(self) -> dict[int, list[DataRecord]]:
+        """Each level's writable records in stream order, each parent followed by its DIF records."""
+        n_levels = len(self.file.vertical_axis.levels)
+        by_level: dict[int, list[DataRecord]] = {level: [] for level in range(n_levels)}
+        for dr in self.records:
+            if dr.level < 0 or dr.level >= n_levels:
+                raise ValueError(
+                    f"DataRecord level {dr.level} is outside the configured vertical axis."
+                )
+            by_level[dr.level].extend((dr, *dr.diffs))
+        return by_level
 
     def _build_index_record(self) -> IndexRecord:
         """
@@ -208,9 +226,6 @@ class RecordSet:
             raise ValueError("Vertical axis must contain at least one level.")
 
         forecast_hours: set[int] = set()
-        level_records: dict[int, OrderedDict[str, DataRecord]] = {
-            level: OrderedDict() for level in range(len(heights))
-        }
 
         def record_forecast(record: DataRecord) -> int:
             """Return the forecast hour for a writable or on-disk DataRecord."""
@@ -236,39 +251,32 @@ class RecordSet:
                 raise ValueError(
                     f"Writable DataRecord '{dr.variable}' at level {dr.level} has no data."
                 )
-            if dr.level < 0 or dr.level >= len(heights):
-                raise ValueError(
-                    f"DataRecord level {dr.level} is outside the configured vertical axis."
-                )
-
-            forecast_hours.add(record_forecast(dr))
-            level_records[dr.level][dr.variable] = dr
             dr._pack()
-            if dr.diff is not None:
-                forecast_hours.add(record_forecast(dr.diff))
-                level_records[dr.level][dr.diff.variable] = dr.diff
+            for rec in (dr, *dr.diffs):
+                forecast_hours.add(record_forecast(rec))
 
         # Derive the index record forecast hour from the data records, ensuring consistency
         forecast = _derive_index_forecast(
             record_forecasts=forecast_hours, explicit_forecast=self.forecast
         )
 
+        level_records = self._records_by_level()
         grid_x = split_grid_component(self.grid.nx)[0]
         grid_y = split_grid_component(self.grid.ny)[0]
         levels = [
             LvlInfo(
                 level=level,
                 height=float(height),
-                variables=OrderedDict(
+                variables=[
                     (
-                        name,
+                        dr.variable,
                         VarInfo(
                             checksum=dr.checksum,
                             reserved=(dr._reserved or "")[:1],
                         ),
                     )
-                    for name, dr in level_records[level].items()
-                ),
+                    for dr in level_records[level]
+                ],
             )
             for level, height in enumerate(heights)
         ]
@@ -325,26 +333,10 @@ class RecordSet:
 
         fh.write(index.to_record_bytes(self.record_length))
 
-        for level in index.levels:
-            for name in level.variables:
-                self._lookup_flush_record(level.level, name)._flush()
-
-    def _lookup_flush_record(self, level: int, variable: str) -> DataRecord:
-        """Look up a writable DataRecord (or diff record) by level and variable name."""
-        key = (self.time, level, variable)
-        record = self._datarecords.get(key)
-        if record is not None:
-            return record
-
-        for parent in self.records:
-            if (
-                parent.level == level
-                and parent.diff is not None
-                and parent.diff.variable == variable
-            ):
-                return parent.diff
-
-        raise KeyError(f"No writable record found for ({level}, {variable}).")
+        # The records in the order the index record lists them.
+        for records in self._records_by_level().values():
+            for record in records:
+                record._flush()
 
     def __getitem__(self, key: tuple[int, str]) -> DataRecord:
         if not isinstance(key, tuple) or len(key) != 2:

@@ -1,7 +1,6 @@
 """Tests for low-level record, recordset, file, and xarray helper behavior."""
 
 import io
-from collections import OrderedDict
 from types import SimpleNamespace
 
 import numpy as np
@@ -268,10 +267,11 @@ class TestDataRecordModeGuards:
                 position=record.position + record.n_bytes, variable="DIFW"
             )
             assert diff.level == record.level
-            with pytest.raises(ValueError, match="Difference record already exists"):
-                record._create_diff(
-                    position=record.position + 2 * record.n_bytes, variable="DIFX"
-                )
+            # A second DIF record goes after the first.
+            second = record._create_diff(
+                position=record.position + 2 * record.n_bytes, variable="DIFX"
+            )
+            assert record.diffs == (diff, second)
             with pytest.raises(ValueError, match="must start with 'DIF'"):
                 diff._create_diff(
                     position=record.position + 3 * record.n_bytes, variable="TEMP"
@@ -347,17 +347,17 @@ class TestDataRecordModeGuards:
             record = rs.create_datarecord(
                 "WWND", level=0, forecast=0, data=base, diff="DIFW"
             )
-            assert record.diff is not None
-            assert record.diff.variable == "DIFW"
+            assert record.diffs
+            assert record.diffs[0].variable == "DIFW"
 
         with File(path) as reopened:
             record = reopened[time][(0, "WWND")]
-            assert record.diff is not None
-            assert record.diff.variable == "DIFW"
+            assert record.diffs
+            assert record.diffs[0].variable == "DIFW"
             combined = record.read()
             # Reading a parent + DIF pair caches neither field.
             assert record._unpacked is None
-            assert record.diff._unpacked is None
+            assert record.diffs[0]._unpacked is None
             parent_only = unpack(
                 packed=record.bytes[Header.N_BYTES :],
                 nx=grid.nx,
@@ -368,9 +368,9 @@ class TestDataRecordModeGuards:
             )
             np.testing.assert_allclose(combined, base, atol=record.header.precision)
             np.testing.assert_allclose(
-                np.asarray(parent_only, dtype=np.float32) + record.diff.read(),
+                np.asarray(parent_only, dtype=np.float32) + record.diffs[0].read(),
                 combined,
-                atol=max(record.header.precision, record.diff.header.precision),
+                atol=max(record.header.precision, record.diffs[0].header.precision),
             )
 
     def test_write_rejects_conflicting_diff_bindings(self, tmp_path):
@@ -462,7 +462,7 @@ class TestDataRecordModeGuards:
         with File(path) as arl:
             record = arl[time][(0, "TEMP")]
             diff = np.ones_like(data)
-            record._diff = StubDiff(diff)
+            record._diffs = [StubDiff(diff)]
 
             loaded = record.read()
             np.testing.assert_allclose(loaded, data + diff)
@@ -910,7 +910,7 @@ class TestFileLowLevelBehavior:
                 LvlInfo(
                     level=0,
                     height=1000.0,
-                    variables=OrderedDict([("DIFW", VarInfo(checksum=0, reserved=""))]),
+                    variables=[("DIFW", VarInfo(checksum=0, reserved=""))],
                 )
             ],
         )
@@ -950,12 +950,10 @@ class TestFileLowLevelBehavior:
                 LvlInfo(
                     level=0,
                     height=1000.0,
-                    variables=OrderedDict(
-                        [
-                            ("TEMP", VarInfo(checksum=1, reserved="")),
-                            ("DIFW", VarInfo(checksum=2, reserved="R")),
-                        ]
-                    ),
+                    variables=[
+                        ("TEMP", VarInfo(checksum=1, reserved="")),
+                        ("DIFW", VarInfo(checksum=2, reserved="R")),
+                    ],
                 )
             ],
         )
@@ -970,8 +968,8 @@ class TestFileLowLevelBehavior:
         monkeypatch.setattr("arlmet.file.IndexRecord.from_position", diff_from_position)
         with File(diff_path) as arl:
             record = arl[pd.Timestamp("2024-07-18 00:00")][(0, "TEMP")]
-            assert record._diff is not None
-            assert record._diff.variable == "DIFW"
+            assert record._diffs
+            assert record._diffs[0].variable == "DIFW"
 
 
 def assert_buffers_released(record: DataRecord) -> None:
@@ -1007,7 +1005,7 @@ class TestFileFlushAndHandle:
 
             # The first time step is on disk and no longer held in memory.
             assert rs0.position == 0
-            for record in (temp0, wwnd0, wwnd0.diff):
+            for record in (temp0, wwnd0, *wwnd0.diffs):
                 assert_buffers_released(record)
             with pytest.raises(io.UnsupportedOperation):
                 rs0.create_datarecord("UWND", level=0, forecast=0, data=temp)
@@ -1019,7 +1017,7 @@ class TestFileFlushAndHandle:
             )
 
         # close() flushes the remaining time step the same way.
-        for record in (temp1, wwnd1, wwnd1.diff):
+        for record in (temp1, wwnd1, *wwnd1.diffs):
             assert_buffers_released(record)
 
         with File(path) as arl:
@@ -1321,13 +1319,13 @@ class TestAddRecord:
             vertical_axis=PressureAxis(levels=[1000.0]),
         ) as arl:
             record = arl.add_record(time, "WWND", 0, forecast=3, data=data, diff="DIFW")
-            assert record.diff is not None
+            assert record.diffs
 
         with File(path) as arl:
             record = arl[time][(0, "WWND")]
             assert record.forecast == 3
-            assert record.diff is not None
-            assert record.diff.variable == "DIFW"
+            assert record.diffs
+            assert record.diffs[0].variable == "DIFW"
 
     def test_add_record_requires_forecast(self, tmp_path):
         grid = make_test_grid()

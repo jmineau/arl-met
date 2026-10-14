@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from collections import OrderedDict
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, BinaryIO
@@ -75,14 +74,14 @@ def _source_index_entries(
     """
     Index manifest entries ``(output level, name, info)`` for selected records.
 
-    Each record is followed by its DIF record, if any, as in the output file.
+    Each record is followed by its DIF records, if any, as in the output file.
     Checksums and reserved flags come from the source index; they size the
     output index record for validation.
     """
     entries = []
     for record in selected_records:
         level = level_map[record.level]
-        for rec in (record,) if record.diff is None else (record, record.diff):
+        for rec in (record, *record.diffs):
             entries.append(
                 (
                     level,
@@ -111,11 +110,11 @@ def _build_subset_index_record(
         recordset.forecast,
     )
 
-    level_records: dict[int, OrderedDict[str, VarInfo]] = {
-        level: OrderedDict() for level in range(len(subset_axis.levels))
+    level_records: dict[int, list[tuple[str, VarInfo]]] = {
+        level: [] for level in range(len(subset_axis.levels))
     }
     for level, name, info in entries:
-        level_records[level][name] = info
+        level_records[level].append((name, info))
 
     grid_x = split_grid_component(subset_grid.nx)[0]
     grid_y = split_grid_component(subset_grid.ny)[0]
@@ -214,7 +213,7 @@ def _copy_subset_records(
     Write an uncropped subset by copying record bytes instead of re-packing.
 
     Without a horizontal crop a record's packed bytes do not depend on which
-    other records are kept, so each selected record (and its DIF record) is
+    other records are kept, so each selected record (and its DIF records) is
     copied verbatim with only the header's level field renumbered. Only the
     index records are rebuilt, with checksums recomputed from the copied
     bytes and blank reserved flags, as a re-pack writes them.
@@ -239,7 +238,7 @@ def _copy_subset_records(
         for record in selected_records:
             level = level_map[record.level]
             level_field = f"{level:2d}".encode("ascii")
-            for rec in (record,) if record.diff is None else (record, record.diff):
+            for rec in (record, *record.diffs):
                 src_fh.seek(rec.position)
                 raw = src_fh.read(record_length)
                 if len(raw) != record_length:
@@ -300,17 +299,17 @@ def _repack_subset_records(
                 forecast=src_recordset.forecast,
             )
             for record in selected_records:
-                # record.read() returns the full-precision value
-                # (parent + diff when a diff is attached); the diff branch
-                # below relies on this so that create_datarecord(diff=...)
-                # can recompute the diff against the newly packed parent.
+                # record.read() returns the full-precision value (the parent
+                # plus its DIF records); create_datarecord(diff=...) relies on
+                # this to work the DIF records out again against the newly
+                # packed parent, keeping their names and number.
                 data = record.read(window=window)
                 dst_recordset.create_datarecord(
                     variable=record.variable,
                     level=level_map[record.level],
                     forecast=record.forecast,
                     data=data,
-                    diff=record.diff.variable if record.diff is not None else None,
+                    diff=[diff.variable for diff in record.diffs],
                 )
             # Write each time step as soon as it is filled so peak memory
             # is one time step, not the whole output.

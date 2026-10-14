@@ -3,18 +3,18 @@ Tests for streams that carry many DIF records.
 
 Several parents have a DIF each, in one time step, on several levels, in
 several time steps. NOAA's HRRR files are like this (``TPP1`` + ``DIFR`` at the
-surface, ``WWND`` + ``DIFW`` on every level). The tests read, rewrite and subset
-such streams and check the results against values worked out here, not against
-arlmet's output:
+surface, ``WWND`` + ``DIFW`` on every level). A parent can also have several DIF
+records in a row, which HYSPLIT adds one after another. The tests read, rewrite
+and subset such streams and check the results against values worked out here,
+not against arlmet's output:
 
 - ``reference_unpack`` follows HYSPLIT's ``pakinp`` one cell at a time;
 - ``walk`` cuts a file into its fixed-size records without ``File``;
 - ``raw_record`` and ``raw_time_step`` build a stream byte by byte, as a
   producer other than arlmet would, including streams arlmet's writer cannot
-  make (a DIF out of place, two DIF records in a row).
+  make (a DIF out of place, a variable listed twice).
 """
 
-from collections import OrderedDict
 from itertools import pairwise
 from pathlib import Path
 
@@ -96,7 +96,7 @@ def reference_unpack(record: bytes, *, nx: int = NX, ny: int = NY) -> np.ndarray
 
 
 def combined(records: list[bytes]) -> np.ndarray:
-    """The field a parent record and the DIF record after it add up to."""
+    """The field a parent record and the DIF records after it add up to."""
     return sum(reference_unpack(record) for record in records)
 
 
@@ -178,11 +178,12 @@ def raw_time_step(
     stored = stored or {}
     infos = []
     for level, (height, records) in enumerate(zip(AXIS.levels, levels, strict=True)):
-        variables: OrderedDict[str, VarInfo] = OrderedDict()
+        variables: list[tuple[str, VarInfo]] = []
         for record in records:
             name = Header.from_bytes(record[: Header.N_BYTES]).variable
             checksum = calculate_checksum(record[Header.N_BYTES :])
-            variables[name] = VarInfo(*stored.get((level, name), (checksum, "")))
+            info = VarInfo(*stored.get((level, name), (checksum, "")))
+            variables.append((name, info))
         infos.append(LvlInfo(level=level, height=float(height), variables=variables))
     p = GRID.projection
     index = IndexRecord(
@@ -352,20 +353,23 @@ class TestRead:
                 for record in rs:
                     level, name = record.level, record.variable
                     if name not in DIF_OF:
-                        assert record.diff is None
+                        assert not record.diffs
                         np.testing.assert_array_equal(
                             record.read(), reference_unpack(records[level, name])
                         )
                         continue
                     dif = DIF_OF[name]
-                    assert record.diff is not None
-                    assert (record.diff.variable, record.diff.level) == (dif, level)
+                    assert record.diffs
+                    assert (record.diffs[0].variable, record.diffs[0].level) == (
+                        dif,
+                        level,
+                    )
                     np.testing.assert_array_equal(
                         record.read(),
                         combined([records[level, name], records[level, dif]]),
                     )
                     np.testing.assert_array_equal(
-                        record.diff.read(), reference_unpack(records[level, dif])
+                        record.diffs[0].read(), reference_unpack(records[level, dif])
                     )
 
     def test_windowed_read_adds_the_dif_to_the_window(self, tmp_path):
@@ -396,8 +400,8 @@ class TestRead:
         path.write_bytes(raw_time_step(TIME0, [[], [wwnd, temp, difw], [], []]))
 
         with File(path) as arl:
-            assert arl[TIME0][(1, "WWND")].diff is None
-            assert arl[TIME0][(1, "TEMP")].diff.variable == "DIFW"
+            assert not arl[TIME0][(1, "WWND")].diffs
+            assert arl[TIME0][(1, "TEMP")].diffs[0].variable == "DIFW"
             np.testing.assert_array_equal(
                 arl[TIME0][(1, "WWND")].read(), reference_unpack(wwnd)
             )
@@ -405,21 +409,19 @@ class TestRead:
                 arl[TIME0][(1, "TEMP")].read(), combined([temp, difw])
             )
 
-    def test_two_dif_records_in_a_row_are_malformed(self, tmp_path):
-        path = tmp_path / "chain.arl"
+    def test_a_variable_listed_twice_on_a_level_is_malformed(self, tmp_path):
+        # Only a DIF name may repeat on a level: a second TEMP would hide the first.
+        path = tmp_path / "twice.arl"
         rng = np.random.default_rng(2)
-        wwnd, difw = parent_and_dif(rng, TIME0, 1, "WWND", start=10.0)
-        second = raw_record(TIME0, 1, "DIFX", noise(rng), exponent=0)
-        path.write_bytes(raw_time_step(TIME0, [[], [wwnd, difw, second], [], []]))
+        temp = raw_record(TIME0, 1, "TEMP", noise(rng), exponent=5)
+        again = raw_record(TIME0, 1, "TEMP", noise(rng), exponent=5)
+        path.write_bytes(raw_time_step(TIME0, [[], [temp, again], [], []]))
 
-        # The error names the file, the record and where it is: the third data
-        # record, after the index record (byte 0) and WWND and DIFW.
         with pytest.raises(ARLFormatError) as caught:
             File(path)
         message = str(caught.value)
         assert path.name in message
-        assert "'DIFX' at byte 1350 follows 'DIFW'" in message
-        assert "'WWND' at level 1" in message
+        assert "lists 'TEMP' twice at level 1 (again at byte 900)" in message
 
     @pytest.mark.parametrize(
         "where", ["first on a level", "first in a time step"], ids=str
@@ -463,8 +465,8 @@ class TestRead:
         )
 
         with File(path) as arl:
-            assert arl[TIME0][(3, "WWND")].diff.variable == "DIFW"
-            assert arl[later][(3, "WWND")].diff is None
+            assert arl[TIME0][(3, "WWND")].diffs[0].variable == "DIFW"
+            assert not arl[later][(3, "WWND")].diffs
             np.testing.assert_array_equal(
                 arl[later][(3, "WWND")].read(), reference_unpack(short[3][0])
             )
@@ -596,15 +598,14 @@ def expected_listing(records: list[bytes]) -> list[tuple[int, str, int, str]]:
 
 
 def index_listing(path: Path, time: pd.Timestamp) -> list[tuple[int, str, int, str]]:
-    """What a time step's index record lists, in stream order: each parent, then its DIF."""
+    """What a time step's index record lists, in stream order: each parent, then its DIFs."""
     listing = []
     with File(path) as arl:
         for record in arl[time]:
-            for rec in (record, record.diff):
-                if rec is not None:
-                    listing.append(
-                        (rec.level, rec.variable, rec.checksum, rec._reserved or "")
-                    )
+            for rec in (record, *record.diffs):
+                listing.append(
+                    (rec.level, rec.variable, rec.checksum, rec._reserved or "")
+                )
     return listing
 
 
@@ -680,7 +681,7 @@ class TestSubsetCopy:
             assert out.check() == []
             for record in out[TIME0]:
                 assert record.verify_checksum()
-                assert record.diff is None or record.diff.verify_checksum()
+                assert all(dif.verify_checksum() for dif in record.diffs)
             np.testing.assert_array_equal(
                 out[TIME0][(2, "WWND")].read(), combined(levels[3])
             )
@@ -713,7 +714,7 @@ class TestRewrite:
                         record.level,
                         forecast=record.header.forecast,
                         data=record.read(),
-                        diff=None if record.diff is None else record.diff.variable,
+                        diff=[dif.variable for dif in record.diffs],
                     )
 
         # The same records in the same order with the same headers, and fields that
@@ -727,17 +728,17 @@ class TestRewrite:
                 ]
                 for old, new in zip(src[time], out[time], strict=True):
                     assert new.header.forecast == old.header.forecast
-                    if old.diff is None:
+                    if not old.diffs:
                         np.testing.assert_array_equal(new.read(), old.read())
                         continue
-                    assert new.diff is not None
-                    assert new.diff.variable == old.diff.variable
-                    assert new.diff.header.forecast == old.diff.header.forecast
+                    assert new.diffs
+                    assert new.diffs[0].variable == old.diffs[0].variable
+                    assert new.diffs[0].header.forecast == old.diffs[0].header.forecast
                     np.testing.assert_allclose(
                         new.read(),
                         old.read(),
                         rtol=0,
-                        atol=2 * new.diff.header.precision,
+                        atol=2 * new.diffs[0].header.precision,
                     )
         # A record without a DIF is the same bytes; a parent that has one is packed
         # again from parent + DIF, so its bytes are not guaranteed to be the same.
@@ -834,7 +835,7 @@ class TestDataset:
             window = arl.grid.window_from_bbox(WIDE_CROP)
             for time in arl.times:
                 for record in arl[time]:
-                    if record.diff is None:
+                    if not record.diffs:
                         continue
                     values = ds[record.variable].sel(time=time)
                     part = cropped[record.variable].sel(time=time)
@@ -865,17 +866,17 @@ class TestDataset:
                 )
                 for record in out[time]:
                     if record.variable not in DIF_OF:
-                        assert record.diff is None
+                        assert not record.diffs
                         continue
-                    assert record.diff is not None
-                    assert record.diff.variable == DIF_OF[record.variable]
+                    assert record.diffs
+                    assert record.diffs[0].variable == DIF_OF[record.variable]
                     # The pair adds up to the Dataset's values.
                     old = src[time][(record.level, record.variable)]
                     np.testing.assert_allclose(
                         record.read(),
                         old.read(),
                         rtol=0,
-                        atol=2 * record.diff.header.precision + 1e-6,
+                        atol=2 * record.diffs[0].header.precision + 1e-6,
                     )
         # Each DIF is in the stream right after its parent, on its level.
         for step in walk(written).values():
@@ -897,5 +898,363 @@ class TestDataset:
         write_dataset(ds, written)
 
         with File(written) as out:
-            with_dif = {(r.level, r.variable) for r in out[TIME0] if r.diff is not None}
+            with_dif = {(r.level, r.variable) for r in out[TIME0] if r.diffs}
         assert with_dif == {(1, "WWND"), (2, "WWND"), (3, "WWND")}
+
+
+# --- Several DIF records after one parent -------------------------------------
+#
+# HYSPLIT's reader (metinp) adds each DIFW it reads into the vertical velocity of
+# its level, each DIFT into the TKE and, at the surface, each DIF* into the
+# precipitation, one after another, so two DIF records after one parent both
+# count. arl-met reads them the same way: every DIF record after a parent on its
+# level, up to the next data record, is added to it in stream order.
+
+# The DIF records after each parent in ``chain_step``, by level.
+CHAINS = {
+    (0, "TPP1"): ("DIFR", "DIFR"),
+    (1, "WWND"): ("DIFW", "DIFW"),
+    (2, "WWND"): ("DIFW", "DIFW", "DIFW"),
+    (2, "TKEN"): ("DIFT", "DIFT"),
+    (3, "WWND"): ("DIFW",),
+}
+
+
+def parent_and_difs(
+    rng: np.random.Generator,
+    time: pd.Timestamp,
+    level: int,
+    parent: str,
+    names: tuple[str, ...],
+    *,
+    start: float,
+) -> list[bytes]:
+    """
+    A parent record and the DIF records ``names`` after it, with exact values.
+
+    The parent starts at ``start`` and steps by 0.25; the k-th DIF starts at
+    ``0.5 / 2**k`` and steps by 1/128, so every value and every sum is exact.
+    """
+    return [
+        raw_record(time, level, parent, noise(rng), exponent=5, initial_value=start),
+        *(
+            raw_record(time, level, name, noise(rng), initial_value=0.5 / 2**k)
+            for k, name in enumerate(names)
+        ),
+    ]
+
+
+def chain_step(rng: np.random.Generator, time: pd.Timestamp) -> list[list[bytes]]:
+    """
+    One time step whose parents have one, two or three DIF records each.
+
+    Level 0 has ``TPP1`` with two ``DIFR``; level 1 has ``UWND``, ``WWND`` with
+    two ``DIFW``, then ``TEMP``; level 2 ``WWND`` with three ``DIFW`` and
+    ``TKEN`` with two ``DIFT``; level 3 ``WWND`` with one ``DIFW``.
+    """
+
+    def pair(level: int, name: str, start: float) -> list[bytes]:
+        return parent_and_difs(rng, time, level, name, CHAINS[level, name], start=start)
+
+    return [
+        pair(0, "TPP1", 2.0),
+        [
+            raw_record(time, 1, "UWND", noise(rng), exponent=5, initial_value=3.0),
+            *pair(1, "WWND", 10.0),
+            raw_record(time, 1, "TEMP", noise(rng), exponent=5, initial_value=280.0),
+        ],
+        [*pair(2, "WWND", 20.0), *pair(2, "TKEN", 1.0)],
+        pair(3, "WWND", 30.0),
+    ]
+
+
+def write_chain_file(path: Path, n_steps: int = 2) -> list[pd.Timestamp]:
+    """Write ``n_steps`` hourly time steps from ``chain_step``."""
+    rng = np.random.default_rng(7)
+    times = list(pd.date_range(TIME0, periods=n_steps, freq="h"))
+    path.write_bytes(
+        b"".join(raw_time_step(time, chain_step(rng, time)) for time in times)
+    )
+    return times
+
+
+def chains_in(
+    path: Path, *, nx: int = NX, ny: int = NY
+) -> dict[tuple[pd.Timestamp, int, str], list[tuple[Header, bytes]]]:
+    """Each parent in a file with the DIF records after it, by ``(time, level, name)``."""
+    found: dict[tuple[pd.Timestamp, int, str], list[tuple[Header, bytes]]] = {}
+    for time, step in walk(path, nx=nx, ny=ny).items():
+        chain: list[tuple[Header, bytes]] = []
+        for header, record in step:
+            if header.variable.startswith("DIF"):
+                chain.append((header, record))
+                continue
+            chain = [(header, record)]
+            found[time, header.level, header.variable] = chain
+    return found
+
+
+class TestSeveralDifs:
+    def test_each_dif_in_a_row_adds_to_the_parent(self, tmp_path):
+        path = tmp_path / "chains.arl"
+        times = write_chain_file(path)
+        window = GridWindow(x_start=3, x_stop=12, y_start=2, y_stop=9)
+
+        with File(path) as arl:
+            assert arl.times == times
+            assert arl.check() == []
+            chains = chains_in(path)
+            for time in times:
+                rs = arl[time]
+                # The DIF records are part of their parents, not records of the
+                # time step.
+                assert [(r.level, r.variable) for r in rs] == [
+                    (0, "TPP1"),
+                    (1, "UWND"),
+                    (1, "WWND"),
+                    (1, "TEMP"),
+                    (2, "WWND"),
+                    (2, "TKEN"),
+                    (3, "WWND"),
+                ]
+                assert "DIFW" not in rs
+                for record in rs:
+                    key = (record.level, record.variable)
+                    chain = [raw for _, raw in chains[(time, *key)]]
+                    assert tuple(d.variable for d in record.diffs) == CHAINS.get(
+                        key, ()
+                    )
+                    assert all(d.level == record.level for d in record.diffs)
+                    np.testing.assert_array_equal(record.read(), combined(chain))
+                    np.testing.assert_array_equal(
+                        record.read(window=window),
+                        combined(chain)[window.y_slice, window.x_slice],
+                    )
+                    for dif, raw in zip(record.diffs, chain[1:], strict=True):
+                        np.testing.assert_array_equal(dif.read(), reference_unpack(raw))
+
+    def test_difs_are_added_one_after_another_in_float32_as_hysplit_does(
+        self, tmp_path
+    ):
+        # HYSPLIT adds each DIF into the field as it reads it, in REAL (float32):
+        # (parent + DIF) + DIF. Near 2**24 float32 steps by 2, so adding 1 twice
+        # leaves 16777220 where adding the two DIFs first would give 16777222.
+        path = tmp_path / "order.arl"
+        flat = np.full((NY, NX), 127)  # every step 0: each field is constant
+        parent = raw_record(TIME0, 1, "WWND", flat, initial_value=16777220.0)
+        difs = [raw_record(TIME0, 1, "DIFW", flat, initial_value=1.0)] * 2
+        path.write_bytes(raw_time_step(TIME0, [[], [parent, *difs], [], []]))
+
+        expected = np.float32(16777220.0)
+        for _ in difs:
+            expected = np.float32(expected + np.float32(1.0))
+        assert expected == np.float32(16777220.0)
+        with File(path) as arl:
+            values = arl[TIME0][(1, "WWND")].read()
+        assert values.dtype == np.float32
+        np.testing.assert_array_equal(values, np.full((NY, NX), expected))
+
+    def test_the_index_record_keeps_a_repeated_dif_name(self, tmp_path):
+        path = tmp_path / "chains.arl"
+        write_chain_file(path, n_steps=1)
+
+        with open(path, "rb") as handle:
+            index = IndexRecord.from_position(handle, 0)
+        assert [name for name, _ in index.levels[1].variables] == [
+            "UWND",
+            "WWND",
+            "DIFW",
+            "DIFW",
+            "TEMP",
+        ]
+        assert index.to_record_bytes(RECORD_BYTES) == path.read_bytes()[:RECORD_BYTES]
+
+    def test_generated_difs_each_hold_what_packing_left(self, tmp_path):
+        path = tmp_path / "written.arl"
+        rng = np.random.default_rng(13)
+        wwnd = (0.3 * rng.standard_normal((NY, NX))).astype(np.float32)
+        tpp1 = np.abs(0.001 + 0.0004 * rng.standard_normal((NY, NX))).astype(np.float32)
+        with File(path, mode="w", source="TEST", grid=GRID, vertical_axis=AXIS) as arl:
+            rs = arl.create_recordset(TIME0, forecast=0)
+            rs.create_datarecord(
+                "TPP1", 0, forecast=3, data=tpp1, diff=("DIFR", "DIFR")
+            )
+            rs.create_datarecord("TEMP", 1, forecast=0, data=wwnd + 280, diff=[])
+            arl.add_record(TIME0, "WWND", 1, forecast=0, data=wwnd, diff=["DIFW"] * 3)
+
+        chains = chains_in(path)
+        assert [h.variable for h, _ in chains[TIME0, 1, "WWND"]] == ["WWND"] + [
+            "DIFW"
+        ] * 3
+        assert [h.variable for h, _ in chains[TIME0, 0, "TPP1"]] == [
+            "TPP1",
+            "DIFR",
+            "DIFR",
+        ]
+        assert len(chains[TIME0, 1, "TEMP"]) == 1  # an empty list writes no DIF
+        with File(path) as out:
+            assert out.check() == []
+            for (_, level, name), target in {
+                (TIME0, 0, "TPP1"): tpp1,
+                (TIME0, 1, "WWND"): wwnd,
+            }.items():
+                chain = chains[TIME0, level, name]
+                parent_h = chain[0][0]
+                # Each DIF follows its parent with its time, level and forecast...
+                for header, _ in chain[1:]:
+                    assert (header.time, header.level, header.forecast) == (
+                        parent_h.time,
+                        parent_h.level,
+                        parent_h.forecast,
+                    )
+                # ...and is the target minus what the records before it hold.
+                packed = reference_unpack(chain[0][1])
+                for header, raw in chain[1:]:
+                    tolerance = 2 * header.precision + 1e-7
+                    np.testing.assert_allclose(
+                        reference_unpack(raw), target - packed, rtol=0, atol=tolerance
+                    )
+                    packed = packed + reference_unpack(raw)
+                np.testing.assert_allclose(
+                    out[TIME0][(level, name)].read(), packed, rtol=0, atol=1e-6
+                )
+                np.testing.assert_allclose(packed, target, rtol=0, atol=tolerance)
+            # The second DIF corrects what the first left, not the parent alone.
+            chain = chains[TIME0, 1, "WWND"]
+            second_h, second = chain[2]
+            left_by_parent = wwnd - reference_unpack(chain[0][1])
+            assert (
+                np.abs(reference_unpack(second) - left_by_parent).max()
+                > 10 * second_h.precision
+            )
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            pytest.param({}, id="all"),
+            pytest.param({"levels": [0, 2]}, id="levels"),
+            pytest.param({"variables": ["WWND", "TEMP"]}, id="variables"),
+        ],
+    )
+    def test_uncropped_subset_copies_every_dif_byte_for_byte(self, tmp_path, kwargs):
+        source = tmp_path / "chains.arl"
+        subset = tmp_path / "subset.arl"
+        write_chain_file(source)
+
+        extract_subset(source, subset, **kwargs)
+
+        expected = kept_records(walk(source), **kwargs)
+        assert records_of(walk(subset)) == expected
+        with File(subset) as out:
+            assert out.check() == []
+            assert out.times == list(expected)
+            assert any(len(r.diffs) > 1 for r in out[TIME0])
+        for time, records in expected.items():
+            assert index_listing(subset, time) == expected_listing(records)
+        if not kwargs:
+            assert subset.read_bytes() == source.read_bytes()
+
+    def test_cropped_subset_keeps_each_parents_difs(self, tmp_path):
+        source = tmp_path / "chains.arl"
+        subset = tmp_path / "subset.arl"
+        write_chain_file(source)
+
+        extract_subset(source, subset, bbox=WIDE_CROP)
+
+        with File(source) as src, File(subset) as out:
+            assert out.check() == []
+            window = src.grid.window_from_bbox(WIDE_CROP)
+            assert (out.grid.nx, out.grid.ny) == window.shape[::-1]
+            for time in src.times:
+                old_records, new_records = list(src[time]), list(out[time])
+                assert [
+                    (r.level, r.variable, tuple(d.variable for d in r.diffs))
+                    for r in new_records
+                ] == [
+                    (r.level, r.variable, tuple(d.variable for d in r.diffs))
+                    for r in old_records
+                ]
+                for old, new in zip(old_records, new_records, strict=True):
+                    target = old.read(window=window)
+                    if not old.diffs:
+                        np.testing.assert_array_equal(new.read(), target)
+                        continue
+                    # The parent is packed from the source's sum and each DIF
+                    # holds what packing left, so the new chain adds up to it.
+                    precision = max(d.header.precision for d in new.diffs)
+                    np.testing.assert_allclose(
+                        new.read(), target, rtol=0, atol=2 * precision + 1e-6
+                    )
+
+    def test_a_crop_too_small_for_every_dif_in_the_index_is_refused(self, tmp_path):
+        # 16 x 16 cells hold the index record with one DIF per parent (286
+        # bytes) but not with all of them (326 bytes), so the check before
+        # writing must count every DIF.
+        source = tmp_path / "chains.arl"
+        subset = tmp_path / "subset.arl"
+        write_chain_file(source, n_steps=1)
+        bbox = (21.0, -9.0, 36.0, 6.0)
+        with File(source) as src:
+            assert src.grid.window_from_bbox(bbox).shape == (16, 16)
+
+        with pytest.raises(ValueError, match="needs 326 bytes"):
+            extract_subset(source, subset, bbox=bbox)
+        assert not subset.exists()
+
+    def test_low_level_rewrite_keeps_the_stream(self, tmp_path):
+        source = tmp_path / "chains.arl"
+        rewritten = tmp_path / "rewritten.arl"
+        write_chain_file(source)
+
+        with (
+            File(source) as src,
+            File(
+                rewritten,
+                mode="w",
+                source=src.source,
+                grid=src.grid,
+                vertical_axis=src.vertical_axis,
+            ) as dst,
+        ):
+            for time in src.times:
+                rs = dst.create_recordset(time, forecast=src[time].forecast)
+                for record in src[time]:
+                    rs.create_datarecord(
+                        record.variable,
+                        record.level,
+                        forecast=record.header.forecast,
+                        data=record.read(),
+                        diff=[d.variable for d in record.diffs],
+                    )
+
+        # The same records in the same order, and fields that agree to within
+        # the DIFs' precision.
+        assert [[h.variable for h, _ in step] for step in walk(rewritten).values()] == [
+            [h.variable for h, _ in step] for step in walk(source).values()
+        ]
+        with File(source) as src, File(rewritten) as out:
+            assert out.check() == []
+            for time in src.times:
+                for old, new in zip(src[time], out[time], strict=True):
+                    atol = 2 * max((d.header.precision for d in new.diffs), default=0)
+                    np.testing.assert_allclose(
+                        new.read(), old.read(), rtol=0, atol=atol + 1e-6
+                    )
+
+    def test_open_dataset_adds_every_dif(self, tmp_path):
+        path = tmp_path / "chains.arl"
+        write_chain_file(path, n_steps=1)
+        chains = chains_in(path)
+
+        ds = open_dataset(path)
+
+        assert not [name for name in ds.data_vars if str(name).startswith("DIF")]
+        np.testing.assert_array_equal(
+            ds["TPP1"].sel(time=TIME0).values,
+            combined([raw for _, raw in chains[TIME0, 0, "TPP1"]]),
+        )
+        for level in (1, 2, 3):
+            expected = combined([raw for _, raw in chains[TIME0, level, "WWND"]])
+            np.testing.assert_array_equal(
+                ds["WWND"].sel(time=TIME0, level=level).values, expected
+            )

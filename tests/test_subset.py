@@ -210,8 +210,8 @@ def test_extract_subset_preserves_diff_records(tmp_path):
         source_record = original[time0][(0, "WWND")]
         subset_record = subset[time0][(0, "WWND")]
 
-        assert subset_record.diff is not None
-        assert subset_record.diff.variable == "DIFW"
+        assert subset_record.diffs
+        assert subset_record.diffs[0].variable == "DIFW"
 
         np.testing.assert_allclose(
             subset_record.read(),
@@ -503,13 +503,13 @@ def test_extract_subset_byte_copy_with_diff_records(tmp_path, monkeypatch, kwarg
             ]
             for record in out[time]:
                 original = src[time][(levels[record.level], record.variable)]
-                assert (record.diff is None) == (original.diff is None)
+                assert len(record.diffs) == len(original.diffs)
                 # Copied verbatim except the header's level field, so the
                 # values are exactly the source's, DIF correction included.
                 pairs = [(record, original)]
-                if record.diff is not None:
-                    assert record.diff.variable == original.diff.variable
-                    pairs.append((record.diff, original.diff))
+                if record.diffs:
+                    assert record.diffs[0].variable == original.diffs[0].variable
+                    pairs.append((record.diffs[0], original.diffs[0]))
                 for rec, orig in pairs:
                     assert rec.header.level == record.level
                     assert rec.bytes[:10] == orig.bytes[:10]
@@ -520,9 +520,10 @@ def test_extract_subset_byte_copy_with_diff_records(tmp_path, monkeypatch, kwarg
                 # to within the DIF precision.
                 other = repacked[time][(record.level, record.variable)]
                 atol = 0.0
-                if record.diff is not None:
+                if record.diffs:
                     atol = 2 * max(
-                        record.diff.header.precision, other.diff.header.precision
+                        record.diffs[0].header.precision,
+                        other.diffs[0].header.precision,
                     )
                 np.testing.assert_allclose(record.read(), other.read(), atol=atol)
 
