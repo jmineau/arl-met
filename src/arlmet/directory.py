@@ -311,7 +311,10 @@ def index_directory(
     if to_read or rows.keys() != cached.keys():
         _write_cache(cache, rows)
 
-    # Built column by column so each has its type even when it is all NaT.
+    # Built column by column so each has its type even when it is all NaT,
+    # in name order, which the stable sort by start keeps for equal starts
+    # (Path order differs between platforms).
+    rows = dict(sorted(rows.items()))
     values = list(rows.values())
     table = pd.DataFrame(
         {
@@ -325,7 +328,7 @@ def index_directory(
         },
         columns=_TABLE_COLUMNS,
     )
-    table = table.sort_values(["start", "path"], na_position="last")
+    table = table.sort_values("start", kind="stable", na_position="last")
     return DirectoryIndex(directory, table.reset_index(drop=True), cache=cache)
 
 
@@ -375,7 +378,7 @@ class DirectoryIndex:
     #: The indexed folder.
     directory: Path
 
-    #: One row per file, sorted by ``start``. The columns are ``path``,
+    #: One row per file, sorted by ``start``, then name. The columns are ``path``,
     #: ``source`` (the 4-character ARL source ID), ``grid`` (its short
     #: description), ``start`` and ``end`` (the first and last valid time),
     #: ``step`` (the time between valid times, ``NaT`` for a file of one), and
