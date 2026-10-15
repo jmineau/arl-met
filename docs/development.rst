@@ -130,7 +130,7 @@ Module layout
      _time.py       ensure_timestamp()
      archives.py    Archive, HRRRArchive, NAMArchive, GDASArchive, ...;
                     ARCHIVES registry, get_archive(): NOAA archive downloads
-     directory.py   index(), DirectoryIndex: a folder's files by their headers
+     directoryindex.py index(), DirectoryIndex: a folder's files by their headers
      ops/
        subset.py    extract_subset(), resolve_window(), normalize_levels()
        sample.py    sample_points()
