@@ -9,8 +9,7 @@ import pytest
 import xarray as xr
 
 import arlmet
-from arlmet import ARLFormatWarning, DirectoryIndex, index
-from arlmet import directory as directory_module
+from arlmet import ARLFormatWarning, DirectoryIndex, directoryindex, index
 
 AXIS = arlmet.SigmaAxis(levels=[1.0])
 
@@ -339,9 +338,9 @@ class TestCache:
     def test_cache_is_reused_and_refreshed(self, archive, monkeypatch):
         index(archive)
         read = []
-        real_read_file = directory_module._read_file
+        real_read_file = directoryindex._read_file
         monkeypatch.setattr(
-            directory_module,
+            directoryindex,
             "_read_file",
             lambda path: read.append(path.name) or real_read_file(path),
         )
@@ -372,22 +371,22 @@ class TestCache:
         assert refreshed.table["end"].iloc[2] == pd.Timestamp("2024-07-01 14:00")
 
     def test_an_interrupted_index_keeps_what_it_saved(self, archive, monkeypatch):
-        monkeypatch.setattr(directory_module, "_SAVE_EVERY", 2)
-        real_read_file = directory_module._read_file
+        monkeypatch.setattr(directoryindex, "_SAVE_EVERY", 2)
+        real_read_file = directoryindex._read_file
 
         def stops_at_the_last(path):
             if path.name == "20240701_18":
                 raise RuntimeError("interrupted")
             return real_read_file(path)
 
-        monkeypatch.setattr(directory_module, "_read_file", stops_at_the_last)
+        monkeypatch.setattr(directoryindex, "_read_file", stops_at_the_last)
         with pytest.raises(RuntimeError, match="interrupted"):
             index(archive)
 
         # The cache was saved after the first two files; the rest are read now.
         read = []
         monkeypatch.setattr(
-            directory_module,
+            directoryindex,
             "_read_file",
             lambda path: read.append(path.name) or real_read_file(path),
         )
@@ -398,7 +397,7 @@ class TestCache:
     def test_errors_are_cached_too(self, archive, monkeypatch):
         (archive / "README.TXT").write_text("not ARL\n")
         first = index(archive)
-        monkeypatch.setattr(directory_module, "_read_file", pytest.fail)
+        monkeypatch.setattr(directoryindex, "_read_file", pytest.fail)
 
         again = index(archive)
 
@@ -448,8 +447,8 @@ class TestCache:
     ):
         monkeypatch.delenv("ARLMET_CACHE_DIR")
         monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "xdg"))
-        monkeypatch.setattr(directory_module.sys, "platform", "linux")
-        monkeypatch.setattr(directory_module.os, "access", lambda *args: False)
+        monkeypatch.setattr(directoryindex.sys, "platform", "linux")
+        monkeypatch.setattr(directoryindex.os, "access", lambda *args: False)
 
         idx = index(archive)
 
@@ -595,7 +594,7 @@ class TestNames:
         from arlmet.indexrecord import IndexRecord, LvlInfo, VarInfo
 
         assert callable(arlmet.index)
-        assert arlmet.index is directory_module.index
+        assert arlmet.index is directoryindex.index
         assert arlmet.IndexRecord is IndexRecord
         assert LvlInfo.__module__ == VarInfo.__module__ == "arlmet.indexrecord"
         with pytest.raises(ModuleNotFoundError):

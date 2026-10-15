@@ -35,7 +35,7 @@ src/arlmet/
   packing.py, _pack.c               pack, unpack, checksum; the C extension for the encoder
   collection.py                     RecordCollection protocol, VariableView, VariableAccessor
   exceptions.py, _io.py, _time.py   ARLFormatError/Warning; atomic outputs; timestamps
-  archives.py; directory.py         NOAA archive downloads (Archive, ARCHIVES, get_archive); index (directory listing)
+  archives.py; directoryindex.py    NOAA archive downloads (Archive, ARCHIVES, get_archive); index, DirectoryIndex
   ops/                              extract_subset, sample_points, concat, concat_by_time
   xarray/                           open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl
 ```
