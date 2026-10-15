@@ -1,0 +1,6 @@
+arlmet.DirectoryIndex.step
+==========================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: DirectoryIndex.step

@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=4ccf7043"></script>
+    <script src="../_static/documentation_options.js?v=f9430fef"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.Header.tobytes" href="arlmet.Header.tobytes.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev16+ge4739a64d" />
+  <meta name="docsearch:version" content="0.1.0b4.dev19+g603544676" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -385,6 +385,18 @@
 <li class="toctree-l1"><a class="reference internal" href="arlmet.concat_by_time.html">arlmet.concat_by_time</a></li>
 </ul>
 <ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="arlmet.index.html">arlmet.index</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.DirectoryIndex.html">arlmet.DirectoryIndex</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.cache.html">arlmet.DirectoryIndex.cache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.directory.html">arlmet.DirectoryIndex.directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.step.html">arlmet.DirectoryIndex.step</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.table.html">arlmet.DirectoryIndex.table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.covering.html">arlmet.DirectoryIndex.covering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.missing.html">arlmet.DirectoryIndex.missing</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="arlmet.pressure.html">arlmet.pressure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.z_agl.html">arlmet.z_agl</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.z_msl.html">arlmet.z_msl</a></li>
@@ -612,7 +624,7 @@
 <h1>arlmet.IndexRecord<a class="headerlink" href="#arlmet-indexrecord" title="Link to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="arlmet.IndexRecord">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">arlmet.</span></span><span class="sig-name descname"><span class="pre">IndexRecord</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forecast</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minutes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pole_lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pole_lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tangent_lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tangent_lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cone_angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reserved</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vertical_flag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">levels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/index.html#IndexRecord"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.IndexRecord" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">arlmet.</span></span><span class="sig-name descname"><span class="pre">IndexRecord</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forecast</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minutes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pole_lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pole_lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tangent_lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tangent_lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cone_angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reserved</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vertical_flag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">levels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/indexrecord.html#IndexRecord"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.IndexRecord" title="Link to this definition">#</a></dt>
 <dd><p>Index record describing one ARL time step and its contained variables.</p>
 <p>Index records are immutable value objects; use <a class="reference external" href="https://docs.python.org/3/library/dataclasses.html#dataclasses.replace" title="(in Python v3.15)"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataclasses.replace()</span></code></a>
 to derive a modified copy.</p>
@@ -671,7 +683,7 @@ letters carry the thousands (see <code class="xref py py-attr docutils literal n
 </dl>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.index</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.indexrecord</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">header</span> <span class="o">=</span> <span class="n">Header</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">year</span><span class="o">=</span><span class="mi">2024</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">month</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>

@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=4ccf7043"></script>
+    <script src="_static/documentation_options.js?v=f9430fef"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
     <link rel="search" title="Search" href="search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev16+ge4739a64d" />
+  <meta name="docsearch:version" content="0.1.0b4.dev19+g603544676" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -544,7 +544,7 @@ HYSPLIT’s full recipe (<code class="docutils literal notranslate"><span class=
   record.py      DataRecord (one packed 2D field) and the _require_mode helper
   collection.py  RecordCollection protocol, VariableView, VariableAccessor
   header.py      Header: the 50-byte record header codec, grid letter helpers
-  index.py       IndexRecord, VarInfo, LvlInfo: the index record codec
+  indexrecord.py IndexRecord, VarInfo, LvlInfo: the index record codec
   grid.py        Projection, Grid, GridWindow: horizontal geometry only
   vertical.py    VerticalAxis (abstract) and SigmaAxis, PressureAxis,
                  TerrainAxis, HybridAxis, WrfAxis
@@ -555,6 +555,7 @@ HYSPLIT’s full recipe (<code class="docutils literal notranslate"><span class=
   _time.py       ensure_timestamp()
   archives.py    Archive, HRRRArchive, NAMArchive, GDASArchive, ...;
                  ARCHIVES registry, get_archive(): NOAA archive downloads
+  directory.py   index(), DirectoryIndex: a folder&#39;s files by their headers
   ops/
     subset.py    extract_subset(), resolve_window(), normalize_levels()
     sample.py    sample_points()

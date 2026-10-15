@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=4ccf7043"></script>
+    <script src="_static/documentation_options.js?v=f9430fef"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="ARL File Format" href="format.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev16+ge4739a64d" />
+  <meta name="docsearch:version" content="0.1.0b4.dev19+g603544676" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -385,6 +385,18 @@
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.concat_by_time.html">arlmet.concat_by_time</a></li>
 </ul>
 <ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.index.html">arlmet.index</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.html">arlmet.DirectoryIndex</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.cache.html">arlmet.DirectoryIndex.cache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.directory.html">arlmet.DirectoryIndex.directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.step.html">arlmet.DirectoryIndex.step</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.table.html">arlmet.DirectoryIndex.table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.covering.html">arlmet.DirectoryIndex.covering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.missing.html">arlmet.DirectoryIndex.missing</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.pressure.html">arlmet.pressure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.z_agl.html">arlmet.z_agl</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.z_msl.html">arlmet.z_msl</a></li>
@@ -647,6 +659,22 @@ See the <a class="reference internal" href="cropping.html"><span class="doc">Cro
 </table>
 </div>
 </section>
+<section id="finding-files">
+<h2>Finding Files<a class="headerlink" href="#finding-files" title="Link to this heading">#</a></h2>
+<p>Find the files that cover a time window by their headers. See the
+<a class="reference internal" href="indexing.html"><span class="doc">Indexing a Directory</span></a> guide.</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.index.html#arlmet.index" title="arlmet.index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">index</span></code></a></p></td>
+<td><p>Index the ARL files in a directory by their headers.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.html#arlmet.DirectoryIndex" title="arlmet.DirectoryIndex"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DirectoryIndex</span></code></a></p></td>
+<td><p>The ARL files in a directory, by the times their headers say they hold.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
 <section id="vertical-coordinates">
 <h2>Vertical Coordinates<a class="headerlink" href="#vertical-coordinates" title="Link to this heading">#</a></h2>
 <p>Derive pressure and height coordinates from an open Dataset. See the
@@ -859,6 +887,7 @@ subclasses <code class="docutils literal notranslate"><span class="pre">ValueErr
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#high-level-i-o">High-Level I/O</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#file-operations">File Operations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#finding-files">Finding Files</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vertical-coordinates">Vertical Coordinates</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#low-level-file-model">Low-Level File Model</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#grid-and-vertical-metadata">Grid And Vertical Metadata</a></li>
