@@ -26,6 +26,26 @@ byte-level append — the same result as ``cat a.arl b.arl > out.arl`` — with 
 repacking. Every record, including ``DIF*`` records and checksums, is preserved
 exactly.
 
+The examples run when the docs are built, on a folder ``hrrr/`` of eight small
+files of made-up values that the build writes with :func:`arlmet.write_dataset`
+(:doc:`quickstart` describes them): six hourly time steps each, named by their
+first hour, from ``20240101_00_hrrr`` to ``20240102_18_hrrr``.
+
+.. ipython:: python
+   :suppress:
+
+   import os
+
+   import pandas as pd
+
+   import docs_examples
+
+   docs_cwd = docs_examples.temp_workdir()
+   os.mkdir("hrrr")
+   for first in pd.date_range("2024-01-01", "2024-01-02 18:00", freq="6h"):
+       hours = pd.date_range(first, periods=6, freq="h")
+       docs_examples.sample_file(f"hrrr/{first:%Y%m%d_%H}_hrrr", hours, upper=False)
+
 Joining a list of files
 -----------------------
 
@@ -33,23 +53,25 @@ Pass the input paths and an output path. By default the inputs are ordered by
 their earliest valid time, so the output is chronological regardless of the
 order you list them in.
 
-.. code-block:: python
+.. ipython:: python
 
    import arlmet
 
-   arlmet.concat(
-       ["20240101_00_hrrr", "20240101_06_hrrr", "20240101_12_hrrr"],
-       "20240101_hrrr",
-   )
+   paths = [
+       "hrrr/20240101_00_hrrr",
+       "hrrr/20240101_06_hrrr",
+       "hrrr/20240101_12_hrrr",
+   ]
+   arlmet.concat(paths, "20240101_hrrr")
 
 ``concat()`` returns the output path as a :class:`pathlib.Path`, so you can pass
 it straight to :class:`arlmet.File` or :func:`arlmet.open_dataset`:
 
-.. code-block:: python
+.. ipython:: python
 
    out = arlmet.concat(paths, "20240101_hrrr")
    with arlmet.File(out) as combined:
-       print(combined.times)
+       print(len(combined.times), combined.times[0], combined.times[-1])
 
 Pass ``sort=False`` to join the files in exactly the order given, like ``cat``.
 
@@ -61,7 +83,7 @@ record stream. ``concat()`` raises ``ValueError`` when:
 
 - the inputs disagree on grid or vertical axis (different grids produce different
   record lengths, which would corrupt the stream)
-- the same valid time appears in more than one input (HYSPLIT behaviour on
+- the same valid time appears in more than one input (HYSPLIT behavior on
   repeated times is undefined)
 - an input file is empty, or the output path is also one of the inputs
 
@@ -73,9 +95,7 @@ time-binned chunks and concatenates each group. Each file is assigned to a bin b
 its **valid times, read from the file's index records** — not parsed from the
 filename — so it is robust to any naming scheme.
 
-.. code-block:: python
-
-   import arlmet
+.. ipython:: python
 
    arlmet.concat_by_time(
        "hrrr/",                       # directory to scan
@@ -99,17 +119,22 @@ written paths, in time order.
 Limit the range with ``start=`` and ``end=`` to skip files whose first valid
 time falls outside those inclusive bounds (either may be left open):
 
-.. code-block:: python
+.. ipython:: python
 
    arlmet.concat_by_time(
        "hrrr/",
-       "daily/",
+       "second_day/",
        freq="1D",
        pattern="*_hrrr",
        template="{time:%Y%m%d}_hrrr",
-       start="2024-01-01",
-       end="2024-01-31 23:00",
+       start="2024-01-02",
+       end="2024-01-02 23:00",
    )
+
+.. ipython:: python
+   :suppress:
+
+   os.chdir(docs_cwd)
 
 Limitations
 -----------

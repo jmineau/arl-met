@@ -171,11 +171,12 @@ a broken one fails the build:
   output; `@savefig name.png` above a plotting call saves the figure. A block that
   raises or warns fails the build unless marked `:okexcept:` / `:okwarning:`. All
   pages share one session, so each page imports what it uses. Notebooks are off.
-- Examples run on GitHub Actions: synthetic data, a small file in the repository,
-  or a public download, never a machine-specific path; seed random numbers. The
-  repository has no sample ARL file, so an example builds one with
-  `arlmet.write_dataset`; it never fetches an archive file (gigabytes) and shows
-  that call as a plain `code-block`. An extra it needs goes in the `dev` group.
+- Examples run on GitHub Actions on made-up data, never a machine-specific path. A page
+  that reads an ARL file starts with a `:suppress:` block that calls
+  `docs_examples.temp_workdir()` and `docs_examples.sample_file("met.arl")`
+  (`docs/_ext/docs_examples.py`) and ends with `os.chdir(docs_cwd)`. An example never
+  fetches an archive file: a download stays a plain `code-block`. An extra it needs goes
+  in the `dev` group.
 
 ## Tests
 
@@ -192,8 +193,7 @@ a broken one fails the build:
 - Conventional Commits (`fix(record): ...`, `docs: ...`, `!` if breaking).
   User-visible changes go under `## [Unreleased]` in `CHANGELOG.md`.
 - The version comes from git tags (setuptools-scm): no version string to bump,
-  and `uv.lock` does not change. Steps: [RELEASING.md](RELEASING.md). **Do not
-  cut a release, create a tag, or push unless the maintainer asks.**
+  and `uv.lock` does not change. The maintainer cuts releases ([RELEASING.md](RELEASING.md)).
 - The versioned docs live on the gh-pages branch, maintained by
   `.github/scripts/docs_versions.py`; never edit it by hand.
 - Tooling comes from [jmineau/python-template](https://github.com/jmineau/python-template)
