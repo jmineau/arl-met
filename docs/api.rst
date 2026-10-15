@@ -33,6 +33,19 @@ See the :doc:`cropping`, :doc:`sampling`, and :doc:`concatenating` guides.
    concat
    concat_by_time
 
+Finding Files
+-------------
+
+Find the files that cover a time window by their headers. See the
+:doc:`indexing` guide.
+
+.. autosummary::
+   :toctree: _autosummary
+   :nosignatures:
+
+   index_directory
+   DirectoryIndex
+
 Vertical Coordinates
 --------------------
 

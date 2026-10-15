@@ -7,6 +7,7 @@ packed meteorological data files used by HYSPLIT and other atmospheric transport
 
 import importlib.metadata
 
+from .directory import DirectoryIndex, index_directory
 from .exceptions import ARLFormatError, ARLFormatWarning
 from .file import File
 from .grid import Grid, GridWindow, Projection
@@ -57,6 +58,8 @@ __all__ = [
     "sample_points",
     "concat",
     "concat_by_time",
+    "index_directory",
+    "DirectoryIndex",
     "ARLFormatError",
     "ARLFormatWarning",
 ]
