@@ -12,17 +12,32 @@ physical vertical coordinates from a Dataset returned by
 
 Each helper takes the Dataset and returns an :class:`xarray.DataArray`. Their
 behavior depends on the file's vertical flag, which you can inspect through the
-``arl`` accessor:
+``arl`` accessor.
 
-.. code-block:: python
+The examples run when the docs are built, on ``met.arl``, a small file of made-up
+values that the build writes with :func:`arlmet.write_dataset`
+(:doc:`quickstart` describes it). It is a pressure-level file, flag 2, like
+NOAA's GDAS and NAM files:
+
+.. ipython:: python
+   :suppress:
+
+   import os
+
+   import docs_examples
+
+   docs_cwd = docs_examples.temp_workdir()
+   docs_examples.sample_file("met.arl")
+
+.. ipython:: python
 
    import arlmet
 
    ds = arlmet.open_dataset("met.arl")
    vaxis = ds.arl.vertical_axis
-   print(type(vaxis).__name__)  # e.g. 'PressureAxis'
-   print(vaxis.flag)            # e.g. 2
-   print(vaxis.coord_system)    # e.g. 'pressure'
+   print(type(vaxis).__name__)
+   print(vaxis.flag)
+   print(vaxis.coord_system)
 
 Vertical coordinate flags
 -------------------------
@@ -46,9 +61,10 @@ Vertical coordinate flags
 Pressure
 --------
 
-.. code-block:: python
+.. ipython:: python
 
    p = arlmet.pressure(ds)
+   p
 
 The result depends on the vertical flag:
 
@@ -70,9 +86,10 @@ The result depends on the vertical flag:
 Height above ground level
 --------------------------
 
-.. code-block:: python
+.. ipython:: python
 
    z = arlmet.z_agl(ds)
+   z.isel(time=0, lat=0, lon=0).values
 
 The method used depends on the vertical flag, matching HYSPLIT's ``prfcom``
 dispatcher — each coordinate system has exactly one correct method:
@@ -182,11 +199,12 @@ water vapor).
 Height above mean sea level
 ---------------------------
 
-.. code-block:: python
+.. ipython:: python
 
    z = arlmet.z_msl(ds)
+   z.isel(time=0, lat=0, lon=0).values
 
-``z_msl()`` is ``z_agl(ds) + ds["SHGT"]`` (surface terrain height in metres) and
+``z_msl()`` is ``z_agl(ds) + ds["SHGT"]`` (surface terrain height in meters) and
 requires ``SHGT`` in the dataset.
 
 NumPy arrays
@@ -196,26 +214,52 @@ The same conversions are available on the vertical axis itself for plain NumPy
 arrays. Inputs are keyword-only, and each axis uses only the ones its
 coordinate system needs; a missing one raises ``ValueError`` naming it.
 
-.. code-block:: python
+.. ipython:: python
+
+   import numpy as np
+
+   prss = 1000.0  # surface pressure of one column, hPa
+   temp = np.array([290.0, 288.0, 286.0])  # K: the ground, then each level
 
    vaxis = arlmet.SigmaAxis(levels=[1.0, 0.98, 0.95], offset=0.0)
-   p = vaxis.to_pressure(surface_pressure=prss)  # prss.shape + (nlev,), nominal
-   z = vaxis.to_height_agl(surface_pressure=prss, temperature=temp)
-   z = vaxis.to_height_agl(surface_pressure=prss, temperature=tv, pressure=pres)
+   vaxis.to_pressure(surface_pressure=prss)  # nominal, one value per level
+   vaxis.to_height_agl(surface_pressure=prss, temperature=temp)
 
 For a sigma or hybrid axis, ``temperature`` covers every level, the ground
 (level 0) included; pass the virtual temperature, with the ground temperature
-at level 0, and ``PRES`` as ``pressure`` (sigma only) for HYSPLIT's heights.
+at level 0, and ``PRES`` as ``pressure`` (sigma only) for HYSPLIT's heights:
+
+.. ipython:: python
+
+   tv = np.array([290.0, 288.4, 286.5])  # virtual temperature, K
+   pres = np.array([1000.0, 979.0, 948.0])  # the PRES field, hPa
+   vaxis.to_height_agl(surface_pressure=prss, temperature=tv, pressure=pres)
+
+A pressure axis takes the geopotential height and the terrain, a WRF axis the
+temperature and pressure of each level above the ground:
+
+.. ipython:: python
 
    paxis = arlmet.PressureAxis(levels=[1000.0, 925.0, 850.0])
-   z = paxis.to_height_agl(hgts=hgts, terrain=shgt[..., None])
+   hgts = np.array([[110.0, 770.0, 1480.0]])  # m, one column
+   shgt = np.array([100.0])  # m
+   paxis.to_height_agl(hgts=hgts, terrain=shgt[..., None])
 
    waxis = arlmet.WrfAxis(levels=[1.0, 0.995, 0.98], offset=50.0)
-   z = waxis.to_height_agl(surface_pressure=prss, temperature=temp, pressure=pres)
+   waxis.to_height_agl(
+       surface_pressure=850.0,
+       temperature=np.array([285.0, 284.0]),  # K, the two levels above the ground
+       pressure=np.array([845.0, 832.0]),  # PRES there, hPa
+   )
 
 Vertical axes are immutable: ``levels`` is a read-only array and attributes
 cannot be reassigned. Build a new axis instead (for example
 ``arlmet.VerticalAxis.from_flag(vaxis.flag, levels, offset=vaxis.offset)``).
+
+.. ipython:: python
+   :suppress:
+
+   os.chdir(docs_cwd)
 
 Limitations
 -----------
