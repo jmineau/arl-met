@@ -242,6 +242,28 @@ class TestToHeightAgl:
             z, [[49.2168, 178.3292], [293.4422, 597.2772]], atol=1e-3
         )
 
+    def test_sigma_uses_pres_when_given_by_hand(self):
+        # HYSPLIT's prfsig with PRES: level 0 is the ground (PRSS, its temperature);
+        #   z1 = 29.27095 * (290 + 288) / 2 * ln(1000 / 988) = 102.1257
+        #   z2 = z1 + 29.27095 * (288 + 286) / 2 * ln(988 / 945) = 475.9409
+        # The nominal sigma pressures (990, 950) would give 85.0 and 431.5.
+        ax = SigmaAxis(levels=[1.0, 0.99, 0.95])
+        z = ax.to_height_agl(
+            surface_pressure=1000.0,
+            temperature=np.array([290.0, 288.0, 286.0]),
+            pressure=np.array([np.nan, 988.0, 945.0]),
+        )
+        np.testing.assert_allclose(z, [0.0, 102.1257, 475.9409], atol=1e-3)
+
+    def test_hybrid_ignores_pres(self):
+        # HYSPLIT's prfecm takes a hybrid level's pressure from the levels only.
+        ax = HybridAxis(levels=[1.0, 0.99, 0.95])
+        args = {"surface_pressure": 1000.0, "temperature": [290.0, 288.0, 286.0]}
+        np.testing.assert_array_equal(
+            ax.to_height_agl(**args),
+            ax.to_height_agl(**args, pressure=[np.nan, 988.0, 945.0]),
+        )
+
     def test_wrf_ignores_hgts(self):
         # Never a fallback across flags: HGTS does not enter a WRF height.
         ax = WrfAxis(levels=[1.0, 0.99], offset=50.0)
@@ -351,6 +373,121 @@ def _write_terrain_file(
             if with_hgts:
                 h_data = np.full((ny, nx), h, dtype=np.float32)
                 rs.create_datarecord("HGTS", level=k, forecast=0, data=h_data)
+
+
+def test_hypsometric_z_agl_surface_temperature_by_hand():
+    # The first layer takes the mean of the ground and level-1 temperatures:
+    #   z1 = 29.27095 * (290 + 288) / 2 * ln(1000 / 990) = 85.0189
+    #   z2 = z1 + 29.27095 * (288 + 286) / 2 * ln(990 / 950) = 431.4912
+    # Without it the first layer uses 288 alone: z1 = 84.7247.
+    from arlmet.vertical import hypsometric_z_agl
+
+    z = hypsometric_z_agl(
+        [990.0, 950.0], 1000.0, [288.0, 286.0], surface_temperature=290.0
+    )
+    np.testing.assert_allclose(z, [85.0189, 431.4912], atol=1e-3)
+    z_dry = hypsometric_z_agl([990.0, 950.0], 1000.0, [288.0, 286.0])
+    np.testing.assert_allclose(z_dry[0], 84.7247, atol=1e-3)
+
+
+def _write_column_file(path, *, axis, pres=True):
+    """A sigma or hybrid file shaped like HRRR's: T02M, PRES, TEMP, SPHU (levels 1-3)."""
+    grid = _make_latlon_grid()
+    ny, nx = grid.ny, grid.nx
+
+    def field(value):
+        return np.full((ny, nx), value, dtype=np.float32)
+
+    with File(path, mode="w", source="TEST", grid=grid, vertical_axis=axis) as f:
+        rs = f.create_recordset(pd.Timestamp("2024-01-01"))
+        rs.create_datarecord("PRSS", level=0, forecast=0, data=field(850.0))
+        rs.create_datarecord("SHGT", level=0, forecast=0, data=field(1300.0))
+        rs.create_datarecord("T02M", level=0, forecast=0, data=field(285.0))
+        for k, (p, t, q) in enumerate(
+            zip(
+                [838.0, 800.0, 760.0],
+                [283.0, 280.0, 277.0],
+                [0.008, 0.006, 0.004],
+                strict=True,
+            ),
+            start=1,
+        ):
+            if pres:
+                rs.create_datarecord("PRES", level=k, forecast=0, data=field(p))
+            rs.create_datarecord("TEMP", level=k, forecast=0, data=field(t))
+            rs.create_datarecord("SPHU", level=k, forecast=0, data=field(q))
+
+
+def _column_by_hand(pressures):
+    """Heights of levels 1-3 from the ground (850 hPa, T02M 285 K), virtual temperature."""
+    tv = [285.0 * (1 + 0.61 * 0.008)] + [
+        t * (1 + 0.61 * q)
+        for t, q in zip([283.0, 280.0, 277.0], [0.008, 0.006, 0.004], strict=True)
+    ]
+    p = [850.0, *pressures]
+    z, out = 0.0, []
+    for k in range(1, 4):
+        z += (R_D / G) * 0.5 * (tv[k - 1] + tv[k]) * np.log(p[k - 1] / p[k])
+        out.append(z)
+    return np.array(out)
+
+
+class TestColumnHelpers:
+    """pressure() and z_agl() on sigma/hybrid files, as HYSPLIT's prfsig/prfecm (#66)."""
+
+    def test_sigma_pressure_is_the_pres_field(self, tmp_path):
+        path = tmp_path / "sigma.arl"
+        _write_column_file(path, axis=SigmaAxis(levels=[1.0, 0.99, 0.95, 0.9]))
+        ds = arlmet.open_dataset(path)
+        p = arlmet.pressure(ds).isel(time=0, lat=0, lon=0).values
+        np.testing.assert_allclose(p, [838.0, 800.0, 760.0])
+
+    def test_sigma_z_agl_from_pres_with_virtual_temperature(self, tmp_path):
+        path = tmp_path / "sigma.arl"
+        _write_column_file(path, axis=SigmaAxis(levels=[1.0, 0.99, 0.95, 0.9]))
+        ds = arlmet.open_dataset(path)
+        z = arlmet.z_agl(ds)
+        assert z.dims == ds["TEMP"].dims
+        np.testing.assert_allclose(
+            z.isel(time=0, lat=0, lon=0).values,
+            _column_by_hand([838.0, 800.0, 760.0]),
+            rtol=1e-6,
+        )
+        np.testing.assert_allclose(
+            arlmet.z_msl(ds).isel(time=0, lat=0, lon=0).values,
+            _column_by_hand([838.0, 800.0, 760.0]) + 1300.0,
+            rtol=1e-6,
+        )
+
+    def test_sigma_without_pres_uses_nominal_pressure(self, tmp_path):
+        path = tmp_path / "sigma.arl"
+        _write_column_file(
+            path, axis=SigmaAxis(levels=[1.0, 0.99, 0.95, 0.9]), pres=False
+        )
+        ds = arlmet.open_dataset(path)
+        nominal = [850.0 * s for s in (0.99, 0.95, 0.9)]
+        np.testing.assert_allclose(
+            arlmet.pressure(ds).isel(time=0, lat=0, lon=0).values, nominal, rtol=1e-6
+        )
+        np.testing.assert_allclose(
+            arlmet.z_agl(ds).isel(time=0, lat=0, lon=0).values,
+            _column_by_hand(nominal),
+            rtol=1e-6,
+        )
+
+    def test_hybrid_ignores_pres(self, tmp_path):
+        path = tmp_path / "hybrid.arl"
+        _write_column_file(path, axis=HybridAxis(levels=[1.0, 0.99, 0.95, 0.9]))
+        ds = arlmet.open_dataset(path)
+        nominal = [850.0 * s for s in (0.99, 0.95, 0.9)]
+        np.testing.assert_allclose(
+            arlmet.pressure(ds).isel(time=0, lat=0, lon=0).values, nominal, rtol=1e-6
+        )
+        np.testing.assert_allclose(
+            arlmet.z_agl(ds).isel(time=0, lat=0, lon=0).values,
+            _column_by_hand(nominal),
+            rtol=1e-6,
+        )
 
 
 class TestHypsometricZagl:

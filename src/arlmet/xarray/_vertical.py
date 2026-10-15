@@ -14,6 +14,7 @@ from arlmet.vertical import (
     SigmaAxis,
     TerrainAxis,
     WrfAxis,
+    _hysplit_z_agl,
     hypsometric_z_agl,
 )
 
@@ -59,7 +60,7 @@ def _hypsometric_z_agl(
 def _sigma_hybrid_pressure(
     ds: xr.Dataset, axis: SigmaAxis | HybridAxis
 ) -> xr.DataArray:
-    """Compute spatially varying pressure for sigma/hybrid axes."""
+    """Compute spatially varying nominal pressure for sigma/hybrid axes."""
     if "PRSS" not in ds:
         raise ValueError(
             "Sigma/hybrid pressure conversion requires 'PRSS' (surface pressure) in dataset."
@@ -105,6 +106,58 @@ def _sigma_hybrid_pressure(
     )
 
 
+def _hysplit_z_agl_da(ds: xr.Dataset, axis: SigmaAxis | HybridAxis) -> xr.DataArray:
+    """
+    Height AGL (m) of each level of a sigma/hybrid dataset, as HYSPLIT finds it.
+
+    HYSPLIT's ``prfsig`` (flag 1) and ``prfecm`` (flag 4): from the ground
+    (``PRSS``, ``T02M`` or ``TMPS``) through :func:`pressure` with the virtual
+    temperature from ``TEMP`` and ``SPHU`` (or ``RELH``), each when present.
+    """
+    for name in ("PRSS", "TEMP"):
+        if name not in ds:
+            raise ValueError(
+                f"z_agl() for {axis.coord_system} (flag={axis.flag}) files "
+                f"requires '{name}' in dataset."
+            )
+    temp = ds["TEMP"]
+    if "level" not in temp.dims:
+        raise ValueError("'TEMP' must have a 'level' dimension.")
+    level_ax = list(temp.dims).index("level")
+    p = pressure(ds).transpose(*temp.dims).values
+    prss = ds["PRSS"].values
+    if isinstance(axis, SigmaAxis):
+        first_sigma = axis.levels[int(temp["level"].values[0])]
+    else:
+        first_sigma = np.take(p, 0, axis=level_ax) / prss
+    surface_t = next((ds[n].values for n in ("T02M", "TMPS") if n in ds), None)
+
+    def _upper(name: str) -> Any:
+        """*name* on TEMP's dims, or None when the dataset lacks it."""
+        return ds[name].transpose(*temp.dims).values if name in ds else None
+
+    z = _hysplit_z_agl(
+        p,
+        prss,
+        temp.values,
+        first_sigma=first_sigma,
+        surface_temperature=surface_t,
+        specific_humidity=_upper("SPHU"),
+        relative_humidity=_upper("RELH"),
+        level_axis=level_ax,
+    )
+    return xr.DataArray(
+        z.astype(np.float32),
+        dims=temp.dims,
+        coords=temp.coords,
+        attrs={
+            "units": "m",
+            "long_name": "height above ground level",
+            "standard_name": "height",
+        },
+    )
+
+
 def pressure(ds: xr.Dataset) -> xr.DataArray:
     """
     Pressure (hPa) at each level.
@@ -118,8 +171,12 @@ def pressure(ds: xr.Dataset) -> xr.DataArray:
     -------
     xr.DataArray
         - **flag=2**: the stored 1D ``pressure`` non-dim coord ``(level,)``.
-        - **flag=1/4**: spatially varying array ``(time, level, y, x)`` computed
-          from surface pressure (``PRSS``) via sigma-to-pressure conversion.
+        - **flag=1** (sigma): the ``PRES`` data variable when the dataset has
+          it, as HYSPLIT's ``prfsig`` uses it; otherwise, as for flag 4, a
+          spatially varying array ``(time, level, y, x)`` computed from surface
+          pressure (``PRSS``) via sigma-to-pressure conversion.
+        - **flag=4** (hybrid): computed from ``PRSS`` and the stored levels;
+          ``PRES`` is not used, as in HYSPLIT's ``prfecm``.
         - **flag=3**: returns the ``PRES`` data variable (3D pressure field in
           hPa) if present in the dataset. Terrain-following ARL files typically
           store this field. Raises ``ValueError`` if ``PRES`` is absent.
@@ -134,6 +191,8 @@ def pressure(ds: xr.Dataset) -> xr.DataArray:
             raise ValueError("Dataset has no 'pressure' coordinate.")
         return ds.coords["pressure"]
 
+    if isinstance(vaxis, SigmaAxis) and "PRES" in ds:
+        return ds["PRES"]
     if isinstance(vaxis, (SigmaAxis, HybridAxis)):
         return _sigma_hybrid_pressure(ds, vaxis)
 
@@ -172,8 +231,13 @@ def z_agl(ds: xr.Dataset) -> xr.DataArray:
     xr.DataArray
         - **flag=2**: ``HGTS - SHGT`` (geopotential height minus terrain).
           Requires ``HGTS`` and ``SHGT`` in the dataset.
-        - **flag=1/4**: hypsometric integration from surface pressure and
-          temperature. Requires ``PRSS`` and ``TEMP``.
+        - **flag=1/4**: hypsometric integration from the ground through
+          :func:`pressure` with the virtual temperature, as HYSPLIT's
+          ``prfsig`` and ``prfecm`` do: the ground is at ``PRSS`` and ``T02M``
+          (else ``TMPS``, else the first level's ``TEMP`` brought down
+          adiabatically), and the virtual temperature is ``TEMP (1 + 0.61 q)``
+          with ``q`` from ``SPHU``, else ``RELH``, else 0. Requires ``PRSS``
+          and ``TEMP``.
         - **flag=3**: the stored 1D ``height`` non-dim coord ``(level,)`` —
           terrain-following levels are heights AGL.
         - **flag=5** (WRF): hypsometric integration of the ``PRES`` field from
@@ -191,14 +255,7 @@ def z_agl(ds: xr.Dataset) -> xr.DataArray:
         return ds["HGTS"] - ds["SHGT"]
 
     if isinstance(vaxis, (SigmaAxis, HybridAxis)):
-        for name in ("PRSS", "TEMP"):
-            if name not in ds:
-                raise ValueError(
-                    f"z_agl() for {vaxis.coord_system} (flag={vaxis.flag}) files "
-                    f"requires '{name}' in dataset."
-                )
-        p_levels = pressure(ds)
-        return _hypsometric_z_agl(p_levels, ds["PRSS"], ds["TEMP"])
+        return _hysplit_z_agl_da(ds, vaxis)
 
     if isinstance(vaxis, TerrainAxis):
         if "height" not in ds.coords:
