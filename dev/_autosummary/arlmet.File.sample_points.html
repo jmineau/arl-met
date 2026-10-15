@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=06aa3904"></script>
+    <script src="../_static/documentation_options.js?v=4ccf7043"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.File.flush" href="arlmet.File.flush.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev15+g6490cdded" />
+  <meta name="docsearch:version" content="0.1.0b4.dev16+ge4739a64d" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -635,20 +635,29 @@ is given, the file must contain exactly one time, which is used.</p></li>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code>: fractional ARL level index.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;pressure&quot;</span></code>: hPa. Sigma/hybrid files (flag 1/4) need
-<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>; pressure files (flag 2) use the stored levels;
+<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, and sigma files use the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field when they have
+it; pressure files (flag 2) use the stored levels;
 terrain-following files (flag 3) raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>; WRF
 files (flag 5) use the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">&quot;agl&quot;</span></code>: metres above ground level. Sigma/hybrid files
-integrate hypsometrically from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> and <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>, WRF files
-from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> through <code class="docutils literal notranslate"><span class="pre">PRES</span></code> with <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>; pressure files use
-<code class="docutils literal notranslate"><span class="pre">HGTS</span> <span class="pre">-</span> <span class="pre">SHGT</span></code>; terrain-following files use the stored levels.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code>: metres above mean sea level. Sigma/hybrid/WRF files
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;agl&quot;</span></code>: meters above ground level. Sigma/hybrid files
+integrate hypsometrically from the ground (<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code>)
+through each level’s pressure with the virtual temperature
+(<code class="docutils literal notranslate"><span class="pre">TEMP</span></code> with <code class="docutils literal notranslate"><span class="pre">SPHU</span></code> or <code class="docutils literal notranslate"><span class="pre">RELH</span></code>), as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfsig</span></code>
+and <code class="docutils literal notranslate"><span class="pre">prfecm</span></code> do; WRF files from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> through <code class="docutils literal notranslate"><span class="pre">PRES</span></code> with
+<code class="docutils literal notranslate"><span class="pre">TEMP</span></code>; pressure files use <code class="docutils literal notranslate"><span class="pre">HGTS</span> <span class="pre">-</span> <span class="pre">SHGT</span></code>; terrain-following
+files use the stored levels.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code>: meters above mean sea level. Sigma/hybrid/WRF files
 add <code class="docutils literal notranslate"><span class="pre">SHGT</span></code> to the hypsometric AGL height; pressure files use
 <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>; terrain-following files add <code class="docutils literal notranslate"><span class="pre">SHGT</span></code> to the stored
 levels.</p></li>
 </ul>
 <p>Each vertical coordinate system has exactly one method, as in
-HYSPLIT; there is no fallback between them.</p>
+HYSPLIT; there is no fallback between them. On sigma and hybrid
+files level 0 is the ground: a point between it and the first
+level is interpolated from the ground values (<code class="docutils literal notranslate"><span class="pre">PRSS</span></code> for
+<code class="docutils literal notranslate"><span class="pre">PRES</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code> for <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>, <code class="docutils literal notranslate"><span class="pre">U10M</span></code>/<code class="docutils literal notranslate"><span class="pre">V10M</span></code> for winds),
+and pressure is interpolated as <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code>. The <em>Vertical
+Coordinates</em> guide has the details.</p>
 </p></li>
 <li><p><strong>method</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code></a>[<code class="docutils literal notranslate"><span class="pre">'linear'</span></code>, <code class="docutils literal notranslate"><span class="pre">'nearest'</span></code>]</span>) – Horizontal interpolation: bilinear or nearest grid point.</p></li>
 <li><p><strong>earth_relative</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Rotate sampled wind pairs (<code class="docutils literal notranslate"><span class="pre">UWND</span></code>/<code class="docutils literal notranslate"><span class="pre">VWND</span></code>, <code class="docutils literal notranslate"><span class="pre">U10M</span></code>/<code class="docutils literal notranslate"><span class="pre">V10M</span></code>)

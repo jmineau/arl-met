@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=06aa3904"></script>
+    <script src="../_static/documentation_options.js?v=4ccf7043"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.VerticalAxis.to_pressure" href="arlmet.VerticalAxis.to_pressure.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev15+g6490cdded" />
+  <meta name="docsearch:version" content="0.1.0b4.dev16+ge4739a64d" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -615,16 +615,38 @@
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">arlmet.</span></span><span class="sig-name descname"><span class="pre">SigmaAxis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">levels</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/vertical.html#SigmaAxis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.SigmaAxis" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="arlmet.VerticalAxis.html#arlmet.VerticalAxis" title="arlmet.vertical.VerticalAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">VerticalAxis</span></code></a></p>
 <p>Flag=1. Sigma coordinate — heights via hypsometric integration.</p>
+<p>The stored levels are sigma, with level 0 the surface. <code class="docutils literal notranslate"><span class="pre">to_pressure</span></code> gives
+the nominal pressure <code class="docutils literal notranslate"><span class="pre">offset</span> <span class="pre">+</span> <span class="pre">(surface_pressure</span> <span class="pre">-</span> <span class="pre">offset)</span> <span class="pre">*</span> <span class="pre">sigma</span></code>. A file
+with a <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field (HRRR, WRF converted by <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code>) holds each level’s
+real pressure there, which can differ from the nominal one by tens of hPa
+aloft; HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> then uses <code class="docutils literal notranslate"><span class="pre">PRES</span></code>, and so do
+<a class="reference internal" href="arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a>, <a class="reference internal" href="arlmet.pressure.html#arlmet.pressure" title="arlmet.pressure"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.pressure()</span></code></a> and
+<a class="reference internal" href="arlmet.z_agl.html#arlmet.z_agl" title="arlmet.z_agl"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.z_agl()</span></code></a>. Pass it to <code class="docutils literal notranslate"><span class="pre">to_height_agl</span></code> as <code class="docutils literal notranslate"><span class="pre">pressure</span></code>.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arlmet</span><span class="w"> </span><span class="kn">import</span> <span class="n">SigmaAxis</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">axis</span> <span class="o">=</span> <span class="n">SigmaAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">axis</span><span class="o">.</span><span class="n">to_pressure</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">)</span>
+<span class="go">array([1000.,  990.,  950.])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">z</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">surface_pressure</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">temperature</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">290.0</span><span class="p">,</span> <span class="mf">288.0</span><span class="p">,</span> <span class="mf">286.0</span><span class="p">]),</span>
+<span class="gp">... </span>    <span class="n">pressure</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mf">988.0</span><span class="p">,</span> <span class="mf">945.0</span><span class="p">]),</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="go">array([  0. , 102.1, 475.9])</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <p class="rubric">Methods</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="arlmet.SigmaAxis.to_height_agl.html#arlmet.SigmaAxis.to_height_agl" title="arlmet.SigmaAxis.to_height_agl"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_height_agl</span></code></a>(*[, surface_pressure, ...])</p></td>
-<td><p>Height AGL [m] by hypsometric integration of <code class="docutils literal notranslate"><span class="pre">surface_pressure</span></code> and <code class="docutils literal notranslate"><span class="pre">temperature</span></code>.</p></td>
+<td><p>Height AGL [m] by hypsometric integration from <code class="docutils literal notranslate"><span class="pre">surface_pressure</span></code> with <code class="docutils literal notranslate"><span class="pre">temperature</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="arlmet.SigmaAxis.to_pressure.html#arlmet.SigmaAxis.to_pressure" title="arlmet.SigmaAxis.to_pressure"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_pressure</span></code></a>(*[, surface_pressure])</p></td>
-<td><p>Pressure [hPa] from <code class="docutils literal notranslate"><span class="pre">surface_pressure</span></code>: offset + (sp - offset) * sigma.</p></td>
+<td><p>Nominal pressure [hPa] from <code class="docutils literal notranslate"><span class="pre">surface_pressure</span></code>: offset + (sp - offset) * sigma.</p></td>
 </tr>
 </tbody>
 </table>

@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=06aa3904"></script>
+    <script src="_static/documentation_options.js?v=4ccf7043"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
     <link rel="search" title="Search" href="search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev15+g6490cdded" />
+  <meta name="docsearch:version" content="0.1.0b4.dev16+ge4739a64d" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -452,13 +452,22 @@ each time step and filled only for the records packed</p></td>
 <td><p>choose the vertical conversion from the vertical flag</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.VerticalAxis.from_flag.html#arlmet.VerticalAxis.from_flag" title="arlmet.VerticalAxis.from_flag"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.VerticalAxis.from_flag()</span></code></a> and its subclasses</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prfwrf</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prfsig</span></code> / <code class="docutils literal notranslate"><span class="pre">prfecm</span></code></p></td>
+<td><p>the sigma (flag 1) and hybrid (flag 4) profiles: heights from the ground
+(<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code>) with the virtual temperature; <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> takes each
+level’s pressure from <code class="docutils literal notranslate"><span class="pre">PRES</span></code> when the file has it (<code class="docutils literal notranslate"><span class="pre">ZFLG</span></code>), <code class="docutils literal notranslate"><span class="pre">prfecm</span></code>
+always from the levels; <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code> linear in height</p></td>
+<td><p>the column in <code class="docutils literal notranslate"><span class="pre">ops/sample.py</span></code> and <a class="reference internal" href="_autosummary/arlmet.z_agl.html#arlmet.z_agl" title="arlmet.z_agl"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.z_agl()</span></code></a>, through
+<code class="docutils literal notranslate"><span class="pre">vertical._hysplit_z_agl</span></code>; on two HRRR columns it agrees with the
+compiled <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> within 0.006 hPa</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prfwrf</span></code></p></td>
 <td><p>the WRF (flag 5) profile: pressure from the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field, heights from
 WRF’s hybrid coefficients (read from a side file, <code class="docutils literal notranslate"><span class="pre">hybrid_wrfvcoords.txt</span></code>)</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.WrfAxis.html#arlmet.WrfAxis" title="arlmet.WrfAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.WrfAxis</span></code></a>: pressure from <code class="docutils literal notranslate"><span class="pre">PRES</span></code>; heights hypsometric
 from <code class="docutils literal notranslate"><span class="pre">PRES</span></code>, since the coefficients are not in the ARL file</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xtrct_grid.f</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xtrct_grid.f</span></code></p></td>
 <td><p>crop a met file to a grid window</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.Grid.window_from_bbox.html#arlmet.Grid.window_from_bbox" title="arlmet.Grid.window_from_bbox"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.Grid.window_from_bbox()</span></code></a>, <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a>
 (<code class="docutils literal notranslate"><span class="pre">tests/test_subset_slow.py</span></code> compares the two on real files)</p></td>
@@ -485,8 +494,10 @@ raises <code class="docutils literal notranslate"><span class="pre">ValueError</
 <tbody>
 <tr class="row-even"><td><p>1</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.SigmaAxis.html#arlmet.SigmaAxis" title="arlmet.SigmaAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">SigmaAxis</span></code></a></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">offset</span> <span class="pre">+</span> <span class="pre">(surface_pressure</span> <span class="pre">-</span> <span class="pre">offset)</span> <span class="pre">*</span> <span class="pre">sigma</span></code></p></td>
-<td><p>hypsometric, from <code class="docutils literal notranslate"><span class="pre">surface_pressure</span></code> (PRSS) and <code class="docutils literal notranslate"><span class="pre">temperature</span></code> (TEMP)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">offset</span> <span class="pre">+</span> <span class="pre">(surface_pressure</span> <span class="pre">-</span> <span class="pre">offset)</span> <span class="pre">*</span> <span class="pre">sigma</span></code> (nominal; a file’s
+<code class="docutils literal notranslate"><span class="pre">PRES</span></code> is the real pressure)</p></td>
+<td><p>hypsometric, from <code class="docutils literal notranslate"><span class="pre">surface_pressure</span></code> (PRSS) through <code class="docutils literal notranslate"><span class="pre">pressure</span></code> (PRES)
+when given, else the nominal pressure, with <code class="docutils literal notranslate"><span class="pre">temperature</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p>2</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.PressureAxis.html#arlmet.PressureAxis" title="arlmet.PressureAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">PressureAxis</span></code></a></p></td>
@@ -520,8 +531,9 @@ the surface, and the offset is WRF’s model top <code class="docutils literal n
 <code class="docutils literal notranslate"><span class="pre">MUPE</span></code> and <code class="docutils literal notranslate"><span class="pre">hybrid_wrfvcoords.txt</span></code> sits beside it; otherwise <code class="docutils literal notranslate"><span class="pre">metini</span></code>
 treats it as flag 1 and <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> integrates heights between the <code class="docutils literal notranslate"><span class="pre">PRES</span></code>
 levels. <code class="docutils literal notranslate"><span class="pre">WrfAxis</span></code> heights follow that <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> path with arl-met’s
-hypsometric helper (dry temperature; the first layer uses the first level’s
-temperature).</p>
+hypsometric helper, but with <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> (not the virtual temperature) and the
+first level’s temperature for the first layer, where flags 1 and 4 use
+HYSPLIT’s full recipe (<code class="docutils literal notranslate"><span class="pre">vertical._hysplit_z_agl</span></code>).</p>
 </section>
 <section id="module-layout">
 <h2>Module layout<a class="headerlink" href="#module-layout" title="Link to this heading">#</a></h2>

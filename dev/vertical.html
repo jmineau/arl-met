@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=06aa3904"></script>
+    <script src="_static/documentation_options.js?v=4ccf7043"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Sampling Points" href="sampling.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev15+g6490cdded" />
+  <meta name="docsearch:version" content="0.1.0b4.dev16+ge4739a64d" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -503,9 +503,14 @@ behavior depends on the file’s vertical flag, which you can inspect through th
 <ul class="simple">
 <li><p><strong>flag=2 (pressure):</strong> returns the stored 1D <code class="docutils literal notranslate"><span class="pre">pressure</span></code> coordinate
 <code class="docutils literal notranslate"><span class="pre">(level,)</span></code>.</p></li>
-<li><p><strong>flag=1 / flag=4 (sigma / hybrid):</strong> computes a spatially varying field
-<code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">level,</span> <span class="pre">y,</span> <span class="pre">x)</span></code> from surface pressure (<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>) using the same
-conversion as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">metlvl.f</span></code>. <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> must be present in the dataset.</p></li>
+<li><p><strong>flag=1 (sigma):</strong> the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> data variable when the dataset has it, as
+HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> uses it (see <a class="reference internal" href="#sigma-files-with-pres">Sigma files with PRES</a> below); otherwise
+as for flag 4.</p></li>
+<li><p><strong>flag=4 (hybrid), and sigma without ``PRES``:</strong> computes a spatially varying
+field <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">level,</span> <span class="pre">y,</span> <span class="pre">x)</span></code> from surface pressure (<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>) using the same
+conversion as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">metlvl.f</span></code>. <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> must be present in the
+dataset. A hybrid file’s <code class="docutils literal notranslate"><span class="pre">PRES</span></code>, if any, is not used, as in HYSPLIT’s
+<code class="docutils literal notranslate"><span class="pre">prfecm</span></code>.</p></li>
 <li><p><strong>flag=3 (terrain-following):</strong> returns the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> data variable if present,
 and raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> otherwise.</p></li>
 <li><p><strong>flag=5 (WRF):</strong> returns the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> data variable, as HYSPLIT does, and
@@ -523,16 +528,60 @@ dispatcher — each coordinate system has exactly one correct method:</p>
 <li><p><strong>flag=2 (pressure):</strong> <code class="docutils literal notranslate"><span class="pre">HGTS</span> <span class="pre">-</span> <span class="pre">SHGT</span></code>. Requires <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> and <code class="docutils literal notranslate"><span class="pre">SHGT</span></code> in
 the dataset. Pressure-level files always store <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>.</p></li>
 <li><p><strong>flag=1 / flag=4 (sigma / hybrid):</strong> hypsometric integration from the
-surface to each level using <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> (hPa) and <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> (K). Sigma and hybrid
-files do not store <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>.</p></li>
+ground up through <a class="reference internal" href="_autosummary/arlmet.pressure.html#arlmet.pressure" title="arlmet.pressure"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.pressure()</span></code></a> with the virtual temperature, as
+HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> and <code class="docutils literal notranslate"><span class="pre">prfecm</span></code> do (see <a class="reference internal" href="#sigma-and-hybrid-heights">Sigma and hybrid heights</a>).
+Requires <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> and <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>; uses <code class="docutils literal notranslate"><span class="pre">T02M</span></code> (or <code class="docutils literal notranslate"><span class="pre">TMPS</span></code>), <code class="docutils literal notranslate"><span class="pre">SPHU</span></code> (or
+<code class="docutils literal notranslate"><span class="pre">RELH</span></code>) and, on sigma files, <code class="docutils literal notranslate"><span class="pre">PRES</span></code> when present. Sigma and hybrid files
+do not store <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>.</p></li>
 <li><p><strong>flag=3 (terrain-following):</strong> returns the stored 1D <code class="docutils literal notranslate"><span class="pre">height</span></code> coordinate —
 terrain-following levels are already heights AGL.</p></li>
 <li><p><strong>flag=5 (WRF):</strong> hypsometric integration from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> up through the
 <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field, with <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>. Requires all three.</p></li>
 </ul>
-<p>The hypsometric integration uses the temperature at the lowest level for the
-surface-to-first-level layer, and the mean temperature of the bounding levels
-for each layer above.</p>
+<p>Each layer of the hypsometric integration is <code class="docutils literal notranslate"><span class="pre">(R_d</span> <span class="pre">/</span> <span class="pre">g)</span> <span class="pre">*</span> <span class="pre">T</span> <span class="pre">*</span> <span class="pre">ln(p_below</span> <span class="pre">/</span>
+<span class="pre">p_above)</span></code> thick, with <code class="docutils literal notranslate"><span class="pre">T</span></code> the mean of its two bounding levels. For flag 5
+the first layer, from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> to the first level, uses that level’s <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>.</p>
+</section>
+<section id="sigma-and-hybrid-heights">
+<h2>Sigma and hybrid heights<a class="headerlink" href="#sigma-and-hybrid-heights" title="Link to this heading">#</a></h2>
+<p>On sigma and hybrid files arl-met builds each column as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfsig</span></code>
+(flag 1) and <code class="docutils literal notranslate"><span class="pre">prfecm</span></code> (flag 4) do, so a value sampled at a height comes from
+the level HYSPLIT would read:</p>
+<ul class="simple">
+<li><p><strong>The ground is level 0:</strong> 0 m, at <code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, with the 2 m temperature
+<code class="docutils literal notranslate"><span class="pre">T02M</span></code> (or <code class="docutils literal notranslate"><span class="pre">TMPS</span></code>). Without either, the ground temperature is the first
+level’s <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> brought down adiabatically, <code class="docutils literal notranslate"><span class="pre">T1</span> <span class="pre">*</span> <span class="pre">sigma1</span> <span class="pre">**</span> <span class="pre">-0.286</span></code>, with
+<code class="docutils literal notranslate"><span class="pre">sigma1</span></code> the first level’s sigma (on hybrid files, its pressure over
+<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>).</p></li>
+<li><p><strong>Pressure</strong> of each level above is the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field on a sigma file that
+has one, else the levels’ nominal pressure (see <a class="reference internal" href="#sigma-files-with-pres">Sigma files with PRES</a>).</p></li>
+<li><p><strong>Virtual temperature</strong> <code class="docutils literal notranslate"><span class="pre">T</span> <span class="pre">(1</span> <span class="pre">+</span> <span class="pre">0.61</span> <span class="pre">q)</span></code> sets each layer’s thickness, with
+<code class="docutils literal notranslate"><span class="pre">q</span></code> the specific humidity <code class="docutils literal notranslate"><span class="pre">SPHU</span></code>, else <code class="docutils literal notranslate"><span class="pre">RELH</span></code> converted with HYSPLIT’s
+formula (<code class="docutils literal notranslate"><span class="pre">q</span> <span class="pre">=</span> <span class="pre">0.622</span> <span class="pre">*</span> <span class="pre">RH/100</span> <span class="pre">*</span> <span class="pre">e_sat(T)</span> <span class="pre">/</span> <span class="pre">p</span></code>, <code class="docutils literal notranslate"><span class="pre">e_sat</span> <span class="pre">=</span> <span class="pre">exp(21.4</span> <span class="pre">-</span> <span class="pre">5351</span> <span class="pre">/</span>
+<span class="pre">T)</span></code> hPa), else 0. The ground takes the first level’s humidity.</p></li>
+</ul>
+<p>On two HRRR columns (January and July 2021, Salt Lake Valley) the heights and
+the pressure and temperature interpolated between them agree with HYSPLIT’s
+own <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> within 0.006 hPa and 0.002 K from 1 m to 15 km.</p>
+<p><a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> also uses the ground as a level: between the
+ground and the first level a variable is interpolated from its ground value,
+so a point there is not NaN. The ground values are <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> for <code class="docutils literal notranslate"><span class="pre">PRES</span></code> and
+the virtual <code class="docutils literal notranslate"><span class="pre">&quot;pressure&quot;</span></code>, the ground temperature above for <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>,
+<code class="docutils literal notranslate"><span class="pre">U10M</span></code> and <code class="docutils literal notranslate"><span class="pre">V10M</span></code> for <code class="docutils literal notranslate"><span class="pre">UWND</span></code> and <code class="docutils literal notranslate"><span class="pre">VWND</span></code> when present, zero for
+<code class="docutils literal notranslate"><span class="pre">WWND</span></code> and <code class="docutils literal notranslate"><span class="pre">DZDT</span></code>, and the first level’s value for any other variable.
+Pressure is interpolated as <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code>, linear in height, as HYSPLIT does.</p>
+</section>
+<section id="sigma-files-with-pres">
+<h2>Sigma files with PRES<a class="headerlink" href="#sigma-files-with-pres" title="Link to this heading">#</a></h2>
+<p>Some sigma files also store the pressure of every level as the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field:
+NOAA’s HRRR files, and WRF output that <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code> converts without hybrid
+levels. Their sigma values are nominal: on HRRR, <code class="docutils literal notranslate"><span class="pre">PRES</span></code> is within about 1 hPa
+of <code class="docutils literal notranslate"><span class="pre">sigma</span> <span class="pre">*</span> <span class="pre">PRSS</span></code> in the lowest levels but about 55 hPa higher near the
+middle of the column. HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> uses <code class="docutils literal notranslate"><span class="pre">PRES</span></code> whenever the file has
+it, and so do <a class="reference internal" href="_autosummary/arlmet.pressure.html#arlmet.pressure" title="arlmet.pressure"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.pressure()</span></code></a>, <a class="reference internal" href="_autosummary/arlmet.z_agl.html#arlmet.z_agl" title="arlmet.z_agl"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.z_agl()</span></code></a> and
+<a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a>. <a class="reference internal" href="_autosummary/arlmet.SigmaAxis.to_pressure.html#arlmet.SigmaAxis.to_pressure" title="arlmet.SigmaAxis.to_pressure"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.SigmaAxis.to_pressure()</span></code></a> still gives
+the nominal pressure; pass <code class="docutils literal notranslate"><span class="pre">PRES</span></code> to <a class="reference internal" href="_autosummary/arlmet.SigmaAxis.to_height_agl.html#arlmet.SigmaAxis.to_height_agl" title="arlmet.SigmaAxis.to_height_agl"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.SigmaAxis.to_height_agl()</span></code></a>
+as <code class="docutils literal notranslate"><span class="pre">pressure=</span></code> for the real heights.</p>
 </section>
 <section id="wrf-files">
 <h2>WRF files<a class="headerlink" href="#wrf-files" title="Link to this heading">#</a></h2>
@@ -564,10 +613,12 @@ holds WRF’s dry column mass (<code class="docutils literal notranslate"><span 
 beside it. Then HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfwrf</span></code> builds the heights from the coefficients
 and WRF’s dry inverse density, with no temperature, the way WRF itself defines
 them. On a made-up dry WRF column the two differ by less than 1% (less than half
-a meter in the lowest 2 km, 74 m at 10 km). <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> uses virtual temperature
-and arl-met uses <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>, as it does for flags 1 and 4, so in moist air
-arl-met’s heights run slightly low (about 0.6% of a layer’s thickness for 10 g/kg
-of water vapor).</p>
+a meter in the lowest 2 km, 74 m at 10 km). <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> uses the virtual
+temperature and starts at the ground temperature; for flag 5 arl-met uses
+<code class="docutils literal notranslate"><span class="pre">TEMP</span></code> and the first level’s temperature for the first layer (unlike flags 1
+and 4, see <a class="reference internal" href="#sigma-and-hybrid-heights">Sigma and hybrid heights</a>), so in moist air arl-met’s flag-5
+heights run slightly low (about 0.6% of a layer’s thickness for 10 g/kg of
+water vapor).</p>
 </section>
 <section id="height-above-mean-sea-level">
 <h2>Height above mean sea level<a class="headerlink" href="#height-above-mean-sea-level" title="Link to this heading">#</a></h2>
@@ -583,16 +634,20 @@ requires <code class="docutils literal notranslate"><span class="pre">SHGT</span
 arrays. Inputs are keyword-only, and each axis uses only the ones its
 coordinate system needs; a missing one raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> naming it.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">vaxis</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">SigmaAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">],</span> <span class="n">offset</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
-<span class="n">p</span> <span class="o">=</span> <span class="n">vaxis</span><span class="o">.</span><span class="n">to_pressure</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss</span><span class="p">)</span>  <span class="c1"># prss.shape + (nlev,)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">vaxis</span><span class="o">.</span><span class="n">to_pressure</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss</span><span class="p">)</span>  <span class="c1"># prss.shape + (nlev,), nominal</span>
 <span class="n">z</span> <span class="o">=</span> <span class="n">vaxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temp</span><span class="p">)</span>
-
-<span class="n">paxis</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">PressureAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">1000.0</span><span class="p">,</span> <span class="mf">925.0</span><span class="p">,</span> <span class="mf">850.0</span><span class="p">])</span>
-<span class="n">z</span> <span class="o">=</span> <span class="n">paxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span><span class="n">hgts</span><span class="o">=</span><span class="n">hgts</span><span class="p">,</span> <span class="n">terrain</span><span class="o">=</span><span class="n">shgt</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
-
-<span class="n">waxis</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">WrfAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.995</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">],</span> <span class="n">offset</span><span class="o">=</span><span class="mf">50.0</span><span class="p">)</span>
-<span class="n">z</span> <span class="o">=</span> <span class="n">waxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temp</span><span class="p">,</span> <span class="n">pressure</span><span class="o">=</span><span class="n">pres</span><span class="p">)</span>
+<span class="n">z</span> <span class="o">=</span> <span class="n">vaxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">tv</span><span class="p">,</span> <span class="n">pressure</span><span class="o">=</span><span class="n">pres</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>For a sigma or hybrid axis, <code class="docutils literal notranslate"><span class="pre">temperature</span></code> covers every level, the ground
+(level 0) included; pass the virtual temperature, with the ground temperature
+at level 0, and <code class="docutils literal notranslate"><span class="pre">PRES</span></code> as <code class="docutils literal notranslate"><span class="pre">pressure</span></code> (sigma only) for HYSPLIT’s heights.</p>
+<blockquote>
+<div><p>paxis = arlmet.PressureAxis(levels=[1000.0, 925.0, 850.0])
+z = paxis.to_height_agl(hgts=hgts, terrain=shgt[…, None])</p>
+<p>waxis = arlmet.WrfAxis(levels=[1.0, 0.995, 0.98], offset=50.0)
+z = waxis.to_height_agl(surface_pressure=prss, temperature=temp, pressure=pres)</p>
+</div></blockquote>
 <p>Vertical axes are immutable: <code class="docutils literal notranslate"><span class="pre">levels</span></code> is a read-only array and attributes
 cannot be reassigned. Build a new axis instead (for example
 <code class="docutils literal notranslate"><span class="pre">arlmet.VerticalAxis.from_flag(vaxis.flag,</span> <span class="pre">levels,</span> <span class="pre">offset=vaxis.offset)</span></code>).</p>
@@ -604,6 +659,9 @@ cannot be reassigned. Build a new axis instead (for example
 hybrid coefficients that would give them from eta are not in the ARL file.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">pressure()</span></code> for terrain-following files (flag=3) requires a stored <code class="docutils literal notranslate"><span class="pre">PRES</span></code>
 field; it is not derived.</p></li>
+<li><p>Only sigma and hybrid files take the ground as a level in
+<a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a>; on pressure (flag=2), terrain-following (flag=3)
+and WRF (flag=5) files a point below the lowest level with data is NaN.</p></li>
 </ul>
 </section>
 </section>
@@ -658,6 +716,8 @@ field; it is not derived.</p></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vertical-coordinate-flags">Vertical coordinate flags</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pressure">Pressure</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#height-above-ground-level">Height above ground level</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sigma-and-hybrid-heights">Sigma and hybrid heights</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sigma-files-with-pres">Sigma files with PRES</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wrf-files">WRF files</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#height-above-mean-sea-level">Height above mean sea level</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#numpy-arrays">NumPy arrays</a></li>

@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=06aa3904"></script>
+    <script src="../../_static/documentation_options.js?v=4ccf7043"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev15+g6490cdded" />
+  <meta name="docsearch:version" content="0.1.0b4.dev16+ge4739a64d" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -447,13 +447,15 @@
     <span class="n">surface_pressure</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">,</span>
     <span class="n">temperature</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
+    <span class="n">surface_temperature</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">level_axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Height above ground level (m) at each level via the hypsometric equation.</span>
 
 <span class="sd">    Pure NumPy helper shared by the xarray vertical helpers and point sampling,</span>
-<span class="sd">    so vertical calculations are not tied to xarray.</span>
+<span class="sd">    so vertical calculations are not tied to xarray. Each layer is</span>
+<span class="sd">    ``(R_d / g) * T_mean * ln(p_below / p_above)`` thick.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -465,17 +467,34 @@
 <span class="sd">        Surface pressure [hPa], broadcastable to *temperature* with the level</span>
 <span class="sd">        axis removed.</span>
 <span class="sd">    temperature : array-like</span>
-<span class="sd">        Temperature [K] at each level.</span>
+<span class="sd">        Temperature [K] at each level. Pass the virtual temperature for the</span>
+<span class="sd">        heights HYSPLIT finds.</span>
+<span class="sd">    surface_temperature : array-like, optional</span>
+<span class="sd">        Temperature [K] at the ground, broadcastable to *temperature* with the</span>
+<span class="sd">        level axis removed. When given, the first layer uses the mean of it and</span>
+<span class="sd">        the first level&#39;s temperature, as HYSPLIT&#39;s ``prfsig`` does; otherwise</span>
+<span class="sd">        the first level&#39;s temperature alone.</span>
 <span class="sd">    level_axis : int, default -1</span>
 <span class="sd">        Axis of *temperature* that indexes vertical levels.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    numpy.ndarray</span>
-<span class="sd">        Heights AGL [m], same shape as *temperature*. The first level is</span>
-<span class="sd">        integrated from ``surface_pressure`` to the first level using that</span>
-<span class="sd">        level&#39;s temperature; each layer above uses the mean temperature of its</span>
-<span class="sd">        bounding levels.</span>
+<span class="sd">        Heights AGL [m], same shape as *temperature*. The first layer runs</span>
+<span class="sd">        from ``surface_pressure`` to the first level; each layer above uses</span>
+<span class="sd">        the mean temperature of its bounding levels.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    Two levels above a 1000 hPa surface, with a 290 K ground:</span>
+
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; from arlmet.vertical import hypsometric_z_agl</span>
+<span class="sd">    &gt;&gt;&gt; z = hypsometric_z_agl(</span>
+<span class="sd">    ...     [990.0, 950.0], 1000.0, [288.0, 286.0], surface_temperature=290.0</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; np.round(z, 1)</span>
+<span class="sd">    array([ 85. , 431.5])</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">temp_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">temperature</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="n">prss_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">surface_pressure</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
@@ -504,8 +523,12 @@
         <span class="n">idx</span><span class="p">[</span><span class="n">level_ax</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">arr</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">idx</span><span class="p">)]</span>
 
-    <span class="c1"># Layer 0: from surface pressure to p[0], using T[0] as representative.</span>
-    <span class="n">dz0</span> <span class="o">=</span> <span class="p">(</span><span class="n">R_D</span> <span class="o">/</span> <span class="n">G</span><span class="p">)</span> <span class="o">*</span> <span class="n">_take</span><span class="p">(</span><span class="n">temp_vals</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">prss_vals</span> <span class="o">/</span> <span class="n">_take</span><span class="p">(</span><span class="n">p_vals</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="c1"># Layer 0: from surface pressure to p[0], with the mean of the ground and</span>
+    <span class="c1"># first-level temperatures, or the first level&#39;s alone.</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">_take</span><span class="p">(</span><span class="n">temp_vals</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">surface_temperature</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">surface_temperature</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">+</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="n">dz0</span> <span class="o">=</span> <span class="p">(</span><span class="n">R_D</span> <span class="o">/</span> <span class="n">G</span><span class="p">)</span> <span class="o">*</span> <span class="n">t0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">prss_vals</span> <span class="o">/</span> <span class="n">_take</span><span class="p">(</span><span class="n">p_vals</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
     <span class="n">dz0_exp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">dz0</span><span class="p">,</span> <span class="n">level_ax</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">nlev</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -522,6 +545,74 @@
         <span class="n">dz_all</span> <span class="o">=</span> <span class="n">dz0_exp</span>
 
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">dz_all</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">level_ax</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_specific_humidity_from_relh</span><span class="p">(</span>
+    <span class="n">temperature</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">relative_humidity</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">pressure</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Specific humidity [kg/kg] from RH [%], T [K] and p [hPa], as HYSPLIT&#39;s ``CALCSP``.&quot;&quot;&quot;</span>
+    <span class="n">e_sat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">21.4</span> <span class="o">-</span> <span class="mf">5351.0</span> <span class="o">/</span> <span class="n">temperature</span><span class="p">)</span>  <span class="c1"># hPa, HYSPLIT&#39;s CALCESAT</span>
+    <span class="k">return</span> <span class="mf">0.622</span> <span class="o">*</span> <span class="p">(</span><span class="n">relative_humidity</span> <span class="o">*</span> <span class="n">e_sat</span> <span class="o">/</span> <span class="mf">100.0</span><span class="p">)</span> <span class="o">/</span> <span class="n">pressure</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_hysplit_z_agl</span><span class="p">(</span>
+    <span class="n">pressure</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">,</span>
+    <span class="n">surface_pressure</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">,</span>
+    <span class="n">temperature</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">first_sigma</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">,</span>
+    <span class="n">surface_temperature</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">specific_humidity</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">relative_humidity</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">level_axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Heights AGL [m] of the levels above ground, as HYSPLIT&#39;s ``prfsig``/``prfecm`` find them.</span>
+
+<span class="sd">    The column starts at the ground (0 m, *surface_pressure*) and integrates the</span>
+<span class="sd">    hypsometric equation with the virtual temperature ``T (1 + 0.61 q)``</span>
+<span class="sd">    (``CALCTV``); each layer uses the mean of its two bounding levels.</span>
+
+<span class="sd">    *pressure*, *temperature* and the humidity hold the levels above ground</span>
+<span class="sd">    along *level_axis*. The ground temperature is *surface_temperature*</span>
+<span class="sd">    (``T02M``), or without it the first level&#39;s temperature brought down</span>
+<span class="sd">    adiabatically, ``T1 * first_sigma ** -0.286`` (``PRFSFCT``); HYSPLIT passes</span>
+<span class="sd">    the first level&#39;s sigma (``PSG(1)``) for sigma files and its pressure over</span>
+<span class="sd">    the surface pressure for hybrid files. Humidity is ``SPHU``, else ``RELH``</span>
+<span class="sd">    converted with HYSPLIT&#39;s ``CALCSP``, else none (dry); a NaN humidity counts</span>
+<span class="sd">    as none, as HYSPLIT does for a level without the field. The ground&#39;s</span>
+<span class="sd">    humidity is the first level&#39;s.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">temperature</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">pressure</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">p0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">surface_pressure</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">level_axis</span> <span class="o">%</span> <span class="n">t</span><span class="o">.</span><span class="n">ndim</span>
+    <span class="n">t1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">surface_temperature</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">t_ground</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">surface_temperature</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">t_ground</span> <span class="o">=</span> <span class="n">t1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">first_sigma</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">**</span> <span class="o">-</span><span class="mf">0.286</span>
+
+    <span class="k">if</span> <span class="n">specific_humidity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">specific_humidity</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">q_ground</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">relative_humidity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">rh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">relative_humidity</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">_specific_humidity_from_relh</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">rh</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+        <span class="n">q_ground</span> <span class="o">=</span> <span class="n">_specific_humidity_from_relh</span><span class="p">(</span><span class="n">t_ground</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">rh</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">ax</span><span class="p">),</span> <span class="n">p0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="n">q_ground</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">hypsometric_z_agl</span><span class="p">(</span>
+        <span class="n">p</span><span class="p">,</span>
+        <span class="n">p0</span><span class="p">,</span>
+        <span class="n">t</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.61</span> <span class="o">*</span> <span class="n">q</span><span class="p">),</span>
+        <span class="n">surface_temperature</span><span class="o">=</span><span class="n">t_ground</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.61</span> <span class="o">*</span> <span class="n">q_ground</span><span class="p">),</span>
+        <span class="n">level_axis</span><span class="o">=</span><span class="n">level_axis</span><span class="p">,</span>
+    <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_require</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="s2">&quot;VerticalAxis&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -669,10 +760,13 @@
 <span class="sd">            WRF.</span>
 <span class="sd">        temperature : array-like, optional</span>
 <span class="sd">            Temperature [K] at each level (``TEMP``), levels on the last</span>
-<span class="sd">            axis. Required for sigma, hybrid and WRF.</span>
+<span class="sd">            axis; the virtual temperature gives the heights HYSPLIT finds.</span>
+<span class="sd">            Required for sigma, hybrid and WRF.</span>
 <span class="sd">        pressure : array-like, optional</span>
 <span class="sd">            Pressure [hPa] at each level (``PRES``), the same shape as</span>
-<span class="sd">            ``temperature``. Required for WRF.</span>
+<span class="sd">            ``temperature``. Required for WRF; sigma uses it in place of the</span>
+<span class="sd">            nominal sigma pressure when given, as HYSPLIT&#39;s ``prfsig`` does;</span>
+<span class="sd">            hybrid ignores it, as HYSPLIT&#39;s ``prfecm`` does.</span>
 <span class="sd">        hgts : array-like, optional</span>
 <span class="sd">            Geopotential height [m MSL] at each level (``HGTS``). Required</span>
 <span class="sd">            for pressure axes.</span>
@@ -719,7 +813,32 @@
 <div class="viewcode-block" id="SigmaAxis">
 <a class="viewcode-back" href="../../_autosummary/arlmet.SigmaAxis.html#arlmet.SigmaAxis">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SigmaAxis</span><span class="p">(</span><span class="n">VerticalAxis</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Flag=1. Sigma coordinate — heights via hypsometric integration.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Flag=1. Sigma coordinate — heights via hypsometric integration.</span>
+
+<span class="sd">    The stored levels are sigma, with level 0 the surface. ``to_pressure`` gives</span>
+<span class="sd">    the nominal pressure ``offset + (surface_pressure - offset) * sigma``. A file</span>
+<span class="sd">    with a ``PRES`` field (HRRR, WRF converted by ``arw2arl``) holds each level&#39;s</span>
+<span class="sd">    real pressure there, which can differ from the nominal one by tens of hPa</span>
+<span class="sd">    aloft; HYSPLIT&#39;s ``prfsig`` then uses ``PRES``, and so do</span>
+<span class="sd">    :func:`arlmet.sample_points`, :func:`arlmet.pressure` and</span>
+<span class="sd">    :func:`arlmet.z_agl`. Pass it to ``to_height_agl`` as ``pressure``.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; from arlmet import SigmaAxis</span>
+<span class="sd">    &gt;&gt;&gt; axis = SigmaAxis(levels=[1.0, 0.99, 0.95])</span>
+<span class="sd">    &gt;&gt;&gt; axis.to_pressure(surface_pressure=1000.0)</span>
+<span class="sd">    array([1000.,  990.,  950.])</span>
+<span class="sd">    &gt;&gt;&gt; z = axis.to_height_agl(</span>
+<span class="sd">    ...     surface_pressure=1000.0,</span>
+<span class="sd">    ...     temperature=np.array([290.0, 288.0, 286.0]),</span>
+<span class="sd">    ...     pressure=np.array([np.nan, 988.0, 945.0]),</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; np.round(z, 1)</span>
+<span class="sd">    array([  0. , 102.1, 475.9])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">flag</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">coord_system</span> <span class="o">=</span> <span class="s2">&quot;sigma&quot;</span>
@@ -730,7 +849,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">to_pressure</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Pressure [hPa] from ``surface_pressure``: offset + (sp - offset) * sigma.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Nominal pressure [hPa] from ``surface_pressure``: offset + (sp - offset) * sigma.&quot;&quot;&quot;</span>
         <span class="n">_require</span><span class="p">(</span><span class="s2">&quot;surface_pressure&quot;</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
         <span class="n">sp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">surface_pressure</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">sp</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span></div>
@@ -748,8 +867,24 @@
         <span class="n">hgts</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Height AGL [m] by hypsometric integration of ``surface_pressure`` and ``temperature``.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">_hypsometric_height</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">,</span> <span class="n">temperature</span><span class="p">)</span></div>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Height AGL [m] by hypsometric integration from ``surface_pressure`` with ``temperature``.</span>
+
+<span class="sd">        ``temperature`` covers every level, level 0 (the ground) included.</span>
+<span class="sd">        ``pressure`` (the ``PRES`` field, the same shape) replaces the nominal</span>
+<span class="sd">        sigma pressure when given, as in HYSPLIT&#39;s ``prfsig``; its level 0 is</span>
+<span class="sd">        taken from ``surface_pressure``. For HYSPLIT&#39;s heights pass the virtual</span>
+<span class="sd">        temperature, with the ground temperature (``T02M``) at level 0.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">pressure</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_hypsometric_height</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">,</span> <span class="n">temperature</span><span class="p">)</span>
+        <span class="n">_require</span><span class="p">(</span><span class="s2">&quot;surface_pressure&quot;</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">_require</span><span class="p">(</span><span class="s2">&quot;temperature&quot;</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">surface_pressure</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">temperature</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">sp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">surface_pressure</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pressure</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">p</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sp</span>
+        <span class="k">return</span> <span class="n">hypsometric_z_agl</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">temperature</span><span class="p">)</span></div>
 </div>
 
 
@@ -866,7 +1001,7 @@
         <span class="n">hgts</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Height AGL [m] by hypsometric integration of ``surface_pressure`` and ``temperature``.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Height AGL [m] by hypsometric integration of ``surface_pressure`` and ``temperature``; ``pressure`` is ignored, as in HYSPLIT&#39;s ``prfecm``.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">_hypsometric_height</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">,</span> <span class="n">temperature</span><span class="p">)</span></div>
 </div>
 

@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=06aa3904"></script>
+    <script src="_static/documentation_options.js?v=4ccf7043"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Concatenating ARL Files" href="concatenating.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev15+g6490cdded" />
+  <meta name="docsearch:version" content="0.1.0b4.dev16+ge4739a64d" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -502,28 +502,39 @@ column raises <code class="docutils literal notranslate"><span class="pre">Value
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;pressure&quot;</span></code></p></td>
 <td><p>hPa</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">PRSS</span></code> for sigma/hybrid files; <code class="docutils literal notranslate"><span class="pre">PRES</span></code> for WRF files (flag=5)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PRSS</span></code> for sigma/hybrid files (sigma files use <code class="docutils literal notranslate"><span class="pre">PRES</span></code> too when they
+have it); <code class="docutils literal notranslate"><span class="pre">PRES</span></code> for WRF files (flag=5)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;agl&quot;</span></code></p></td>
-<td><p>metres above ground level</p></td>
+<td><p>meters above ground level</p></td>
 <td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>; flag=3: none;
 flag=5: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">PRES</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code></p></td>
-<td><p>metres above mean sea level</p></td>
+<td><p>meters above mean sea level</p></td>
 <td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=3: <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>;
 flag=5: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">PRES</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code></p></td>
 </tr>
 </tbody>
 </table>
 </div>
+<p>On sigma and hybrid files (flags 1 and 4) the heights are HYSPLIT’s: from the
+ground (<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code>) through each level’s pressure (<code class="docutils literal notranslate"><span class="pre">PRES</span></code> on sigma
+files that have it) with the virtual temperature (<code class="docutils literal notranslate"><span class="pre">SPHU</span></code> or <code class="docutils literal notranslate"><span class="pre">RELH</span></code>), as
+HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> and <code class="docutils literal notranslate"><span class="pre">prfecm</span></code> build them. Level 0 is the ground, so a point
+between the ground and the first level is interpolated from the ground values
+(<code class="docutils literal notranslate"><span class="pre">PRSS</span></code> for <code class="docutils literal notranslate"><span class="pre">PRES</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code> for <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>, <code class="docutils literal notranslate"><span class="pre">U10M</span></code> for <code class="docutils literal notranslate"><span class="pre">UWND</span></code>, …)
+instead of being NaN, and pressure is interpolated as <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code>. The
+<a class="reference internal" href="vertical.html"><span class="doc">Vertical Coordinates</span></a> guide has the details.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span>
         <span class="n">met</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">z_kind</span><span class="o">=</span><span class="s2">&quot;agl&quot;</span>
     <span class="p">)</span>
 </pre></div>
 </div>
-<p>The virtual <code class="docutils literal notranslate"><span class="pre">&quot;pressure&quot;</span></code> variable can also be requested as a sampled column:</p>
+<p>The virtual <code class="docutils literal notranslate"><span class="pre">&quot;pressure&quot;</span></code> variable, the pressure of the levels interpolated to
+each point, can also be requested as a sampled column. On sigma files with
+<code class="docutils literal notranslate"><span class="pre">PRES</span></code> it is the same as sampling <code class="docutils literal notranslate"><span class="pre">PRES</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">met</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
 </pre></div>
 </div>
@@ -605,6 +616,8 @@ files (flag=1/4) use hypsometric integration from <code class="docutils literal 
 terrain-following files (flag=3) use the stored level heights directly; WRF
 files (flag=5) integrate from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> through the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field. See
 the <a class="reference internal" href="vertical.html"><span class="doc">Vertical Coordinates</span></a> guide.</p></li>
+<li><p>Only sigma and hybrid files take the ground as a level; on the others a point
+below the lowest level with data is NaN.</p></li>
 </ul>
 </section>
 </section>
