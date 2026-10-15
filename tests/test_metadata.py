@@ -6,7 +6,7 @@ from dataclasses import FrozenInstanceError
 import pytest
 
 from arlmet.header import Header, letter_to_thousands, restore_year
-from arlmet.index import IndexRecord, LvlInfo, VarInfo
+from arlmet.indexrecord import IndexRecord, LvlInfo, VarInfo
 
 
 class TestLetterToThousands:

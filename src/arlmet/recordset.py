@@ -14,7 +14,7 @@ from typing_extensions import override
 from arlmet.collection import VariableAccessor
 from arlmet.grid import Grid
 from arlmet.header import Header, split_grid_component
-from arlmet.index import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
+from arlmet.indexrecord import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
 from arlmet.record import DataRecord, _check_dif_parent, _require_mode
 from arlmet.vertical import VerticalAxis
 

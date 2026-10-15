@@ -12,7 +12,7 @@ from arlmet import ARLFormatError, ARLFormatWarning, File
 from arlmet.collection import VariableAccessor
 from arlmet.grid import Grid, GridWindow, Projection
 from arlmet.header import Header
-from arlmet.index import LvlInfo, VarInfo
+from arlmet.indexrecord import LvlInfo, VarInfo
 from arlmet.packing import unpack
 from arlmet.record import DataRecord
 from arlmet.vertical import PressureAxis

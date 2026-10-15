@@ -24,7 +24,7 @@ format used by HYSPLIT and related workflows. It supports:
 - point sampling with `sample_points()`
 - joining files with `concat()` and `concat_by_time()` (e.g. 6-hourly into daily)
 - finding damage that does not stop a file from opening (a time step written partway, a missing time step) with `File.check()`
-- finding the files that cover a time window by their headers, not their names, with `index_directory()`
+- finding the files that cover a time window by their headers, not their names, with `index()`
 
 ## Status
 
@@ -137,7 +137,8 @@ Find the files that cover a time window from their headers, whatever they are na
 ```python
 import arlmet
 
-idx = arlmet.index_directory("hrrr/")  # reads each file's index records once, then caches them
+idx = arlmet.index("hrrr/")  # reads each file's index records once, then caches them
+# arlmet.index("hrrr/", recursive=True) for a copy of NOAA's hrrr/YYYY/MM/ folders
 idx.covering("2021-01-14 06:00", "2021-01-15 06:00")  # the files, in time order
 idx.missing("2021-01-14 06:00", "2021-01-15 06:00")  # the hours no file holds
 ```

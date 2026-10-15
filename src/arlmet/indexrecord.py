@@ -167,7 +167,7 @@ class IndexRecord:
     Examples
     --------
     >>> from arlmet.header import Header
-    >>> from arlmet.index import IndexRecord
+    >>> from arlmet.indexrecord import IndexRecord
     >>> header = Header(
     ...     year=2024,
     ...     month=7,
