@@ -64,15 +64,25 @@ The ``z`` column is interpreted according to ``z_kind`` (default
      - none
    * - ``"pressure"``
      - hPa
-     - ``PRSS`` for sigma/hybrid files; ``PRES`` for WRF files (flag=5)
+     - ``PRSS`` for sigma/hybrid files (sigma files use ``PRES`` too when they
+       have it); ``PRES`` for WRF files (flag=5)
    * - ``"agl"``
-     - metres above ground level
+     - meters above ground level
      - flag=2: ``HGTS`` + ``SHGT``; flag=1/4: ``PRSS`` + ``TEMP``; flag=3: none;
        flag=5: ``PRSS`` + ``PRES`` + ``TEMP``
    * - ``"msl"``
-     - metres above mean sea level
+     - meters above mean sea level
      - flag=2: ``HGTS``; flag=1/4: ``PRSS`` + ``TEMP`` + ``SHGT``; flag=3: ``SHGT``;
        flag=5: ``PRSS`` + ``PRES`` + ``TEMP`` + ``SHGT``
+
+On sigma and hybrid files (flags 1 and 4) the heights are HYSPLIT's: from the
+ground (``PRSS``, ``T02M``) through each level's pressure (``PRES`` on sigma
+files that have it) with the virtual temperature (``SPHU`` or ``RELH``), as
+HYSPLIT's ``prfsig`` and ``prfecm`` build them. Level 0 is the ground, so a point
+between the ground and the first level is interpolated from the ground values
+(``PRSS`` for ``PRES``, ``T02M`` for ``TEMP``, ``U10M`` for ``UWND``, ...)
+instead of being NaN, and pressure is interpolated as ``ln p``. The
+:doc:`vertical` guide has the details.
 
 .. code-block:: python
 
@@ -81,7 +91,9 @@ The ``z`` column is interpreted according to ``z_kind`` (default
            met, points, ["TEMP"], z_kind="agl"
        )
 
-The virtual ``"pressure"`` variable can also be requested as a sampled column:
+The virtual ``"pressure"`` variable, the pressure of the levels interpolated to
+each point, can also be requested as a sampled column. On sigma files with
+``PRES`` it is the same as sampling ``PRES``:
 
 .. code-block:: python
 
@@ -174,3 +186,5 @@ Limitations
   terrain-following files (flag=3) use the stored level heights directly; WRF
   files (flag=5) integrate from ``PRSS`` through the ``PRES`` field. See
   the :doc:`vertical` guide.
+- Only sigma and hybrid files take the ground as a level; on the others a point
+  below the lowest level with data is NaN.

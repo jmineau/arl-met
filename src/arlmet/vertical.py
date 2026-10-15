@@ -33,13 +33,15 @@ def hypsometric_z_agl(
     surface_pressure: npt.ArrayLike,
     temperature: npt.ArrayLike,
     *,
+    surface_temperature: npt.ArrayLike | None = None,
     level_axis: int = -1,
 ) -> npt.NDArray[Any]:
     """
     Height above ground level (m) at each level via the hypsometric equation.
 
     Pure NumPy helper shared by the xarray vertical helpers and point sampling,
-    so vertical calculations are not tied to xarray.
+    so vertical calculations are not tied to xarray. Each layer is
+    ``(R_d / g) * T_mean * ln(p_below / p_above)`` thick.
 
     Parameters
     ----------
@@ -51,17 +53,34 @@ def hypsometric_z_agl(
         Surface pressure [hPa], broadcastable to *temperature* with the level
         axis removed.
     temperature : array-like
-        Temperature [K] at each level.
+        Temperature [K] at each level. Pass the virtual temperature for the
+        heights HYSPLIT finds.
+    surface_temperature : array-like, optional
+        Temperature [K] at the ground, broadcastable to *temperature* with the
+        level axis removed. When given, the first layer uses the mean of it and
+        the first level's temperature, as HYSPLIT's ``prfsig`` does; otherwise
+        the first level's temperature alone.
     level_axis : int, default -1
         Axis of *temperature* that indexes vertical levels.
 
     Returns
     -------
     numpy.ndarray
-        Heights AGL [m], same shape as *temperature*. The first level is
-        integrated from ``surface_pressure`` to the first level using that
-        level's temperature; each layer above uses the mean temperature of its
-        bounding levels.
+        Heights AGL [m], same shape as *temperature*. The first layer runs
+        from ``surface_pressure`` to the first level; each layer above uses
+        the mean temperature of its bounding levels.
+
+    Examples
+    --------
+    Two levels above a 1000 hPa surface, with a 290 K ground:
+
+    >>> import numpy as np
+    >>> from arlmet.vertical import hypsometric_z_agl
+    >>> z = hypsometric_z_agl(
+    ...     [990.0, 950.0], 1000.0, [288.0, 286.0], surface_temperature=290.0
+    ... )
+    >>> np.round(z, 1)
+    array([ 85. , 431.5])
     """
     temp_vals = np.asarray(temperature, dtype=float)
     prss_vals = np.asarray(surface_pressure, dtype=float)
@@ -90,8 +109,12 @@ def hypsometric_z_agl(
         idx[level_ax] = slice(start, stop)
         return arr[tuple(idx)]
 
-    # Layer 0: from surface pressure to p[0], using T[0] as representative.
-    dz0 = (R_D / G) * _take(temp_vals, 0) * np.log(prss_vals / _take(p_vals, 0))
+    # Layer 0: from surface pressure to p[0], with the mean of the ground and
+    # first-level temperatures, or the first level's alone.
+    t0 = _take(temp_vals, 0)
+    if surface_temperature is not None:
+        t0 = 0.5 * (np.asarray(surface_temperature, dtype=float) + t0)
+    dz0 = (R_D / G) * t0 * np.log(prss_vals / _take(p_vals, 0))
     dz0_exp = np.expand_dims(dz0, level_ax)
 
     if nlev > 1:
@@ -108,6 +131,74 @@ def hypsometric_z_agl(
         dz_all = dz0_exp
 
     return np.cumsum(dz_all, axis=level_ax)
+
+
+def _specific_humidity_from_relh(
+    temperature: npt.NDArray[Any],
+    relative_humidity: npt.NDArray[Any],
+    pressure: npt.NDArray[Any],
+) -> npt.NDArray[Any]:
+    """Specific humidity [kg/kg] from RH [%], T [K] and p [hPa], as HYSPLIT's ``CALCSP``."""
+    e_sat = np.exp(21.4 - 5351.0 / temperature)  # hPa, HYSPLIT's CALCESAT
+    return 0.622 * (relative_humidity * e_sat / 100.0) / pressure
+
+
+def _hysplit_z_agl(
+    pressure: npt.ArrayLike,
+    surface_pressure: npt.ArrayLike,
+    temperature: npt.ArrayLike,
+    *,
+    first_sigma: npt.ArrayLike,
+    surface_temperature: npt.ArrayLike | None = None,
+    specific_humidity: npt.ArrayLike | None = None,
+    relative_humidity: npt.ArrayLike | None = None,
+    level_axis: int = -1,
+) -> npt.NDArray[Any]:
+    """
+    Heights AGL [m] of the levels above ground, as HYSPLIT's ``prfsig``/``prfecm`` find them.
+
+    The column starts at the ground (0 m, *surface_pressure*) and integrates the
+    hypsometric equation with the virtual temperature ``T (1 + 0.61 q)``
+    (``CALCTV``); each layer uses the mean of its two bounding levels.
+
+    *pressure*, *temperature* and the humidity hold the levels above ground
+    along *level_axis*. The ground temperature is *surface_temperature*
+    (``T02M``), or without it the first level's temperature brought down
+    adiabatically, ``T1 * first_sigma ** -0.286`` (``PRFSFCT``); HYSPLIT passes
+    the first level's sigma (``PSG(1)``) for sigma files and its pressure over
+    the surface pressure for hybrid files. Humidity is ``SPHU``, else ``RELH``
+    converted with HYSPLIT's ``CALCSP``, else none (dry); a NaN humidity counts
+    as none, as HYSPLIT does for a level without the field. The ground's
+    humidity is the first level's.
+    """
+    t = np.asarray(temperature, dtype=float)
+    p = np.asarray(pressure, dtype=float)
+    p0 = np.asarray(surface_pressure, dtype=float)
+    ax = level_axis % t.ndim
+    t1 = np.take(t, 0, axis=ax)
+    if surface_temperature is not None:
+        t_ground = np.asarray(surface_temperature, dtype=float)
+    else:
+        t_ground = t1 * np.asarray(first_sigma, dtype=float) ** -0.286
+
+    if specific_humidity is not None:
+        q = np.nan_to_num(np.asarray(specific_humidity, dtype=float), nan=0.0)
+        q_ground = np.take(q, 0, axis=ax)
+    elif relative_humidity is not None:
+        rh = np.nan_to_num(np.asarray(relative_humidity, dtype=float), nan=0.0)
+        q = _specific_humidity_from_relh(t, rh, p)
+        q_ground = _specific_humidity_from_relh(t_ground, np.take(rh, 0, axis=ax), p0)
+    else:
+        q = np.zeros_like(t)
+        q_ground = np.zeros_like(t1)
+
+    return hypsometric_z_agl(
+        p,
+        p0,
+        t * (1.0 + 0.61 * q),
+        surface_temperature=t_ground * (1.0 + 0.61 * q_ground),
+        level_axis=level_axis,
+    )
 
 
 def _require(name: str, value: npt.ArrayLike | None, axis: "VerticalAxis") -> None:
@@ -245,10 +336,13 @@ class VerticalAxis(ABC):
             WRF.
         temperature : array-like, optional
             Temperature [K] at each level (``TEMP``), levels on the last
-            axis. Required for sigma, hybrid and WRF.
+            axis; the virtual temperature gives the heights HYSPLIT finds.
+            Required for sigma, hybrid and WRF.
         pressure : array-like, optional
             Pressure [hPa] at each level (``PRES``), the same shape as
-            ``temperature``. Required for WRF.
+            ``temperature``. Required for WRF; sigma uses it in place of the
+            nominal sigma pressure when given, as HYSPLIT's ``prfsig`` does;
+            hybrid ignores it, as HYSPLIT's ``prfecm`` does.
         hgts : array-like, optional
             Geopotential height [m MSL] at each level (``HGTS``). Required
             for pressure axes.
@@ -291,7 +385,32 @@ class VerticalAxis(ABC):
 
 
 class SigmaAxis(VerticalAxis):
-    """Flag=1. Sigma coordinate — heights via hypsometric integration."""
+    """
+    Flag=1. Sigma coordinate — heights via hypsometric integration.
+
+    The stored levels are sigma, with level 0 the surface. ``to_pressure`` gives
+    the nominal pressure ``offset + (surface_pressure - offset) * sigma``. A file
+    with a ``PRES`` field (HRRR, WRF converted by ``arw2arl``) holds each level's
+    real pressure there, which can differ from the nominal one by tens of hPa
+    aloft; HYSPLIT's ``prfsig`` then uses ``PRES``, and so do
+    :func:`arlmet.sample_points`, :func:`arlmet.pressure` and
+    :func:`arlmet.z_agl`. Pass it to ``to_height_agl`` as ``pressure``.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from arlmet import SigmaAxis
+    >>> axis = SigmaAxis(levels=[1.0, 0.99, 0.95])
+    >>> axis.to_pressure(surface_pressure=1000.0)
+    array([1000.,  990.,  950.])
+    >>> z = axis.to_height_agl(
+    ...     surface_pressure=1000.0,
+    ...     temperature=np.array([290.0, 288.0, 286.0]),
+    ...     pressure=np.array([np.nan, 988.0, 945.0]),
+    ... )
+    >>> np.round(z, 1)
+    array([  0. , 102.1, 475.9])
+    """
 
     flag = 1
     coord_system = "sigma"
@@ -300,7 +419,7 @@ class SigmaAxis(VerticalAxis):
     def to_pressure(
         self, *, surface_pressure: npt.ArrayLike | None = None
     ) -> npt.NDArray[np.float64]:
-        """Pressure [hPa] from ``surface_pressure``: offset + (sp - offset) * sigma."""
+        """Nominal pressure [hPa] from ``surface_pressure``: offset + (sp - offset) * sigma."""
         _require("surface_pressure", surface_pressure, self)
         sp = np.asarray(surface_pressure, dtype=float)
         return self.offset + (sp[..., None] - self.offset) * self.levels
@@ -315,8 +434,24 @@ class SigmaAxis(VerticalAxis):
         hgts: npt.ArrayLike | None = None,
         terrain: npt.ArrayLike | None = None,
     ) -> npt.NDArray[np.float64]:
-        """Height AGL [m] by hypsometric integration of ``surface_pressure`` and ``temperature``."""
-        return _hypsometric_height(self, surface_pressure, temperature)
+        """
+        Height AGL [m] by hypsometric integration from ``surface_pressure`` with ``temperature``.
+
+        ``temperature`` covers every level, level 0 (the ground) included.
+        ``pressure`` (the ``PRES`` field, the same shape) replaces the nominal
+        sigma pressure when given, as in HYSPLIT's ``prfsig``; its level 0 is
+        taken from ``surface_pressure``. For HYSPLIT's heights pass the virtual
+        temperature, with the ground temperature (``T02M``) at level 0.
+        """
+        if pressure is None:
+            return _hypsometric_height(self, surface_pressure, temperature)
+        _require("surface_pressure", surface_pressure, self)
+        _require("temperature", temperature, self)
+        assert surface_pressure is not None and temperature is not None
+        sp = np.asarray(surface_pressure, dtype=float)
+        p = np.array(pressure, dtype=float)
+        p[..., 0] = sp
+        return hypsometric_z_agl(p, sp, temperature)
 
 
 class PressureAxis(VerticalAxis):
@@ -406,7 +541,7 @@ class HybridAxis(VerticalAxis):
         hgts: npt.ArrayLike | None = None,
         terrain: npt.ArrayLike | None = None,
     ) -> npt.NDArray[np.float64]:
-        """Height AGL [m] by hypsometric integration of ``surface_pressure`` and ``temperature``."""
+        """Height AGL [m] by hypsometric integration of ``surface_pressure`` and ``temperature``; ``pressure`` is ignored, as in HYSPLIT's ``prfecm``."""
         return _hypsometric_height(self, surface_pressure, temperature)
 
 

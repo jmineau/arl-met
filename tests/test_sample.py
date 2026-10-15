@@ -11,7 +11,6 @@ from arlmet.vertical import (
     PressureAxis,
     SigmaAxis,
     TerrainAxis,
-    hypsometric_z_agl,
 )
 
 
@@ -329,8 +328,8 @@ def write_sigma_sampling_file(path, *, time: pd.Timestamp):
     Sigma (flag=1) file with offset=0 (p_top=0 hPa).
 
     sigma=[1.0, 0.9, 0.8], PRSS=1000 → pressure levels [1000, 900, 800] hPa.
-    No HGTS — matches real sigma files. Heights derived via hypsometric.
-    TEMP at each level: 280, 290, 300 K (uniform grid).
+    No HGTS and no PRES. Heights derived via hypsometric.
+    T02M = 280 K at the ground; TEMP at levels 1 and 2: 290, 300 K (uniform grid).
     terrain (SHGT) = 100 m.
     """
     grid = make_test_grid()
@@ -344,7 +343,9 @@ def write_sigma_sampling_file(path, *, time: pd.Timestamp):
         rs = arl.create_recordset(time)
         rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain_data)
         rs.create_datarecord("PRSS", level=0, forecast=0, data=surface_pressure)
-        for level_index, temp_val in enumerate([280.0, 290.0, 300.0]):
+        t02m = np.full((grid.ny, grid.nx), 280.0, dtype=np.float32)
+        rs.create_datarecord("T02M", level=0, forecast=0, data=t02m)
+        for level_index, temp_val in [(1, 290.0), (2, 300.0)]:
             temp = np.full((grid.ny, grid.nx), temp_val, dtype=np.float32)
             rs.create_datarecord("TEMP", level=level_index, forecast=0, data=temp)
 
@@ -385,12 +386,25 @@ def write_terrain_sampling_file(path, *, time: pd.Timestamp):
     }
 
 
-def _sigma_hypsometric_agl(surface_pressure, temps, sigma_levels, offset=0.0):
-    """Compute expected AGL heights for sigma fixtures via hypsometric equation."""
-    axis = SigmaAxis(levels=sigma_levels, offset=offset)
-    sp = np.array([surface_pressure])
-    p = axis.to_pressure(surface_pressure=sp)
-    return hypsometric_z_agl(p, sp, np.array(temps)[None, :], level_axis=1)[0]
+_RD_OVER_G = 287.05 / 9.80665  # arl-met's R_d / g, m/K
+
+
+def _ground_up_agl(pressures, temps):
+    """
+    Heights AGL by hand, from the ground up: each layer is (R_d/g) * mean T * ln(p_below/p_above).
+
+    *pressures* and *temps* start at the ground (PRSS and T02M) and are dry, so T is
+    the virtual temperature.
+    """
+    z = [0.0]
+    for k in range(1, len(pressures)):
+        t_mean = 0.5 * (temps[k - 1] + temps[k])
+        z.append(z[-1] + _RD_OVER_G * t_mean * np.log(pressures[k - 1] / pressures[k]))
+    return np.array(z)
+
+
+# The sigma and hybrid fixtures: ground 1000 hPa and 280 K, then 900 hPa 290 K, 800 hPa 300 K.
+_FIXTURE_AGL = _ground_up_agl([1000.0, 900.0, 800.0], [280.0, 290.0, 300.0])
 
 
 class TestSigmaSampling:
@@ -434,8 +448,8 @@ class TestSigmaSampling:
         time = pd.Timestamp("2024-07-18 00:00")
         write_sigma_sampling_file(path, time=time)
 
-        # Compute expected AGL heights via hypsometric equation
-        agl = _sigma_hypsometric_agl(1000.0, [280.0, 290.0, 300.0], [1.0, 0.9, 0.8])
+        # Halfway between the ground (T02M 280 K) and level 1 (290 K)
+        agl = _FIXTURE_AGL
         z_mid = 0.5 * (agl[0] + agl[1])
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(z_mid)]})
@@ -450,7 +464,7 @@ class TestSigmaSampling:
         write_sigma_sampling_file(path, time=time)
 
         # terrain=100m; MSL = AGL + terrain
-        agl = _sigma_hypsometric_agl(1000.0, [280.0, 290.0, 300.0], [1.0, 0.9, 0.8])
+        agl = _FIXTURE_AGL
         z_mid_msl = 0.5 * (agl[0] + agl[1]) + 100.0
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(z_mid_msl)]})
@@ -467,7 +481,7 @@ def write_hybrid_sampling_file(path, *, time: pd.Timestamp):
     levels=[0.995, 0.9, 0.8], PRSS=1000 hPa.
     Pressure: level 0 → 1000 hPa (surface override), level 1 → 900 hPa, level 2 → 800 hPa.
     No HGTS — matches real hybrid files. Heights derived via hypsometric.
-    TEMP: 280, 290, 300 K (uniform grid).
+    T02M = 280 K at the ground; TEMP at levels 1 and 2: 290, 300 K (uniform grid).
     terrain (SHGT) = 100 m.
     """
     grid = make_test_grid()
@@ -481,7 +495,9 @@ def write_hybrid_sampling_file(path, *, time: pd.Timestamp):
         rs = arl.create_recordset(time)
         rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain_data)
         rs.create_datarecord("PRSS", level=0, forecast=0, data=surface_pressure)
-        for level_index, temp_val in enumerate([280.0, 290.0, 300.0]):
+        t02m = np.full((grid.ny, grid.nx), 280.0, dtype=np.float32)
+        rs.create_datarecord("T02M", level=0, forecast=0, data=t02m)
+        for level_index, temp_val in [(1, 290.0), (2, 300.0)]:
             temp = np.full((grid.ny, grid.nx), temp_val, dtype=np.float32)
             rs.create_datarecord("TEMP", level=level_index, forecast=0, data=temp)
 
@@ -491,14 +507,6 @@ def write_hybrid_sampling_file(path, *, time: pd.Timestamp):
         "terrain": terrain_data,
         "surface_pressure": surface_pressure,
     }
-
-
-def _hybrid_hypsometric_agl(surface_pressure, temps, hybrid_levels):
-    """Compute expected AGL heights for hybrid fixtures via hypsometric equation."""
-    axis = HybridAxis(levels=hybrid_levels)
-    sp = np.array([surface_pressure])
-    p = axis.to_pressure(surface_pressure=sp)
-    return hypsometric_z_agl(p, sp, np.array(temps)[None, :], level_axis=1)[0]
 
 
 class TestHybridSampling:
@@ -542,7 +550,7 @@ class TestHybridSampling:
         time = pd.Timestamp("2024-07-18 00:00")
         write_hybrid_sampling_file(path, time=time)
 
-        agl = _hybrid_hypsometric_agl(1000.0, [280.0, 290.0, 300.0], [0.995, 0.9, 0.8])
+        agl = _FIXTURE_AGL
         z_mid = 0.5 * (agl[0] + agl[1])
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(z_mid)]})
@@ -556,7 +564,7 @@ class TestHybridSampling:
         time = pd.Timestamp("2024-07-18 00:00")
         write_hybrid_sampling_file(path, time=time)
 
-        agl = _hybrid_hypsometric_agl(1000.0, [280.0, 290.0, 300.0], [0.995, 0.9, 0.8])
+        agl = _FIXTURE_AGL
         z_mid_msl = 0.5 * (agl[0] + agl[1]) + 100.0  # terrain = 100m
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(z_mid_msl)]})
@@ -755,7 +763,7 @@ class TestSigmaHypsometricSampling:
         time = pd.Timestamp("2024-07-18 00:00")
         write_sigma_sampling_file(path, time=time)
 
-        agl = _sigma_hypsometric_agl(1000.0, [280.0, 290.0, 300.0], [1.0, 0.9, 0.8])
+        agl = _FIXTURE_AGL
 
         # Sample at the second level's AGL height → should return that level's TEMP
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(agl[1])]})
@@ -769,7 +777,7 @@ class TestSigmaHypsometricSampling:
         time = pd.Timestamp("2024-07-18 00:00")
         write_sigma_sampling_file(path, time=time)
 
-        agl = _sigma_hypsometric_agl(1000.0, [280.0, 290.0, 300.0], [1.0, 0.9, 0.8])
+        agl = _FIXTURE_AGL
         # terrain = 100m
         z_msl = float(agl[1]) + 100.0
 
@@ -778,6 +786,261 @@ class TestSigmaHypsometricSampling:
             result = arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 290.0, atol=1e-3)
+
+
+# --- sigma files with PRES, humidity and a 2 m temperature, as HRRR's (HYSPLIT's prfsig) ---
+
+_COLUMN_TIME = pd.Timestamp("2021-01-15 03:00")
+# A point on the fixture grid's first cell; every field is uniform.
+_COLUMN_POINT = {"lon": 20.0, "lat": -10.0}
+_PRSS, _T02M, _SHGT, _U10M = 850.0, 285.0, 1300.0, 2.0
+# Levels 1 to 3. PRES differs from the nominal sigma * PRSS (841.5, 807.5, 765).
+_PRES = [838.0, 800.0, 760.0]
+_TEMP = [283.0, 280.0, 277.0]
+_SPHU = [0.008, 0.006, 0.004]
+_RELH = [80.0, 60.0, 40.0]
+_UWND = [5.0, 6.0, 7.0]
+_WWND = [0.1, 0.2, 0.3]
+
+
+def write_column_file(
+    path,
+    *,
+    axis=None,
+    pres=True,
+    humidity: str | None = "SPHU",
+    t02m=True,
+):
+    """A sigma file shaped like HRRR's: surface fields at level 0, PRES/TEMP/... on 1-3."""
+    grid = make_test_grid()
+    axis = axis if axis is not None else SigmaAxis(levels=[1.0, 0.99, 0.95, 0.9])
+
+    def field(value):
+        return np.full((grid.ny, grid.nx), value, dtype=np.float32)
+
+    with File(path, mode="w", source="TEST", grid=grid, vertical_axis=axis) as arl:
+        rs = arl.create_recordset(_COLUMN_TIME)
+        rs.create_datarecord("SHGT", level=0, forecast=0, data=field(_SHGT))
+        rs.create_datarecord("PRSS", level=0, forecast=0, data=field(_PRSS))
+        if t02m:
+            rs.create_datarecord("T02M", level=0, forecast=0, data=field(_T02M))
+        rs.create_datarecord("U10M", level=0, forecast=0, data=field(_U10M))
+        for k in range(3):
+            level = k + 1
+            rs.create_datarecord("TEMP", level=level, forecast=0, data=field(_TEMP[k]))
+            if pres:
+                rs.create_datarecord(
+                    "PRES", level=level, forecast=0, data=field(_PRES[k])
+                )
+            if humidity == "SPHU":
+                rs.create_datarecord(
+                    "SPHU", level=level, forecast=0, data=field(_SPHU[k])
+                )
+            elif humidity == "RELH":
+                rs.create_datarecord(
+                    "RELH", level=level, forecast=0, data=field(_RELH[k])
+                )
+            rs.create_datarecord("UWND", level=level, forecast=0, data=field(_UWND[k]))
+            rs.create_datarecord("WWND", level=level, forecast=0, data=field(_WWND[k]))
+
+
+def _sample_column(path, variables, z, z_kind="agl"):
+    points = pd.DataFrame(
+        {**{k: [v] * len(z) for k, v in _COLUMN_POINT.items()}, "z": z}
+    )
+    return sample_points(path, points, variables, z_kind=z_kind)
+
+
+def _esat(t):
+    """HYSPLIT's CALCESAT, hPa."""
+    return np.exp(21.4 - 5351.0 / t)
+
+
+class TestSigmaColumnAsHysplit:
+    """
+    Sigma heights as HYSPLIT's prfsig finds them (#66).
+
+    From the ground (PRSS, T02M) through PRES with the virtual temperature;
+    below level 1 values come from the ground.
+    """
+
+    # By hand: virtual temperatures T (1 + 0.61 q), the ground's with level 1's q.
+    TV = [_T02M * (1 + 0.61 * _SPHU[0])] + [
+        t * (1 + 0.61 * q) for t, q in zip(_TEMP, _SPHU, strict=True)
+    ]
+    Z = _ground_up_agl([_PRSS, *_PRES], TV)
+
+    def test_heights_come_from_pres_with_virtual_temperature(self, tmp_path):
+        path = tmp_path / "column.arl"
+        write_column_file(path)
+        # At each level's height, TEMP is that level's value (just below the top one).
+        result = _sample_column(
+            path, ["TEMP"], [self.Z[1], self.Z[2], self.Z[3] - 1e-6]
+        )
+        np.testing.assert_allclose(result["TEMP"], _TEMP, atol=1e-3)
+
+    def test_msl_adds_terrain(self, tmp_path):
+        path = tmp_path / "column.arl"
+        write_column_file(path)
+        result = _sample_column(path, ["TEMP"], [self.Z[2] + _SHGT], z_kind="msl")
+        np.testing.assert_allclose(result["TEMP"], [_TEMP[1]], atol=1e-3)
+
+    def test_relative_humidity_gives_virtual_temperature(self, tmp_path):
+        # HYSPLIT's CALCSP: q = 0.622 * (RH/100 * esat(T)) / p, with the level's PRES;
+        # the ground uses its own T and PRSS with level 1's RH.
+        path = tmp_path / "column.arl"
+        write_column_file(path, humidity="RELH")
+        q = [
+            0.622 * (rh / 100 * _esat(t)) / p
+            for rh, t, p in zip(_RELH, _TEMP, _PRES, strict=True)
+        ]
+        q0 = 0.622 * (_RELH[0] / 100 * _esat(_T02M)) / _PRSS
+        tv = [_T02M * (1 + 0.61 * q0)] + [
+            t * (1 + 0.61 * qk) for t, qk in zip(_TEMP, q, strict=True)
+        ]
+        z = _ground_up_agl([_PRSS, *_PRES], tv)
+        result = _sample_column(path, ["TEMP", "pressure"], [z[1], z[2]])
+        np.testing.assert_allclose(result["TEMP"], [_TEMP[0], _TEMP[1]], atol=1e-3)
+        # The ground's q (8.1 g/kg, not level 1's 7.2) moves every height by 3 cm,
+        # which the pressure at a level's height shows (0.003 hPa).
+        np.testing.assert_allclose(result["pressure"], _PRES[:2], rtol=1e-6)
+
+    def test_without_humidity_heights_are_dry(self, tmp_path):
+        path = tmp_path / "column.arl"
+        write_column_file(path, humidity=None)
+        z = _ground_up_agl([_PRSS, *_PRES], [_T02M, *_TEMP])
+        result = _sample_column(path, ["TEMP"], [z[1], z[2]])
+        np.testing.assert_allclose(result["TEMP"], [_TEMP[0], _TEMP[1]], atol=1e-3)
+
+    def test_without_t02m_the_ground_is_level_one_brought_down_adiabatically(
+        self, tmp_path
+    ):
+        # HYSPLIT's PRFSFCT: T_ground = T1 * sigma1 ** -0.286.
+        path = tmp_path / "column.arl"
+        write_column_file(path, t02m=False)
+        t_ground = _TEMP[0] * 0.99**-0.286
+        tv = [t_ground * (1 + 0.61 * _SPHU[0])] + self.TV[1:]
+        z = _ground_up_agl([_PRSS, *_PRES], tv)
+        result = _sample_column(path, ["TEMP"], [0.0, z[1], z[2]])
+        np.testing.assert_allclose(
+            result["TEMP"], [t_ground, _TEMP[0], _TEMP[1]], atol=1e-3
+        )
+
+    def test_below_level_one_values_come_from_the_ground(self, tmp_path):
+        # Halfway between the ground and level 1: TEMP from T02M, PRES (as ln p) from
+        # PRSS, UWND from U10M, WWND from 0, SPHU stays at level 1's value.
+        path = tmp_path / "column.arl"
+        write_column_file(path)
+        variables = ["TEMP", "PRES", "pressure", "UWND", "WWND", "SPHU"]
+        result = _sample_column(path, variables, [0.5 * self.Z[1], 0.0]).iloc[0]
+        p_half = np.exp(0.5 * (np.log(_PRSS) + np.log(_PRES[0])))
+        np.testing.assert_allclose(result["TEMP"], 0.5 * (_T02M + _TEMP[0]), atol=1e-3)
+        np.testing.assert_allclose(result["PRES"], p_half, rtol=1e-6)
+        np.testing.assert_allclose(result["pressure"], p_half, rtol=1e-6)
+        np.testing.assert_allclose(result["UWND"], 0.5 * (_U10M + _UWND[0]), atol=1e-4)
+        np.testing.assert_allclose(result["WWND"], 0.5 * _WWND[0], atol=1e-5)
+        np.testing.assert_allclose(result["SPHU"], _SPHU[0], atol=1e-6)
+
+    def test_at_the_ground_values_are_the_surface_fields(self, tmp_path):
+        path = tmp_path / "column.arl"
+        write_column_file(path)
+        result = _sample_column(path, ["TEMP", "PRES", "pressure"], [0.0]).iloc[0]
+        np.testing.assert_allclose(
+            [result["TEMP"], result["PRES"], result["pressure"]],
+            [_T02M, _PRSS, _PRSS],
+            rtol=1e-6,
+        )
+
+    def test_below_the_ground_is_nan(self, tmp_path):
+        path = tmp_path / "column.arl"
+        write_column_file(path)
+        result = _sample_column(path, ["TEMP", "pressure"], [-1.0]).iloc[0]
+        assert np.isnan(result["TEMP"]) and np.isnan(result["pressure"])
+
+    def test_pres_is_interpolated_as_ln_p_between_levels(self, tmp_path):
+        path = tmp_path / "column.arl"
+        write_column_file(path)
+        z_mid = 0.5 * (self.Z[2] + self.Z[3])
+        result = _sample_column(path, ["PRES", "TEMP"], [z_mid]).iloc[0]
+        np.testing.assert_allclose(
+            result["PRES"], np.sqrt(_PRES[1] * _PRES[2]), rtol=1e-6
+        )
+        np.testing.assert_allclose(
+            result["TEMP"], 0.5 * (_TEMP[1] + _TEMP[2]), atol=1e-3
+        )
+
+    def test_virtual_pressure_at_heights_is_pres(self, tmp_path):
+        # #64/#65: the virtual "pressure" was NaN at AGL/MSL heights on sigma files.
+        path = tmp_path / "column.arl"
+        write_column_file(path)
+        z_mid = 0.5 * (self.Z[1] + self.Z[2])
+        expected = [_PRES[0], np.sqrt(_PRES[0] * _PRES[1]), _PRES[2]]
+        agl = _sample_column(path, ["pressure"], [self.Z[1], z_mid, self.Z[3] - 1e-6])
+        msl = _sample_column(
+            path,
+            ["pressure"],
+            [self.Z[1] + _SHGT, z_mid + _SHGT, self.Z[3] - 1e-6 + _SHGT],
+            z_kind="msl",
+        )
+        np.testing.assert_allclose(agl["pressure"], expected, rtol=1e-6)
+        np.testing.assert_allclose(msl["pressure"], expected, rtol=1e-6)
+
+    def test_virtual_pressure_at_native_levels(self, tmp_path):
+        # #64: z_kind="native" raised for the virtual pressure on sigma files.
+        path = tmp_path / "column.arl"
+        write_column_file(path)
+        result = _sample_column(path, ["pressure"], [0.0, 1.0, 1.5], z_kind="native")
+        np.testing.assert_allclose(
+            result["pressure"],
+            [_PRSS, _PRES[0], np.sqrt(_PRES[0] * _PRES[1])],
+            rtol=1e-6,
+        )
+
+    def test_pressure_targets_use_pres(self, tmp_path):
+        # Halfway (linear in p) between PRES of levels 1 and 2, TEMP is halfway too.
+        path = tmp_path / "column.arl"
+        write_column_file(path)
+        result = _sample_column(
+            path, ["TEMP"], [0.5 * (_PRES[0] + _PRES[1])], z_kind="pressure"
+        )
+        np.testing.assert_allclose(
+            result["TEMP"], [0.5 * (_TEMP[0] + _TEMP[1])], atol=1e-3
+        )
+
+    def test_without_pres_heights_use_the_nominal_sigma_pressure(self, tmp_path):
+        path = tmp_path / "column.arl"
+        write_column_file(path, pres=False)
+        nominal = [_PRSS * s for s in (0.99, 0.95, 0.9)]
+        z = _ground_up_agl([_PRSS, *nominal], self.TV)
+        result = _sample_column(path, ["TEMP", "pressure"], [z[1], z[2]])
+        np.testing.assert_allclose(result["TEMP"], [_TEMP[0], _TEMP[1]], atol=1e-3)
+        np.testing.assert_allclose(
+            result["pressure"], [nominal[0], nominal[1]], rtol=1e-6
+        )
+
+    def test_hybrid_ignores_pres(self, tmp_path):
+        # HYSPLIT's prfecm takes a hybrid level's pressure from the levels, not PRES.
+        path = tmp_path / "hybrid.arl"
+        write_column_file(path, axis=HybridAxis(levels=[1.0, 0.99, 0.95, 0.9]))
+        nominal = [_PRSS * s for s in (0.99, 0.95, 0.9)]
+        z = _ground_up_agl([_PRSS, *nominal], self.TV)
+        result = _sample_column(path, ["TEMP", "pressure"], [z[1], z[2]])
+        np.testing.assert_allclose(result["TEMP"], [_TEMP[0], _TEMP[1]], atol=1e-3)
+        np.testing.assert_allclose(
+            result["pressure"], [nominal[0], nominal[1]], rtol=1e-6
+        )
+
+    def test_hybrid_ground_temperature_uses_level_one_over_prss(self, tmp_path):
+        # prfecm brings level 1 down with its pressure over PRSS (ESG(1)), here
+        # (floor 100 hPa + 0.8 * 850) / 850.
+        path = tmp_path / "hybrid.arl"
+        write_column_file(
+            path, axis=HybridAxis(levels=[1.0, 100.8, 100.7, 100.6]), t02m=False
+        )
+        p1 = 100.0 + 0.8 * _PRSS
+        t_ground = _TEMP[0] * (p1 / _PRSS) ** -0.286
+        result = _sample_column(path, ["TEMP"], [0.0])
+        np.testing.assert_allclose(result["TEMP"], [t_ground], atol=1e-3)
 
 
 class TestHorizontalInterpolation:

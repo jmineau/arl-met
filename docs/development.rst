@@ -36,6 +36,14 @@ for choice. The Fortran routines it matches:
    * - ``prfcom``
      - choose the vertical conversion from the vertical flag
      - :meth:`arlmet.VerticalAxis.from_flag` and its subclasses
+   * - ``prfsig`` / ``prfecm``
+     - the sigma (flag 1) and hybrid (flag 4) profiles: heights from the ground
+       (``PRSS``, ``T02M``) with the virtual temperature; ``prfsig`` takes each
+       level's pressure from ``PRES`` when the file has it (``ZFLG``), ``prfecm``
+       always from the levels; ``ln p`` linear in height
+     - the column in ``ops/sample.py`` and :func:`arlmet.z_agl`, through
+       ``vertical._hysplit_z_agl``; on two HRRR columns it agrees with the
+       compiled ``prfsig`` within 0.006 hPa
    * - ``prfwrf``
      - the WRF (flag 5) profile: pressure from the ``PRES`` field, heights from
        WRF's hybrid coefficients (read from a side file, ``hybrid_wrfvcoords.txt``)
@@ -64,8 +72,10 @@ raises ``ValueError`` naming a missing one.
      - ``to_height_agl``
    * - 1
      - :class:`~arlmet.SigmaAxis`
-     - ``offset + (surface_pressure - offset) * sigma``
-     - hypsometric, from ``surface_pressure`` (PRSS) and ``temperature`` (TEMP)
+     - ``offset + (surface_pressure - offset) * sigma`` (nominal; a file's
+       ``PRES`` is the real pressure)
+     - hypsometric, from ``surface_pressure`` (PRSS) through ``pressure`` (PRES)
+       when given, else the nominal pressure, with ``temperature``
    * - 2
      - :class:`~arlmet.PressureAxis`
      - the stored levels
@@ -93,8 +103,9 @@ the surface, and the offset is WRF's model top ``P_TOP`` in hPa. HYSPLIT's
 ``MUPE`` and ``hybrid_wrfvcoords.txt`` sits beside it; otherwise ``metini``
 treats it as flag 1 and ``prfsig`` integrates heights between the ``PRES``
 levels. ``WrfAxis`` heights follow that ``prfsig`` path with arl-met's
-hypsometric helper (dry temperature; the first layer uses the first level's
-temperature).
+hypsometric helper, but with ``TEMP`` (not the virtual temperature) and the
+first level's temperature for the first layer, where flags 1 and 4 use
+HYSPLIT's full recipe (``vertical._hysplit_z_agl``).
 
 Module layout
 -------------

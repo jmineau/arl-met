@@ -54,9 +54,14 @@ The result depends on the vertical flag:
 
 - **flag=2 (pressure):** returns the stored 1D ``pressure`` coordinate
   ``(level,)``.
-- **flag=1 / flag=4 (sigma / hybrid):** computes a spatially varying field
-  ``(time, level, y, x)`` from surface pressure (``PRSS``) using the same
-  conversion as HYSPLIT's ``metlvl.f``. ``PRSS`` must be present in the dataset.
+- **flag=1 (sigma):** the ``PRES`` data variable when the dataset has it, as
+  HYSPLIT's ``prfsig`` uses it (see `Sigma files with PRES`_ below); otherwise
+  as for flag 4.
+- **flag=4 (hybrid), and sigma without ``PRES``:** computes a spatially varying
+  field ``(time, level, y, x)`` from surface pressure (``PRSS``) using the same
+  conversion as HYSPLIT's ``metlvl.f``. ``PRSS`` must be present in the
+  dataset. A hybrid file's ``PRES``, if any, is not used, as in HYSPLIT's
+  ``prfecm``.
 - **flag=3 (terrain-following):** returns the ``PRES`` data variable if present,
   and raises ``ValueError`` otherwise.
 - **flag=5 (WRF):** returns the ``PRES`` data variable, as HYSPLIT does, and
@@ -75,16 +80,63 @@ dispatcher — each coordinate system has exactly one correct method:
 - **flag=2 (pressure):** ``HGTS - SHGT``. Requires ``HGTS`` and ``SHGT`` in
   the dataset. Pressure-level files always store ``HGTS``.
 - **flag=1 / flag=4 (sigma / hybrid):** hypsometric integration from the
-  surface to each level using ``PRSS`` (hPa) and ``TEMP`` (K). Sigma and hybrid
-  files do not store ``HGTS``.
+  ground up through :func:`arlmet.pressure` with the virtual temperature, as
+  HYSPLIT's ``prfsig`` and ``prfecm`` do (see `Sigma and hybrid heights`_).
+  Requires ``PRSS`` and ``TEMP``; uses ``T02M`` (or ``TMPS``), ``SPHU`` (or
+  ``RELH``) and, on sigma files, ``PRES`` when present. Sigma and hybrid files
+  do not store ``HGTS``.
 - **flag=3 (terrain-following):** returns the stored 1D ``height`` coordinate —
   terrain-following levels are already heights AGL.
 - **flag=5 (WRF):** hypsometric integration from ``PRSS`` up through the
   ``PRES`` field, with ``TEMP``. Requires all three.
 
-The hypsometric integration uses the temperature at the lowest level for the
-surface-to-first-level layer, and the mean temperature of the bounding levels
-for each layer above.
+Each layer of the hypsometric integration is ``(R_d / g) * T * ln(p_below /
+p_above)`` thick, with ``T`` the mean of its two bounding levels. For flag 5
+the first layer, from ``PRSS`` to the first level, uses that level's ``TEMP``.
+
+Sigma and hybrid heights
+------------------------
+
+On sigma and hybrid files arl-met builds each column as HYSPLIT's ``prfsig``
+(flag 1) and ``prfecm`` (flag 4) do, so a value sampled at a height comes from
+the level HYSPLIT would read:
+
+- **The ground is level 0:** 0 m, at ``PRSS``, with the 2 m temperature
+  ``T02M`` (or ``TMPS``). Without either, the ground temperature is the first
+  level's ``TEMP`` brought down adiabatically, ``T1 * sigma1 ** -0.286``, with
+  ``sigma1`` the first level's sigma (on hybrid files, its pressure over
+  ``PRSS``).
+- **Pressure** of each level above is the ``PRES`` field on a sigma file that
+  has one, else the levels' nominal pressure (see `Sigma files with PRES`_).
+- **Virtual temperature** ``T (1 + 0.61 q)`` sets each layer's thickness, with
+  ``q`` the specific humidity ``SPHU``, else ``RELH`` converted with HYSPLIT's
+  formula (``q = 0.622 * RH/100 * e_sat(T) / p``, ``e_sat = exp(21.4 - 5351 /
+  T)`` hPa), else 0. The ground takes the first level's humidity.
+
+On two HRRR columns (January and July 2021, Salt Lake Valley) the heights and
+the pressure and temperature interpolated between them agree with HYSPLIT's
+own ``prfsig`` within 0.006 hPa and 0.002 K from 1 m to 15 km.
+
+:func:`arlmet.sample_points` also uses the ground as a level: between the
+ground and the first level a variable is interpolated from its ground value,
+so a point there is not NaN. The ground values are ``PRSS`` for ``PRES`` and
+the virtual ``"pressure"``, the ground temperature above for ``TEMP``,
+``U10M`` and ``V10M`` for ``UWND`` and ``VWND`` when present, zero for
+``WWND`` and ``DZDT``, and the first level's value for any other variable.
+Pressure is interpolated as ``ln p``, linear in height, as HYSPLIT does.
+
+Sigma files with PRES
+---------------------
+
+Some sigma files also store the pressure of every level as the ``PRES`` field:
+NOAA's HRRR files, and WRF output that ``arw2arl`` converts without hybrid
+levels. Their sigma values are nominal: on HRRR, ``PRES`` is within about 1 hPa
+of ``sigma * PRSS`` in the lowest levels but about 55 hPa higher near the
+middle of the column. HYSPLIT's ``prfsig`` uses ``PRES`` whenever the file has
+it, and so do :func:`arlmet.pressure`, :func:`arlmet.z_agl` and
+:func:`arlmet.sample_points`. :meth:`arlmet.SigmaAxis.to_pressure` still gives
+the nominal pressure; pass ``PRES`` to :meth:`arlmet.SigmaAxis.to_height_agl`
+as ``pressure=`` for the real heights.
 
 WRF files
 ---------
@@ -120,10 +172,12 @@ holds WRF's dry column mass (``MUBA``, ``MUPE``) and the coefficient file sits
 beside it. Then HYSPLIT's ``prfwrf`` builds the heights from the coefficients
 and WRF's dry inverse density, with no temperature, the way WRF itself defines
 them. On a made-up dry WRF column the two differ by less than 1% (less than half
-a meter in the lowest 2 km, 74 m at 10 km). ``prfsig`` uses virtual temperature
-and arl-met uses ``TEMP``, as it does for flags 1 and 4, so in moist air
-arl-met's heights run slightly low (about 0.6% of a layer's thickness for 10 g/kg
-of water vapor).
+a meter in the lowest 2 km, 74 m at 10 km). ``prfsig`` uses the virtual
+temperature and starts at the ground temperature; for flag 5 arl-met uses
+``TEMP`` and the first level's temperature for the first layer (unlike flags 1
+and 4, see `Sigma and hybrid heights`_), so in moist air arl-met's flag-5
+heights run slightly low (about 0.6% of a layer's thickness for 10 g/kg of
+water vapor).
 
 Height above mean sea level
 ---------------------------
@@ -145,8 +199,13 @@ coordinate system needs; a missing one raises ``ValueError`` naming it.
 .. code-block:: python
 
    vaxis = arlmet.SigmaAxis(levels=[1.0, 0.98, 0.95], offset=0.0)
-   p = vaxis.to_pressure(surface_pressure=prss)  # prss.shape + (nlev,)
+   p = vaxis.to_pressure(surface_pressure=prss)  # prss.shape + (nlev,), nominal
    z = vaxis.to_height_agl(surface_pressure=prss, temperature=temp)
+   z = vaxis.to_height_agl(surface_pressure=prss, temperature=tv, pressure=pres)
+
+For a sigma or hybrid axis, ``temperature`` covers every level, the ground
+(level 0) included; pass the virtual temperature, with the ground temperature
+at level 0, and ``PRES`` as ``pressure`` (sigma only) for HYSPLIT's heights.
 
    paxis = arlmet.PressureAxis(levels=[1000.0, 925.0, 850.0])
    z = paxis.to_height_agl(hgts=hgts, terrain=shgt[..., None])
@@ -165,3 +224,6 @@ Limitations
   hybrid coefficients that would give them from eta are not in the ARL file.
 - ``pressure()`` for terrain-following files (flag=3) requires a stored ``PRES``
   field; it is not derived.
+- Only sigma and hybrid files take the ground as a level in
+  :func:`arlmet.sample_points`; on pressure (flag=2), terrain-following (flag=3)
+  and WRF (flag=5) files a point below the lowest level with data is NaN.
