@@ -43,7 +43,7 @@ Find the files that cover a time window by their headers. See the
    :toctree: _autosummary
    :nosignatures:
 
-   index_directory
+   index
    DirectoryIndex
 
 Vertical Coordinates

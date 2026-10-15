@@ -12,7 +12,7 @@ from arlmet.exceptions import ARLFormatError
 from arlmet.file import File
 from arlmet.grid import Grid, GridWindow
 from arlmet.header import Header, record_length_from_grid, split_grid_component
-from arlmet.index import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
+from arlmet.indexrecord import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
 from arlmet.packing import calculate_checksum
 from arlmet.record import DataRecord, _corrects, _dif_parents
 from arlmet.vertical import VerticalAxis

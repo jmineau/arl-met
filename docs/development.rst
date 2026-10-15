@@ -119,7 +119,7 @@ Module layout
      record.py      DataRecord (one packed 2D field) and the _require_mode helper
      collection.py  RecordCollection protocol, VariableView, VariableAccessor
      header.py      Header: the 50-byte record header codec, grid letter helpers
-     index.py       IndexRecord, VarInfo, LvlInfo: the index record codec
+     indexrecord.py IndexRecord, VarInfo, LvlInfo: the index record codec
      grid.py        Projection, Grid, GridWindow: horizontal geometry only
      vertical.py    VerticalAxis (abstract) and SigmaAxis, PressureAxis,
                     TerrainAxis, HybridAxis, WrfAxis
@@ -130,6 +130,7 @@ Module layout
      _time.py       ensure_timestamp()
      archives.py    Archive, HRRRArchive, NAMArchive, GDASArchive, ...;
                     ARCHIVES registry, get_archive(): NOAA archive downloads
+     directory.py   index(), DirectoryIndex: a folder's files by their headers
      ops/
        subset.py    extract_subset(), resolve_window(), normalize_levels()
        sample.py    sample_points()

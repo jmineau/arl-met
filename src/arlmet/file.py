@@ -22,7 +22,7 @@ from arlmet.collection import VariableAccessor
 from arlmet.exceptions import ARLFormatError, ARLFormatWarning
 from arlmet.grid import Grid, Projection
 from arlmet.header import record_length_from_grid
-from arlmet.index import IndexRecord
+from arlmet.indexrecord import IndexRecord
 from arlmet.record import DataRecord, _corrects, _require_mode
 from arlmet.recordset import RecordSet
 from arlmet.vertical import VerticalAxis

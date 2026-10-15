@@ -1,7 +1,7 @@
 """
 Index a directory of ARL files by their headers.
 
-:func:`index_directory` opens each file in a directory once, keeps what its
+:func:`index` opens each file in a directory once, keeps what its
 index records say (source, grid, first and last valid time, time step) in a
 small table, and caches the table in a CSV file. :meth:`DirectoryIndex.covering`
 then finds the files that cover a time window without knowing how the files
@@ -17,6 +17,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from itertools import pairwise
 from pathlib import Path
+from stat import S_ISREG
 from typing import Any
 
 import pandas as pd
@@ -26,7 +27,7 @@ from arlmet._time import ensure_timestamp
 from arlmet.exceptions import ARLFormatError
 from arlmet.file import File, _at, _span
 
-__all__ = ["DirectoryIndex", "index_directory"]
+__all__ = ["DirectoryIndex", "index"]
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ _SAVE_EVERY = 500
 # whether a file changed since it was read.
 _TABLE_COLUMNS = ["path", "source", "grid", "start", "end", "step", "error"]
 _CACHE_COLUMNS = [
-    "name",
+    "path",
     "size",
     "mtime_ns",
     "source",
@@ -55,6 +56,20 @@ _CACHE_COLUMNS = [
     "step",
     "error",
 ]
+
+
+# A row that says nothing about a file yet; the size and time of a link that
+# cannot be followed stay 0, so it is looked at again on every call.
+_EMPTY: dict[str, Any] = {
+    "size": 0,
+    "mtime_ns": 0,
+    "source": "",
+    "grid": "",
+    "start": pd.NaT,
+    "end": pd.NaT,
+    "step": pd.NaT,
+    "error": "",
+}
 
 
 def _user_cache_dir() -> Path:
@@ -87,23 +102,28 @@ def _user_cache_dir() -> Path:
     return root / "arlmet"
 
 
-def _cache_path(directory: Path, cache_dir: str | os.PathLike[str] | None) -> Path:
+def _cache_path(
+    directory: Path, cache_dir: str | os.PathLike[str] | None, recursive: bool
+) -> Path:
     """
     Return the cache file for *directory*.
 
     It is ``.arlmet-index.csv`` in *directory* when that is writable;
     otherwise, or when *cache_dir* is given, a file named after the
-    directory in *cache_dir* or the user cache folder.
+    directory in *cache_dir* or the user cache folder. A recursive index has
+    its own file, ending in ``-recursive``, so the two never replace each
+    other's rows.
     """
+    suffix = "-recursive" if recursive else ""
     if cache_dir is None and os.access(directory, os.W_OK):
-        return directory / CACHE_NAME
+        return directory / f"{CACHE_NAME.removesuffix('.csv')}{suffix}.csv"
     folder = (
         Path(cache_dir).expanduser()
         if cache_dir is not None
         else _user_cache_dir() / "index"
     )
     digest = hashlib.sha256(str(directory.resolve()).encode()).hexdigest()[:12]
-    return folder / f"{directory.name or 'root'}-{digest}.csv"
+    return folder / f"{directory.name or 'root'}-{digest}{suffix}.csv"
 
 
 def _read_file(path: Path) -> dict[str, Any]:
@@ -113,14 +133,7 @@ def _read_file(path: Path) -> dict[str, Any]:
     A file that cannot be opened, holds no time step, or whose time steps
     are not evenly spaced gets the reason in ``error``.
     """
-    row: dict[str, Any] = {
-        "source": "",
-        "grid": "",
-        "start": pd.NaT,
-        "end": pd.NaT,
-        "step": pd.NaT,
-        "error": "",
-    }
+    row: dict[str, Any] = dict(_EMPTY)
     try:
         with File(path) as met:
             times = met.times
@@ -149,7 +162,7 @@ def _read_file(path: Path) -> dict[str, Any]:
 
 
 def _read_cache(cache: Path) -> dict[str, dict[str, Any]]:
-    """Return the cached rows by file name, or none when the cache is missing or of another layout."""
+    """Return the cached rows by real path, or none when the cache is missing or of another layout."""
     if not cache.is_file():
         return {}
     try:
@@ -161,7 +174,7 @@ def _read_cache(cache: Path) -> dict[str, dict[str, Any]]:
         return {}
     rows: dict[str, dict[str, Any]] = {}
     for row in table.to_dict("records"):
-        rows[str(row["name"])] = {
+        rows[str(row["path"])] = {
             "size": int(row["size"]),
             "mtime_ns": int(row["mtime_ns"]),
             "source": row["source"],
@@ -177,7 +190,7 @@ def _read_cache(cache: Path) -> dict[str, dict[str, Any]]:
 def _write_cache(cache: Path, rows: dict[str, dict[str, Any]]) -> None:
     """Write *rows* to *cache*, replacing it only once the new file is complete."""
     table = pd.DataFrame(
-        [{"name": name, **row} for name, row in rows.items()],
+        [{"path": key, **row} for key, row in rows.items()],
         columns=_CACHE_COLUMNS,
     )
     try:
@@ -195,40 +208,69 @@ def _cache_error(cache: Path, exc: OSError) -> OSError:
     )
 
 
-def index_directory(
+def _walk(folder: Path, recursive: bool) -> list[Path]:
+    """
+    Return the files and links in *folder*, in name order, and in its subfolders with *recursive*.
+
+    Hidden names (``.``) and backup copies (``~``) are left out, and links to
+    folders are not followed, so a link loop cannot make the walk go round.
+    """
+    found: list[Path] = []
+    with os.scandir(folder) as entries:
+        for entry in sorted(entries, key=lambda e: e.name):
+            if entry.name.startswith(".") or entry.name.endswith("~"):
+                continue
+            if entry.is_dir(follow_symlinks=False):
+                if recursive:
+                    found += _walk(Path(entry.path), recursive)
+            elif entry.is_symlink() or entry.is_file(follow_symlinks=False):
+                found.append(Path(entry.path))
+    return found
+
+
+def index(
     directory: str | os.PathLike[str],
     *,
+    recursive: bool = False,
     cache_dir: str | os.PathLike[str] | None = None,
 ) -> DirectoryIndex:
     """
     Index the ARL files in a directory by their headers.
 
-    Each file directly in *directory* is opened once, and what its index
-    records say is kept: its source, grid, first and last valid time, and time
-    step. The table is cached, so a later call reads again only the files that
-    are new or changed (by size or modification time) and drops the files that
-    are gone. Use :meth:`DirectoryIndex.covering` to find the files for a time
+    Each file in *directory* is opened once, and what its index records say
+    is kept: its source, grid, first and last valid time, and time step. The
+    table is cached, so a later call reads again only the files that are new
+    or changed (by size or modification time) and drops the files that are
+    gone. Use :meth:`DirectoryIndex.covering` to find the files for a time
     window.
+
+    Links to files are followed, and each real file is one row, shown by its
+    real path (:meth:`pathlib.Path.resolve`) however many links reach it. A
+    link that cannot be followed (its target is gone, or links loop) is a row
+    with the reason in ``error``. Links to folders are not followed. Hidden
+    files and folders (names starting with ``.``) and backup copies (names
+    ending in ``~``) are skipped. A file that is not ARL, or is damaged, is
+    kept with the reason in ``error`` and is not used to cover a window.
 
     Files are opened 16 at a time: on a network filesystem each one waits on
     a few small reads. The cache is saved every 500 files, so an interrupted
     first index of a large archive keeps what it read.
 
-    Subfolders are not read. Hidden files (names starting with ``.``) and
-    backup copies (names ending in ``~``) are skipped. A file that is not ARL,
-    or is damaged, is kept with the reason in the ``error`` column and is not
-    used to cover a window.
-
     Parameters
     ----------
     directory : path-like
         The folder of ARL files.
+    recursive : bool, default False
+        Also read every folder below *directory*, as a copy of NOAA's
+        ``YYYY/MM/`` layout needs. By default only the files directly in
+        *directory* are read.
     cache_dir : path-like, optional
         Folder for the cache file. By default the cache is
-        ``.arlmet-index.csv`` in *directory* when *directory* is writable, and
+        ``.arlmet-index.csv`` (``.arlmet-index-recursive.csv`` with
+        *recursive*) in *directory* when *directory* is writable, and
         otherwise a file named after the directory in ``$ARLMET_CACHE_DIR``,
-        or in the platform's user cache folder (``~/.cache/arlmet/index`` on
-        Linux) when that variable is not set.
+        or in the platform's user cache folder (``arlmet/index`` in
+        ``$XDG_CACHE_HOME`` on Linux) when that variable is not set.
 
     Returns
     -------
@@ -239,7 +281,7 @@ def index_directory(
     FileNotFoundError
         If *directory* does not exist.
     OSError
-        If the cache cannot be written.
+        If the cache cannot be written, or a folder cannot be listed.
 
     Warns
     -----
@@ -254,57 +296,61 @@ def index_directory(
 
     Examples
     --------
-    >>> idx = arlmet.index_directory("hrrr")
+    >>> idx = arlmet.index("hrrr")
     >>> idx.covering("2021-01-14 06:00", "2021-01-15 06:00")
     [PosixPath('hrrr/20210114_06-11_hrrr'), ..., PosixPath('hrrr/20210115_06-11_hrrr')]
     """
     directory = Path(directory).expanduser().absolute()
     if not directory.is_dir():
         raise FileNotFoundError(f"No directory {directory}.")
-    cache = _cache_path(directory, cache_dir)
+    cache = _cache_path(directory, cache_dir, recursive)
     try:  # before reading any file, so a bad cache folder fails at once
         cache.parent.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
         raise _cache_error(cache, exc) from exc
     cached = _read_cache(cache)
 
-    listing: list[tuple[str, os.stat_result]] = []
-    for entry in sorted(os.scandir(directory), key=lambda e: e.name):
-        name = entry.name
-        if name.startswith(".") or name.endswith("~") or not entry.is_file():
-            continue
-        try:
-            listing.append((name, entry.stat()))
-        except OSError:
-            continue  # removed or unreachable since the listing
-
+    # Rows are keyed by the file's real path, so a file reached by several
+    # paths is read and listed once.
     rows: dict[str, dict[str, Any]] = {}
-    to_read: list[tuple[str, os.stat_result]] = []
-    for name, stat in listing:
-        known = cached.get(name)
+    to_read: dict[str, os.stat_result] = {}
+    for found in _walk(directory, recursive):
+        try:
+            real = found.resolve(strict=True)
+            stat = real.stat()
+        except (OSError, RuntimeError) as exc:  # RuntimeError: a loop, before 3.13
+            rows[str(found)] = {**_EMPTY, "error": f"Cannot follow the link: {exc}"}
+            continue
+        key = str(real)
+        if not S_ISREG(stat.st_mode) or key in rows or key in to_read:
+            continue
+        known = cached.get(key)
         if (
             known is not None
             and known["size"] == stat.st_size
             and known["mtime_ns"] == stat.st_mtime_ns
         ):
-            rows[name] = known
+            rows[key] = known
         else:
-            to_read.append((name, stat))
+            to_read[key] = stat
 
     if to_read:
         logger.info(
-            "Reading %d of %d files in %s", len(to_read), len(listing), directory
+            "Reading %d of %d files in %s",
+            len(to_read),
+            len(to_read) + len(rows),
+            directory,
         )
         # Opening a file waits on a few small reads, which on a network
         # filesystem take far longer than parsing them, so several are read
         # at once. The cache is saved as rows come in, so an interrupted
         # first index of a large archive keeps what it read.
         with ThreadPoolExecutor(_READERS) as pool:
-            read = pool.map(_read_file, [directory / name for name, _ in to_read])
-            for n, ((name, stat), row) in enumerate(
-                zip(to_read, read, strict=True), start=1
+            read = pool.map(_read_file, [Path(key) for key in to_read])
+            for n, ((key, stat), row) in enumerate(
+                zip(to_read.items(), read, strict=True), start=1
             ):
-                rows[name] = {"size": stat.st_size, "mtime_ns": stat.st_mtime_ns, **row}
+                rows[key] = {**row, "size": stat.st_size, "mtime_ns": stat.st_mtime_ns}
                 if n % _SAVE_EVERY == 0:
                     logger.info("Read %d of %d files", n, len(to_read))
                     _write_cache(cache, rows)
@@ -312,13 +358,13 @@ def index_directory(
         _write_cache(cache, rows)
 
     # Built column by column so each has its type even when it is all NaT,
-    # in name order, which the stable sort by start keeps for equal starts
-    # (Path order differs between platforms).
+    # in path order (as strings: Path order differs between platforms), which
+    # the stable sort by start keeps for equal starts.
     rows = dict(sorted(rows.items()))
     values = list(rows.values())
     table = pd.DataFrame(
         {
-            "path": [directory / name for name in rows],
+            "path": [Path(key) for key in rows],
             "source": [row["source"] for row in values],
             "grid": [row["grid"] for row in values],
             "start": pd.to_datetime([row["start"] for row in values]),
@@ -336,7 +382,7 @@ class DirectoryIndex:
     """
     The ARL files in a directory, by the times their headers say they hold.
 
-    Made by :func:`index_directory`.
+    Made by :func:`arlmet.index`.
 
     Parameters
     ----------

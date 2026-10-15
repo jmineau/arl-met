@@ -1,18 +1,18 @@
 Indexing a Directory
 ====================
 
-Use :func:`arlmet.index_directory` to find the ARL files that cover a time
-window by what their headers say, not by how they are named. Each file's index
-records hold its valid times, the model that wrote it (the source), and its
-grid. ``index_directory`` reads them once for a whole folder and keeps them in a
-small table. :meth:`~arlmet.DirectoryIndex.covering` then returns the files for
-a window, and :meth:`~arlmet.DirectoryIndex.missing` the hours no file holds.
+Use :func:`arlmet.index` to find the ARL files that cover a time window by what
+their headers say, not by how they are named. Each file's index records hold its
+valid times, the model that wrote it (the source), and its grid. ``index`` reads
+them once for a whole folder and keeps them in a small table.
+:meth:`~arlmet.DirectoryIndex.covering` then returns the files for a window, and
+:meth:`~arlmet.DirectoryIndex.missing` the hours no file holds.
 
 .. code-block:: python
 
    import arlmet
 
-   idx = arlmet.index_directory("hrrr")
+   idx = arlmet.index("hrrr")
    files = idx.covering("2021-01-14 06:00", "2021-01-15 06:00")
 
 A program that finds files by a name pattern (``%Y%m%d_%H``) finds nothing
@@ -55,7 +55,7 @@ to 23:00, named after their first hour. Any names would do.
        block = day.isel(time=slice(first, first + 6))
        arlmet.write_dataset(block, folder / f"20240701_{first:02d}", vertical_axis=surface)
 
-   idx = arlmet.index_directory(folder)
+   idx = arlmet.index(folder)
    idx.table[["source", "start", "end", "step"]]
 
 :attr:`~arlmet.DirectoryIndex.table` has one row per file: its ``path``, its
@@ -87,7 +87,7 @@ and ``covering`` raises ``ValueError`` with them:
 .. ipython:: python
 
    (folder / "20240701_06").unlink()
-   idx = arlmet.index_directory(folder)
+   idx = arlmet.index(folder)
    idx.missing("2024-07-01 05:30", "2024-07-01 08:00")
 
 .. ipython:: python
@@ -109,11 +109,23 @@ names both files, rather than choosing one. Move one of them out of the folder.
 Which files are read
 --------------------
 
-- **Only the folder's own files.** Subfolders are not read, so an archive that
-  keeps old copies in a subfolder (``deprecated/``) is indexed without them. A
-  symbolic link is read as the file it points to, under its own name.
-- **Hidden files and backup copies are skipped**: names that start with ``.``
-  (arl-met's own partial outputs and the cache file) or end in ``~``.
+- **The folder's own files, or with** ``recursive=True`` **every folder below
+  it.** Archives come in two layouts. A plain copy of NOAA's archive keeps
+  files in ``YYYY/MM/`` folders (``hrrr/2021/01/20210114_00-05_hrrr``):
+  index it with ``recursive=True``. A shared archive often keeps one flat
+  folder of links into such a tree: index that folder as it is, without
+  ``recursive``.
+- **Links to files are followed, and each real file is one row**, shown by its
+  real path, so a link and the file it points to, or two links to one file,
+  never count as two files. A link whose target is gone, or a loop of links, is
+  a row with the reason in ``error``. Links to folders are not followed.
+- **Subfolders are read in full with** ``recursive=True``, **old copies
+  included.** An archive that keeps superseded files in a subfolder such as
+  ``deprecated/`` holds two files for those hours, and ``covering`` raises for
+  them. Index the folder of live files instead (a year, or the flat folder of
+  links), or the archive without ``recursive``.
+- **Hidden files and folders and backup copies are skipped**: names that start
+  with ``.`` (arl-met's own partial outputs and the cache file) or end in ``~``.
 - **Every other file is kept in the table.** One that is not ARL, is cut short,
   holds no time step, or whose time steps are not evenly spaced (HYSPLIT stops
   where the spacing changes) gets the reason in ``error``, and ``covering`` does
@@ -135,11 +147,12 @@ The cache
 ---------
 
 The table is saved to a CSV file, so the files are opened only once. A later
-call to ``index_directory`` lists the folder, reads again only the files that
+call to ``index`` lists the folder, reads again only the files that
 are new or whose size or modification time changed, and drops the files that
 are gone. :attr:`~arlmet.DirectoryIndex.cache` says where it is:
 
-- ``.arlmet-index.csv`` in the folder itself, when you can write to it;
+- ``.arlmet-index.csv`` in the folder itself, when you can write to it
+  (``.arlmet-index-recursive.csv`` for a recursive index);
 - otherwise, as for a shared read-only archive, a file named after the folder
   in ``$ARLMET_CACHE_DIR``, or in the user cache folder when that variable is
   not set: ``$XDG_CACHE_HOME/arlmet/index`` (``~/.cache/arlmet/index``) on
@@ -150,7 +163,7 @@ Pass ``cache_dir=`` to choose the folder yourself:
 
 .. code-block:: python
 
-   idx = arlmet.index_directory("/archive/hrrr", cache_dir="caches")
+   idx = arlmet.index("/archive/hrrr", cache_dir="caches")
 
 How long it takes
 -----------------
@@ -160,5 +173,5 @@ a time, since on a network filesystem each one mostly waits on its reads. The
 first call on a large archive is slow. On two archives of about 16,000 six-hour
 HRRR files it took 10 minutes on a fast filesystem and 44 minutes on a busy shared
 one (where one file at a time would have taken about 11 hours). A later call only
-lists the folder and compares sizes and times: 14 and 34 seconds there. The cache
+lists the folder and compares sizes and times: 4 to 34 seconds there. The cache
 is saved every 500 files, so an interrupted first call resumes where it stopped.

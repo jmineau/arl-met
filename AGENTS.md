@@ -30,12 +30,12 @@ headers through `File`, so the speed and memory use of those paths matter.
 ```
 src/arlmet/
   file.py, recordset.py, record.py  File > RecordSet (one valid time) > DataRecord (one 2D field)
-  header.py, index.py               codecs of the 50-byte record header and the index record
+  header.py, indexrecord.py         codecs of the 50-byte record header and the index record
   grid.py, vertical.py              horizontal geometry; VerticalAxis and its five subclasses
   packing.py, _pack.c               pack, unpack, checksum; the C extension for the encoder
   collection.py                     RecordCollection protocol, VariableView, VariableAccessor
   exceptions.py, _io.py, _time.py   ARLFormatError/Warning; atomic outputs; timestamps
-  archives.py; directory.py         NOAA archive downloads (Archive, ARCHIVES, get_archive); index_directory
+  archives.py; directory.py         NOAA archive downloads (Archive, ARCHIVES, get_archive); index (directory listing)
   ops/                              extract_subset, sample_points, concat, concat_by_time
   xarray/                           open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl
 ```

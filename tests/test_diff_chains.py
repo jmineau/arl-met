@@ -34,7 +34,7 @@ from arlmet import (
 )
 from arlmet.grid import Grid, GridWindow, Projection
 from arlmet.header import Header
-from arlmet.index import IndexRecord, LvlInfo, VarInfo
+from arlmet.indexrecord import IndexRecord, LvlInfo, VarInfo
 from arlmet.packing import calculate_checksum
 from arlmet.vertical import PressureAxis
 

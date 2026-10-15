@@ -1088,7 +1088,7 @@ def test_an_archives_source_is_the_one_its_files_carry(name):
     import s3fs
 
     from arlmet.archives import ARCHIVES
-    from arlmet.index import IndexRecord
+    from arlmet.indexrecord import IndexRecord
 
     archive = ARCHIVES[name]()
     key = archive._archive_path(pd.Timestamp(_SOURCE_CHECK_DATES[name]))
