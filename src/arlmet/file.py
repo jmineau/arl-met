@@ -275,7 +275,7 @@ class File:
         tangent_lat, tangent_lon : float
             Reference latitude and longitude that define the projection.
         grid_size : float
-            Grid spacing in kilometres at the projection reference point.
+            Grid spacing in kilometers at the projection reference point.
         orientation : float
             Rotation of the grid y-axis relative to true north.
         cone_angle : float

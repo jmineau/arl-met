@@ -1044,7 +1044,7 @@ class TestSigmaColumnAsHysplit:
 
 
 class TestHorizontalInterpolation:
-    """Verify bilinear weights and nearest-neighbour snapping."""
+    """Verify bilinear weights and nearest-neighbor snapping."""
 
     def _write_gradient_file(self, path, time):
         """Single-level file; TEMP[y, x] = x + 10.0 * y. Single level avoids vertical interp."""
@@ -1118,7 +1118,7 @@ class TestHorizontalInterpolation:
 
 
 class TestSamplingErrors:
-    """Correct NaN and error behaviour for out-of-range targets and missing fields."""
+    """Correct NaN and error behavior for out-of-range targets and missing fields."""
 
     def test_z_above_all_levels_native_returns_nan(self, tmp_path):
         path = tmp_path / "range.arl"
