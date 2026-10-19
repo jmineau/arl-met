@@ -1,6 +1,7 @@
 """Tests for ARL packing and header serialization."""
 
 import numpy as np
+import pytest
 
 from arlmet._pack import pack_core as _pack_core
 from arlmet.grid import GridWindow
@@ -30,6 +31,93 @@ def _pack_core_python(
             packed[y, x] = icval
             previous_value += (icval - 127) * inv_scale
     return packed
+
+
+def _pakinp_python(
+    packed: bytes,
+    nx: int,
+    ny: int,
+    precision: float,
+    exponent: int,
+    initial_value: float,
+    window: GridWindow | None = None,
+) -> np.ndarray:
+    """
+    Line-by-line transcription of HYSPLIT's ``PAKINP`` in single precision.
+
+    Checked against the compiled Fortran on the cases below: it gives the
+    same bits. Indices are zero-based; ``window`` is the sub-grid.
+    """
+    if window is None:
+        window = GridWindow(x_start=0, x_stop=nx, y_start=0, y_stop=ny)
+    f32 = np.float32
+    cvar = np.frombuffer(packed, dtype=np.uint8)
+    prec = f32(precision)
+    scexp = f32(1.0) / f32(2.0) ** (7 - exponent)
+    lx = window.x_stop - window.x_start
+    ly = window.y_stop - window.y_start
+    rvar = np.zeros((ly, lx), dtype=np.float32)
+
+    # Column 1 of every row, from the row before, with no precision test.
+    rold = f32(initial_value)
+    for j in range(ny):
+        rnew = f32(int(cvar[j * nx]) - 127) * scexp + rold
+        rold = rnew
+        if window.y_start <= j < window.y_stop:
+            rvar[j - window.y_start, 0] = rnew
+
+    # The rest of each row of the sub-grid, from its first column.
+    for j in range(window.y_start, window.y_stop):
+        jj = j - window.y_start
+        rold = rvar[jj, 0]
+        for i in range(1, window.x_stop):
+            rnew = f32(int(cvar[j * nx + i]) - 127) * scexp + rold
+            rold = rnew
+            if abs(rnew) < prec:
+                rnew = f32(0.0)
+            if window.x_start <= i < window.x_stop:
+                rvar[jj, i - window.x_start] = rnew
+    return rvar
+
+
+def _edge_records() -> dict[str, tuple[bytes, int, int, float, int, float]]:
+    """Packed records that hit the edges of ``PAKINP``: (bytes, nx, ny, prec, exp, var1)."""
+    rng = np.random.default_rng(60)
+    cases = {}
+    # No change anywhere and 0.25 at the corner, below the precision (#60).
+    cases["corner_below_precision"] = (bytes([127]) * 12, 4, 3, 1.0, 7, 0.25)
+    # The first column walks across zero in steps smaller than the precision.
+    walk = np.full((9, 5), 127, dtype=np.uint8)
+    walk[1:, 0] = 126
+    cases["first_column_crosses_zero"] = (
+        walk.tobytes(),
+        5,
+        9,
+        0.001968504,
+        -1,
+        0.005905512,
+    )
+    # Steps far below the float32 spacing at the initial value, so the order of
+    # the single-precision additions shows.
+    steps = rng.integers(0, 256, (40, 6), dtype=np.uint8)
+    cases["steps_below_spacing"] = (steps.tobytes(), 6, 40, 0.00006151575, -6, 101325.4)
+    # Random differences around zero at a few precisions, each written with the
+    # seven digits a header holds.
+    for exponent, var1 in [(0, 0.001), (3, -2.7), (-4, 0.0), (-12, 1e-5)]:
+        data = rng.integers(100, 155, (13, 17), dtype=np.uint8)
+        precision = float(f"{2.0**exponent / 254:.6e}")
+        cases[f"random_exp{exponent}"] = (
+            data.tobytes(),
+            17,
+            13,
+            precision,
+            exponent,
+            var1,
+        )
+    return cases
+
+
+_EDGE_RECORDS = _edge_records()
 
 
 class TestChecksum:
@@ -191,6 +279,59 @@ class TestPack:
             initial_value=initial_value,
         )
 
+        np.testing.assert_allclose(roundtripped, unpacked, atol=precision)
+
+
+class TestUnpackMatchesPakinp:
+    """``unpack`` gives HYSPLIT's ``PAKINP`` values, bit for bit."""
+
+    def test_first_column_keeps_values_below_precision(self):
+        # The values the compiled PAKINP gives for these bytes (#60).
+        unpacked = unpack(
+            bytes([127]) * 12, 4, 3, precision=1.0, exponent=7, initial_value=0.25
+        )
+        expected = np.zeros((3, 4), dtype=np.float32)
+        expected[:, 0] = 0.25
+        np.testing.assert_array_equal(unpacked, expected)
+
+    @pytest.mark.parametrize("name", sorted(_EDGE_RECORDS))
+    def test_full_grid(self, name):
+        packed, nx, ny, precision, exponent, var1 = _EDGE_RECORDS[name]
+        got = unpack(packed, nx, ny, precision, exponent, var1)
+        want = _pakinp_python(packed, nx, ny, precision, exponent, var1)
+        assert got.dtype == np.float32
+        np.testing.assert_array_equal(got.view(np.uint32), want.view(np.uint32))
+
+    @pytest.mark.parametrize("name", sorted(_EDGE_RECORDS))
+    @pytest.mark.parametrize(
+        "corner", [(0, 0, 3, 3), (1, 1, 3, 2), (0, 1, 4, 2), (2, 0, 2, 3)]
+    )
+    def test_window(self, name, corner):
+        packed, nx, ny, precision, exponent, var1 = _EDGE_RECORDS[name]
+        x0, y0, lx, ly = corner
+        window = GridWindow(x_start=x0, x_stop=x0 + lx, y_start=y0, y_stop=y0 + ly)
+        got = unpack(packed, nx, ny, precision, exponent, var1, window=window)
+        want = _pakinp_python(packed, nx, ny, precision, exponent, var1, window)
+        np.testing.assert_array_equal(got.view(np.uint32), want.view(np.uint32))
+
+    def test_window_is_the_full_grid_cut(self):
+        packed, nx, ny, precision, exponent, var1 = _EDGE_RECORDS["random_exp0"]
+        full = unpack(packed, nx, ny, precision, exponent, var1)
+        window = GridWindow(x_start=3, x_stop=11, y_start=2, y_stop=9)
+        cut = unpack(packed, nx, ny, precision, exponent, var1, window=window)
+        np.testing.assert_array_equal(cut, full[2:9, 3:11])
+
+    def test_roundtrip_keeps_small_first_column(self):
+        unpacked = np.zeros((4, 5), dtype=np.float32)
+        unpacked[:, 1:] = 10.0
+        unpacked[2, 0] = 0.02
+
+        packed, precision, exponent, initial_value = pack(unpacked)
+        roundtripped = unpack(
+            packed.tobytes(), 5, 4, precision, exponent, initial_value
+        )
+
+        assert abs(unpacked[2, 0]) < precision
         np.testing.assert_allclose(roundtripped, unpacked, atol=precision)
 
 
