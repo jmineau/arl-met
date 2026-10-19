@@ -59,8 +59,8 @@ when it downloads, so it imports without the `archives` extra.
   the remainder, but `IndexRecord.nx`/`ny` are the full sizes (`__post_init__`
   rejects a mismatched `header.grid`); `index_length` is computed, never stored.
 - **Packing.** Values are unsigned bytes of differences from the previous value.
-  `unpack` gives HYSPLIT's `pakinp` values bit for bit (`test_packing.py` transcribes
-  it); the encoder is `_pack.c`. Change `pack`/`unpack` only with a round-trip test.
+  `pack` (`_pack.c`) and `unpack` give HYSPLIT's `pakout`/`pakinp` results bit for bit;
+  `test_packing.py` transcribes both. Change them only with a round-trip test.
 - **Checksums** are 1 to 255 (the byte sum, less 255 each time it reaches 256)
   unless every byte is 0. A stored 0 means none was recorded, so
   `verify_checksum()` returns True for it (HYSPLIT writes 0 for records it did not

@@ -37,55 +37,34 @@ def pack(
     """
     Pack a 2D field using the ARL differential byte encoding.
 
-    This is the inverse of :func:`unpack` and mirrors the HYSPLIT
-    ``PAKOUT`` routine.
+    This is the inverse of :func:`unpack` and a translation of the HYSPLIT
+    ``PAKOUT`` routine, in single precision as ``PAKOUT`` is, so it gives the
+    same bytes, exponent, precision and initial value.
 
     Parameters
     ----------
     unpacked : np.ndarray
-        The 2D numpy array of shape (ny, nx) to be packed.
+        The 2D numpy array of shape (ny, nx) to be packed; it is packed as
+        ``float32``.
 
     Returns
     -------
     tuple[np.ndarray, float, int, float]
         Tuple of ``(packed, precision, exponent, initial_value)``.
         ``packed`` is the byte payload, ``precision`` and ``exponent`` are the
-        ARL packing parameters, and ``initial_value`` is the reference value at
-        the first grid cell.
+        ARL packing parameters, and ``initial_value`` is the value at the
+        first grid cell.
+
+    Raises
+    ------
+    ValueError
+        If the field is not 2D, is empty, or holds NaN or infinite values.
     """
-    unpacked_arr = np.array(unpacked, dtype=np.float32, copy=True)
-    initial_value = float(unpacked_arr[0, 0])
-
-    # Build diffs in the same row-wise order expected by unpack().
-    diffs = np.empty_like(unpacked_arr)
-    diffs[:, 1:] = unpacked_arr[:, 1:] - unpacked_arr[:, :-1]
-    diffs[1:, 0] = unpacked_arr[1:, 0] - unpacked_arr[:-1, 0]
-    diffs[0, 0] = 0.0
-    rmax = float(np.max(np.abs(diffs)))
-
-    # --- Calculate packing exponent and precision ---
-    if rmax > 0.0:
-        sexp = np.log(rmax) / np.log(2.0)
-        exponent = int(sexp)
-        if sexp >= 0.0 or sexp.is_integer():
-            exponent += 1
-    else:
-        exponent = 0
-
-    precision = (2.0**exponent) / 254.0
-    scale = 2.0 ** (7 - exponent)
-    inv_scale = 1.0 / scale
-
-    # Zero tiny values before packing so round-trip precision matches unpack().
-    unpacked_arr[np.abs(unpacked_arr) < precision] = 0.0
-    initial_value = float(unpacked_arr[0, 0])
-
-    # Feedback-loop encoder: each delta is computed against the *reconstructed*
-    # running value (what unpack's cumsum will reproduce), not the original float.
-    # This keeps per-cell quantisation error bounded to 0.5 * inv_scale regardless
-    # of grid width.  Implemented as a C extension (_pack.c) for native speed.
-    packed = _pack_core(unpacked_arr, scale, inv_scale, initial_value)
-
+    unpacked_arr = np.ascontiguousarray(unpacked, dtype=np.float32)
+    if unpacked_arr.ndim == 2 and not np.isfinite(unpacked_arr).all():
+        raise ValueError("Cannot pack NaN or infinite values.")
+    # The C extension (_pack.c) is PAKOUT line by line, for speed.
+    packed, precision, exponent, initial_value = _pack_core(unpacked_arr)
     return packed, precision, exponent, initial_value
 
 
