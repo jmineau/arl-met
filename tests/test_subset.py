@@ -644,3 +644,88 @@ def test_extract_subset_validation_counts_diff_records(tmp_path):
     with pytest.raises(ValueError, match="too small to encode an ARL index record"):
         extract_subset(source, destination, bbox=(22.0, -8.0, 37.0, -1.0))
     assert not destination.exists()
+
+
+def _stored_longitudes(path) -> tuple[float, float, float]:
+    """The first index record's raw ``sync_lon``, ``pole_lon`` and spacing."""
+    fixed = Path(path).read_bytes()[50:158].decode("ascii")
+    values = [float(fixed[9 + 7 * i : 16 + 7 * i]) for i in range(12)]
+    return values[10], values[1], values[3]
+
+
+def _hysplit_x(path, lon: float) -> float:
+    """One-based x of ``lon`` as HYSPLIT's ``gblset.f`` and ``gbl2xy.f`` place it."""
+    sync_lon, pole_lon, dlon = _stored_longitudes(path)
+    prime = pole_lon >= 0.0 and sync_lon < 0.0
+    if not prime:
+        if lon < 0.0:
+            lon += 360.0
+        if lon > 360.0:
+            lon -= 360.0
+    lon -= sync_lon
+    if lon < 0.0:
+        lon += 360.0
+    return 1.0 + lon / dlon
+
+
+def test_rewritten_latlon_files_keep_hysplit_longitudes(tmp_path):
+    """
+    Crops, copies and rewrites of a 0-360 lat/lon file stay 0-360 (#82).
+
+    A rewritten sync longitude of -125 for 235 made HYSPLIT place the grid
+    360 degrees away, since it measures from a negative sync longitude only
+    when the pole longitude is not negative.
+    """
+    from arlmet import write_dataset
+
+    grid = Grid(
+        projection=Projection(
+            pole_lat=90.0,
+            pole_lon=359.0,
+            tangent_lat=1.0,
+            tangent_lon=1.0,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=-90.0,
+            sync_lon=0.0,
+        ),
+        nx=360,
+        ny=181,
+    )
+    source = tmp_path / "global.arl"
+    lon360 = np.tile(np.arange(360.0, dtype=np.float32), (181, 1))
+    with File(
+        source,
+        mode="w",
+        source="GDAS",
+        grid=grid,
+        vertical_axis=PressureAxis(levels=[0.0, 1000.0]),
+    ) as arl:
+        rs = arl.create_recordset(pd.Timestamp("2024-07-18"))
+        rs.create_datarecord("SHGT", level=0, forecast=0, data=lon360)
+        rs.create_datarecord("TEMP", level=1, forecast=0, data=lon360)
+
+    crop = extract_subset(source, tmp_path / "crop.arl", bbox=(-125, 30, -100, 50))
+    outputs = {
+        "crop": crop,
+        "crop of crop": extract_subset(
+            crop, tmp_path / "crop2.arl", bbox=(-120, 35, -105, 45)
+        ),
+        "levels-only copy": extract_subset(crop, tmp_path / "copy.arl", levels=[0, 1]),
+        "write_dataset": tmp_path / "rewrite.arl",
+    }
+    write_dataset(open_dataset(crop), outputs["write_dataset"])
+
+    salt_lake_city = -111.89
+    for name, path in outputs.items():
+        sync_lon, pole_lon, _ = _stored_longitudes(path)
+        assert 180.0 < sync_lon < pole_lon < 360.0, name
+        with File(path) as arl:
+            x = float(arl.grid.fractional_indices(salt_lake_city, 40.0)[0])
+            temp = arl[0][(1, "TEMP")].read()
+        assert _hysplit_x(path, salt_lake_city) == pytest.approx(x + 1.0), name
+        # each cell holds its 0-360 longitude
+        assert temp[0, round(x)] == pytest.approx(248.0), name

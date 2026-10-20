@@ -732,26 +732,44 @@ class Grid:
         A lat-lon grid's sync point is always its first cell (HYSPLIT ignores
         ``sync_x`` and ``sync_y`` there), so the subset's is the window's
         corner cell, a whole number of cells from this grid's. It is stored
-        exactly when the spacing is a multiple of 0.01 degree.
+        exactly when the spacing is a multiple of 0.01 degree. The subset is
+        written as HYSPLIT's ``xtrct_grid`` writes a crop: ``sync_lon`` in
+        0-360 east and ``pole_lat``/``pole_lon`` its last cell, so
+        ``pole_lon`` can pass 360. HYSPLIT's ``gbl2xy`` measures a longitude
+        from a negative ``sync_lon`` only when ``pole_lon`` is not negative
+        (``gblset``'s ``PRIME``); a 0-360 ``sync_lon`` needs no such case.
+        The window covering the whole grid returns this grid unchanged.
         """
         if window.x_stop > self.nx or window.y_stop > self.ny:
             raise ValueError("GridWindow extends beyond the grid bounds.")
 
         if self.is_latlon:
-            coords = self.calculate_coords()
-            subset_projection = replace(
-                self.projection,
-                sync_x=1.0,
-                sync_y=1.0,
-                sync_lat=float(coords["lat"][1][window.y_start]),
-                sync_lon=float(coords["lon"][1][window.x_start]),
-            )
-        else:
-            subset_projection = replace(
-                self.projection,
-                sync_x=self.projection.sync_x - window.x_start,
-                sync_y=self.projection.sync_y - window.y_start,
-            )
+            return self._latlon_subset(window)
+        subset_projection = replace(
+            self.projection,
+            sync_x=self.projection.sync_x - window.x_start,
+            sync_y=self.projection.sync_y - window.y_start,
+        )
+        return Grid(projection=subset_projection, nx=window.nx, ny=window.ny)
+
+    def _latlon_subset(self, window: GridWindow) -> "Grid":
+        """Build the lat/lon subset :meth:`subset` describes, as ``xtrct_grid`` does."""
+        if window == self.full_window():
+            return self
+        proj = self.projection
+        dlon, dlat = proj.tangent_lon, proj.tangent_lat
+        sync_lat = proj.sync_lat + window.y_start * dlat
+        # East of Greenwich, so HYSPLIT's gbl2xy needs no PRIME (xtrct_grid's form)
+        sync_lon = (proj.sync_lon + window.x_start * dlon) % 360.0
+        subset_projection = replace(
+            proj,
+            pole_lat=sync_lat + (window.ny - 1) * dlat,
+            pole_lon=sync_lon + (window.nx - 1) * dlon,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=sync_lat,
+            sync_lon=sync_lon,
+        )
         return Grid(projection=subset_projection, nx=window.nx, ny=window.ny)
 
     @override

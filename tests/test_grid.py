@@ -345,6 +345,74 @@ class TestGrid:
         direct = hrrr.subset(GridWindow(x_start=8, x_stop=13, y_start=329, y_stop=333))
         assert inner == direct
 
+    @staticmethod
+    def _global_grid(sync_lon: float, pole_lon: float) -> Grid:
+        """A global 1-degree grid, as GDAS (0 E) or one starting at 180 W."""
+        return Grid(
+            projection=Projection(
+                pole_lat=90.0,
+                pole_lon=pole_lon,
+                tangent_lat=1.0,
+                tangent_lon=1.0,
+                grid_size=0.0,
+                orientation=0.0,
+                cone_angle=0.0,
+                sync_x=1.0,
+                sync_y=1.0,
+                sync_lat=-90.0,
+                sync_lon=sync_lon,
+            ),
+            nx=360,
+            ny=181,
+        )
+
+    @pytest.mark.parametrize(
+        ("source", "bbox", "corners"),
+        [
+            # as xtrct_grid writes a crop: sync_lon in 0-360, pole_lon its last cell
+            ((0.0, 359.0), (-125, 30, -100, 50), (30.0, 235.0, 50.0, 260.0)),
+            ((0.0, 359.0), (100, -10, 120, 10), (-10.0, 100.0, 10.0, 120.0)),
+            ((-180.0, 179.0), (-10, 40, 10, 60), (40.0, 350.0, 60.0, 370.0)),
+            ((-180.0, 179.0), (-125, 30, -100, 50), (30.0, 235.0, 50.0, 260.0)),
+            ((-180.0, 179.0), (100, -10, 120, 10), (-10.0, 100.0, 10.0, 120.0)),
+        ],
+    )
+    def test_latlon_subset_writes_hysplit_longitudes(self, source, bbox, corners):
+        """
+        A lat/lon subset's sync point is its first cell, its pole its last.
+
+        Its longitudes are ones HYSPLIT's gbl2xy places correctly (#82).
+        """
+        grid = self._global_grid(*source)
+        subset = grid.subset(grid.window_from_bbox(bbox))
+
+        p = subset.projection
+        assert (p.sync_lat, p.sync_lon, p.pole_lat, p.pole_lon) == corners
+        assert (p.sync_x, p.sync_y) == (1.0, 1.0)
+        coords = subset.calculate_coords()
+        assert coords["lon"][1][0] == pytest.approx(bbox[0])
+        assert coords["lon"][1][-1] == pytest.approx(bbox[2])
+        assert coords["lat"][1][0] == pytest.approx(bbox[1])
+
+    def test_latlon_subset_of_subset_stays_0_360(self):
+        """A crop of a crop is written as xtrct_grid writes it (#82)."""
+        grid = self._global_grid(0.0, 359.0)
+        crop = grid.subset(grid.window_from_bbox((-125, 30, -100, 50)))
+        inner = crop.subset(crop.window_from_bbox((-120, 35, -105, 45)))
+        p = inner.projection
+        assert (p.sync_lat, p.sync_lon, p.pole_lat, p.pole_lon) == (
+            35.0,
+            240.0,
+            45.0,
+            255.0,
+        )
+        assert inner == grid.subset(grid.window_from_bbox((-120, 35, -105, 45)))
+
+    @pytest.mark.parametrize("source", [(0.0, 359.0), (-180.0, 179.0)])
+    def test_latlon_subset_of_whole_grid_is_unchanged(self, source):
+        grid = self._global_grid(*source)
+        assert grid.subset(grid.full_window()) is grid
+
 
 class TestVerticalAxis:
     """Tests for VerticalAxis class."""
