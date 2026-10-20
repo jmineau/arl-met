@@ -375,3 +375,33 @@ class TestIndexLongitudeWrap:
             assert projection.tangent_lon == pytest.approx(-97.5)
             assert projection.sync_lon == pytest.approx(-122.72)
             assert projection.sync_x == 900.5
+
+    @staticmethod
+    def _projection_text(path) -> list[str]:
+        """The 12 projection fields of the first index record, as written."""
+        with open(path, "rb") as f:
+            text = f.read(Header.N_BYTES + 9 + 84)[Header.N_BYTES + 9 :].decode()
+        return [text[i : i + 7] for i in range(0, 84, 7)]
+
+    def test_projected_longitudes_keep_three_decimals(self, tmp_path):
+        """
+        A projected grid's longitude past -100 is written east (#86).
+
+        As -122.719 the 7-character field would hold -122.72 and move the
+        grid by 0.03 cells of HRRR; east of Greenwich it holds 237.281.
+        """
+        path = tmp_path / "hrrr-like.arl"
+        write_two_step_file(path, grid=self._projected_grid(sync_lon=-122.719))
+        fields = self._projection_text(path)
+        assert fields[3] == "-97.500"  # tangent_lon: written as it is
+        assert fields[10] == "237.281"  # sync_lon: east, three decimals
+
+        copy = extract_subset(path, tmp_path / "copy.arl", levels=[0])
+        assert self._projection_text(copy) == fields
+        with File(copy) as arl:
+            assert arl.grid.projection.sync_lon == pytest.approx(-122.719, abs=1e-9)
+
+    def test_latlon_longitudes_are_written_as_they_are(self, tmp_path):
+        path = tmp_path / "latlon.arl"
+        write_two_step_file(path, grid=make_test_grid(sync_lon=-125.0))
+        assert self._projection_text(path)[10] == "-125.00"

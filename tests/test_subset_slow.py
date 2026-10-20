@@ -107,8 +107,7 @@ def _assert_subset_parity(
                 subset_ds[coord].values,
                 expected,
                 rtol=0,
-                # #86: the crop writes HRRR's sync_lon 237.281 as -122.72
-                atol=2e-3 if projected else 1e-9,
+                atol=1e-9,
                 err_msg=f"{coord}: extract_subset moved the cells",
             )
             np.testing.assert_allclose(

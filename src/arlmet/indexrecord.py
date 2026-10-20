@@ -63,6 +63,19 @@ class LvlInfo:
     variables: list[tuple[str, VarInfo]]
 
 
+def _projected_longitude(lon: float) -> float:
+    """
+    Return a projected grid's longitude as its index record holds it.
+
+    A longitude stored as 180 to 360 east is wrapped to -180 to -100 on read,
+    where the 7-character field keeps two decimals; written east of Greenwich
+    (``lon + 360``), as NOAA's projected files have it, it keeps three. HYSPLIT's
+    map routines read either form alike. A lat-lon grid's longitudes are written
+    as they are, since there the sign changes how HYSPLIT reads the file.
+    """
+    return lon + 360.0 if -180.0 < lon <= -100.0 else lon
+
+
 @dataclass(frozen=True)
 class IndexRecord:
     """
@@ -291,18 +304,19 @@ class IndexRecord:
 
     def _serialize_fixed(self, index_length: int) -> bytes:
         """Serialize the fixed 108-byte portion of the index record."""
+        lon = _projected_longitude if self.grid_size != 0.0 else float
         values = [
             self.pole_lat,
-            self.pole_lon,
+            lon(self.pole_lon),
             self.tangent_lat,
-            self.tangent_lon,
+            lon(self.tangent_lon),
             self.grid_size,
             self.orientation,
             self.cone_angle,
             self.sync_x,
             self.sync_y,
             self.sync_lat,
-            self.sync_lon,
+            lon(self.sync_lon),
             self.reserved,
         ]
         proj = "".join(format_fixed_width_float(value, 7) for value in values)
