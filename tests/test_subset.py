@@ -319,6 +319,75 @@ def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
     )
 
 
+def test_extract_subset_projected_crop_keeps_source_cell_positions(tmp_path):
+    """
+    Every cell of a projected crop sits where the source puts it (#78).
+
+    The source's sync point is the corner of a Lambert grid (as in a NOAA HRRR
+    file); a crop's own corner longitude would be rounded to 0.01 degree in
+    the index record and move the crop by up to 0.15 cells.
+    """
+    projection = Projection(
+        pole_lat=90.0,
+        pole_lon=0.0,
+        tangent_lat=38.5,
+        tangent_lon=-97.5,
+        grid_size=3.0,
+        orientation=0.0,
+        cone_angle=38.5,
+        sync_x=1.0,
+        sync_y=1.0,
+        sync_lat=40.0,
+        sync_lon=-112.6,
+    )
+    grid = Grid(projection=projection, nx=60, ny=50)
+    lat = grid.calculate_coords()["lat"][1]
+    source = tmp_path / "source.arl"
+    with File(
+        source,
+        mode="w",
+        source="TEST",
+        grid=grid,
+        vertical_axis=SigmaAxis(levels=[1.0, 0.99]),
+    ) as arl:
+        rs = arl.create_recordset(pd.Timestamp("2024-07-18 00:00"))
+        rs.create_datarecord("PRSS", level=0, forecast=0, data=800.0 + lat)
+        rs.create_datarecord("TEMP", level=1, forecast=0, data=250.0 + lat)
+
+    outer, inner = (-112.4, 40.1, -111.6, 40.8), (-112.3, 40.2, -111.8, 40.65)
+    crop = extract_subset(source, tmp_path / "crop.arl", bbox=outer)
+    crop2 = extract_subset(crop, tmp_path / "crop2.arl", bbox=inner)
+
+    with File(source) as src:
+        expected = src.grid.calculate_coords()
+        for path, bbox in ((crop, outer), (crop2, inner)):
+            win = src.grid.window_from_bbox(bbox)
+            assert win.x_start > 0 and win.y_start > 0
+            with File(path) as out:
+                p = out.grid.projection
+                assert (p.sync_lat, p.sync_lon) == (40.0, -112.6)
+                assert (p.sync_x, p.sync_y) == (1.0 - win.x_start, 1.0 - win.y_start)
+                coords = out.grid.calculate_coords()
+                for name in ("lon", "lat"):
+                    np.testing.assert_allclose(
+                        coords[name][1],
+                        expected[name][1][win.y_slice, win.x_slice],
+                        rtol=0,
+                        atol=1e-9,
+                    )
+                # the same cells' values (each crop packs them again)
+                np.testing.assert_allclose(
+                    out[0][(0, "PRSS")].read(),
+                    src[0][(0, "PRSS")].read()[win.y_slice, win.x_slice],
+                    atol=2 * out[0][(0, "PRSS")].header.precision,
+                )
+
+    ds = open_dataset(crop)
+    ds_bbox = open_dataset(source, bbox=outer)
+    np.testing.assert_allclose(ds["lon"].values, ds_bbox["lon"].values, atol=1e-9)
+    np.testing.assert_allclose(ds["lat"].values, ds_bbox["lat"].values, atol=1e-9)
+
+
 def test_extract_subset_rejects_dest_equal_to_path(tmp_path):
     source = tmp_path / "source.arl"
     write_subset_source(source)

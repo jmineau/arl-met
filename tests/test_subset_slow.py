@@ -94,19 +94,29 @@ def _assert_subset_parity(
                 subset_ds[coord].values, expected, err_msg=coord
             )
 
-    # lat/lon: cropping updates the sync/reference point in the header, so
-    # coordinates recomputed from the cropped file differ from those computed
-    # from the source header (this is expected for projected grids).
-    # What matters is that xtrct_grid and extract_subset chose the same cells,
-    # so compare the two cropped outputs against each other.
+    # lat/lon: the crop's cells sit where the source puts them. source_ds is
+    # the source read with the same bbox, so this compares the crop's stored
+    # grid with the source's. xtrct_grid writes its crop's corner latitude and
+    # longitude to 0.01 degree, so on a projected grid its cells move by up to
+    # that much; it must still have chosen the same cells.
+    projected = "x" in source_ds.dims
     for coord in ("lat", "lon"):
-        if coord in xtrct_ds.coords:
+        if coord in source_ds.coords:
+            expected = source_ds[coord].values
             np.testing.assert_allclose(
                 subset_ds[coord].values,
+                expected,
+                rtol=0,
+                # #86: the crop writes HRRR's sync_lon 237.281 as -122.72
+                atol=2e-3 if projected else 1e-9,
+                err_msg=f"{coord}: extract_subset moved the cells",
+            )
+            np.testing.assert_allclose(
                 xtrct_ds[coord].values,
-                rtol=1e-7,
-                atol=0,
-                err_msg=f"{coord}: extract_subset and xtrct_grid disagree on grid coordinates",
+                expected,
+                rtol=0,
+                atol=0.006 if projected else 1e-9,
+                err_msg=f"{coord}: extract_subset and xtrct_grid chose different cells",
             )
 
     for name in sorted(source_ds.data_vars):
