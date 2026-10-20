@@ -288,6 +288,68 @@ class TestCheck:
         with File(path) as arl:
             assert arl.check() == []
 
+    def test_repeated_time_step(self, tmp_path):
+        # As about nine NOAA HRRR archive files are: HYSPLIT's metset stops
+        # ("time interval varies"), and by position reads 06 as 03 (#80).
+        path = tmp_path / "repeat.arl"
+        both = ["PRSS", "TEMP"]
+        write_steps(
+            path,
+            [
+                ("2024-07-18 00:00", both),
+                ("2024-07-18 03:00", both),
+                ("2024-07-18 06:00", both),
+            ],
+        )
+        raw = path.read_bytes()
+        second = raw[STEP_LENGTH : 2 * STEP_LENGTH]
+        path.write_bytes(raw[: 2 * STEP_LENGTH] + second + raw[2 * STEP_LENGTH :])
+
+        with pytest.warns(ARLFormatWarning, match="repeated"):
+            arl = File(path)
+        with arl:
+            assert arl.check() == [
+                f"2024-07-18 03:00 is repeated at byte {2 * STEP_LENGTH}. arlmet "
+                "skips the copy, but HYSPLIT finds a time step by its position, "
+                "so it stops or reads each later time step as the one before it."
+            ]
+
+    def test_first_time_step_repeated(self, tmp_path):
+        path = tmp_path / "repeat_first.arl"
+        write_two_step_file(path)
+        repeat_first_step(path)
+
+        with pytest.warns(ARLFormatWarning, match="repeated"):
+            arl = File(path)
+        with arl:
+            # The first two set a spacing of 0, so nothing after is compared.
+            assert arl.check() == [
+                f"2024-07-18 00:00 is repeated at byte {STEP_LENGTH}. arlmet "
+                "skips the copy, but HYSPLIT finds a time step by its position, "
+                "so it stops or reads each later time step as the one before it."
+            ]
+
+    def test_time_steps_out_of_order(self, tmp_path):
+        path = tmp_path / "unordered.arl"
+        both = ["PRSS", "TEMP"]
+        write_steps(
+            path,
+            [
+                ("2024-07-18 00:00", both),
+                ("2024-07-18 06:00", both),
+                ("2024-07-18 03:00", both),
+                ("2024-07-18 09:00", both),
+            ],
+        )
+
+        with File(path) as arl:
+            assert [t.hour for t in arl.times] == [0, 3, 6, 9]
+            assert arl.check() == [
+                f"2024-07-18 03:00 (byte {2 * STEP_LENGTH}) comes after "
+                "2024-07-18 06:00 in the file. HYSPLIT reads the time steps in "
+                "file order, so it stops or reads the wrong hours."
+            ]
+
     def test_record_header_of_null_bytes(self, tmp_path):
         """A record whose bytes were lost reads as nulls, but the file opens."""
         path = tmp_path / "nulls.arl"

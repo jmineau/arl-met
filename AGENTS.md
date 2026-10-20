@@ -71,9 +71,9 @@ when it downloads, so it imports without the `archives` extra.
   Writers refuse other pairs and write each DIF after its parent; `read()` adds all.
 - **Malformed content raises `ARLFormatError`** (a `ValueError` subclass) from
   `File._scan` (the cases are in `docs/format.rst`); bad arguments stay plain
-  `ValueError`/`TypeError`. A time step repeated byte for byte (some NOAA HRRR
-  files) is skipped with an `ARLFormatWarning`; a repeat that differs raises.
-  `File.check()` finds damage that opens cleanly; it reads headers, not values.
+  `ValueError`/`TypeError`. A byte-identical repeated time step (some NOAA HRRR
+  files) is skipped with an `ARLFormatWarning`; a differing repeat raises.
+  `File.check()` reads headers, not values, and walks `File._steps` in file order.
 - **The vertical flag is the type.** `VerticalAxis.from_flag(flag, levels,
   offset=)` builds the subclass, mirroring HYSPLIT's `prfcom`: 1 `SigmaAxis`, 2
   `PressureAxis`, 3 `TerrainAxis`, 4 `HybridAxis`, 5 `WrfAxis`, else `ValueError`.
