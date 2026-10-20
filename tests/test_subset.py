@@ -470,7 +470,7 @@ def write_byte_copy_source(path, *, diff=True):
             time = pd.Timestamp("2024-07-18") + pd.Timedelta(hours=3 * step)
             rs = arl.create_recordset(time, forecast=step)
             rs.create_datarecord("PRSS", level=0, forecast=step, data=field(850, 20))
-            rs.create_datarecord("T02M", level=0, forecast=-1, data=field(290, 3))
+            rs.create_datarecord("T02M", level=0, forecast=6, data=field(290, 3))
             for level in range(1, 5):
                 rs.create_datarecord(
                     "TEMP", level=level, forecast=step, data=field(280, 5)

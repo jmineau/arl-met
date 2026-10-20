@@ -62,9 +62,9 @@ when it downloads, so it imports without the `archives` extra.
   `unpack` gives HYSPLIT's `pakinp` values bit for bit (`test_packing.py` transcribes
   it); the encoder is `_pack.c`. Change `pack`/`unpack` only with a round-trip test.
 - **Checksums** are 1 to 255 (the byte sum, less 255 each time it reaches 256)
-  unless every byte is 0. A stored 0 means none was recorded, so
-  `verify_checksum()` returns True for it (HYSPLIT writes 0 for records it did not
-  pack and never compares checksums; `docs/format.rst` has the NOAA cases).
+  unless every byte is 0; a stored 0 means none was recorded (`verify_checksum()`
+  is True). A record with a negative forecast or named `NULL` is missing: it reads
+  as NaN (HYSPLIT skips it), and an all-NaN field is written so (`pakini.f`).
 - **`DIF*` records** pair by name, as HYSPLIT's `metinp` does (`record._corrects`):
   each with the nearest earlier record of its level the name allows (`DIFW`: `WWND`,
   `DZDT`; `DIFT`: `TKEN`, `TKEU`; surface `DIF*`: `TPP*`, `PRT*`), else none (warned).

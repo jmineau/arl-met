@@ -37,6 +37,9 @@ The checks follow how HYSPLIT reads a file (``metset.f``):
 - **Every data record's header can be read**, and names the variable, level, and
   hour its index record lists. A record overwritten with null bytes, or copied
   from another time step, fails this.
+- **No record is flagged missing**, by a negative forecast hour or the name
+  ``NULL`` in its header (see :doc:`format`). HYSPLIT skips such a record, and
+  stops when a time step has more than 20; arl-met reads it as NaN.
 
 ``check()`` reads each record's 50-byte header. For a 1 GB HRRR block that takes
 a few seconds the first time the file is read from disk, and under a second
