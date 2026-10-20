@@ -74,6 +74,16 @@ available as a method:
        out = met.extract_subset("cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0))
    ds = arlmet.open_dataset(out)
 
+On a lat-lon grid, a ``bbox`` with ``west > east`` crosses the dateline. On a
+global grid a box may also cross the grid's seam, the column where its longitudes
+start again (0 E on GDAS or GFS, which start at 0 E; 180 on a grid that starts at
+180 W). The crop then holds only the box's columns, in order from west to east
+across the seam: ``bbox=(-10.0, 35.0, 30.0, 60.0)`` on GFS 0.25 is 161 columns
+wide, not all 1440. HYSPLIT's ``xtrct_grid`` writes the same header for such a
+crop, but its values east of the seam come from the column after the right one.
+A box with columns at both ends of a lat-lon grid that does not span 360 degrees
+raises ``ValueError``, since no single grid holds them.
+
 Keep only the levels and variables you need
 -------------------------------------------
 
@@ -122,6 +132,8 @@ Limitations
 
 - ``bbox`` is always interpreted as ``(west, south, east, north)`` in degrees
 - projected-grid bounding boxes must not cross the dateline
+- on a lat-lon grid short of 360 degrees, a box must not select columns at both
+  of its ends
 - the cropped grid must still be large enough to hold the ARL index record
 
 If the selected domain is too small to hold the output index record,

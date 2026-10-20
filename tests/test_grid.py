@@ -408,6 +408,60 @@ class TestGrid:
         )
         assert inner == grid.subset(grid.window_from_bbox((-120, 35, -105, 45)))
 
+    @pytest.mark.parametrize(
+        ("source", "bbox", "window", "corners"),
+        [
+            # across 0 E on a grid from 0 E: columns 350 ... 359, 0 ... 10
+            ((0.0, 359.0), (-10, 40, 10, 60), (350, 371), (40.0, 350.0, 60.0, 370.0)),
+            # across 180 on a grid from 180 W: columns 350 ... 359, 0 ... 10
+            (
+                (-180.0, 179.0),
+                (170, -10, -170, 10),
+                (350, 371),
+                (-10.0, 170.0, 10.0, 190.0),
+            ),
+            # the same boxes on the other grid are inside it
+            (
+                (0.0, 359.0),
+                (170, -10, -170, 10),
+                (170, 191),
+                (-10.0, 170.0, 10.0, 190.0),
+            ),
+            (
+                (-180.0, 179.0),
+                (-10, 40, 10, 60),
+                (170, 191),
+                (40.0, 350.0, 60.0, 370.0),
+            ),
+        ],
+    )
+    def test_latlon_window_across_the_seam(self, source, bbox, window, corners):
+        """A bbox across a global grid's seam keeps only its own columns (#83)."""
+        grid = self._global_grid(*source)
+        win = grid.window_from_bbox(bbox)
+        assert (win.x_start, win.x_stop, win.nx, win.ny) == (*window, 21, 21)
+
+        subset = grid.subset(win)
+        p = subset.projection
+        assert (p.sync_lat, p.sync_lon, p.pole_lat, p.pole_lon) == corners
+        lons = subset.calculate_coords()["lon"][1]
+        np.testing.assert_allclose(np.diff(lons), 1.0)
+        assert lons[0] == pytest.approx(bbox[0])
+        x, _ = subset.fractional_indices(np.array([bbox[0], bbox[2]]), 0.0)
+        np.testing.assert_allclose(x, [0.0, 20.0])
+
+    def test_latlon_bbox_at_both_ends_of_a_regional_grid_raises(self):
+        """Columns at both ends of a grid short of 360 degrees are not one grid (#83)."""
+        grid = Grid(
+            projection=replace(
+                self._global_grid(100.0, 299.0).projection, sync_lat=0.0
+            ),
+            nx=200,
+            ny=20,
+        )
+        with pytest.raises(ValueError, match="both ends"):
+            grid.window_from_bbox((-80, 0, 110, 10))
+
     @pytest.mark.parametrize("source", [(0.0, 359.0), (-180.0, 179.0)])
     def test_latlon_subset_of_whole_grid_is_unchanged(self, source):
         grid = self._global_grid(*source)

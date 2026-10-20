@@ -232,7 +232,10 @@ class GridWindow:
     Parameters
     ----------
     x_start, x_stop : int
-        Inclusive start and exclusive stop indices in the x direction.
+        Inclusive start and exclusive stop indices in the x direction. On a
+        lat/lon grid that spans 360 degrees (:attr:`Grid.wraps_lon`),
+        ``x_stop`` may pass the grid's ``nx``: the window then runs on from the
+        last column to the first, as a crop across the grid's seam does.
     y_start, y_stop : int
         Inclusive start and exclusive stop indices in the y direction.
     """
@@ -274,6 +277,25 @@ class GridWindow:
     def y_slice(self) -> slice:
         """Slice object for selecting the y range."""
         return slice(self.y_start, self.y_stop)
+
+
+def _split_at_seam(window: GridWindow, grid: "Grid") -> tuple[GridWindow, ...]:
+    """
+    Split a window that runs past the grid's last column into its two parts.
+
+    A window within the grid comes back alone; one across the seam of a grid
+    that spans 360 degrees comes back as its eastern part (up to the last
+    column) and its western part (from the first), in that order.
+    """
+    nx = grid.nx
+    if window.x_stop <= nx:
+        return (window,)
+    if not grid.wraps_lon or window.nx > nx:
+        raise ValueError("GridWindow extends beyond the grid bounds.")
+    return (
+        replace(window, x_stop=nx),
+        replace(window, x_start=0, x_stop=window.x_stop - nx),
+    )
 
 
 @dataclass(frozen=True)
@@ -696,9 +718,25 @@ class Grid:
         if x_idx.size == 0 or y_idx.size == 0:
             raise ValueError("bbox does not intersect the grid.")
 
+        x_start, x_stop = int(x_idx.min()), int(x_idx.max()) + 1
+        gap = np.flatnonzero(~lon_mask[x_start:x_stop])
+        if gap.size:
+            # The bbox's columns are at both ends of the grid: it crosses the
+            # grid's seam (0 E on a grid from 0 E, 180 on one from 180 W).
+            if not self.wraps_lon:
+                raise ValueError(
+                    f"bbox {bbox} selects columns at both ends of a lat/lon grid "
+                    "that does not span 360 degrees, which no single grid holds."
+                )
+            # Start at the eastern run and wrap on past the last column.
+            x_start, x_stop = (
+                x_start + int(gap[-1]) + 1,
+                self.nx + x_start + int(gap[0]),
+            )
+
         return GridWindow(
-            x_start=int(x_idx.min()),
-            x_stop=int(x_idx.max()) + 1,
+            x_start=x_start,
+            x_stop=x_stop,
             y_start=int(y_idx.min()),
             y_stop=int(y_idx.max()) + 1,
         )
@@ -740,7 +778,8 @@ class Grid:
         (``gblset``'s ``PRIME``); a 0-360 ``sync_lon`` needs no such case.
         The window covering the whole grid returns this grid unchanged.
         """
-        if window.x_stop > self.nx or window.y_stop > self.ny:
+        x_limit = 2 * self.nx if self.wraps_lon else self.nx
+        if window.x_stop > x_limit or window.nx > self.nx or window.y_stop > self.ny:
             raise ValueError("GridWindow extends beyond the grid bounds.")
 
         if self.is_latlon:
