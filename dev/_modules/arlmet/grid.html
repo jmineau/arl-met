@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=20456d30"></script>
+    <script src="../../_static/documentation_options.js?v=120f6253"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev20+g3480efbd8" />
+  <meta name="docsearch:version" content="0.1.0b4.dev21+g1c86394c4" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -491,10 +491,12 @@
 <span class="sd">        stereographic: 90. For lat-lon grids: value always = 0.</span>
 <span class="sd">    sync_x : float</span>
 <span class="sd">        Grid x-coordinate used to equate a position on the grid with a position on earth</span>
-<span class="sd">        (paired with sync_y, sync_lat, sync_lon).</span>
+<span class="sd">        (paired with sync_y, sync_lat, sync_lon). One-based; it may lie outside the</span>
+<span class="sd">        grid, as in a subset of a projected grid (:meth:`Grid.subset`).</span>
 <span class="sd">    sync_y : float</span>
 <span class="sd">        Grid y-coordinate used to equate a position on the grid with a position on earth</span>
-<span class="sd">        (paired with sync_x, sync_lat, sync_lon).</span>
+<span class="sd">        (paired with sync_x, sync_lat, sync_lon). One-based; it may lie outside the</span>
+<span class="sd">        grid.</span>
 <span class="sd">    sync_lat : float</span>
 <span class="sd">        Earth latitude corresponding to the grid position (sync_x, sync_y). For lat-lon</span>
 <span class="sd">        grids: latitude of the (0,0) grid point position.</span>
@@ -1161,29 +1163,43 @@
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        Grid</span>
-<span class="sd">            New grid whose synchronization point corresponds to the lower-left</span>
-<span class="sd">            corner of ``window``.</span>
+<span class="sd">            New grid whose cells are the window&#39;s cells of this grid, at the</span>
+<span class="sd">            same positions.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        A projected grid keeps this grid&#39;s sync point (``sync_lat``,</span>
+<span class="sd">        ``sync_lon``) and moves only its grid coordinates, ``sync_x`` and</span>
+<span class="sd">        ``sync_y``, by the window&#39;s start, so they may lie outside the subset</span>
+<span class="sd">        (``sync_y = -326`` for a crop that starts at row 328). A new corner</span>
+<span class="sd">        sync point would be the corner cell&#39;s latitude and longitude, which</span>
+<span class="sd">        the index record stores as 7 characters (0.01 degree for a longitude</span>
+<span class="sd">        past 100 degrees): the whole subset would move by up to 0.15 cells of</span>
+<span class="sd">        a 3 km grid. HYSPLIT&#39;s map routines take a sync point anywhere.</span>
+
+<span class="sd">        A lat-lon grid&#39;s sync point is always its first cell (HYSPLIT ignores</span>
+<span class="sd">        ``sync_x`` and ``sync_y`` there), so the subset&#39;s is the window&#39;s</span>
+<span class="sd">        corner cell, a whole number of cells from this grid&#39;s. It is stored</span>
+<span class="sd">        exactly when the spacing is a multiple of 0.01 degree.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">window</span><span class="o">.</span><span class="n">x_stop</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span> <span class="ow">or</span> <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;GridWindow extends beyond the grid bounds.&quot;</span><span class="p">)</span>
 
-        <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_coords</span><span class="p">()</span>
-        <span class="n">lons</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">lats</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_latlon</span><span class="p">:</span>
-            <span class="n">sync_lon</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">lons</span><span class="p">[</span><span class="n">window</span><span class="o">.</span><span class="n">x_start</span><span class="p">])</span>
-            <span class="n">sync_lat</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">lats</span><span class="p">[</span><span class="n">window</span><span class="o">.</span><span class="n">y_start</span><span class="p">])</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_coords</span><span class="p">()</span>
+            <span class="n">subset_projection</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">,</span>
+                <span class="n">sync_x</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                <span class="n">sync_y</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                <span class="n">sync_lat</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="n">window</span><span class="o">.</span><span class="n">y_start</span><span class="p">]),</span>
+                <span class="n">sync_lon</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="n">window</span><span class="o">.</span><span class="n">x_start</span><span class="p">]),</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">sync_lon</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">lons</span><span class="p">[</span><span class="n">window</span><span class="o">.</span><span class="n">y_start</span><span class="p">,</span> <span class="n">window</span><span class="o">.</span><span class="n">x_start</span><span class="p">])</span>
-            <span class="n">sync_lat</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">lats</span><span class="p">[</span><span class="n">window</span><span class="o">.</span><span class="n">y_start</span><span class="p">,</span> <span class="n">window</span><span class="o">.</span><span class="n">x_start</span><span class="p">])</span>
-
-        <span class="n">subset_projection</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">,</span>
-            <span class="n">sync_x</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-            <span class="n">sync_y</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-            <span class="n">sync_lat</span><span class="o">=</span><span class="n">sync_lat</span><span class="p">,</span>
-            <span class="n">sync_lon</span><span class="o">=</span><span class="n">sync_lon</span><span class="p">,</span>
-        <span class="p">)</span>
+            <span class="n">subset_projection</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">,</span>
+                <span class="n">sync_x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">sync_x</span> <span class="o">-</span> <span class="n">window</span><span class="o">.</span><span class="n">x_start</span><span class="p">,</span>
+                <span class="n">sync_y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">sync_y</span> <span class="o">-</span> <span class="n">window</span><span class="o">.</span><span class="n">y_start</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">return</span> <span class="n">Grid</span><span class="p">(</span><span class="n">projection</span><span class="o">=</span><span class="n">subset_projection</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">window</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="o">=</span><span class="n">window</span><span class="o">.</span><span class="n">ny</span><span class="p">)</span></div>
 
 

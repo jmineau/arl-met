@@ -52,7 +52,10 @@ for choice. The Fortran routines it matches:
    * - ``xtrct_grid.f``
      - crop a met file to a grid window
      - :meth:`arlmet.Grid.window_from_bbox`, :func:`arlmet.extract_subset`
-       (``tests/test_subset_slow.py`` compares the two on real files)
+       (``tests/test_subset_slow.py`` compares the two on real files). The same
+       cells, but a projected crop keeps the source's sync point, where
+       ``xtrct_grid`` writes the corner cell's latitude and longitude to 0.01
+       degree and so moves its crop by up to 0.15 cells (:meth:`arlmet.Grid.subset`)
 
 Vertical-axis conversions
 -------------------------

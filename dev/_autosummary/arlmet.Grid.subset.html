@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=20456d30"></script>
+    <script src="../_static/documentation_options.js?v=120f6253"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.Grid.rotate_winds" href="arlmet.Grid.rotate_winds.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev20+g3480efbd8" />
+  <meta name="docsearch:version" content="0.1.0b4.dev21+g1c86394c4" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -634,13 +634,26 @@
 <dd class="field-odd"><p><strong>window</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="arlmet.GridWindow.html#arlmet.GridWindow" title="arlmet.grid.GridWindow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridWindow</span></code></a></span>) – Zero-based half-open window into the parent grid.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>New grid whose synchronization point corresponds to the lower-left
-corner of <code class="docutils literal notranslate"><span class="pre">window</span></code>.</p>
+<dd class="field-even"><p>New grid whose cells are the window’s cells of this grid, at the
+same positions.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="arlmet.Grid.html#arlmet.Grid" title="arlmet.grid.Grid"><code class="xref py py-class docutils literal notranslate"><span class="pre">Grid</span></code></a></span></p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>A projected grid keeps this grid’s sync point (<code class="docutils literal notranslate"><span class="pre">sync_lat</span></code>,
+<code class="docutils literal notranslate"><span class="pre">sync_lon</span></code>) and moves only its grid coordinates, <code class="docutils literal notranslate"><span class="pre">sync_x</span></code> and
+<code class="docutils literal notranslate"><span class="pre">sync_y</span></code>, by the window’s start, so they may lie outside the subset
+(<code class="docutils literal notranslate"><span class="pre">sync_y</span> <span class="pre">=</span> <span class="pre">-326</span></code> for a crop that starts at row 328). A new corner
+sync point would be the corner cell’s latitude and longitude, which
+the index record stores as 7 characters (0.01 degree for a longitude
+past 100 degrees): the whole subset would move by up to 0.15 cells of
+a 3 km grid. HYSPLIT’s map routines take a sync point anywhere.</p>
+<p>A lat-lon grid’s sync point is always its first cell (HYSPLIT ignores
+<code class="docutils literal notranslate"><span class="pre">sync_x</span></code> and <code class="docutils literal notranslate"><span class="pre">sync_y</span></code> there), so the subset’s is the window’s
+corner cell, a whole number of cells from this grid’s. It is stored
+exactly when the spacing is a multiple of 0.01 degree.</p>
 </dd></dl>
 
 </section>

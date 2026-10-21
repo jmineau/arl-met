@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=20456d30"></script>
+    <script src="_static/documentation_options.js?v=120f6253"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
     <link rel="search" title="Search" href="search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev20+g3480efbd8" />
+  <meta name="docsearch:version" content="0.1.0b4.dev21+g1c86394c4" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -470,7 +470,10 @@ from <code class="docutils literal notranslate"><span class="pre">PRES</span></c
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xtrct_grid.f</span></code></p></td>
 <td><p>crop a met file to a grid window</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.Grid.window_from_bbox.html#arlmet.Grid.window_from_bbox" title="arlmet.Grid.window_from_bbox"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.Grid.window_from_bbox()</span></code></a>, <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a>
-(<code class="docutils literal notranslate"><span class="pre">tests/test_subset_slow.py</span></code> compares the two on real files)</p></td>
+(<code class="docutils literal notranslate"><span class="pre">tests/test_subset_slow.py</span></code> compares the two on real files). The same
+cells, but a projected crop keeps the source’s sync point, where
+<code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> writes the corner cell’s latitude and longitude to 0.01
+degree and so moves its crop by up to 0.15 cells (<a class="reference internal" href="_autosummary/arlmet.Grid.subset.html#arlmet.Grid.subset" title="arlmet.Grid.subset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.Grid.subset()</span></code></a>)</p></td>
 </tr>
 </tbody>
 </table>
