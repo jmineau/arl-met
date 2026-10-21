@@ -103,6 +103,17 @@ preserving the original level values in the vertical axis metadata.
 When variables are selected, only those variables are written into each output
 time step. Forecast hours from the source index records are preserved.
 
+A crop of a projected grid keeps the source's sync point, the latitude and
+longitude the index record ties to one grid point, and moves only that grid
+point (``sync_x``, ``sync_y``) by where the crop starts, so each cell of the crop
+sits exactly where the source file puts it. The grid point can then lie outside
+the crop (``sync_y = -326`` for a crop of HRRR that starts at row 328); HYSPLIT
+reads it so. HYSPLIT's own ``xtrct_grid`` writes the corner cell's latitude and
+longitude instead, which the index record stores to 0.01 degree, so its crops move
+by up to 0.15 cells of a 3 km grid. A crop of a lat-lon grid has its corner cell
+as its sync point, as HYSPLIT requires there; it is exact when the spacing is a
+multiple of 0.01 degree.
+
 Limitations
 -----------
 

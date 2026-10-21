@@ -296,6 +296,54 @@ class TestGrid:
         coords = subset.calculate_coords()
         np.testing.assert_allclose(coords["lon"][1][0], 23.0)
         np.testing.assert_allclose(coords["lat"][1][0], -7.0)
+        # HYSPLIT reads a lat-lon sync point as the first cell's position
+        assert (subset.projection.sync_x, subset.projection.sync_y) == (1.0, 1.0)
+
+    def test_subset_of_projected_grid_keeps_sync_point(self):
+        """
+        A projected subset's cells sit exactly on the source's cells (#78).
+
+        The sync latitude and longitude stay the source's and only their grid
+        position moves, so no corner coordinate is rounded to 7 characters.
+        """
+        hrrr = Grid(
+            projection=Projection(
+                pole_lat=90.0,
+                pole_lon=0.0,
+                tangent_lat=38.5,
+                tangent_lon=-97.5,
+                grid_size=3.0,
+                orientation=0.0,
+                cone_angle=38.5,
+                sync_x=1.0,
+                sync_y=1.0,
+                sync_lat=21.1381,
+                sync_lon=-122.719,
+            ),
+            nx=1799,
+            ny=1059,
+        )
+        window = GridWindow(x_start=5, x_stop=25, y_start=327, y_stop=342)
+        subset = hrrr.subset(window)
+
+        p = subset.projection
+        assert (p.sync_lat, p.sync_lon) == (21.1381, -122.719)
+        assert (p.sync_x, p.sync_y) == (-4.0, -326.0)
+        assert replace(p, sync_x=1.0, sync_y=1.0) == hrrr.projection
+        source = hrrr.calculate_coords()
+        coords = subset.calculate_coords()
+        for name in ("lon", "lat"):
+            np.testing.assert_allclose(
+                coords[name][1],
+                source[name][1][window.y_slice, window.x_slice],
+                rtol=0,
+                atol=1e-9,
+            )
+
+        # a subset of the subset is the same as subsetting the source directly
+        inner = subset.subset(GridWindow(x_start=3, x_stop=8, y_start=2, y_stop=6))
+        direct = hrrr.subset(GridWindow(x_start=8, x_stop=13, y_start=329, y_stop=333))
+        assert inner == direct
 
 
 class TestVerticalAxis:

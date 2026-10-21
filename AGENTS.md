@@ -51,9 +51,9 @@ when it downloads, so it imports without the `archives` extra.
   step starts with an index record (`INDX`: grid, vertical axis, each level's
   variables), which must fit in one record; `validate_subset_record_length`
   (`ops/subset.py`) refuses a crop too small for it before writing anything.
-- **Projection fields.** Of the index record's 12 projection values only the
-  longitudes (`pole_lon`, `tangent_lon`, `sync_lon`) are wrapped to [-180, 180]
-  on read; HYSPLIT reads all 12 raw, and `sync_x`/`sync_y` can exceed 180.
+- **Projection fields.** Of the 12 projection values only the longitudes are wrapped
+  to [-180, 180] on read; HYSPLIT reads all 12 raw. `sync_x`/`sync_y` can exceed 180
+  or lie off the grid: a projected crop keeps its source's sync point (`Grid.subset`).
 - **Grids over 999 cells.** The thousands of `nx`/`ny` are a letter in the header
   (`A` = 1000, ...). `Header.grid` holds the thousands and the index record only
   the remainder, but `IndexRecord.nx`/`ny` are the full sizes (`__post_init__`

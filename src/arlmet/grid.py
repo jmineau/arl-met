@@ -75,10 +75,12 @@ class Projection:
         stereographic: 90. For lat-lon grids: value always = 0.
     sync_x : float
         Grid x-coordinate used to equate a position on the grid with a position on earth
-        (paired with sync_y, sync_lat, sync_lon).
+        (paired with sync_y, sync_lat, sync_lon). One-based; it may lie outside the
+        grid, as in a subset of a projected grid (:meth:`Grid.subset`).
     sync_y : float
         Grid y-coordinate used to equate a position on the grid with a position on earth
-        (paired with sync_x, sync_lat, sync_lon).
+        (paired with sync_x, sync_lat, sync_lon). One-based; it may lie outside the
+        grid.
     sync_lat : float
         Earth latitude corresponding to the grid position (sync_x, sync_y). For lat-lon
         grids: latitude of the (0,0) grid point position.
@@ -713,29 +715,43 @@ class Grid:
         Returns
         -------
         Grid
-            New grid whose synchronization point corresponds to the lower-left
-            corner of ``window``.
+            New grid whose cells are the window's cells of this grid, at the
+            same positions.
+
+        Notes
+        -----
+        A projected grid keeps this grid's sync point (``sync_lat``,
+        ``sync_lon``) and moves only its grid coordinates, ``sync_x`` and
+        ``sync_y``, by the window's start, so they may lie outside the subset
+        (``sync_y = -326`` for a crop that starts at row 328). A new corner
+        sync point would be the corner cell's latitude and longitude, which
+        the index record stores as 7 characters (0.01 degree for a longitude
+        past 100 degrees): the whole subset would move by up to 0.15 cells of
+        a 3 km grid. HYSPLIT's map routines take a sync point anywhere.
+
+        A lat-lon grid's sync point is always its first cell (HYSPLIT ignores
+        ``sync_x`` and ``sync_y`` there), so the subset's is the window's
+        corner cell, a whole number of cells from this grid's. It is stored
+        exactly when the spacing is a multiple of 0.01 degree.
         """
         if window.x_stop > self.nx or window.y_stop > self.ny:
             raise ValueError("GridWindow extends beyond the grid bounds.")
 
-        coords = self.calculate_coords()
-        lons = coords["lon"][1]
-        lats = coords["lat"][1]
         if self.is_latlon:
-            sync_lon = float(lons[window.x_start])
-            sync_lat = float(lats[window.y_start])
+            coords = self.calculate_coords()
+            subset_projection = replace(
+                self.projection,
+                sync_x=1.0,
+                sync_y=1.0,
+                sync_lat=float(coords["lat"][1][window.y_start]),
+                sync_lon=float(coords["lon"][1][window.x_start]),
+            )
         else:
-            sync_lon = float(lons[window.y_start, window.x_start])
-            sync_lat = float(lats[window.y_start, window.x_start])
-
-        subset_projection = replace(
-            self.projection,
-            sync_x=1.0,
-            sync_y=1.0,
-            sync_lat=sync_lat,
-            sync_lon=sync_lon,
-        )
+            subset_projection = replace(
+                self.projection,
+                sync_x=self.projection.sync_x - window.x_start,
+                sync_y=self.projection.sync_y - window.y_start,
+            )
         return Grid(projection=subset_projection, nx=window.nx, ny=window.ny)
 
     @override
