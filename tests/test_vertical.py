@@ -214,24 +214,28 @@ class TestToHeightAgl:
         np.testing.assert_allclose(result, [0.0, 100.0, 500.0])
 
     def test_wrf_hypsometric_from_pres_by_hand(self):
-        # dz = (R_D / G) * T * ln(p_below / p_above), R_D / G = 287.05 / 9.80665
-        # = 29.27095 m/K. Layer 1 (PRSS 850 -> PRES 820) uses T(level 1) = 279;
-        # each layer above uses the mean T of its two levels.
-        #   z1 = 29.27095 * 279.0 * ln(850 / 820) = 293.4422
-        #   z2 = z1 + 29.27095 * 278.5 * ln(820 / 790) = 597.2772
-        #   z3 = z2 + 29.27095 * 277.5 * ln(790 / 760) = 911.7431
+        # As HYSPLIT's prfsig, which HYSPLIT uses for a flag-5 file without WRF's
+        # hybrid coefficients: dz = (R_D / G) * T * ln(p_below / p_above), with
+        # R_D / G = 287.05 / 9.80665 = 29.27095 m/K and T the mean of the two
+        # levels. The ground (PRSS 850) has no T02M, so its temperature is level
+        # 1's brought down adiabatically (PRFSFCT): 279 * 0.99 ** -0.286 = 279.8031.
+        #   z1 = 29.27095 * (279.8031 + 279) / 2 * ln(850 / 820) = 293.8645
+        #   z2 = z1 + 29.27095 * 278.5 * ln(820 / 790) = 597.6995
+        #   z3 = z2 + 29.27095 * 277.5 * ln(790 / 760) = 912.1655
         ax = WrfAxis(levels=[1.0, 0.99, 0.95, 0.9], offset=50.0)
         z = ax.to_height_agl(
             surface_pressure=850.0,
             temperature=np.array([279.0, 278.0, 277.0]),
             pressure=np.array([820.0, 790.0, 760.0]),
         )
-        np.testing.assert_allclose(z, [293.4422, 597.2772, 911.7431], atol=1e-3)
+        np.testing.assert_allclose(z, [293.8645, 597.6995, 912.1655], atol=1e-3)
 
     def test_wrf_height_per_point(self):
-        # Two points, levels on the last axis; the class docstring's example
-        # is the first row: 29.27095 * 285 * ln(850 / 845) = 49.2168 and
-        # 49.2168 + 29.27095 * 284.5 * ln(845 / 832) = 178.3292.
+        # Two points, levels on the last axis; the class docstring's example is
+        # the first row. The ground is 285 * 0.995 ** -0.286 = 285.4089 K:
+        #   29.27095 * (285.4089 + 285) / 2 * ln(850 / 845) = 49.2521
+        #   49.2521 + 29.27095 * 284.5 * ln(845 / 832) = 178.3645
+        # and the second row's ground 279 * 0.995 ** -0.286 = 279.4003 K.
         ax = WrfAxis(levels=[1.0, 0.995, 0.98], offset=50.0)
         z = ax.to_height_agl(
             surface_pressure=np.array([850.0, 850.0]),
@@ -239,7 +243,7 @@ class TestToHeightAgl:
             pressure=np.array([[845.0, 832.0], [820.0, 790.0]]),
         )
         np.testing.assert_allclose(
-            z, [[49.2168, 178.3292], [293.4422, 597.2772]], atol=1e-3
+            z, [[49.2521, 178.3645], [293.6527, 597.4876]], atol=1e-3
         )
 
     def test_sigma_uses_pres_when_given_by_hand(self):
@@ -286,7 +290,6 @@ import arlmet  # noqa: E402
 from arlmet import File  # noqa: E402
 from arlmet.grid import Grid, Projection  # noqa: E402
 from arlmet.vertical import R_D, G  # noqa: E402
-from arlmet.xarray._vertical import _hypsometric_z_agl  # noqa: E402
 
 
 def _make_latlon_grid(nx: int = 20, ny: int = 20) -> Grid:
@@ -490,43 +493,6 @@ class TestColumnHelpers:
         )
 
 
-class TestHypsometricZagl:
-    """Unit tests for _hypsometric_z_agl with synthetic DataArrays."""
-
-    def _make_inputs(self, p_lev, p_sfc, t_lev):
-        """Build minimal 1D DataArrays for testing."""
-        p = xr.DataArray(np.array(p_lev, dtype=float), dims=["level"])
-        prss = xr.DataArray(np.array([p_sfc], dtype=float), dims=["x"])
-        temp = xr.DataArray(
-            np.array([[t] for t in t_lev], dtype=float).reshape(len(t_lev), 1),
-            dims=["level", "x"],
-        )
-        return p, prss, temp
-
-    def test_single_level_positive_dz(self):
-        # p_sfc=1013, p_lev=1000, T=290 K
-        # dz ≈ (R_D/G) * 290 * ln(1013/1000)
-        p, prss, temp = self._make_inputs([1000.0], 1013.0, [290.0])
-        z = _hypsometric_z_agl(p, prss, temp)
-        expected = (R_D / G) * 290.0 * np.log(1013.0 / 1000.0)
-        np.testing.assert_allclose(float(z.values[0, 0]), expected, rtol=1e-5)
-
-    def test_two_levels_cumulative(self):
-        # p = [1000, 850], T = [290, 290], PRSS = 1013
-        p, prss, temp = self._make_inputs([1000.0, 850.0], 1013.0, [290.0, 290.0])
-        z = _hypsometric_z_agl(p, prss, temp)
-        dz0 = (R_D / G) * 290.0 * np.log(1013.0 / 1000.0)
-        dz1 = (R_D / G) * 290.0 * np.log(1000.0 / 850.0)  # T_mean = (290+290)/2 = 290
-        np.testing.assert_allclose(float(z.values[0, 0]), dz0, rtol=1e-4)
-        np.testing.assert_allclose(float(z.values[1, 0]), dz0 + dz1, rtol=1e-4)
-
-    def test_output_dims_match_temp(self):
-        p, prss, temp = self._make_inputs([1000.0, 850.0], 1013.0, [290.0, 280.0])
-        z = _hypsometric_z_agl(p, prss, temp)
-        assert z.dims == temp.dims
-        assert z.shape == temp.shape
-
-
 class TestPressureHelper:
     def test_flag2_returns_pressure_coord(self, tmp_path):
         path = tmp_path / "test.arl"
@@ -713,8 +679,9 @@ _WRF_LEVELS = [1.0, 0.99, 0.95, 0.9]
 _WRF_PTOP = 50.0
 _WRF_PRES = [820.0, 790.0, 760.0]
 _WRF_TEMP = [279.0, 278.0, 277.0]
-# Hand-worked heights for PRSS 850 hPa (see test_wrf_hypsometric_from_pres_by_hand)
-_WRF_Z = [293.4422, 597.2772, 911.7431]
+# Hand-worked heights for PRSS 850 hPa, no T02M and no humidity (see
+# test_wrf_hypsometric_from_pres_by_hand)
+_WRF_Z = [293.8645, 597.6995, 912.1655]
 
 
 def _write_wrf_file(path, *, with_pres: bool = True):
@@ -808,9 +775,11 @@ class TestWrfFile:
     def test_sample_points_in_pressure_agl_and_msl(self, tmp_path):
         path = tmp_path / "wrf.arl"
         _write_wrf_file(path)
-        # A quarter of the way from level 1 to level 2: TEMP 279 -> 278 and
-        # PRES 820 -> 790 are linear in the target coordinate.
+        # A quarter of the way from level 1 to level 2: TEMP 279 -> 278 is
+        # linear in the target coordinate; pressure is linear in ln p at
+        # heights, as in HYSPLIT's prfsig, and 812.5 hPa at a quarter in p.
         z_quarter = _WRF_Z[0] + 0.25 * (_WRF_Z[1] - _WRF_Z[0])
+        p_quarter = np.exp(np.log(820.0) + 0.25 * np.log(790.0 / 820.0))  # 812.39
         point = {"lon": [-105.0], "lat": [45.0], "time": [pd.Timestamp("2024-01-01")]}
         with File(path) as f:
             by_p = f.sample_points({**point, "z": [812.5]}, ["TEMP"], z_kind="pressure")
@@ -823,16 +792,19 @@ class TestWrfFile:
         np.testing.assert_allclose(by_p["TEMP"].iloc[0], 278.75, atol=1e-4)
         for result in (agl, msl):
             np.testing.assert_allclose(result["TEMP"].iloc[0], 278.75, atol=1e-3)
-            np.testing.assert_allclose(result["pressure"].iloc[0], 812.5, atol=1e-2)
+            np.testing.assert_allclose(result["pressure"].iloc[0], p_quarter, rtol=1e-5)
 
     def test_sample_points_below_first_level_uses_the_surface(self, tmp_path):
         path = tmp_path / "wrf.arl"
         _write_wrf_file(path)
-        # The virtual pressure profile starts at PRSS (850 hPa) at 0 m AGL.
+        # The virtual pressure profile starts at PRSS (850 hPa) at 0 m AGL;
+        # halfway to level 1 it is the geometric mean of 850 and 820 hPa.
         point = {"lon": [-105.0], "lat": [45.0], "z": [0.5 * _WRF_Z[0]]}
         with File(path) as f:
             agl = f.sample_points(point, ["pressure"], z_kind="agl")
-        np.testing.assert_allclose(agl["pressure"].iloc[0], 835.0, atol=1e-2)
+        np.testing.assert_allclose(
+            agl["pressure"].iloc[0], np.sqrt(850.0 * 820.0), rtol=1e-5
+        )
 
     def test_sample_points_without_pres_raises(self, tmp_path):
         path = tmp_path / "wrf.arl"

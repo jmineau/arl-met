@@ -77,7 +77,7 @@ when it downloads, so it imports without the `archives` extra.
 - **The vertical flag is the type.** `VerticalAxis.from_flag(flag, levels,
   offset=)` builds the subclass, mirroring HYSPLIT's `prfcom`: 1 `SigmaAxis`, 2
   `PressureAxis`, 3 `TerrainAxis`, 4 `HybridAxis`, 5 `WrfAxis`, else `ValueError`.
-  Sigma/hybrid heights are HYSPLIT's `prfsig`/`prfecm` column (ground at `PRSS`,
+  Sigma/hybrid/WRF heights are HYSPLIT's `prfsig`/`prfecm` column (ground at `PRSS`,
   `T02M`; virtual T; a sigma file's `PRES` over nominal sigma); WRF pressure is `PRES`
   (eta needs coefficients the file lacks); pressure files use `HGTS`. No fallback across
   flags; each subclass takes only the keyword-only inputs it needs, else `ValueError`.

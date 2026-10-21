@@ -557,9 +557,11 @@ class WrfAxis(VerticalAxis):
     Eta alone does not give pressure on hybrid levels: that also takes WRF's
     hybrid coefficients, which ``arw2arl`` writes to a separate text file
     (``hybrid_wrfvcoords.txt``), not to the ARL file. So pressure is the
-    ``PRES`` field, as in HYSPLIT's ``prfwrf``, and heights are hypsometric from
-    ``PRSS`` up through ``PRES`` with ``TEMP``, as in HYSPLIT's ``prfsig``, which
-    HYSPLIT uses for a flag-5 file when it does not have the coefficients.
+    ``PRES`` field, as in HYSPLIT's ``prfwrf``, and heights are found as for a
+    sigma file with ``PRES``, by HYSPLIT's ``prfsig``, which HYSPLIT uses for a
+    flag-5 file when it does not have the coefficients: hypsometric from the
+    ground (``PRSS``) up through ``PRES``, the first layer with the mean of the
+    ground temperature and the first level's.
 
     Examples
     --------
@@ -572,7 +574,7 @@ class WrfAxis(VerticalAxis):
     ...     pressure=np.array([845.0, 832.0]),
     ... )
     >>> np.round(z, 1)
-    array([ 49.2, 178.3])
+    array([ 49.3, 178.4])
     """
 
     flag = 5
@@ -599,7 +601,17 @@ class WrfAxis(VerticalAxis):
         hgts: npt.ArrayLike | None = None,
         terrain: npt.ArrayLike | None = None,
     ) -> npt.NDArray[np.float64]:
-        """Height AGL [m] by hypsometric integration of ``pressure`` (PRES) from ``surface_pressure`` with ``temperature``."""
+        """
+        Height AGL [m] by hypsometric integration of ``pressure`` (PRES) from ``surface_pressure`` with ``temperature``.
+
+        ``temperature`` and ``pressure`` hold the levels above the surface, on
+        the last axis. As in HYSPLIT's ``prfsig`` without a 2 m temperature,
+        the ground temperature is the first level's brought down
+        adiabatically, ``T1 * eta1 ** -0.286`` (``PRFSFCT``), with ``eta1``
+        the first level above the surface. For HYSPLIT's heights pass the
+        virtual temperature; :func:`arlmet.z_agl` and
+        :func:`arlmet.sample_points` also use ``T02M`` and the humidity.
+        """
         _require("surface_pressure", surface_pressure, self)
         _require("temperature", temperature, self)
         _require("pressure", pressure, self)
@@ -608,7 +620,9 @@ class WrfAxis(VerticalAxis):
             and temperature is not None
             and pressure is not None
         )
-        return hypsometric_z_agl(pressure, surface_pressure, temperature)
+        return _hysplit_z_agl(
+            pressure, surface_pressure, temperature, first_sigma=self.levels[1]
+        )
 
 
 def _hypsometric_height(

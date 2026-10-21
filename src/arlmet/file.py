@@ -846,24 +846,25 @@ class File:
               it; pressure files (flag 2) use the stored levels;
               terrain-following files (flag 3) raise ``ValueError``; WRF
               files (flag 5) use the ``PRES`` field.
-            - ``"agl"``: meters above ground level. Sigma/hybrid files
+            - ``"agl"``: meters above ground level. Sigma/hybrid/WRF files
               integrate hypsometrically from the ground (``PRSS``, ``T02M``)
-              through each level's pressure with the virtual temperature
-              (``TEMP`` with ``SPHU`` or ``RELH``), as HYSPLIT's ``prfsig``
-              and ``prfecm`` do; WRF files from ``PRSS`` through ``PRES`` with
-              ``TEMP``; pressure files use ``HGTS - SHGT``; terrain-following
-              files use the stored levels.
+              through each level's pressure (``PRES`` on WRF files) with the
+              virtual temperature (``TEMP`` with ``SPHU`` or ``RELH``), as
+              HYSPLIT's ``prfsig`` and ``prfecm`` do; pressure files use
+              ``HGTS - SHGT`` from the ground up; terrain-following files use
+              the stored levels.
             - ``"msl"``: meters above mean sea level. Sigma/hybrid/WRF files
               add ``SHGT`` to the hypsometric AGL height; pressure files use
               ``HGTS``; terrain-following files add ``SHGT`` to the stored
               levels.
 
             Each vertical coordinate system has exactly one method, as in
-            HYSPLIT; there is no fallback between them. On sigma and hybrid
-            files level 0 is the ground: a point between it and the first
-            level is interpolated from the ground values (``PRSS`` for
-            ``PRES``, ``T02M`` for ``TEMP``, ``U10M``/``V10M`` for winds),
-            and pressure is interpolated as ``ln p``. The *Vertical
+            HYSPLIT; there is no fallback between them. On sigma, hybrid and
+            WRF files, and on pressure-level files at heights, level 0 is the
+            ground: a point between it and the first level is interpolated
+            from the ground values (``PRSS`` for ``PRES``, ``T02M`` for
+            ``TEMP``, ``U10M``/``V10M`` for winds), and pressure is
+            interpolated as ``ln p``, as HYSPLIT does. The *Vertical
             Coordinates* guide has the details.
         method : {"linear", "nearest"}, default "linear"
             Horizontal interpolation: bilinear or nearest grid point.
