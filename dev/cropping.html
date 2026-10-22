@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=d86fd80f"></script>
+    <script src="_static/documentation_options.js?v=68e8b86c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Downloading Archived Meteorology" href="downloading.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev22+g9e92ed994" />
+  <meta name="docsearch:version" content="0.1.0b4.dev23+g47eb2171e" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -506,6 +506,15 @@ available as a method:</p>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>On a lat-lon grid, a <code class="docutils literal notranslate"><span class="pre">bbox</span></code> with <code class="docutils literal notranslate"><span class="pre">west</span> <span class="pre">&gt;</span> <span class="pre">east</span></code> crosses the dateline. On a
+global grid a box may also cross the grid’s seam, the column where its longitudes
+start again (0 E on GDAS or GFS, which start at 0 E; 180 on a grid that starts at
+180 W). The crop then holds only the box’s columns, in order from west to east
+across the seam: <code class="docutils literal notranslate"><span class="pre">bbox=(-10.0,</span> <span class="pre">35.0,</span> <span class="pre">30.0,</span> <span class="pre">60.0)</span></code> on GFS 0.25 is 161 columns
+wide, not all 1440. HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> writes the same header for such a
+crop, but its values east of the seam come from the column after the right one.
+A box with columns at both ends of a lat-lon grid that does not span 360 degrees
+raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>, since no single grid holds them.</p>
 </section>
 <section id="keep-only-the-levels-and-variables-you-need">
 <h2>Keep only the levels and variables you need<a class="headerlink" href="#keep-only-the-levels-and-variables-you-need" title="Link to this heading">#</a></h2>
@@ -549,6 +558,8 @@ coordinate is the same either way.</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">bbox</span></code> is always interpreted as <code class="docutils literal notranslate"><span class="pre">(west,</span> <span class="pre">south,</span> <span class="pre">east,</span> <span class="pre">north)</span></code> in degrees</p></li>
 <li><p>projected-grid bounding boxes must not cross the dateline</p></li>
+<li><p>on a lat-lon grid short of 360 degrees, a box must not select columns at both
+of its ends</p></li>
 <li><p>the cropped grid must still be large enough to hold the ARL index record</p></li>
 </ul>
 <p>If the selected domain is too small to hold the output index record,

@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=d86fd80f"></script>
+    <script src="../_static/documentation_options.js?v=68e8b86c"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.Grid.window_from_bbox" href="arlmet.Grid.window_from_bbox.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev22+g9e92ed994" />
+  <meta name="docsearch:version" content="0.1.0b4.dev23+g47eb2171e" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -629,8 +629,14 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x_start</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Inclusive start and exclusive stop indices in the x direction.</p></li>
-<li><p><strong>x_stop</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Inclusive start and exclusive stop indices in the x direction.</p></li>
+<li><p><strong>x_start</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Inclusive start and exclusive stop indices in the x direction. On a
+lat/lon grid that spans 360 degrees (<a class="reference internal" href="arlmet.Grid.wraps_lon.html#arlmet.Grid.wraps_lon" title="arlmet.Grid.wraps_lon"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Grid.wraps_lon</span></code></a>),
+<code class="docutils literal notranslate"><span class="pre">x_stop</span></code> may pass the grid’s <code class="docutils literal notranslate"><span class="pre">nx</span></code>: the window then runs on from the
+last column to the first, as a crop across the grid’s seam does.</p></li>
+<li><p><strong>x_stop</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Inclusive start and exclusive stop indices in the x direction. On a
+lat/lon grid that spans 360 degrees (<a class="reference internal" href="arlmet.Grid.wraps_lon.html#arlmet.Grid.wraps_lon" title="arlmet.Grid.wraps_lon"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Grid.wraps_lon</span></code></a>),
+<code class="docutils literal notranslate"><span class="pre">x_stop</span></code> may pass the grid’s <code class="docutils literal notranslate"><span class="pre">nx</span></code>: the window then runs on from the
+last column to the first, as a crop across the grid’s seam does.</p></li>
 <li><p><strong>y_start</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Inclusive start and exclusive stop indices in the y direction.</p></li>
 <li><p><strong>y_stop</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Inclusive start and exclusive stop indices in the y direction.</p></li>
 </ul>

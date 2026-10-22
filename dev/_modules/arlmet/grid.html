@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=d86fd80f"></script>
+    <script src="../../_static/documentation_options.js?v=68e8b86c"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev22+g9e92ed994" />
+  <meta name="docsearch:version" content="0.1.0b4.dev23+g47eb2171e" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -651,7 +651,10 @@
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    x_start, x_stop : int</span>
-<span class="sd">        Inclusive start and exclusive stop indices in the x direction.</span>
+<span class="sd">        Inclusive start and exclusive stop indices in the x direction. On a</span>
+<span class="sd">        lat/lon grid that spans 360 degrees (:attr:`Grid.wraps_lon`),</span>
+<span class="sd">        ``x_stop`` may pass the grid&#39;s ``nx``: the window then runs on from the</span>
+<span class="sd">        last column to the first, as a crop across the grid&#39;s seam does.</span>
 <span class="sd">    y_start, y_stop : int</span>
 <span class="sd">        Inclusive start and exclusive stop indices in the y direction.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -694,6 +697,25 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Slice object for selecting the y range.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">slice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_stop</span><span class="p">)</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_split_at_seam</span><span class="p">(</span><span class="n">window</span><span class="p">:</span> <span class="n">GridWindow</span><span class="p">,</span> <span class="n">grid</span><span class="p">:</span> <span class="s2">&quot;Grid&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">GridWindow</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Split a window that runs past the grid&#39;s last column into its two parts.</span>
+
+<span class="sd">    A window within the grid comes back alone; one across the seam of a grid</span>
+<span class="sd">    that spans 360 degrees comes back as its eastern part (up to the last</span>
+<span class="sd">    column) and its western part (from the first), in that order.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nx</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span>
+    <span class="k">if</span> <span class="n">window</span><span class="o">.</span><span class="n">x_stop</span> <span class="o">&lt;=</span> <span class="n">nx</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">window</span><span class="p">,)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">grid</span><span class="o">.</span><span class="n">wraps_lon</span> <span class="ow">or</span> <span class="n">window</span><span class="o">.</span><span class="n">nx</span> <span class="o">&gt;</span> <span class="n">nx</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;GridWindow extends beyond the grid bounds.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">replace</span><span class="p">(</span><span class="n">window</span><span class="p">,</span> <span class="n">x_stop</span><span class="o">=</span><span class="n">nx</span><span class="p">),</span>
+        <span class="n">replace</span><span class="p">(</span><span class="n">window</span><span class="p">,</span> <span class="n">x_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_stop</span><span class="o">=</span><span class="n">window</span><span class="o">.</span><span class="n">x_stop</span> <span class="o">-</span> <span class="n">nx</span><span class="p">),</span>
+    <span class="p">)</span>
 
 
 <div class="viewcode-block" id="Grid">
@@ -1141,9 +1163,25 @@
         <span class="k">if</span> <span class="n">x_idx</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">y_idx</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;bbox does not intersect the grid.&quot;</span><span class="p">)</span>
 
+        <span class="n">x_start</span><span class="p">,</span> <span class="n">x_stop</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x_idx</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="nb">int</span><span class="p">(</span><span class="n">x_idx</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">gap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="o">~</span><span class="n">lon_mask</span><span class="p">[</span><span class="n">x_start</span><span class="p">:</span><span class="n">x_stop</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">gap</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+            <span class="c1"># The bbox&#39;s columns are at both ends of the grid: it crosses the</span>
+            <span class="c1"># grid&#39;s seam (0 E on a grid from 0 E, 180 on one from 180 W).</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">wraps_lon</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;bbox </span><span class="si">{</span><span class="n">bbox</span><span class="si">}</span><span class="s2"> selects columns at both ends of a lat/lon grid &quot;</span>
+                    <span class="s2">&quot;that does not span 360 degrees, which no single grid holds.&quot;</span>
+                <span class="p">)</span>
+            <span class="c1"># Start at the eastern run and wrap on past the last column.</span>
+            <span class="n">x_start</span><span class="p">,</span> <span class="n">x_stop</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">x_start</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">gap</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nx</span> <span class="o">+</span> <span class="n">x_start</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">gap</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="p">)</span>
+
         <span class="k">return</span> <span class="n">GridWindow</span><span class="p">(</span>
-            <span class="n">x_start</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">x_idx</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span>
-            <span class="n">x_stop</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">x_idx</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">x_start</span><span class="o">=</span><span class="n">x_start</span><span class="p">,</span>
+            <span class="n">x_stop</span><span class="o">=</span><span class="n">x_stop</span><span class="p">,</span>
             <span class="n">y_start</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">y_idx</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span>
             <span class="n">y_stop</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">y_idx</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span></div>
@@ -1188,7 +1226,8 @@
 <span class="sd">        (``gblset``&#39;s ``PRIME``); a 0-360 ``sync_lon`` needs no such case.</span>
 <span class="sd">        The window covering the whole grid returns this grid unchanged.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">window</span><span class="o">.</span><span class="n">x_stop</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span> <span class="ow">or</span> <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="p">:</span>
+        <span class="n">x_limit</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">wraps_lon</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span>
+        <span class="k">if</span> <span class="n">window</span><span class="o">.</span><span class="n">x_stop</span> <span class="o">&gt;</span> <span class="n">x_limit</span> <span class="ow">or</span> <span class="n">window</span><span class="o">.</span><span class="n">nx</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span> <span class="ow">or</span> <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;GridWindow extends beyond the grid bounds.&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_latlon</span><span class="p">:</span>
