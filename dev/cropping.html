@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=120f6253"></script>
+    <script src="_static/documentation_options.js?v=d86fd80f"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Downloading Archived Meteorology" href="downloading.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev21+g1c86394c4" />
+  <meta name="docsearch:version" content="0.1.0b4.dev22+g9e92ed994" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -539,7 +539,10 @@ reads it so. HYSPLIT’s own <code class="docutils literal notranslate"><span cl
 longitude instead, which the index record stores to 0.01 degree, so its crops move
 by up to 0.15 cells of a 3 km grid. A crop of a lat-lon grid has its corner cell
 as its sync point, as HYSPLIT requires there; it is exact when the spacing is a
-multiple of 0.01 degree.</p>
+multiple of 0.01 degree. Its longitudes are written east of Greenwich (0-360), as
+<code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> writes them and NOAA’s global files store them, because HYSPLIT
+places a lat-lon grid by the sign of its stored longitudes; arl-met’s <code class="docutils literal notranslate"><span class="pre">lon</span></code>
+coordinate is the same either way.</p>
 </section>
 <section id="limitations">
 <h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading">#</a></h2>

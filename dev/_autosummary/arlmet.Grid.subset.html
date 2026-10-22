@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=120f6253"></script>
+    <script src="../_static/documentation_options.js?v=d86fd80f"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.Grid.rotate_winds" href="arlmet.Grid.rotate_winds.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev21+g1c86394c4" />
+  <meta name="docsearch:version" content="0.1.0b4.dev22+g9e92ed994" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -653,7 +653,13 @@ a 3 km grid. HYSPLIT’s map routines take a sync point anywhere.</p>
 <p>A lat-lon grid’s sync point is always its first cell (HYSPLIT ignores
 <code class="docutils literal notranslate"><span class="pre">sync_x</span></code> and <code class="docutils literal notranslate"><span class="pre">sync_y</span></code> there), so the subset’s is the window’s
 corner cell, a whole number of cells from this grid’s. It is stored
-exactly when the spacing is a multiple of 0.01 degree.</p>
+exactly when the spacing is a multiple of 0.01 degree. The subset is
+written as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> writes a crop: <code class="docutils literal notranslate"><span class="pre">sync_lon</span></code> in
+0-360 east and <code class="docutils literal notranslate"><span class="pre">pole_lat</span></code>/<code class="docutils literal notranslate"><span class="pre">pole_lon</span></code> its last cell, so
+<code class="docutils literal notranslate"><span class="pre">pole_lon</span></code> can pass 360. HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">gbl2xy</span></code> measures a longitude
+from a negative <code class="docutils literal notranslate"><span class="pre">sync_lon</span></code> only when <code class="docutils literal notranslate"><span class="pre">pole_lon</span></code> is not negative
+(<code class="docutils literal notranslate"><span class="pre">gblset</span></code>’s <code class="docutils literal notranslate"><span class="pre">PRIME</span></code>); a 0-360 <code class="docutils literal notranslate"><span class="pre">sync_lon</span></code> needs no such case.
+The window covering the whole grid returns this grid unchanged.</p>
 </dd></dl>
 
 </section>

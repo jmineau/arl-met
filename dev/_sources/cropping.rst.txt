@@ -112,7 +112,10 @@ reads it so. HYSPLIT's own ``xtrct_grid`` writes the corner cell's latitude and
 longitude instead, which the index record stores to 0.01 degree, so its crops move
 by up to 0.15 cells of a 3 km grid. A crop of a lat-lon grid has its corner cell
 as its sync point, as HYSPLIT requires there; it is exact when the spacing is a
-multiple of 0.01 degree.
+multiple of 0.01 degree. Its longitudes are written east of Greenwich (0-360), as
+``xtrct_grid`` writes them and NOAA's global files store them, because HYSPLIT
+places a lat-lon grid by the sign of its stored longitudes; arl-met's ``lon``
+coordinate is the same either way.
 
 Limitations
 -----------

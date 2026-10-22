@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=120f6253"></script>
+    <script src="_static/documentation_options.js?v=d86fd80f"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Writing ARL Files" href="writing.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev21+g1c86394c4" />
+  <meta name="docsearch:version" content="0.1.0b4.dev22+g9e92ed994" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -523,7 +523,7 @@ chunk: <code class="docutils literal notranslate"><span class="pre">&quot;1D&quo
 Files are never split: each file’s first and last valid times must floor to the
 same bin, or <code class="docutils literal notranslate"><span class="pre">concat_by_time()</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> before writing anything.</p>
 <p><code class="docutils literal notranslate"><span class="pre">template</span></code> is a <code class="docutils literal notranslate"><span class="pre">str.format</span></code> string for the output filenames, given the bin
-start time as <code class="docutils literal notranslate"><span class="pre">time</span></code> (a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v3.0.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Timestamp</span></code></a>). It must keep bins distinct
+start time as <code class="docutils literal notranslate"><span class="pre">time</span></code> (a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v3.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Timestamp</span></code></a>). It must keep bins distinct
 at <code class="docutils literal notranslate"><span class="pre">freq</span></code> — <code class="docutils literal notranslate"><span class="pre">&quot;{time:%Y%m%d}_hrrr&quot;</span></code> with <code class="docutils literal notranslate"><span class="pre">freq=&quot;6h&quot;</span></code> would name four bins
 the same, which raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. <code class="docutils literal notranslate"><span class="pre">concat_by_time()</span></code> returns the list of
 written paths, in time order.</p>

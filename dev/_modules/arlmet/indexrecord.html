@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=120f6253"></script>
+    <script src="../../_static/documentation_options.js?v=d86fd80f"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev21+g1c86394c4" />
+  <meta name="docsearch:version" content="0.1.0b4.dev22+g9e92ed994" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -625,14 +625,6 @@
 
     <span class="n">N_BYTES_FIXED</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">108</span>
 
-    <span class="c1"># Only the longitude fields of the 12 projection values are wrapped to</span>
-    <span class="c1"># [-180, 180]. HYSPLIT reads all 12 raw (metset.f: `12F7.0`); wrapping</span>
-    <span class="c1"># others such as sync_x/sync_y (grid indices) or grid_size (km) would</span>
-    <span class="c1"># corrupt legitimate values above 180.</span>
-    <span class="n">_LONGITUDE_FIELDS</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
-        <span class="p">{</span><span class="s2">&quot;pole_lon&quot;</span><span class="p">,</span> <span class="s2">&quot;tangent_lon&quot;</span><span class="p">,</span> <span class="s2">&quot;sync_lon&quot;</span><span class="p">}</span>
-    <span class="p">)</span>
-
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Check that the header grid letters match ``nx``/``ny``.&quot;&quot;&quot;</span>
         <span class="n">thousands</span> <span class="o">=</span> <span class="p">(</span>
@@ -831,10 +823,10 @@
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">12</span><span class="p">):</span>
             <span class="n">start</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">7</span>
             <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="mi">7</span>
-            <span class="n">val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">proj_section</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
-            <span class="k">if</span> <span class="n">proj_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="n">IndexRecord</span><span class="o">.</span><span class="n">_LONGITUDE_FIELDS</span> <span class="ow">and</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
-                <span class="n">val</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="mi">360</span> <span class="o">-</span> <span class="n">val</span><span class="p">)</span>
-            <span class="n">fields</span><span class="p">[</span><span class="n">proj_names</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">val</span>
+            <span class="c1"># Kept as stored, as HYSPLIT reads them (metset.f: `12F7.0`): on a</span>
+            <span class="c1"># lat/lon grid whether a longitude is 235 or -125 changes where</span>
+            <span class="c1"># HYSPLIT puts the grid (gblset.f, gbl2xy.f).</span>
+            <span class="n">fields</span><span class="p">[</span><span class="n">proj_names</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">proj_section</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
 
         <span class="n">grid_section</span> <span class="o">=</span> <span class="n">fixed</span><span class="p">[</span><span class="mi">93</span><span class="p">:</span><span class="mi">102</span><span class="p">]</span>
         <span class="n">fields</span><span class="p">[</span><span class="s2">&quot;nx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">grid_section</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
