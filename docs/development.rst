@@ -212,6 +212,41 @@ filesystem with a large block size (some network filesystems report 128 KB,
 where a local disk reports 4 KB) each open file adds that much, and three of
 these tests fail. Run them with the temporary directory on a local disk.
 
+Examples in the docs
+--------------------
+
+The user guides run their examples when the docs are built (``just build-docs``,
+as CI does), so they show real output and the build fails when one breaks. There
+is no sample ARL file in the repository, and an example never downloads one, so
+``docs/_ext/docs_examples.py`` writes small files of made-up values with
+:func:`arlmet.write_dataset`. A page that reads a file starts with a block that
+is run but not shown:
+
+.. code-block:: rst
+
+   .. ipython:: python
+      :suppress:
+
+      import os
+
+      import docs_examples
+
+      docs_cwd = docs_examples.temp_workdir()
+      docs_examples.sample_file("met.arl")
+
+``temp_workdir()`` changes to a new temporary folder, so the examples can write
+files with short names, and the page ends with another such block,
+``os.chdir(docs_cwd)``. ``sample_file()`` takes the valid times, and
+``upper=False`` for surface variables only or ``projected=True`` for a Lambert
+grid. A few things to know:
+
+- An expression is echoed only at the top level of a block: ``print`` one inside
+  a ``with`` or ``for``.
+- A block that raises or warns fails the build, unless it has ``:okexcept:`` or
+  ``:okwarning:``.
+- All pages share one session, so each page imports what it uses.
+- An example that downloads stays a plain ``code-block``, and its page says so.
+
 Benchmarks
 ----------
 

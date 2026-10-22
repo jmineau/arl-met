@@ -16,25 +16,43 @@ arl-met has two supported authoring paths:
    issue or pull request. The current recommendation is to keep one simple
    Dataset contract and route edge cases through :class:`arlmet.File`.
 
+The examples run when the docs are built, on ``met.arl``, a small file of made-up
+values that the build writes with :func:`arlmet.write_dataset`
+(:doc:`quickstart` describes it). Use your own file's name in its place.
+
+.. ipython:: python
+   :suppress:
+
+   import os
+
+   import docs_examples
+
+   docs_cwd = docs_examples.temp_workdir()
+   docs_examples.sample_file("met.arl")
+
 Round-trip with Dataset
 -----------------------
 
-.. code-block:: python
+.. ipython:: python
 
    import arlmet
 
-  ds = arlmet.open_dataset("input.arl")
+   ds = arlmet.open_dataset("met.arl")
    ds["TEMP"] = ds["TEMP"] - 273.15
    arlmet.write_dataset(ds, "edited.arl")
+   arlmet.open_dataset("edited.arl")["TEMP"].max().item()  # degrees C now
 
 To request a trailing DIF record when writing a parent variable, set the
 parent DataArray's ``diff`` attr to the DIF record name:
 
-.. code-block:: python
+.. ipython:: python
 
-  ds = arlmet.open_dataset("input.arl")
-  ds["WWND"].attrs["diff"] = "DIFW"
-  arlmet.write_dataset(ds, "edited-with-diff.arl")
+   ds = arlmet.open_dataset("met.arl")
+   ds["WWND"].attrs["diff"] = "DIFW"
+   arlmet.write_dataset(ds, "edited-with-diff.arl")
+   with arlmet.File("edited-with-diff.arl") as met:
+       record = met[met.times[0]][(1, "WWND")]
+       print([dif.variable for dif in record.diffs])
 
 Dataset write contract
 ----------------------
@@ -117,16 +135,16 @@ variables (e.g. ``PRSS``, ``SHGT``) have dimensions ``(time, lat, lon)``; upper-
 air variables (e.g. ``UWND``, ``VWND``, ``TEMP``) have dimensions
 ``(time, level, lat, lon)``.
 
-.. code-block:: python
+.. ipython:: python
 
-   import arlmet
-
-   ds = arlmet.open_dataset("input.arl", bbox=(-114, 39, -110, 42), levels=[0, 1, 2])
-   print(ds["PRSS"].dims)  # ('time', 'lat', 'lon')
-   print(ds["TEMP"].dims)  # ('time', 'level', 'lat', 'lon')
+   ds = arlmet.open_dataset("met.arl", bbox=(-114, 39, -110, 42), levels=[0, 1, 2])
+   print(ds["PRSS"].dims)
+   print(ds["TEMP"].dims)
 
    p = arlmet.pressure(ds)
    z = arlmet.z_agl(ds)
+   p.values
+   z.sizes
 
 Advanced authoring with File
 ----------------------------
@@ -134,11 +152,10 @@ Advanced authoring with File
 Use :class:`arlmet.File` when you need exact control over the records written to
 disk.
 
-.. code-block:: python
+.. ipython:: python
 
    import numpy as np
    import pandas as pd
-   import arlmet
 
    grid = arlmet.Grid(
        projection=arlmet.Projection(
@@ -182,9 +199,12 @@ options (``forecast``, ``data``, ``diff``) are keyword-only.
 :meth:`arlmet.File.add_record` is a shorthand that creates the time step's
 record set on first use:
 
-.. code-block:: python
+.. ipython:: python
 
-   arl.add_record(time, "TEMP", 1, forecast=3, data=temp)
+   with arlmet.File(
+       "added.arl", mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+   ) as arl:
+       arl.add_record(time, "TEMP", 1, forecast=3, data=temp)
 
 Records are held in memory until the file is flushed or closed. When writing
 many time steps, call :meth:`arlmet.File.flush` after filling each one so memory
@@ -192,16 +212,27 @@ stays bounded by a single time step instead of the whole file.
 :func:`arlmet.write_dataset` and :func:`arlmet.extract_subset` already do this.
 Flushed record sets are on disk and can no longer be modified.
 
-.. code-block:: python
+.. ipython:: python
+
+   fields = {("PRSS", 0): prss, ("TEMP", 1): temp}
+   steps = [(time + pd.Timedelta(hours=h), fields) for h in range(3)]
 
    with arlmet.File(
        "long.arl", mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
    ) as arl:
-       for time, fields in steps:  # fields: {("PRSS", 0): prss, ("TEMP", 1): temp}
+       for time, fields in steps:
            rs = arl.create_recordset(time, forecast=0)
            for (name, level), data in fields.items():
                rs.create_datarecord(name, level=level, forecast=0, data=data)
            arl.flush()  # write this time step and free its memory
+
+   with arlmet.File("long.arl") as met:
+       print(met.times)
+
+.. ipython:: python
+   :suppress:
+
+   os.chdir(docs_cwd)
 
 Contributing ideas
 ------------------

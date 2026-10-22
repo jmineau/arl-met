@@ -6,6 +6,21 @@ arbitrary ``(lon, lat, z, time)`` points. This is the direct path when you have
 trajectory points, station locations, or receptors and want field values at
 each one without building a full Dataset.
 
+The examples run when the docs are built, on ``met.arl``, a small file of made-up
+values that the build writes with :func:`arlmet.write_dataset`
+(:doc:`quickstart` describes it), and on a few more like it, named where they
+are used.
+
+.. ipython:: python
+   :suppress:
+
+   import os
+
+   import docs_examples
+
+   docs_cwd = docs_examples.temp_workdir()
+   docs_examples.sample_file("met.arl")
+
 Basic usage
 -----------
 
@@ -14,9 +29,10 @@ Provide the points as a DataFrame (or dict) with ``lon``, ``lat``, ``z``, and
 ``files``, can be a path to an ARL file — :func:`arlmet.sample_points` opens and
 closes it for you.
 
-.. code-block:: python
+.. ipython:: python
 
    import pandas as pd
+
    import arlmet
 
    points = pd.DataFrame(
@@ -29,6 +45,7 @@ closes it for you.
    )
 
    result = arlmet.sample_points("met.arl", points, ["UWND", "VWND", "TEMP"])
+   result
 
 The returned DataFrame is a copy of ``points`` with one column added per
 requested variable. Every column of ``points`` (IDs, observations, anything
@@ -39,10 +56,11 @@ column raises ``ValueError`` rather than overwriting it.
 If you already have an open file, pass it instead of a path. The
 :class:`arlmet.File` object also exposes the same operation as a method:
 
-.. code-block:: python
+.. ipython:: python
 
    with arlmet.File("met.arl") as met:
        result = met.sample_points(points, ["UWND", "VWND", "TEMP"])
+   result
 
 A file you open yourself is left open for you to manage; only paths that
 ``sample_points`` opens internally are closed for you.
@@ -92,20 +110,23 @@ level above it is interpolated from the ground values. A point under the
 lowest level at a low site gets them too, instead of NaN. At heights pressure
 is interpolated as ``ln p`` here too.
 
-.. code-block:: python
+.. ipython:: python
 
+   above_ground = points.assign(z=[500.0, 1500.0])  # meters above ground level
    with arlmet.File("met.arl") as met:
        result = arlmet.sample_points(
-           met, points, ["TEMP"], z_kind="agl"
+           met, above_ground, ["TEMP"], z_kind="agl"
        )
+   result
 
 The virtual ``"pressure"`` variable, the pressure of the levels interpolated to
 each point, can also be requested as a sampled column. On sigma files with
 ``PRES`` it is the same as sampling ``PRES``:
 
-.. code-block:: python
+.. ipython:: python
 
-   result = arlmet.sample_points(met, points, ["pressure", "TEMP"])
+   result = arlmet.sample_points("met.arl", points, ["pressure", "TEMP"])
+   result
 
 Horizontal interpolation
 ------------------------
@@ -115,9 +136,10 @@ Horizontal interpolation
 - ``"linear"`` (default) — bilinear interpolation
 - ``"nearest"`` — nearest grid cell
 
-.. code-block:: python
+.. ipython:: python
 
-   result = arlmet.sample_points(met, points, ["TEMP"], method="nearest")
+   result = arlmet.sample_points("met.arl", points, ["TEMP"], method="nearest")
+   result
 
 Earth-relative winds
 --------------------
@@ -130,18 +152,27 @@ rotate each pair so that ``u`` points east and ``v`` north, using the meridian
 convergence of the file's grid at each point. Both components of a pair must
 be requested. Lat/lon grids are unaffected.
 
-.. code-block:: python
+Here ``lambert.arl`` is a made-up file on a Lambert conformal grid, and the
+same points are sampled both ways:
 
-   result = arlmet.sample_points(
-       "hrrr.arl", points, ["UWND", "VWND"], earth_relative=True
-   )
+.. ipython:: python
+   :suppress:
+
+   docs_examples.sample_file("lambert.arl", projected=True)
+
+.. ipython:: python
+
+   arlmet.sample_points("lambert.arl", points, ["UWND", "VWND"])
+   arlmet.sample_points("lambert.arl", points, ["UWND", "VWND"], earth_relative=True)
 
 The same rotation is available on the grid for winds you obtained another way,
 for example from :func:`arlmet.open_dataset`:
 
-.. code-block:: python
+.. ipython:: python
 
-   u_earth, v_earth = met.grid.rotate_winds(u, v, lon, lat)
+   with arlmet.File("lambert.arl") as met:
+       u_earth, v_earth = met.grid.rotate_winds(u=5.0, v=-3.0, lon=-111.9, lat=40.7)
+   print(u_earth, v_earth)
 
 Point times
 -----------
@@ -157,14 +188,20 @@ Passing both a ``time`` column and ``time=`` is ambiguous and raises
 A point time that no input file contains raises ``ValueError`` naming the
 missing times.
 
-.. code-block:: python
+Here ``single_time.arl`` is a made-up file like ``met.arl`` with one time step,
+and ``met.arl`` holds four:
+
+.. ipython:: python
+   :suppress:
+
+   docs_examples.sample_file("single_time.arl", docs_examples.TIMES[:1])
+
+.. ipython:: python
 
    points = pd.DataFrame({"lon": [-111.9], "lat": [40.7], "z": [850.0]})
 
-   result = arlmet.sample_points("single_time.arl", points, ["TEMP"])
-   result = arlmet.sample_points(
-       "multi_time.arl", points, ["TEMP"], time="2024-07-18 06:00"
-   )
+   arlmet.sample_points("single_time.arl", points, ["TEMP"])
+   arlmet.sample_points("met.arl", points, ["TEMP"], time="2024-07-18 06:00")
 
 Sampling across multiple files
 ------------------------------
@@ -174,13 +211,32 @@ stored in different files. Each timestamp must appear in at most one file;
 arl-met routes each point to the file that contains its time and closes any
 paths it opened.
 
-.. code-block:: python
+.. ipython:: python
+   :suppress:
+
+   for i, hour in enumerate(["00", "06", "12"]):
+       docs_examples.sample_file(f"met_{hour}.arl", docs_examples.TIMES[i : i + 1])
+
+.. ipython:: python
 
    paths = ["met_00.arl", "met_06.arl", "met_12.arl"]
-   result = arlmet.sample_points(paths, points, ["UWND", "VWND"])
+   points = pd.DataFrame(
+       {
+           "lon": [-111.9, -111.9, -111.9],
+           "lat": [40.7, 40.7, 40.7],
+           "z": [850.0, 850.0, 850.0],
+           "time": ["2024-07-18 00:00", "2024-07-18 06:00", "2024-07-18 12:00"],
+       }
+   )
+   arlmet.sample_points(paths, points, ["UWND", "VWND"])
 
 You can mix open files and paths in the same sequence; files you opened stay
 open, and paths are closed for you.
+
+.. ipython:: python
+   :suppress:
+
+   os.chdir(docs_cwd)
 
 Limitations
 -----------

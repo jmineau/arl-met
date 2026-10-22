@@ -8,20 +8,52 @@ or have records overwritten with other bytes, and still open. HYSPLIT then stops
 partway through a run, or reads bad values. Checking a file before a run, or
 after downloading or cropping it, finds these first.
 
-.. code-block:: python
+The examples run when the docs are built, on ``met.arl``, a small file of made-up
+values that the build writes with :func:`arlmet.write_dataset`
+(:doc:`quickstart` describes it), and on a folder ``hrrr/`` of more like it, in
+which one file has a record overwritten with null bytes and one was cut short.
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   from pathlib import Path
+
+   import pandas as pd
+
+   import docs_examples
+
+   docs_cwd = docs_examples.temp_workdir()
+   docs_examples.sample_file("met.arl")
+
+   # hrrr/: three files of six hours each. The second has its sixth record (50 +
+   # nx * ny bytes) overwritten with null bytes, and the third is cut short.
+   os.mkdir("hrrr")
+   for first in pd.date_range("2024-01-01", periods=3, freq="6h"):
+       hours = pd.date_range(first, periods=6, freq="h")
+       docs_examples.sample_file(f"hrrr/{first:%Y%m%d_%H}_hrrr", hours, upper=False)
+   record = 50 + 61 * 51
+   data = bytearray(Path("hrrr/20240101_06_hrrr").read_bytes())
+   data[6 * record : 7 * record] = bytes(record)
+   Path("hrrr/20240101_06_hrrr").write_bytes(data)
+   data = Path("hrrr/20240101_12_hrrr").read_bytes()
+   Path("hrrr/20240101_12_hrrr").write_bytes(data[:-500])
+
+.. ipython:: python
 
    import arlmet
 
-   with arlmet.File("20210226_18-23_hrrr") as met:
+   with arlmet.File("hrrr/20240101_06_hrrr") as met:
        for problem in met.check():
            print(problem)
 
-.. code-block:: text
-
-   2021-02-26 19:00 has 43 of the 298 data records the first time step has.
-
 ``check()`` returns one message per problem, and an empty list for a file
-with none.
+with none:
+
+.. ipython:: python
+
+   with arlmet.File("met.arl") as met:
+       print(met.check())
 
 What is checked
 ---------------
@@ -70,10 +102,11 @@ Each index record holds a checksum of each data record's packed bytes.
 :meth:`arlmet.DataRecord.verify_checksum` returns ``False`` when a record's
 bytes do not match it:
 
-.. code-block:: python
+.. ipython:: python
 
-   with arlmet.File("gdas1.sep25.w1") as met:
+   with arlmet.File("met.arl") as met:
        bad = [record for record in met.records if not record.verify_checksum()]
+   bad
 
 This reads every byte of the file. A stored checksum of 0 means none was
 recorded, and ``verify_checksum()`` returns ``True`` for it: NOAA's GDAS and
@@ -85,11 +118,9 @@ Checking a folder
 
 To check a folder of files, catch the files that do not open as well:
 
-.. code-block:: python
+.. ipython:: python
 
    from pathlib import Path
-
-   import arlmet
 
    for path in sorted(Path("hrrr").glob("*_hrrr")):
        try:
@@ -99,3 +130,8 @@ To check a folder of files, catch the files that do not open as well:
            problems = [str(exc)]
        if problems:
            print(path.name, problems[0])
+
+.. ipython:: python
+   :suppress:
+
+   os.chdir(docs_cwd)
