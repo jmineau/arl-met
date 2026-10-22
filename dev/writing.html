@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=64eb4210"></script>
+    <script src="_static/documentation_options.js?v=b135774c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Cropping ARL Data" href="cropping.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev32+gce6c5b188" />
+  <meta name="docsearch:version" content="0.1.0b4.dev33+ga28c02774" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -461,20 +461,36 @@ better idea for handling irregular ARL files at a higher level, open an
 issue or pull request. The current recommendation is to keep one simple
 Dataset contract and route edge cases through <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a>.</p>
 </div>
+<p>The examples run when the docs are built, on <code class="docutils literal notranslate"><span class="pre">met.arl</span></code>, a small file of made-up
+values that the build writes with <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>
+(<a class="reference internal" href="quickstart.html"><span class="doc">Quick Start</span></a> describes it). Use your own file’s name in its place.</p>
 <section id="round-trip-with-dataset">
 <h2>Round-trip with Dataset<a class="headerlink" href="#round-trip-with-dataset" title="Link to this heading">#</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span> <span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 
-<span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;input.arl&quot;</span><span class="p">)</span>
- <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">273.15</span>
- <span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;edited.arl&quot;</span><span class="p">)</span>
+<span class="gp">In [2]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span>
+
+<span class="gp">In [3]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">273.15</span>
+
+<span class="gp">In [4]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;edited.arl&quot;</span><span class="p">)</span>
+
+<span class="gp">In [5]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;edited.arl&quot;</span><span class="p">)[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>  <span class="c1"># degrees C now</span>
+<span class="gh">Out[5]: </span><span class="go">15.084589958190918</span>
 </pre></div>
 </div>
 <p>To request a trailing DIF record when writing a parent variable, set the
 parent DataArray’s <code class="docutils literal notranslate"><span class="pre">diff</span></code> attr to the DIF record name:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;input.arl&quot;</span><span class="p">)</span>
-<span class="n">ds</span><span class="p">[</span><span class="s2">&quot;WWND&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;diff&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;DIFW&quot;</span>
-<span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;edited-with-diff.arl&quot;</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span>
+
+<span class="gp">In [7]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;WWND&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;diff&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;DIFW&quot;</span>
+
+<span class="gp">In [8]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;edited-with-diff.arl&quot;</span><span class="p">)</span>
+
+<span class="gp">In [9]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;edited-with-diff.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ...: </span>    <span class="n">record</span> <span class="o">=</span> <span class="n">met</span><span class="p">[</span><span class="n">met</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">]][(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;WWND&quot;</span><span class="p">)]</span>
+<span class="gp">   ...: </span>    <span class="nb">print</span><span class="p">([</span><span class="n">dif</span><span class="o">.</span><span class="n">variable</span> <span class="k">for</span> <span class="n">dif</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">diffs</span><span class="p">])</span>
+<span class="gp">   ...: </span>
+<span class="go">[&#39;DIFW&#39;]</span>
 </pre></div>
 </div>
 </section>
@@ -556,14 +572,23 @@ subset extraction</p></li>
 variables (e.g. <code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>) have dimensions <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">lat,</span> <span class="pre">lon)</span></code>; upper-
 air variables (e.g. <code class="docutils literal notranslate"><span class="pre">UWND</span></code>, <code class="docutils literal notranslate"><span class="pre">VWND</span></code>, <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>) have dimensions
 <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">level,</span> <span class="pre">lat,</span> <span class="pre">lon)</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">114</span><span class="p">,</span> <span class="mi">39</span><span class="p">,</span> <span class="o">-</span><span class="mi">110</span><span class="p">,</span> <span class="mi">42</span><span class="p">),</span> <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
 
-<span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;input.arl&quot;</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">114</span><span class="p">,</span> <span class="mi">39</span><span class="p">,</span> <span class="o">-</span><span class="mi">110</span><span class="p">,</span> <span class="mi">42</span><span class="p">),</span> <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PRSS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span>  <span class="c1"># (&#39;time&#39;, &#39;lat&#39;, &#39;lon&#39;)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span>  <span class="c1"># (&#39;time&#39;, &#39;level&#39;, &#39;lat&#39;, &#39;lon&#39;)</span>
+<span class="gp">In [11]: </span><span class="nb">print</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PRSS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span>
+<span class="go">(&#39;time&#39;, &#39;lat&#39;, &#39;lon&#39;)</span>
 
-<span class="n">p</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">pressure</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
-<span class="n">z</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">z_agl</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+<span class="gp">In [12]: </span><span class="nb">print</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span>
+<span class="go">(&#39;time&#39;, &#39;level&#39;, &#39;lat&#39;, &#39;lon&#39;)</span>
+
+<span class="gp">In [13]: </span><span class="n">p</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">pressure</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+<span class="gp">In [14]: </span><span class="n">z</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">z_agl</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+<span class="gp">In [15]: </span><span class="n">p</span><span class="o">.</span><span class="n">values</span>
+<span class="gh">Out[15]: </span><span class="go">array([850., 700.])</span>
+
+<span class="gp">In [16]: </span><span class="n">z</span><span class="o">.</span><span class="n">sizes</span>
+<span class="gh">Out[16]: </span><span class="go">Frozen({&#39;time&#39;: 4, &#39;level&#39;: 2, &#39;lat&#39;: 31, &#39;lon&#39;: 41})</span>
 </pre></div>
 </div>
 </section>
@@ -571,44 +596,49 @@ air variables (e.g. <code class="docutils literal notranslate"><span class="pre"
 <h2>Advanced authoring with File<a class="headerlink" href="#advanced-authoring-with-file" title="Link to this heading">#</a></h2>
 <p>Use <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a> when you need exact control over the records written to
 disk.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="n">grid</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">Grid</span><span class="p">(</span>
-    <span class="n">projection</span><span class="o">=</span><span class="n">arlmet</span><span class="o">.</span><span class="n">Projection</span><span class="p">(</span>
-        <span class="n">pole_lat</span><span class="o">=</span><span class="mf">90.0</span><span class="p">,</span>
-        <span class="n">pole_lon</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">tangent_lat</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-        <span class="n">tangent_lon</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-        <span class="n">grid_size</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">orientation</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">cone_angle</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">sync_x</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-        <span class="n">sync_y</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-        <span class="n">sync_lat</span><span class="o">=-</span><span class="mf">10.0</span><span class="p">,</span>
-        <span class="n">sync_lon</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
-    <span class="p">),</span>
-    <span class="n">nx</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
-    <span class="n">ny</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">vertical_axis</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">PressureAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">])</span>
-<span class="n">time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">)</span>
+<span class="gp">In [18]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
-<span class="n">prss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-<span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">280.0</span>
+<span class="gp">In [19]: </span><span class="n">grid</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">Grid</span><span class="p">(</span>
+<span class="gp">   ....: </span>    <span class="n">projection</span><span class="o">=</span><span class="n">arlmet</span><span class="o">.</span><span class="n">Projection</span><span class="p">(</span>
+<span class="gp">   ....: </span>        <span class="n">pole_lat</span><span class="o">=</span><span class="mf">90.0</span><span class="p">,</span>
+<span class="gp">   ....: </span>        <span class="n">pole_lon</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+<span class="gp">   ....: </span>        <span class="n">tangent_lat</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+<span class="gp">   ....: </span>        <span class="n">tangent_lon</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+<span class="gp">   ....: </span>        <span class="n">grid_size</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+<span class="gp">   ....: </span>        <span class="n">orientation</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+<span class="gp">   ....: </span>        <span class="n">cone_angle</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+<span class="gp">   ....: </span>        <span class="n">sync_x</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+<span class="gp">   ....: </span>        <span class="n">sync_y</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+<span class="gp">   ....: </span>        <span class="n">sync_lat</span><span class="o">=-</span><span class="mf">10.0</span><span class="p">,</span>
+<span class="gp">   ....: </span>        <span class="n">sync_lon</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
+<span class="gp">   ....: </span>    <span class="p">),</span>
+<span class="gp">   ....: </span>    <span class="n">nx</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+<span class="gp">   ....: </span>    <span class="n">ny</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+<span class="gp">   ....: </span><span class="p">)</span>
+<span class="gp">   ....: </span>
 
-<span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span>
-    <span class="s2">&quot;custom.arl&quot;</span><span class="p">,</span>
-    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span>
-    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;TEST&quot;</span><span class="p">,</span>
-    <span class="n">grid</span><span class="o">=</span><span class="n">grid</span><span class="p">,</span>
-    <span class="n">vertical_axis</span><span class="o">=</span><span class="n">vertical_axis</span><span class="p">,</span>
-<span class="p">)</span> <span class="k">as</span> <span class="n">arl</span><span class="p">:</span>
-    <span class="n">rs</span> <span class="o">=</span> <span class="n">arl</span><span class="o">.</span><span class="n">create_recordset</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">rs</span><span class="o">.</span><span class="n">create_datarecord</span><span class="p">(</span><span class="s2">&quot;PRSS&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">prss</span><span class="p">)</span>
-    <span class="n">rs</span><span class="o">.</span><span class="n">create_datarecord</span><span class="p">(</span><span class="s2">&quot;TEMP&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">temp</span><span class="p">)</span>
-    <span class="n">rs</span><span class="o">.</span><span class="n">create_datarecord</span><span class="p">(</span><span class="s2">&quot;WWND&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">temp</span><span class="p">,</span> <span class="n">diff</span><span class="o">=</span><span class="s2">&quot;DIFW&quot;</span><span class="p">)</span>
+<span class="gp">In [20]: </span><span class="n">vertical_axis</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">PressureAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">])</span>
+
+<span class="gp">In [21]: </span><span class="n">time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">)</span>
+
+<span class="gp">In [22]: </span><span class="n">prss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+<span class="gp">In [23]: </span><span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">280.0</span>
+
+<span class="gp">In [24]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span>
+<span class="gp">   ....: </span>    <span class="s2">&quot;custom.arl&quot;</span><span class="p">,</span>
+<span class="gp">   ....: </span>    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span>
+<span class="gp">   ....: </span>    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;TEST&quot;</span><span class="p">,</span>
+<span class="gp">   ....: </span>    <span class="n">grid</span><span class="o">=</span><span class="n">grid</span><span class="p">,</span>
+<span class="gp">   ....: </span>    <span class="n">vertical_axis</span><span class="o">=</span><span class="n">vertical_axis</span><span class="p">,</span>
+<span class="gp">   ....: </span><span class="p">)</span> <span class="k">as</span> <span class="n">arl</span><span class="p">:</span>
+<span class="gp">   ....: </span>    <span class="n">rs</span> <span class="o">=</span> <span class="n">arl</span><span class="o">.</span><span class="n">create_recordset</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">   ....: </span>    <span class="n">rs</span><span class="o">.</span><span class="n">create_datarecord</span><span class="p">(</span><span class="s2">&quot;PRSS&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">prss</span><span class="p">)</span>
+<span class="gp">   ....: </span>    <span class="n">rs</span><span class="o">.</span><span class="n">create_datarecord</span><span class="p">(</span><span class="s2">&quot;TEMP&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">temp</span><span class="p">)</span>
+<span class="gp">   ....: </span>    <span class="n">rs</span><span class="o">.</span><span class="n">create_datarecord</span><span class="p">(</span><span class="s2">&quot;WWND&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">temp</span><span class="p">,</span> <span class="n">diff</span><span class="o">=</span><span class="s2">&quot;DIFW&quot;</span><span class="p">)</span>
+<span class="gp">   ....: </span>
 </pre></div>
 </div>
 <p>This low-level path is the recommended workflow whenever different variables at
@@ -617,7 +647,11 @@ the same time need different forecast hours or explicit record-level control.
 options (<code class="docutils literal notranslate"><span class="pre">forecast</span></code>, <code class="docutils literal notranslate"><span class="pre">data</span></code>, <code class="docutils literal notranslate"><span class="pre">diff</span></code>) are keyword-only.
 <a class="reference internal" href="_autosummary/arlmet.File.add_record.html#arlmet.File.add_record" title="arlmet.File.add_record"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.File.add_record()</span></code></a> is a shorthand that creates the time step’s
 record set on first use:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">arl</span><span class="o">.</span><span class="n">add_record</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">temp</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [25]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span>
+<span class="gp">   ....: </span>    <span class="s2">&quot;added.arl&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">&quot;TEST&quot;</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="n">grid</span><span class="p">,</span> <span class="n">vertical_axis</span><span class="o">=</span><span class="n">vertical_axis</span>
+<span class="gp">   ....: </span><span class="p">)</span> <span class="k">as</span> <span class="n">arl</span><span class="p">:</span>
+<span class="gp">   ....: </span>    <span class="n">arl</span><span class="o">.</span><span class="n">add_record</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">temp</span><span class="p">)</span>
+<span class="gp">   ....: </span>
 </pre></div>
 </div>
 <p>Records are held in memory until the file is flushed or closed. When writing
@@ -625,14 +659,24 @@ many time steps, call <a class="reference internal" href="_autosummary/arlmet.Fi
 stays bounded by a single time step instead of the whole file.
 <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> and <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a> already do this.
 Flushed record sets are on disk and can no longer be modified.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span>
-    <span class="s2">&quot;long.arl&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">&quot;TEST&quot;</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="n">grid</span><span class="p">,</span> <span class="n">vertical_axis</span><span class="o">=</span><span class="n">vertical_axis</span>
-<span class="p">)</span> <span class="k">as</span> <span class="n">arl</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">time</span><span class="p">,</span> <span class="n">fields</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">:</span>  <span class="c1"># fields: {(&quot;PRSS&quot;, 0): prss, (&quot;TEMP&quot;, 1): temp}</span>
-        <span class="n">rs</span> <span class="o">=</span> <span class="n">arl</span><span class="o">.</span><span class="n">create_recordset</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">level</span><span class="p">),</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">rs</span><span class="o">.</span><span class="n">create_datarecord</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
-        <span class="n">arl</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>  <span class="c1"># write this time step and free its memory</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [26]: </span><span class="n">fields</span> <span class="o">=</span> <span class="p">{(</span><span class="s2">&quot;PRSS&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="n">prss</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;TEMP&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="n">temp</span><span class="p">}</span>
+
+<span class="gp">In [27]: </span><span class="n">steps</span> <span class="o">=</span> <span class="p">[(</span><span class="n">time</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="n">h</span><span class="p">),</span> <span class="n">fields</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
+
+<span class="gp">In [28]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span>
+<span class="gp">   ....: </span>    <span class="s2">&quot;long.arl&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">&quot;TEST&quot;</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="n">grid</span><span class="p">,</span> <span class="n">vertical_axis</span><span class="o">=</span><span class="n">vertical_axis</span>
+<span class="gp">   ....: </span><span class="p">)</span> <span class="k">as</span> <span class="n">arl</span><span class="p">:</span>
+<span class="gp">   ....: </span>    <span class="k">for</span> <span class="n">time</span><span class="p">,</span> <span class="n">fields</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">:</span>
+<span class="gp">   ....: </span>        <span class="n">rs</span> <span class="o">=</span> <span class="n">arl</span><span class="o">.</span><span class="n">create_recordset</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">   ....: </span>        <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">level</span><span class="p">),</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<span class="gp">   ....: </span>            <span class="n">rs</span><span class="o">.</span><span class="n">create_datarecord</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+<span class="gp">   ....: </span>        <span class="n">arl</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>  <span class="c1"># write this time step and free its memory</span>
+<span class="gp">   ....: </span>
+
+<span class="gp">In [29]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;long.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ....: </span>    <span class="nb">print</span><span class="p">(</span><span class="n">met</span><span class="o">.</span><span class="n">times</span><span class="p">)</span>
+<span class="gp">   ....: </span>
+<span class="go">[Timestamp(&#39;2024-07-18 00:00:00&#39;), Timestamp(&#39;2024-07-18 01:00:00&#39;), Timestamp(&#39;2024-07-18 02:00:00&#39;)]</span>
 </pre></div>
 </div>
 </section>

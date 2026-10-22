@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=64eb4210"></script>
+    <script src="_static/documentation_options.js?v=b135774c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Sampling Points" href="sampling.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev32+gce6c5b188" />
+  <meta name="docsearch:version" content="0.1.0b4.dev33+ga28c02774" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -457,14 +457,25 @@ physical vertical coordinates from a Dataset returned by
 </ul>
 <p>Each helper takes the Dataset and returns an <a class="reference external" href="https://docs.xarray.dev/en/stable/generated/xarray.DataArray.html#xarray.DataArray" title="(in xarray v2026.9.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">xarray.DataArray</span></code></a>. Their
 behavior depends on the file’s vertical flag, which you can inspect through the
-<code class="docutils literal notranslate"><span class="pre">arl</span></code> accessor:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+<code class="docutils literal notranslate"><span class="pre">arl</span></code> accessor.</p>
+<p>The examples run when the docs are built, on <code class="docutils literal notranslate"><span class="pre">met.arl</span></code>, a small file of made-up
+values that the build writes with <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>
+(<a class="reference internal" href="quickstart.html"><span class="doc">Quick Start</span></a> describes it). It is a pressure-level file, flag 2, like
+NOAA’s GDAS and NAM files:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 
-<span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span>
-<span class="n">vaxis</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">vertical_axis</span>
-<span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">vaxis</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>  <span class="c1"># e.g. &#39;PressureAxis&#39;</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">vaxis</span><span class="o">.</span><span class="n">flag</span><span class="p">)</span>            <span class="c1"># e.g. 2</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">vaxis</span><span class="o">.</span><span class="n">coord_system</span><span class="p">)</span>    <span class="c1"># e.g. &#39;pressure&#39;</span>
+<span class="gp">In [2]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span>
+
+<span class="gp">In [3]: </span><span class="n">vaxis</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">vertical_axis</span>
+
+<span class="gp">In [4]: </span><span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">vaxis</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="go">PressureAxis</span>
+
+<span class="gp">In [5]: </span><span class="nb">print</span><span class="p">(</span><span class="n">vaxis</span><span class="o">.</span><span class="n">flag</span><span class="p">)</span>
+<span class="go">2</span>
+
+<span class="gp">In [6]: </span><span class="nb">print</span><span class="p">(</span><span class="n">vaxis</span><span class="o">.</span><span class="n">coord_system</span><span class="p">)</span>
+<span class="go">pressure</span>
 </pre></div>
 </div>
 <section id="vertical-coordinate-flags">
@@ -497,7 +508,21 @@ behavior depends on the file’s vertical flag, which you can inspect through th
 </section>
 <section id="pressure">
 <h2>Pressure<a class="headerlink" href="#pressure" title="Link to this heading">#</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">pressure</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">p</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">pressure</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+<span class="gp">In [8]: </span><span class="n">p</span>
+<span class="gh">Out[8]: </span>
+<span class="go">&lt;xarray.DataArray &#39;pressure&#39; (level: 4)&gt; Size: 32B</span>
+<span class="go">array([850., 700., 500., 300.])</span>
+<span class="go">Coordinates:</span>
+<span class="go">  * level     (level) int64 32B 1 2 3 4</span>
+<span class="go">    pressure  (level) float64 32B 850.0 700.0 500.0 300.0</span>
+<span class="go">    arl_grid  int64 8B 0</span>
+<span class="go">Attributes:</span>
+<span class="go">    standard_name:  air_pressure</span>
+<span class="go">    units:          hPa</span>
+<span class="go">    surface:        0.0</span>
+<span class="go">    offset:         0.0</span>
 </pre></div>
 </div>
 <p>The result depends on the vertical flag:</p>
@@ -520,7 +545,10 @@ raises <code class="docutils literal notranslate"><span class="pre">ValueError</
 </section>
 <section id="height-above-ground-level">
 <h2>Height above ground level<a class="headerlink" href="#height-above-ground-level" title="Link to this heading">#</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">z</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">z_agl</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [9]: </span><span class="n">z</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">z_agl</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+<span class="gp">In [10]: </span><span class="n">z</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lon</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+<span class="gh">Out[10]: </span><span class="go">array([ 157.30005, 1712.1809 , 4274.435  , 7863.953  ], dtype=float32)</span>
 </pre></div>
 </div>
 <p>The method used depends on the vertical flag, matching HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfcom</span></code>
@@ -650,10 +678,13 @@ sampled from 1 m to 15 km agree with HYSPLIT’s <code class="docutils literal n
 </section>
 <section id="height-above-mean-sea-level">
 <h2>Height above mean sea level<a class="headerlink" href="#height-above-mean-sea-level" title="Link to this heading">#</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">z</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">z_msl</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="n">z</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">z_msl</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+<span class="gp">In [12]: </span><span class="n">z</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lon</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+<span class="gh">Out[12]: </span><span class="go">array([1457.3  , 3012.181, 5574.435, 9163.953], dtype=float32)</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">z_msl()</span></code> is <code class="docutils literal notranslate"><span class="pre">z_agl(ds)</span> <span class="pre">+</span> <span class="pre">ds[&quot;SHGT&quot;]</span></code> (surface terrain height in metres) and
+<p><code class="docutils literal notranslate"><span class="pre">z_msl()</span></code> is <code class="docutils literal notranslate"><span class="pre">z_agl(ds)</span> <span class="pre">+</span> <span class="pre">ds[&quot;SHGT&quot;]</span></code> (surface terrain height in meters) and
 requires <code class="docutils literal notranslate"><span class="pre">SHGT</span></code> in the dataset.</p>
 </section>
 <section id="numpy-arrays">
@@ -661,21 +692,54 @@ requires <code class="docutils literal notranslate"><span class="pre">SHGT</span
 <p>The same conversions are available on the vertical axis itself for plain NumPy
 arrays. Inputs are keyword-only, and each axis uses only the ones its
 coordinate system needs; a missing one raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> naming it.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">vaxis</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">SigmaAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">],</span> <span class="n">offset</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
-<span class="n">p</span> <span class="o">=</span> <span class="n">vaxis</span><span class="o">.</span><span class="n">to_pressure</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss</span><span class="p">)</span>  <span class="c1"># prss.shape + (nlev,), nominal</span>
-<span class="n">z</span> <span class="o">=</span> <span class="n">vaxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temp</span><span class="p">)</span>
-<span class="n">z</span> <span class="o">=</span> <span class="n">vaxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">tv</span><span class="p">,</span> <span class="n">pressure</span><span class="o">=</span><span class="n">pres</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="gp">In [14]: </span><span class="n">prss</span> <span class="o">=</span> <span class="mf">1000.0</span>  <span class="c1"># surface pressure of one column, hPa</span>
+
+<span class="gp">In [15]: </span><span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">290.0</span><span class="p">,</span> <span class="mf">288.0</span><span class="p">,</span> <span class="mf">286.0</span><span class="p">])</span>  <span class="c1"># K: the ground, then each level</span>
+
+<span class="gp">In [16]: </span><span class="n">vaxis</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">SigmaAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">],</span> <span class="n">offset</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+
+<span class="gp">In [17]: </span><span class="n">vaxis</span><span class="o">.</span><span class="n">to_pressure</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss</span><span class="p">)</span>  <span class="c1"># nominal, one value per level</span>
+<span class="gh">Out[17]: </span><span class="go">array([1000.,  980.,  950.])</span>
+
+<span class="gp">In [18]: </span><span class="n">vaxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temp</span><span class="p">)</span>
+<span class="gh">Out[18]: </span><span class="go">array([  0.        , 170.90087667, 432.08555403])</span>
 </pre></div>
 </div>
 <p>For a sigma or hybrid axis, <code class="docutils literal notranslate"><span class="pre">temperature</span></code> covers every level, the ground
 (level 0) included; pass the virtual temperature, with the ground temperature
-at level 0, and <code class="docutils literal notranslate"><span class="pre">PRES</span></code> as <code class="docutils literal notranslate"><span class="pre">pressure</span></code> (sigma only) for HYSPLIT’s heights.</p>
-<blockquote>
-<div><p>paxis = arlmet.PressureAxis(levels=[1000.0, 925.0, 850.0])
-z = paxis.to_height_agl(hgts=hgts, terrain=shgt[…, None])</p>
-<p>waxis = arlmet.WrfAxis(levels=[1.0, 0.995, 0.98], offset=50.0)
-z = waxis.to_height_agl(surface_pressure=prss, temperature=temp, pressure=pres)</p>
-</div></blockquote>
+at level 0, and <code class="docutils literal notranslate"><span class="pre">PRES</span></code> as <code class="docutils literal notranslate"><span class="pre">pressure</span></code> (sigma only) for HYSPLIT’s heights:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="n">tv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">290.0</span><span class="p">,</span> <span class="mf">288.4</span><span class="p">,</span> <span class="mf">286.5</span><span class="p">])</span>  <span class="c1"># virtual temperature, K</span>
+
+<span class="gp">In [20]: </span><span class="n">pres</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1000.0</span><span class="p">,</span> <span class="mf">979.0</span><span class="p">,</span> <span class="mf">948.0</span><span class="p">])</span>  <span class="c1"># the PRES field, hPa</span>
+
+<span class="gp">In [21]: </span><span class="n">vaxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">tv</span><span class="p">,</span> <span class="n">pressure</span><span class="o">=</span><span class="n">pres</span><span class="p">)</span>
+<span class="gh">Out[21]: </span><span class="go">array([  0.        , 179.6614755 , 450.39786468])</span>
+</pre></div>
+</div>
+<p>A pressure axis takes the geopotential height and the terrain, a WRF axis the
+temperature and pressure of each level above the ground:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [22]: </span><span class="n">paxis</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">PressureAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">1000.0</span><span class="p">,</span> <span class="mf">925.0</span><span class="p">,</span> <span class="mf">850.0</span><span class="p">])</span>
+
+<span class="gp">In [23]: </span><span class="n">hgts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">770.0</span><span class="p">,</span> <span class="mf">1480.0</span><span class="p">]])</span>  <span class="c1"># m, one column</span>
+
+<span class="gp">In [24]: </span><span class="n">shgt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">100.0</span><span class="p">])</span>  <span class="c1"># m</span>
+
+<span class="gp">In [25]: </span><span class="n">paxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span><span class="n">hgts</span><span class="o">=</span><span class="n">hgts</span><span class="p">,</span> <span class="n">terrain</span><span class="o">=</span><span class="n">shgt</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+<span class="gh">Out[25]: </span><span class="go">array([[  10.,  670., 1380.]])</span>
+
+<span class="gp">In [26]: </span><span class="n">waxis</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">WrfAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.995</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">],</span> <span class="n">offset</span><span class="o">=</span><span class="mf">50.0</span><span class="p">)</span>
+
+<span class="gp">In [27]: </span><span class="n">waxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span>
+<span class="gp">   ....: </span>    <span class="n">surface_pressure</span><span class="o">=</span><span class="mf">850.0</span><span class="p">,</span>
+<span class="gp">   ....: </span>    <span class="n">temperature</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">285.0</span><span class="p">,</span> <span class="mf">284.0</span><span class="p">]),</span>  <span class="c1"># K, the two levels above the ground</span>
+<span class="gp">   ....: </span>    <span class="n">pressure</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">845.0</span><span class="p">,</span> <span class="mf">832.0</span><span class="p">]),</span>  <span class="c1"># PRES there, hPa</span>
+<span class="gp">   ....: </span><span class="p">)</span>
+<span class="gp">   ....: </span>
+<span class="gh">Out[27]: </span><span class="go">array([ 49.25209447, 178.36454714])</span>
+</pre></div>
+</div>
 <p>For a WRF axis <code class="docutils literal notranslate"><span class="pre">temperature</span></code> and <code class="docutils literal notranslate"><span class="pre">pressure</span></code> hold the levels above the
 surface; the ground temperature is the first level’s brought down
 adiabatically, as <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> finds it without a 2 m temperature.

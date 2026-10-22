@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=64eb4210"></script>
+    <script src="_static/documentation_options.js?v=b135774c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
     <link rel="search" title="Search" href="search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev32+gce6c5b188" />
+  <meta name="docsearch:version" content="0.1.0b4.dev33+ga28c02774" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -637,6 +637,39 @@ filesystem with a large block size (some network filesystems report 128 KB,
 where a local disk reports 4 KB) each open file adds that much, and three of
 these tests fail. Run them with the temporary directory on a local disk.</p>
 </section>
+<section id="examples-in-the-docs">
+<h2>Examples in the docs<a class="headerlink" href="#examples-in-the-docs" title="Link to this heading">#</a></h2>
+<p>The user guides run their examples when the docs are built (<code class="docutils literal notranslate"><span class="pre">just</span> <span class="pre">build-docs</span></code>,
+as CI does), so they show real output and the build fails when one breaks. There
+is no sample ARL file in the repository, and an example never downloads one, so
+<code class="docutils literal notranslate"><span class="pre">docs/_ext/docs_examples.py</span></code> writes small files of made-up values with
+<a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>. A page that reads a file starts with a block that
+is run but not shown:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">ipython</span><span class="p">::</span> python
+   <span class="nc">:suppress:</span>
+
+   import os
+
+   import docs_examples
+
+   docs_cwd = docs_examples.temp_workdir()
+   docs_examples.sample_file(&quot;met.arl&quot;)
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">temp_workdir()</span></code> changes to a new temporary folder, so the examples can write
+files with short names, and the page ends with another such block,
+<code class="docutils literal notranslate"><span class="pre">os.chdir(docs_cwd)</span></code>. <code class="docutils literal notranslate"><span class="pre">sample_file()</span></code> takes the valid times, and
+<code class="docutils literal notranslate"><span class="pre">upper=False</span></code> for surface variables only or <code class="docutils literal notranslate"><span class="pre">projected=True</span></code> for a Lambert
+grid. A few things to know:</p>
+<ul class="simple">
+<li><p>An expression is echoed only at the top level of a block: <code class="docutils literal notranslate"><span class="pre">print</span></code> one inside
+a <code class="docutils literal notranslate"><span class="pre">with</span></code> or <code class="docutils literal notranslate"><span class="pre">for</span></code>.</p></li>
+<li><p>A block that raises or warns fails the build, unless it has <code class="docutils literal notranslate"><span class="pre">:okexcept:</span></code> or
+<code class="docutils literal notranslate"><span class="pre">:okwarning:</span></code>.</p></li>
+<li><p>All pages share one session, so each page imports what it uses.</p></li>
+<li><p>An example that downloads stays a plain <code class="docutils literal notranslate"><span class="pre">code-block</span></code>, and its page says so.</p></li>
+</ul>
+</section>
 <section id="benchmarks">
 <h2>Benchmarks<a class="headerlink" href="#benchmarks" title="Link to this heading">#</a></h2>
 <p>Use real files from the archives for performance work, for example the July 2024
@@ -705,6 +738,7 @@ exist.</p></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-layout">Module layout</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-imports">Module imports</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#memory-tests">Memory tests</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples-in-the-docs">Examples in the docs</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#benchmarks">Benchmarks</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#format-references">Format references</a></li>
 </ul>

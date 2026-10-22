@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=64eb4210"></script>
+    <script src="_static/documentation_options.js?v=b135774c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Writing ARL Files" href="writing.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev32+gce6c5b188" />
+  <meta name="docsearch:version" content="0.1.0b4.dev33+ga28c02774" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -471,23 +471,35 @@ order, because HYSPLIT finds a time step by its position in the file
 (<code class="docutils literal notranslate"><span class="pre">advpnt.f</span></code>) and stops when the spacing between them changes (<code class="docutils literal notranslate"><span class="pre">metset.f</span></code>).
 For inputs that are each in order and do not overlap in time, this is the same
 result as <code class="docutils literal notranslate"><span class="pre">cat</span> <span class="pre">a.arl</span> <span class="pre">b.arl</span> <span class="pre">&gt;</span> <span class="pre">out.arl</span></code>.</p>
+<p>The examples run when the docs are built, on a folder <code class="docutils literal notranslate"><span class="pre">hrrr/</span></code> of eight small
+files of made-up values that the build writes with <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>
+(<a class="reference internal" href="quickstart.html"><span class="doc">Quick Start</span></a> describes them): six hourly time steps each, named by their
+first hour, from <code class="docutils literal notranslate"><span class="pre">20240101_00_hrrr</span></code> to <code class="docutils literal notranslate"><span class="pre">20240102_18_hrrr</span></code>.</p>
 <section id="joining-a-list-of-files">
 <h2>Joining a list of files<a class="headerlink" href="#joining-a-list-of-files" title="Link to this heading">#</a></h2>
 <p>Pass the input paths and an output path. The output is chronological
 regardless of the order you list them in.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 
-<span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-    <span class="p">[</span><span class="s2">&quot;20240101_00_hrrr&quot;</span><span class="p">,</span> <span class="s2">&quot;20240101_06_hrrr&quot;</span><span class="p">,</span> <span class="s2">&quot;20240101_12_hrrr&quot;</span><span class="p">],</span>
-    <span class="s2">&quot;20240101_hrrr&quot;</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="gp">In [2]: </span><span class="n">paths</span> <span class="o">=</span> <span class="p">[</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;hrrr/20240101_00_hrrr&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;hrrr/20240101_06_hrrr&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;hrrr/20240101_12_hrrr&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span><span class="p">]</span>
+<span class="gp">   ...: </span>
+
+<span class="gp">In [3]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;20240101_hrrr&quot;</span><span class="p">)</span>
+<span class="gh">Out[3]: </span><span class="go">PosixPath(&#39;20240101_hrrr&#39;)</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">concat()</span></code> returns the output path as a <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a>, so you can pass
 it straight to <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a> or <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">out</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;20240101_hrrr&quot;</span><span class="p">)</span>
-<span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="k">as</span> <span class="n">combined</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">combined</span><span class="o">.</span><span class="n">times</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="n">out</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;20240101_hrrr&quot;</span><span class="p">)</span>
+
+<span class="gp">In [5]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="k">as</span> <span class="n">combined</span><span class="p">:</span>
+<span class="gp">   ...: </span>    <span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">combined</span><span class="o">.</span><span class="n">times</span><span class="p">),</span> <span class="n">combined</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">combined</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="gp">   ...: </span>
+<span class="go">18 2024-01-01 00:00:00 2024-01-01 17:00:00</span>
 </pre></div>
 </div>
 <p>Inputs whose hours interleave (one file with the odd hours, one with the even)
@@ -502,7 +514,7 @@ record stream. <code class="docutils literal notranslate"><span class="pre">conc
 <ul class="simple">
 <li><p>the inputs disagree on grid or vertical axis (different grids produce different
 record lengths, which would corrupt the stream)</p></li>
-<li><p>the same valid time appears in more than one input (HYSPLIT behaviour on
+<li><p>the same valid time appears in more than one input (HYSPLIT behavior on
 repeated times is undefined)</p></li>
 <li><p>an input file is empty, or the output path is also one of the inputs</p></li>
 </ul>
@@ -513,15 +525,15 @@ repeated times is undefined)</p></li>
 time-binned chunks and concatenates each group. Each file is assigned to a bin by
 its <strong>valid times, read from the file’s index records</strong> — not parsed from the
 filename — so it is robust to any naming scheme.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
-
-<span class="n">arlmet</span><span class="o">.</span><span class="n">concat_by_time</span><span class="p">(</span>
-    <span class="s2">&quot;hrrr/&quot;</span><span class="p">,</span>                       <span class="c1"># directory to scan</span>
-    <span class="s2">&quot;daily/&quot;</span><span class="p">,</span>                      <span class="c1"># dest_dir (created if missing)</span>
-    <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;1D&quot;</span><span class="p">,</span>                     <span class="c1"># one output file per day (keyword-only)</span>
-    <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;*_hrrr&quot;</span><span class="p">,</span>              <span class="c1"># which files to read</span>
-    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;{time:%Y%m</span><span class="si">%d</span><span class="s2">}_hrrr&quot;</span><span class="p">,</span>  <span class="c1"># how to name each output</span>
-<span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">concat_by_time</span><span class="p">(</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;hrrr/&quot;</span><span class="p">,</span>                       <span class="c1"># directory to scan</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;daily/&quot;</span><span class="p">,</span>                      <span class="c1"># dest_dir (created if missing)</span>
+<span class="gp">   ...: </span>    <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;1D&quot;</span><span class="p">,</span>                     <span class="c1"># one output file per day (keyword-only)</span>
+<span class="gp">   ...: </span>    <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;*_hrrr&quot;</span><span class="p">,</span>              <span class="c1"># which files to read</span>
+<span class="gp">   ...: </span>    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;{time:%Y%m</span><span class="si">%d</span><span class="s2">}_hrrr&quot;</span><span class="p">,</span>  <span class="c1"># how to name each output</span>
+<span class="gp">   ...: </span><span class="p">)</span>
+<span class="gp">   ...: </span>
+<span class="gh">Out[6]: </span><span class="go">[PosixPath(&#39;daily/20240101_hrrr&#39;), PosixPath(&#39;daily/20240102_hrrr&#39;)]</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">freq</span></code> is a fixed-frequency pandas offset alias giving the size of each output
@@ -535,15 +547,17 @@ the same, which raises <code class="docutils literal notranslate"><span class="p
 written paths, in time order.</p>
 <p>Limit the range with <code class="docutils literal notranslate"><span class="pre">start=</span></code> and <code class="docutils literal notranslate"><span class="pre">end=</span></code> to skip files whose first valid
 time falls outside those inclusive bounds (either may be left open):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">arlmet</span><span class="o">.</span><span class="n">concat_by_time</span><span class="p">(</span>
-    <span class="s2">&quot;hrrr/&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;daily/&quot;</span><span class="p">,</span>
-    <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;1D&quot;</span><span class="p">,</span>
-    <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;*_hrrr&quot;</span><span class="p">,</span>
-    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;{time:%Y%m</span><span class="si">%d</span><span class="s2">}_hrrr&quot;</span><span class="p">,</span>
-    <span class="n">start</span><span class="o">=</span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">,</span>
-    <span class="n">end</span><span class="o">=</span><span class="s2">&quot;2024-01-31 23:00&quot;</span><span class="p">,</span>
-<span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">concat_by_time</span><span class="p">(</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;hrrr/&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;second_day/&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;1D&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;*_hrrr&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;{time:%Y%m</span><span class="si">%d</span><span class="s2">}_hrrr&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="n">start</span><span class="o">=</span><span class="s2">&quot;2024-01-02&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="n">end</span><span class="o">=</span><span class="s2">&quot;2024-01-02 23:00&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span><span class="p">)</span>
+<span class="gp">   ...: </span>
+<span class="gh">Out[7]: </span><span class="go">[PosixPath(&#39;second_day/20240102_hrrr&#39;)]</span>
 </pre></div>
 </div>
 </section>

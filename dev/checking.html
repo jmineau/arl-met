@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=64eb4210"></script>
+    <script src="_static/documentation_options.js?v=b135774c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Vertical Coordinates" href="vertical.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev32+gce6c5b188" />
+  <meta name="docsearch:version" content="0.1.0b4.dev33+ga28c02774" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -452,18 +452,27 @@ cut short. A file can also hold a time step written partway, skip a time step,
 or have records overwritten with other bytes, and still open. HYSPLIT then stops
 partway through a run, or reads bad values. Checking a file before a run, or
 after downloading or cropping it, finds these first.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+<p>The examples run when the docs are built, on <code class="docutils literal notranslate"><span class="pre">met.arl</span></code>, a small file of made-up
+values that the build writes with <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>
+(<a class="reference internal" href="quickstart.html"><span class="doc">Quick Start</span></a> describes it), and on a folder <code class="docutils literal notranslate"><span class="pre">hrrr/</span></code> of more like it, in
+which one file has a record overwritten with null bytes and one was cut short.</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 
-<span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;20210226_18-23_hrrr&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">problem</span> <span class="ow">in</span> <span class="n">met</span><span class="o">.</span><span class="n">check</span><span class="p">():</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">problem</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>2021-02-26 19:00 has 43 of the 298 data records the first time step has.
+<span class="gp">In [2]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;hrrr/20240101_06_hrrr&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ...: </span>    <span class="k">for</span> <span class="n">problem</span> <span class="ow">in</span> <span class="n">met</span><span class="o">.</span><span class="n">check</span><span class="p">():</span>
+<span class="gp">   ...: </span>        <span class="nb">print</span><span class="p">(</span><span class="n">problem</span><span class="p">)</span>
+<span class="gp">   ...: </span>
+<span class="go">2024-01-01 07:00: the SHGT record at level 0 (byte 18966) cannot be read. Invalid ARL record header: cannot parse year from &#39;\x00\x00&#39; (bytes 0-2)</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">check()</span></code> returns one message per problem, and an empty list for a file
-with none.</p>
+with none:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [3]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ...: </span>    <span class="nb">print</span><span class="p">(</span><span class="n">met</span><span class="o">.</span><span class="n">check</span><span class="p">())</span>
+<span class="gp">   ...: </span>
+<span class="go">[]</span>
+</pre></div>
+</div>
 <section id="what-is-checked">
 <h2>What is checked<a class="headerlink" href="#what-is-checked" title="Link to this heading">#</a></h2>
 <p>The checks follow how HYSPLIT reads a file (<code class="docutils literal notranslate"><span class="pre">metset.f</span></code>):</p>
@@ -509,8 +518,12 @@ for example from the file’s name.</p></li>
 <p>Each index record holds a checksum of each data record’s packed bytes.
 <a class="reference internal" href="_autosummary/arlmet.DataRecord.verify_checksum.html#arlmet.DataRecord.verify_checksum" title="arlmet.DataRecord.verify_checksum"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.DataRecord.verify_checksum()</span></code></a> returns <code class="docutils literal notranslate"><span class="pre">False</span></code> when a record’s
 bytes do not match it:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;gdas1.sep25.w1&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
-    <span class="n">bad</span> <span class="o">=</span> <span class="p">[</span><span class="n">record</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">met</span><span class="o">.</span><span class="n">records</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">record</span><span class="o">.</span><span class="n">verify_checksum</span><span class="p">()]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ...: </span>    <span class="n">bad</span> <span class="o">=</span> <span class="p">[</span><span class="n">record</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">met</span><span class="o">.</span><span class="n">records</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">record</span><span class="o">.</span><span class="n">verify_checksum</span><span class="p">()]</span>
+<span class="gp">   ...: </span>
+
+<span class="gp">In [5]: </span><span class="n">bad</span>
+<span class="gh">Out[5]: </span><span class="go">[]</span>
 </pre></div>
 </div>
 <p>This reads every byte of the file. A stored checksum of 0 means none was
@@ -521,18 +534,19 @@ forecast, at 00, 06, 12 and 18 UTC, and those values are good.</p>
 <section id="checking-a-folder">
 <h2>Checking a folder<a class="headerlink" href="#checking-a-folder" title="Link to this heading">#</a></h2>
 <p>To check a folder of files, catch the files that do not open as well:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
-
-<span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;hrrr&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*_hrrr&quot;</span><span class="p">)):</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
-            <span class="n">problems</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">check</span><span class="p">()</span>
-    <span class="k">except</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">ARLFormatError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-        <span class="n">problems</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)]</span>
-    <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">problems</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="gp">In [7]: </span><span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;hrrr&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*_hrrr&quot;</span><span class="p">)):</span>
+<span class="gp">   ...: </span>    <span class="k">try</span><span class="p">:</span>
+<span class="gp">   ...: </span>        <span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ...: </span>            <span class="n">problems</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">check</span><span class="p">()</span>
+<span class="gp">   ...: </span>    <span class="k">except</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">ARLFormatError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+<span class="gp">   ...: </span>        <span class="n">problems</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)]</span>
+<span class="gp">   ...: </span>    <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
+<span class="gp">   ...: </span>        <span class="nb">print</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">problems</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="gp">   ...: </span>
+<span class="go">20240101_06_hrrr 2024-01-01 07:00: the SHGT record at level 0 (byte 18966) cannot be read. Invalid ARL record header: cannot parse year from &#39;\x00\x00&#39; (bytes 0-2)</span>
+<span class="go">20240101_12_hrrr hrrr/20240101_12_hrrr: file size 75364 bytes is not a whole number of 3161-byte records (61x51 grid); the file is truncated or corrupt.</span>
 </pre></div>
 </div>
 </section>

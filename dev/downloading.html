@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=64eb4210"></script>
+    <script src="_static/documentation_options.js?v=b135774c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="User Guides" href="user-guides.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev32+gce6c5b188" />
+  <meta name="docsearch:version" content="0.1.0b4.dev33+ga28c02774" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -452,6 +452,8 @@ NOAA ARL public archives.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;arlmet[archives]&quot;</span>
 </pre></div>
 </div>
+<p>The examples on this page download files from NOAA, so they are shown but not run
+when the docs are built, except the one that only picks an archive by name.</p>
 <section id="choose-an-archive">
 <h2>Choose an archive<a class="headerlink" href="#choose-an-archive" title="Link to this heading">#</a></h2>
 <p>Each class knows the filename and archive layout for one product, and is
@@ -519,11 +521,27 @@ registered under a short name.</p>
 <p><code class="xref py py-data docutils literal notranslate"><span class="pre">arlmet.archives.ARCHIVES</span></code> maps each name to its class, and
 <a class="reference internal" href="_autosummary/arlmet.archives.get_archive.html#arlmet.archives.get_archive" title="arlmet.archives.get_archive"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.archives.get_archive()</span></code></a> builds an archive from its name plus any
 options, which is convenient when the product comes from a config file:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.archives</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARCHIVES</span><span class="p">,</span> <span class="n">get_archive</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.archives</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARCHIVES</span><span class="p">,</span> <span class="n">get_archive</span>
 
-<span class="nb">sorted</span><span class="p">(</span><span class="n">ARCHIVES</span><span class="p">)</span>  <span class="c1"># [&#39;gdas0p5&#39;, &#39;gdas1&#39;, &#39;gfs0p25&#39;, &#39;hrrr&#39;, ...]</span>
-<span class="n">archive</span> <span class="o">=</span> <span class="n">get_archive</span><span class="p">(</span><span class="s2">&quot;nams&quot;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s2">&quot;ak&quot;</span><span class="p">)</span>
-<span class="n">files</span> <span class="o">=</span> <span class="n">archive</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s2">&quot;2024-07-18&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-07-19&quot;</span><span class="p">,</span> <span class="n">dest_dir</span><span class="o">=</span><span class="s2">&quot;./met/&quot;</span><span class="p">)</span>
+<span class="gp">In [2]: </span><span class="nb">sorted</span><span class="p">(</span><span class="n">ARCHIVES</span><span class="p">)</span>
+<span class="gh">Out[2]: </span>
+<span class="go">[&#39;gdas0p5&#39;,</span>
+<span class="go"> &#39;gdas1&#39;,</span>
+<span class="go"> &#39;gfs0p25&#39;,</span>
+<span class="go"> &#39;hrrr&#39;,</span>
+<span class="go"> &#39;hrrr.v1&#39;,</span>
+<span class="go"> &#39;nam12&#39;,</span>
+<span class="go"> &#39;nams&#39;,</span>
+<span class="go"> &#39;narr&#39;,</span>
+<span class="go"> &#39;reanalysis&#39;]</span>
+
+<span class="gp">In [3]: </span><span class="n">archive</span> <span class="o">=</span> <span class="n">get_archive</span><span class="p">(</span><span class="s2">&quot;nams&quot;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s2">&quot;ak&quot;</span><span class="p">)</span>
+
+<span class="gp">In [4]: </span><span class="n">archive</span>
+<span class="gh">Out[4]: </span><span class="go">NAMSArchive(domain=&#39;ak&#39;)</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">files</span> <span class="o">=</span> <span class="n">archive</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s2">&quot;2024-07-18&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-07-19&quot;</span><span class="p">,</span> <span class="n">dest_dir</span><span class="o">=</span><span class="s2">&quot;./met/&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>An unknown name raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> listing the available ones. A subclass of

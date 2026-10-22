@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=64eb4210"></script>
+    <script src="_static/documentation_options.js?v=b135774c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Installation" href="installation.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev32+gce6c5b188" />
+  <meta name="docsearch:version" content="0.1.0b4.dev33+ga28c02774" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -442,6 +442,10 @@
 <p>This page shows the shortest useful end-to-end workflow: open an ARL file,
 inspect a few variables, crop it to a smaller domain, and write the result
 back to disk.</p>
+<p>The examples run when the docs are built, on <code class="docutils literal notranslate"><span class="pre">met.arl</span></code>, a small file of made-up
+values that the build writes with <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>: a July day over
+Utah, four time steps six hours apart, on a 61 by 51 grid of 0.1 degree cells
+and four pressure levels. Use your own file’s name in its place.</p>
 <section id="open-a-file-lazily-with-xarray">
 <h2>Open a file lazily with xarray<a class="headerlink" href="#open-a-file-lazily-with-xarray" title="Link to this heading">#</a></h2>
 <p>The main entry point is <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a>. It returns an
@@ -453,38 +457,104 @@ when you actually access them.</p>
 coordinate contains only the upper-air pressure levels. <code class="docutils literal notranslate"><span class="pre">ds.isel(level=0)</span></code>
 selects the first upper-air level for upper-air variables and leaves surface
 variables unchanged.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 
-<span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;path/to/file.arl&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PRSS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span>  <span class="c1"># (&#39;time&#39;, &#39;lat&#39;, &#39;lon&#39;)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span>  <span class="c1"># (&#39;time&#39;, &#39;level&#39;, &#39;lat&#39;, &#39;lon&#39;)</span>
-<span class="n">ds</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>        <span class="c1"># selects first upper level; surface vars unchanged</span>
+<span class="gp">In [2]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span>
+
+<span class="gp">In [3]: </span><span class="nb">print</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+<span class="go">&lt;xarray.Dataset&gt; Size: 1MB</span>
+<span class="go">Dimensions:        (lon: 61, lat: 51, level: 4, time: 4)</span>
+<span class="go">Coordinates:</span>
+<span class="go">  * lon            (lon) float64 488B -115.0 -114.9 -114.8 ... -109.1 -109.0</span>
+<span class="go">  * lat            (lat) float64 408B 38.0 38.1 38.2 38.3 ... 42.8 42.9 43.0</span>
+<span class="go">  * level          (level) int64 32B 1 2 3 4</span>
+<span class="go">    pressure       (level) float64 32B 850.0 700.0 500.0 300.0</span>
+<span class="go">  * time           (time) datetime64[us] 32B 2024-07-18 ... 2024-07-18T18:00:00</span>
+<span class="go">    arl_grid       int64 8B 0</span>
+<span class="go">Data variables:</span>
+<span class="go">    forecast_hour  (time) int64 32B 0 0 0 0</span>
+<span class="go">    HGTS           (time, level, lat, lon) float32 199kB ...</span>
+<span class="go">    PRSS           (time, lat, lon) float32 50kB ...</span>
+<span class="go">    SHGT           (time, lat, lon) float32 50kB ...</span>
+<span class="go">    T02M           (time, lat, lon) float32 50kB ...</span>
+<span class="go">    TEMP           (time, level, lat, lon) float32 199kB ...</span>
+<span class="go">    UWND           (time, level, lat, lon) float32 199kB ...</span>
+<span class="go">    VWND           (time, level, lat, lon) float32 199kB ...</span>
+<span class="go">    WWND           (time, level, lat, lon) float32 199kB ...</span>
+<span class="go">Attributes:</span>
+<span class="go">    source:         DOCS</span>
+<span class="go">    vertical_flag:  2</span>
+
+<span class="gp">In [4]: </span><span class="nb">print</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PRSS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span>
+<span class="go">(&#39;time&#39;, &#39;lat&#39;, &#39;lon&#39;)</span>
+
+<span class="gp">In [5]: </span><span class="nb">print</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span>
+<span class="go">(&#39;time&#39;, &#39;level&#39;, &#39;lat&#39;, &#39;lon&#39;)</span>
+
+<span class="gp">In [6]: </span><span class="n">ds</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># selects first upper level; surface vars unchanged</span>
+<span class="gh">Out[6]: </span>
+<span class="go">&lt;xarray.Dataset&gt; Size: 399kB</span>
+<span class="go">Dimensions:        (lon: 61, lat: 51, time: 4)</span>
+<span class="go">Coordinates:</span>
+<span class="go">  * lon            (lon) float64 488B -115.0 -114.9 -114.8 ... -109.1 -109.0</span>
+<span class="go">  * lat            (lat) float64 408B 38.0 38.1 38.2 38.3 ... 42.8 42.9 43.0</span>
+<span class="go">  * time           (time) datetime64[us] 32B 2024-07-18 ... 2024-07-18T18:00:00</span>
+<span class="go">    level          int64 8B 1</span>
+<span class="go">    arl_grid       int64 8B 0</span>
+<span class="go">    pressure       float64 8B 850.0</span>
+<span class="go">Data variables:</span>
+<span class="go">    forecast_hour  (time) int64 32B 0 0 0 0</span>
+<span class="go">    HGTS           (time, lat, lon) float32 50kB ...</span>
+<span class="go">    PRSS           (time, lat, lon) float32 50kB ...</span>
+<span class="go">    SHGT           (time, lat, lon) float32 50kB ...</span>
+<span class="go">    T02M           (time, lat, lon) float32 50kB ...</span>
+<span class="go">    TEMP           (time, lat, lon) float32 50kB ...</span>
+<span class="go">    UWND           (time, lat, lon) float32 50kB ...</span>
+<span class="go">    VWND           (time, lat, lon) float32 50kB ...</span>
+<span class="go">    WWND           (time, lat, lon) float32 50kB ...</span>
+<span class="go">Attributes:</span>
+<span class="go">    source:         DOCS</span>
+<span class="go">    vertical_flag:  2</span>
 </pre></div>
 </div>
 <p>arlmet also registers itself as an xarray backend, so the same Dataset is
 available through <a class="reference external" href="https://docs.xarray.dev/en/stable/generated/xarray.open_dataset.html#xarray.open_dataset" title="(in xarray v2026.9.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">xarray.open_dataset()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">engine=&quot;arl&quot;</span></code>. That route
 adds xarray’s generic options, such as <code class="docutils literal notranslate"><span class="pre">chunks=</span></code> for dask-backed arrays:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
-<span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;path/to/file.arl&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;arl&quot;</span><span class="p">)</span>
-<span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;path/to/file.arl&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;arl&quot;</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+<span class="gp">In [8]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;arl&quot;</span><span class="p">)</span>
+
+<span class="gp">In [9]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;arl&quot;</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+
+<span class="gp">In [10]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span>
+<span class="gh">Out[10]: </span>
+<span class="go">&lt;xarray.DataArray &#39;TEMP&#39; (time: 4, level: 4, lat: 51, lon: 61)&gt; Size: 199kB</span>
+<span class="go">dask.array&lt;open_dataset-TEMP, shape=(4, 4, 51, 61), dtype=float32, chunksize=(1, 4, 51, 61), chunktype=numpy.ndarray&gt;</span>
+<span class="go">Coordinates:</span>
+<span class="go">  * time      (time) datetime64[us] 32B 2024-07-18 ... 2024-07-18T18:00:00</span>
+<span class="go">  * level     (level) int64 32B 1 2 3 4</span>
+<span class="go">    pressure  (level) float64 32B dask.array&lt;chunksize=(4,), meta=np.ndarray&gt;</span>
+<span class="go">  * lat       (lat) float64 408B 38.0 38.1 38.2 38.3 ... 42.7 42.8 42.9 43.0</span>
+<span class="go">  * lon       (lon) float64 488B -115.0 -114.9 -114.8 ... -109.2 -109.1 -109.0</span>
+<span class="go">    arl_grid  int64 8B ...</span>
 </pre></div>
 </div>
 <p>ARL files have no standard extension, so xarray recognizes them by their first
-record: <code class="docutils literal notranslate"><span class="pre">xr.open_dataset(&quot;path/to/file.arl&quot;)</span></code> works without <code class="docutils literal notranslate"><span class="pre">engine=</span></code> too,
+record: <code class="docutils literal notranslate"><span class="pre">xr.open_dataset(&quot;met.arl&quot;)</span></code> works without <code class="docutils literal notranslate"><span class="pre">engine=</span></code> too,
 as long as no other installed backend claims the file first.</p>
 </section>
 <section id="select-a-smaller-domain-while-reading">
 <h2>Select a smaller domain while reading<a class="headerlink" href="#select-a-smaller-domain-while-reading" title="Link to this heading">#</a></h2>
 <p>Pass <code class="docutils literal notranslate"><span class="pre">bbox=</span></code> and <code class="docutils literal notranslate"><span class="pre">levels=</span></code> to crop before unpacking.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
+<span class="gp">   ....: </span>    <span class="s2">&quot;met.arl&quot;</span><span class="p">,</span>
+<span class="gp">   ....: </span>    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span>
+<span class="gp">   ....: </span>    <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+<span class="gp">   ....: </span><span class="p">)</span>
+<span class="gp">   ....: </span>
 
-<span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
-    <span class="s2">&quot;path/to/file.arl&quot;</span><span class="p">,</span>
-    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span>
-    <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
-<span class="p">)</span>
+<span class="gp">In [12]: </span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span>
+<span class="gh">Out[12]: </span><span class="go">Frozen({&#39;lon&#39;: 41, &#39;lat&#39;: 31, &#39;level&#39;: 2, &#39;time&#39;: 4})</span>
 </pre></div>
 </div>
 </section>
@@ -492,14 +562,14 @@ as long as no other installed backend claims the file first.</p>
 <h2>Write a cropped copy to a new ARL file<a class="headerlink" href="#write-a-cropped-copy-to-a-new-arl-file" title="Link to this heading">#</a></h2>
 <p>Use <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a> when you want a new ARL file on disk rather
 than an in-memory xarray subset.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
-
-<span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
-    <span class="s2">&quot;path/to/file.arl&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;path/to/cropped.arl&quot;</span><span class="p">,</span>
-    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span>
-    <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
-<span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
+<span class="gp">   ....: </span>    <span class="s2">&quot;met.arl&quot;</span><span class="p">,</span>
+<span class="gp">   ....: </span>    <span class="s2">&quot;cropped.arl&quot;</span><span class="p">,</span>
+<span class="gp">   ....: </span>    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span>
+<span class="gp">   ....: </span>    <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+<span class="gp">   ....: </span><span class="p">)</span>
+<span class="gp">   ....: </span>
+<span class="gh">Out[13]: </span><span class="go">PosixPath(&#39;cropped.arl&#39;)</span>
 </pre></div>
 </div>
 </section>
@@ -508,17 +578,18 @@ than an in-memory xarray subset.</p>
 <p>Use <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a> and <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> for the
 common case where surface variables have no <code class="docutils literal notranslate"><span class="pre">level</span></code> dimension and upper-air
 variables share one <code class="docutils literal notranslate"><span class="pre">level</span></code> coordinate.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [14]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span>
 
-<span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;path/to/file.arl&quot;</span><span class="p">)</span>
-<span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">273.15</span>
-<span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;path/to/edited.arl&quot;</span><span class="p">)</span>
+<span class="gp">In [15]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">273.15</span>
+
+<span class="gp">In [16]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;edited.arl&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>If you need a trailing DIF record for a parent variable, set the parent
 DataArray’s <code class="docutils literal notranslate"><span class="pre">diff</span></code> attr before writing:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;WWND&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;diff&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;DIFW&quot;</span>
-<span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;path/to/edited-with-diff.arl&quot;</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;WWND&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;diff&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;DIFW&quot;</span>
+
+<span class="gp">In [18]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;edited-with-diff.arl&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>For irregular files, including per-variable forecast hours, see <a class="reference internal" href="writing.html"><span class="doc">Writing ARL Files</span></a>
@@ -527,18 +598,22 @@ for the low-level <a class="reference internal" href="_autosummary/arlmet.File.h
 <section id="sample-variables-at-arbitrary-points">
 <h2>Sample variables at arbitrary points<a class="headerlink" href="#sample-variables-at-arbitrary-points" title="Link to this heading">#</a></h2>
 <p>Use <a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> for trajectory or receptor-style sampling.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
-<span class="n">points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-    <span class="p">{</span>
-        <span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">],</span>
-        <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">],</span>
-        <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">],</span>
-        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">],</span>
-    <span class="p">}</span>
-<span class="p">)</span>
-<span class="n">samples</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;path/to/file.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">])</span>
+<span class="gp">In [20]: </span><span class="n">points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<span class="gp">   ....: </span>    <span class="p">{</span>
+<span class="gp">   ....: </span>        <span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">],</span>
+<span class="gp">   ....: </span>        <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">],</span>
+<span class="gp">   ....: </span>        <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">],</span>
+<span class="gp">   ....: </span>        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">],</span>
+<span class="gp">   ....: </span>    <span class="p">}</span>
+<span class="gp">   ....: </span><span class="p">)</span>
+<span class="gp">   ....: </span>
+
+<span class="gp">In [21]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">])</span>
+<span class="gh">Out[21]: </span>
+<span class="go">     lon   lat      z              time      UWND      VWND</span>
+<span class="go">0 -111.9  40.7  850.0  2024-07-18 00:00  6.191424 -3.834117</span>
 </pre></div>
 </div>
 </section>

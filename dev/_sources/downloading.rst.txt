@@ -10,6 +10,9 @@ Install the archive dependencies first:
 
    pip install "arlmet[archives]"
 
+The examples on this page download files from NOAA, so they are shown but not run
+when the docs are built, except the one that only picks an archive by name.
+
 Choose an archive
 -----------------
 
@@ -67,12 +70,16 @@ Choose an archive by name
 :func:`arlmet.archives.get_archive` builds an archive from its name plus any
 options, which is convenient when the product comes from a config file:
 
-.. code-block:: python
+.. ipython:: python
 
    from arlmet.archives import ARCHIVES, get_archive
 
-   sorted(ARCHIVES)  # ['gdas0p5', 'gdas1', 'gfs0p25', 'hrrr', ...]
+   sorted(ARCHIVES)
    archive = get_archive("nams", domain="ak")
+   archive
+
+.. code-block:: python
+
    files = archive.fetch("2024-07-18", "2024-07-19", dest_dir="./met/")
 
 An unknown name raises ``ValueError`` listing the available ones. A subclass of
