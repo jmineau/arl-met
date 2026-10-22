@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=4afc801c"></script>
+    <script src="_static/documentation_options.js?v=d47ad982"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Checking Files" href="checking.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev25+g235bfd581" />
+  <meta name="docsearch:version" content="0.1.0b4.dev26+g9964fb6dd" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -598,6 +598,12 @@ reads back with the same pairs.</p>
 [Real Array]    [Δ from neighbors]    [Scale to 0-255]  [1 byte/point]
 </pre></div>
 </div>
+<p>Reading a record reverses this: the first column is rebuilt down the rows from
+the header’s initial value, then each row across from its first cell, adding
+one difference at a time in single precision. A value smaller in magnitude than
+the record’s precision (<code class="docutils literal notranslate"><span class="pre">2**exponent</span> <span class="pre">/</span> <span class="pre">254</span></code>) is read as zero, except in the
+first column, which HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">pakinp</span></code> leaves as it is. <a class="reference internal" href="_autosummary/arlmet.unpack.html#arlmet.unpack" title="arlmet.unpack"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.unpack()</span></code></a>
+follows <code class="docutils literal notranslate"><span class="pre">pakinp</span></code> step for step and gives the same <code class="docutils literal notranslate"><span class="pre">float32</span></code> values.</p>
 </section>
 <section id="malformed-files">
 <h3>Malformed files<a class="headerlink" href="#malformed-files" title="Link to this heading">#</a></h3>

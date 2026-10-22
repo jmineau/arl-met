@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=4afc801c"></script>
+    <script src="../_static/documentation_options.js?v=d47ad982"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.pack" href="arlmet.pack.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev25+g235bfd581" />
+  <meta name="docsearch:version" content="0.1.0b4.dev26+g9964fb6dd" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -626,7 +626,10 @@
 <dt class="sig sig-object py" id="arlmet.unpack">
 <span class="sig-prename descclassname"><span class="pre">arlmet.</span></span><span class="sig-name descname"><span class="pre">unpack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">packed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precision</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_value</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/packing.html#unpack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.unpack" title="Link to this definition">#</a></dt>
 <dd><p>Unpack an ARL differential byte stream into a 2D field.</p>
-<p>This is a vectorized translation of the HYSPLIT <code class="docutils literal notranslate"><span class="pre">PAKINP</span></code> routine.</p>
+<p>This is a vectorized translation of the HYSPLIT <code class="docutils literal notranslate"><span class="pre">PAKINP</span></code> routine and
+gives the same <code class="docutils literal notranslate"><span class="pre">float32</span></code> values, bit for bit: the arithmetic is in
+single precision, in <code class="docutils literal notranslate"><span class="pre">PAKINP</span></code>’s order, and like <code class="docutils literal notranslate"><span class="pre">PAKINP</span></code> it sets a
+value smaller than <code class="docutils literal notranslate"><span class="pre">precision</span></code> to zero in every column but the first.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -634,7 +637,8 @@
 <li><p><strong>nx</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – The number of columns in the full data grid.</p></li>
 <li><p><strong>ny</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – The number of rows in the full data grid.</p></li>
 <li><p><strong>precision</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Precision of the packed data. Values with an absolute value smaller
-than this will be set to zero.</p></li>
+than this are set to zero, except in the first column (<code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">=</span> <span class="pre">0</span></code>),
+which <code class="docutils literal notranslate"><span class="pre">PAKINP</span></code> leaves as it is.</p></li>
 <li><p><strong>exponent</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – The packing scaling exponent.</p></li>
 <li><p><strong>initial_value</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – The initial real value at the grid position (0,0).</p></li>
 <li><p><strong>window</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="arlmet.GridWindow.html#arlmet.GridWindow" title="arlmet.grid.GridWindow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridWindow</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Rectangular grid window to unpack. When provided, only the requested
