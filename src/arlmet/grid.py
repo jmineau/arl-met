@@ -232,7 +232,10 @@ class GridWindow:
     Parameters
     ----------
     x_start, x_stop : int
-        Inclusive start and exclusive stop indices in the x direction.
+        Inclusive start and exclusive stop indices in the x direction. On a
+        lat/lon grid that spans 360 degrees (:attr:`Grid.wraps_lon`),
+        ``x_stop`` may pass the grid's ``nx``: the window then runs on from the
+        last column to the first, as a crop across the grid's seam does.
     y_start, y_stop : int
         Inclusive start and exclusive stop indices in the y direction.
     """
@@ -274,6 +277,25 @@ class GridWindow:
     def y_slice(self) -> slice:
         """Slice object for selecting the y range."""
         return slice(self.y_start, self.y_stop)
+
+
+def _split_at_seam(window: GridWindow, grid: "Grid") -> tuple[GridWindow, ...]:
+    """
+    Split a window that runs past the grid's last column into its two parts.
+
+    A window within the grid comes back alone; one across the seam of a grid
+    that spans 360 degrees comes back as its eastern part (up to the last
+    column) and its western part (from the first), in that order.
+    """
+    nx = grid.nx
+    if window.x_stop <= nx:
+        return (window,)
+    if not grid.wraps_lon or window.nx > nx:
+        raise ValueError("GridWindow extends beyond the grid bounds.")
+    return (
+        replace(window, x_stop=nx),
+        replace(window, x_start=0, x_stop=window.x_stop - nx),
+    )
 
 
 @dataclass(frozen=True)
@@ -696,9 +718,25 @@ class Grid:
         if x_idx.size == 0 or y_idx.size == 0:
             raise ValueError("bbox does not intersect the grid.")
 
+        x_start, x_stop = int(x_idx.min()), int(x_idx.max()) + 1
+        gap = np.flatnonzero(~lon_mask[x_start:x_stop])
+        if gap.size:
+            # The bbox's columns are at both ends of the grid: it crosses the
+            # grid's seam (0 E on a grid from 0 E, 180 on one from 180 W).
+            if not self.wraps_lon:
+                raise ValueError(
+                    f"bbox {bbox} selects columns at both ends of a lat/lon grid "
+                    "that does not span 360 degrees, which no single grid holds."
+                )
+            # Start at the eastern run and wrap on past the last column.
+            x_start, x_stop = (
+                x_start + int(gap[-1]) + 1,
+                self.nx + x_start + int(gap[0]),
+            )
+
         return GridWindow(
-            x_start=int(x_idx.min()),
-            x_stop=int(x_idx.max()) + 1,
+            x_start=x_start,
+            x_stop=x_stop,
             y_start=int(y_idx.min()),
             y_stop=int(y_idx.max()) + 1,
         )
@@ -732,26 +770,45 @@ class Grid:
         A lat-lon grid's sync point is always its first cell (HYSPLIT ignores
         ``sync_x`` and ``sync_y`` there), so the subset's is the window's
         corner cell, a whole number of cells from this grid's. It is stored
-        exactly when the spacing is a multiple of 0.01 degree.
+        exactly when the spacing is a multiple of 0.01 degree. The subset is
+        written as HYSPLIT's ``xtrct_grid`` writes a crop: ``sync_lon`` in
+        0-360 east and ``pole_lat``/``pole_lon`` its last cell, so
+        ``pole_lon`` can pass 360. HYSPLIT's ``gbl2xy`` measures a longitude
+        from a negative ``sync_lon`` only when ``pole_lon`` is not negative
+        (``gblset``'s ``PRIME``); a 0-360 ``sync_lon`` needs no such case.
+        The window covering the whole grid returns this grid unchanged.
         """
-        if window.x_stop > self.nx or window.y_stop > self.ny:
+        x_limit = 2 * self.nx if self.wraps_lon else self.nx
+        if window.x_stop > x_limit or window.nx > self.nx or window.y_stop > self.ny:
             raise ValueError("GridWindow extends beyond the grid bounds.")
 
         if self.is_latlon:
-            coords = self.calculate_coords()
-            subset_projection = replace(
-                self.projection,
-                sync_x=1.0,
-                sync_y=1.0,
-                sync_lat=float(coords["lat"][1][window.y_start]),
-                sync_lon=float(coords["lon"][1][window.x_start]),
-            )
-        else:
-            subset_projection = replace(
-                self.projection,
-                sync_x=self.projection.sync_x - window.x_start,
-                sync_y=self.projection.sync_y - window.y_start,
-            )
+            return self._latlon_subset(window)
+        subset_projection = replace(
+            self.projection,
+            sync_x=self.projection.sync_x - window.x_start,
+            sync_y=self.projection.sync_y - window.y_start,
+        )
+        return Grid(projection=subset_projection, nx=window.nx, ny=window.ny)
+
+    def _latlon_subset(self, window: GridWindow) -> "Grid":
+        """Build the lat/lon subset :meth:`subset` describes, as ``xtrct_grid`` does."""
+        if window == self.full_window():
+            return self
+        proj = self.projection
+        dlon, dlat = proj.tangent_lon, proj.tangent_lat
+        sync_lat = proj.sync_lat + window.y_start * dlat
+        # East of Greenwich, so HYSPLIT's gbl2xy needs no PRIME (xtrct_grid's form)
+        sync_lon = (proj.sync_lon + window.x_start * dlon) % 360.0
+        subset_projection = replace(
+            proj,
+            pole_lat=sync_lat + (window.ny - 1) * dlat,
+            pole_lon=sync_lon + (window.nx - 1) * dlon,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=sync_lat,
+            sync_lon=sync_lon,
+        )
         return Grid(projection=subset_projection, nx=window.nx, ny=window.ny)
 
     @override
