@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=cdc64443"></script>
+    <script src="../_static/documentation_options.js?v=64eb4210"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.WrfAxis" href="arlmet.WrfAxis.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev31+g9312451a5" />
+  <meta name="docsearch:version" content="0.1.0b4.dev32+gce6c5b188" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -629,6 +629,13 @@
 <dt class="sig sig-object py" id="arlmet.WrfAxis.to_height_agl">
 <span class="sig-prename descclassname"><span class="pre">WrfAxis.</span></span><span class="sig-name descname"><span class="pre">to_height_agl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_pressure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pressure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hgts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">terrain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/vertical.html#WrfAxis.to_height_agl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.WrfAxis.to_height_agl" title="Link to this definition">#</a></dt>
 <dd><p>Height AGL [m] by hypsometric integration of <code class="docutils literal notranslate"><span class="pre">pressure</span></code> (PRES) from <code class="docutils literal notranslate"><span class="pre">surface_pressure</span></code> with <code class="docutils literal notranslate"><span class="pre">temperature</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">temperature</span></code> and <code class="docutils literal notranslate"><span class="pre">pressure</span></code> hold the levels above the surface, on
+the last axis. As in HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> without a 2 m temperature,
+the ground temperature is the first level’s brought down
+adiabatically, <code class="docutils literal notranslate"><span class="pre">T1</span> <span class="pre">*</span> <span class="pre">eta1</span> <span class="pre">**</span> <span class="pre">-0.286</span></code> (<code class="docutils literal notranslate"><span class="pre">PRFSFCT</span></code>), with <code class="docutils literal notranslate"><span class="pre">eta1</span></code>
+the first level above the surface. For HYSPLIT’s heights pass the
+virtual temperature; <a class="reference internal" href="arlmet.z_agl.html#arlmet.z_agl" title="arlmet.z_agl"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.z_agl()</span></code></a> and
+<a class="reference internal" href="arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> also use <code class="docutils literal notranslate"><span class="pre">T02M</span></code> and the humidity.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>], <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v2.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code></a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.double" title="(in NumPy v2.5)"><code class="xref py py-class docutils literal notranslate"><span class="pre">double</span></code></a>]]</span></p>

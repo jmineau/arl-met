@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=cdc64443"></script>
+    <script src="../../_static/documentation_options.js?v=64eb4210"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev31+g9312451a5" />
+  <meta name="docsearch:version" content="0.1.0b4.dev32+gce6c5b188" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1021,9 +1021,11 @@
 <span class="sd">    Eta alone does not give pressure on hybrid levels: that also takes WRF&#39;s</span>
 <span class="sd">    hybrid coefficients, which ``arw2arl`` writes to a separate text file</span>
 <span class="sd">    (``hybrid_wrfvcoords.txt``), not to the ARL file. So pressure is the</span>
-<span class="sd">    ``PRES`` field, as in HYSPLIT&#39;s ``prfwrf``, and heights are hypsometric from</span>
-<span class="sd">    ``PRSS`` up through ``PRES`` with ``TEMP``, as in HYSPLIT&#39;s ``prfsig``, which</span>
-<span class="sd">    HYSPLIT uses for a flag-5 file when it does not have the coefficients.</span>
+<span class="sd">    ``PRES`` field, as in HYSPLIT&#39;s ``prfwrf``, and heights are found as for a</span>
+<span class="sd">    sigma file with ``PRES``, by HYSPLIT&#39;s ``prfsig``, which HYSPLIT uses for a</span>
+<span class="sd">    flag-5 file when it does not have the coefficients: hypsometric from the</span>
+<span class="sd">    ground (``PRSS``) up through ``PRES``, the first layer with the mean of the</span>
+<span class="sd">    ground temperature and the first level&#39;s.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -1036,7 +1038,7 @@
 <span class="sd">    ...     pressure=np.array([845.0, 832.0]),</span>
 <span class="sd">    ... )</span>
 <span class="sd">    &gt;&gt;&gt; np.round(z, 1)</span>
-<span class="sd">    array([ 49.2, 178.3])</span>
+<span class="sd">    array([ 49.3, 178.4])</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">flag</span> <span class="o">=</span> <span class="mi">5</span>
@@ -1068,7 +1070,17 @@
         <span class="n">hgts</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Height AGL [m] by hypsometric integration of ``pressure`` (PRES) from ``surface_pressure`` with ``temperature``.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Height AGL [m] by hypsometric integration of ``pressure`` (PRES) from ``surface_pressure`` with ``temperature``.</span>
+
+<span class="sd">        ``temperature`` and ``pressure`` hold the levels above the surface, on</span>
+<span class="sd">        the last axis. As in HYSPLIT&#39;s ``prfsig`` without a 2 m temperature,</span>
+<span class="sd">        the ground temperature is the first level&#39;s brought down</span>
+<span class="sd">        adiabatically, ``T1 * eta1 ** -0.286`` (``PRFSFCT``), with ``eta1``</span>
+<span class="sd">        the first level above the surface. For HYSPLIT&#39;s heights pass the</span>
+<span class="sd">        virtual temperature; :func:`arlmet.z_agl` and</span>
+<span class="sd">        :func:`arlmet.sample_points` also use ``T02M`` and the humidity.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">_require</span><span class="p">(</span><span class="s2">&quot;surface_pressure&quot;</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
         <span class="n">_require</span><span class="p">(</span><span class="s2">&quot;temperature&quot;</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
         <span class="n">_require</span><span class="p">(</span><span class="s2">&quot;pressure&quot;</span><span class="p">,</span> <span class="n">pressure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
@@ -1077,7 +1089,9 @@
             <span class="ow">and</span> <span class="n">temperature</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
             <span class="ow">and</span> <span class="n">pressure</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">hypsometric_z_agl</span><span class="p">(</span><span class="n">pressure</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">,</span> <span class="n">temperature</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">_hysplit_z_agl</span><span class="p">(</span>
+            <span class="n">pressure</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">first_sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">)</span></div>
 </div>
 
 
