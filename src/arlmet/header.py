@@ -3,7 +3,6 @@
 import string
 from collections.abc import Callable
 from dataclasses import dataclass
-from math import floor, log10
 from typing import Any, ClassVar
 
 import pandas as pd
@@ -54,12 +53,18 @@ def thousands_to_letter(value: int) -> str:
 
 
 def format_fortran_float(value: float) -> str:
-    """Format a float using the ARL/Fortran-style scientific notation."""
+    """
+    Format a float as Fortran's ``E14.7`` writes it, as HYSPLIT's ``pakrec`` does.
+
+    Seven significant digits, rounded from the exact binary value with ties
+    to even (``f"{value:.6e}"`` rounds that way), as ``0.dddddddE+xx``.
+    """
     if value == 0.0:
         return " 0.0000000E+00"
-    exponent = floor(log10(abs(value))) + 1
-    mantissa = value / (10**exponent)
-    return f"{mantissa:10.7f}E{exponent:+03d}"
+    mantissa, exponent = f"{value:.6e}".split("e")
+    sign = "-" if value < 0 else " "
+    digits = mantissa.lstrip("-").replace(".", "")
+    return f"{sign}0.{digits}E{int(exponent) + 1:+03d}"
 
 
 def format_fixed_width_float(value: float, width: int) -> str:
