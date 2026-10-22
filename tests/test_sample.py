@@ -183,9 +183,10 @@ class TestPointSampling:
 
         surface_pressure = 1001.5
         terrain = 105.5
-        z0 = (surface_pressure - 1000.0) * _DZ
+        # Level 0 is the ground (0 m AGL, PRSS), as in HYSPLIT's prfprs, whatever
+        # its HGTS record says; level 1 is (PRSS - 900) * _DZ above it.
         z1 = (surface_pressure - 900.0) * _DZ
-        z_agl_mid = 0.5 * (z0 + z1)
+        z_agl_mid = 0.5 * z1
         z_msl_mid = z_agl_mid + terrain
 
         points = pd.DataFrame(
@@ -211,9 +212,9 @@ class TestPointSampling:
             )
 
         np.testing.assert_allclose(agl["TEMP"].iloc[0], 290.5, atol=0.01)
-        np.testing.assert_allclose(agl["pressure"].iloc[0], 950.0, atol=0.1)
+        np.testing.assert_allclose(agl["pressure"].iloc[0], 950.75, atol=0.1)
         np.testing.assert_allclose(msl["TEMP"].iloc[0], 290.5, atol=0.01)
-        np.testing.assert_allclose(msl["pressure"].iloc[0], 950.0, atol=0.1)
+        np.testing.assert_allclose(msl["pressure"].iloc[0], 950.75, atol=0.1)
 
     def test_module_sample_points_dispatches_across_multiple_sources_by_time(
         self, tmp_path
@@ -1041,6 +1042,129 @@ class TestSigmaColumnAsHysplit:
         t_ground = _TEMP[0] * (p1 / _PRSS) ** -0.286
         result = _sample_column(path, ["TEMP"], [0.0])
         np.testing.assert_allclose(result["TEMP"], [t_ground], atol=1e-3)
+
+
+# --- pressure-level files over high ground, as NAM12's over the mountain West (prfprs) ---
+
+# Levels 1 to 5 (hPa) and their HGTS (m MSL). With the ground at _SHGT = 1300 m and
+# _PRSS = 850 hPa, 1000 and 950 hPa are below the ground, extrapolated by the model.
+_PRS_LEVELS = [1000.0, 950.0, 900.0, 850.0, 800.0]
+_PRS_HGTS = [100.0, 560.0, 1010.0, 1460.0, 1950.0]
+_PRS_TEMP = [306.0, 302.0, 298.0, 290.0, 286.0]
+_PRS_UWND = [-3.0, -2.5, -2.0, 4.0, 6.0]
+_PRS_WWND = [0.0, 0.0, 0.0, 0.2, 0.3]
+#: Height above ground of the first level above it (850 hPa).
+_PRS_Z1 = _PRS_HGTS[3] - _SHGT
+
+
+def write_pressure_column_file(path, *, t02m=True, u10m=True, shgt=_SHGT):
+    """A pressure-level file: surface fields at level 0, HGTS/TEMP/UWND/WWND on 1-5."""
+    grid = make_test_grid()
+    axis = PressureAxis(levels=[0.0, *_PRS_LEVELS])
+
+    def field(value):
+        return np.full((grid.ny, grid.nx), value, dtype=np.float32)
+
+    with File(path, mode="w", source="TEST", grid=grid, vertical_axis=axis) as arl:
+        rs = arl.create_recordset(_COLUMN_TIME)
+        rs.create_datarecord("SHGT", level=0, forecast=0, data=field(shgt))
+        rs.create_datarecord("PRSS", level=0, forecast=0, data=field(_PRSS))
+        if t02m:
+            rs.create_datarecord("T02M", level=0, forecast=0, data=field(_T02M))
+        if u10m:
+            rs.create_datarecord("U10M", level=0, forecast=0, data=field(_U10M))
+        for k in range(len(_PRS_LEVELS)):
+            level = k + 1
+            for name, values in (
+                ("HGTS", _PRS_HGTS),
+                ("TEMP", _PRS_TEMP),
+                ("UWND", _PRS_UWND),
+                ("WWND", _PRS_WWND),
+            ):
+                rs.create_datarecord(
+                    name, level=level, forecast=0, data=field(values[k])
+                )
+
+
+class TestPressureColumnAsHysplit:
+    """
+    Pressure-level heights as HYSPLIT's prfprs finds them (#81).
+
+    The profile starts at the ground (0 m AGL; T02M, U10M, PRSS) and skips the
+    levels at or below it; between the ground and the first level above it,
+    values are linear in height.
+    """
+
+    def test_below_the_first_level_values_come_from_the_ground(self, tmp_path):
+        path = tmp_path / "prs.arl"
+        write_pressure_column_file(path)
+        variables = ["TEMP", "UWND", "WWND", "HGTS", "pressure"]
+        z = [10.0, 0.5 * _PRS_Z1]
+        result = _sample_column(path, variables, z)
+        frac = np.array(z) / _PRS_Z1
+        np.testing.assert_allclose(
+            result["TEMP"], _T02M + frac * (_PRS_TEMP[3] - _T02M), atol=1e-3
+        )
+        np.testing.assert_allclose(
+            result["UWND"], _U10M + frac * (_PRS_UWND[3] - _U10M), atol=1e-4
+        )
+        np.testing.assert_allclose(result["WWND"], frac * _PRS_WWND[3], atol=1e-5)
+        np.testing.assert_allclose(result["HGTS"], _SHGT + np.array(z), atol=1e-2)
+        # Pressure stays linear in height on pressure-level files.
+        np.testing.assert_allclose(
+            result["pressure"], _PRSS + frac * (_PRS_LEVELS[3] - _PRSS), atol=1e-3
+        )
+
+    def test_levels_below_the_ground_are_not_used(self, tmp_path):
+        # The 1000 and 950 hPa values (306 K, 302 K) never reach the profile.
+        path = tmp_path / "prs.arl"
+        write_pressure_column_file(path)
+        result = _sample_column(path, ["TEMP"], [0.0, 1.0, _PRS_Z1])
+        assert result["TEMP"].max() <= _PRS_TEMP[3] + 1e-3
+        np.testing.assert_allclose(result["TEMP"].iloc[[0, 2]], [_T02M, _PRS_TEMP[3]])
+
+    def test_msl_starts_at_the_terrain(self, tmp_path):
+        path = tmp_path / "prs.arl"
+        write_pressure_column_file(path)
+        z = [_SHGT, _SHGT + 0.5 * _PRS_Z1, _PRS_HGTS[4]]
+        result = _sample_column(path, ["TEMP"], z, z_kind="msl")
+        np.testing.assert_allclose(
+            result["TEMP"],
+            [_T02M, 0.5 * (_T02M + _PRS_TEMP[3]), _PRS_TEMP[4]],
+            atol=1e-3,
+        )
+
+    def test_without_surface_fields_the_ground_is_level_one(self, tmp_path):
+        # PRFSFCT: T_ground = T(1) * (P(1) / PRSS) ** -0.286, with level 1 the file's
+        # first level, here below the ground; U at the ground is U(1).
+        path = tmp_path / "prs.arl"
+        write_pressure_column_file(path, t02m=False, u10m=False)
+        result = _sample_column(path, ["TEMP", "UWND"], [0.0]).iloc[0]
+        t_ground = _PRS_TEMP[0] * (_PRS_LEVELS[0] / _PRSS) ** -0.286
+        np.testing.assert_allclose(result["TEMP"], t_ground, rtol=1e-6)
+        np.testing.assert_allclose(result["UWND"], _PRS_UWND[0], atol=1e-4)
+
+    def test_low_ground_below_every_level_is_not_nan(self, tmp_path):
+        # The ground under the first level: a point between them used to be NaN.
+        path = tmp_path / "prs.arl"
+        write_pressure_column_file(path, shgt=0.0)
+        result = _sample_column(path, ["TEMP"], [0.5 * _PRS_HGTS[0]])
+        np.testing.assert_allclose(
+            result["TEMP"], [0.5 * (_T02M + _PRS_TEMP[0])], atol=1e-3
+        )
+
+    def test_below_the_ground_is_nan(self, tmp_path):
+        path = tmp_path / "prs.arl"
+        write_pressure_column_file(path)
+        result = _sample_column(path, ["TEMP", "pressure"], [-1.0]).iloc[0]
+        assert np.isnan(result["TEMP"]) and np.isnan(result["pressure"])
+
+    def test_pressure_targets_use_the_stored_levels(self, tmp_path):
+        # Sampling at pressures is unchanged: the stored levels, none skipped.
+        path = tmp_path / "prs.arl"
+        write_pressure_column_file(path)
+        result = _sample_column(path, ["TEMP"], [975.0], z_kind="pressure")
+        np.testing.assert_allclose(result["TEMP"], [304.0], atol=1e-3)
 
 
 class TestHorizontalInterpolation:

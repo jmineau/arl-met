@@ -57,6 +57,13 @@ for choice. The Fortran routines it matches:
      - the column in ``ops/sample.py`` and :func:`arlmet.z_agl`, through
        ``vertical._hysplit_z_agl``; on two HRRR columns it agrees with the
        compiled ``prfsig`` within 0.006 hPa
+   * - ``prfprs``
+     - the pressure-level (flag 2) profile: heights from ``HGTS``, the ground
+       (``SHGT``, ``PRSS``, ``T02M``, ``U10M``) at the bottom, levels at or
+       below the ground skipped; ``ln p`` linear in height
+     - the column in ``ops/sample.py``; ``TEMP`` and winds agree with the
+       compiled ``prfprs`` within 0.001 on NAM12 and GDAS columns; pressure is
+       linear in height
    * - ``prfwrf``
      - the WRF (flag 5) profile: pressure from the ``PRES`` field, heights from
        WRF's hybrid coefficients (read from a side file, ``hybrid_wrfvcoords.txt``)

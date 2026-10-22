@@ -125,6 +125,34 @@ the virtual ``"pressure"``, the ground temperature above for ``TEMP``,
 ``WWND`` and ``DZDT``, and the first level's value for any other variable.
 Pressure is interpolated as ``ln p``, linear in height, as HYSPLIT does.
 
+Pressure-level heights
+----------------------
+
+On pressure-level files (flag 2) :func:`arlmet.sample_points` builds each column
+at heights (``z_kind="agl"`` or ``"msl"``) as HYSPLIT's ``prfprs`` does:
+
+- **The ground is level 0:** 0 m above ground (``SHGT`` above sea level), at
+  ``PRSS``, with ``T02M`` (or ``TMPS``) and ``U10M``/``V10M``. Without a 2 m
+  temperature, the ground temperature is level 1's ``TEMP`` brought down
+  adiabatically, ``T1 * (p1 / PRSS) ** -0.286``; without 10 m winds, the
+  ground takes level 1's wind. Level 1 is the file's first pressure level,
+  which may be below the ground.
+- **Levels at or below the ground are left out.** Over high ground the lowest
+  pressure levels have ``HGTS`` under ``SHGT`` and values the model
+  extrapolated below the surface. ``prfprs`` puts nothing there, so a point
+  between the ground and the first level above it is interpolated from the
+  ground values and that level.
+
+The ground values are the ones listed above for sigma files, and ``SHGT`` for
+``HGTS``. Pressure stays linear in height on these files. Sampling at
+pressures (``z_kind="pressure"``) uses the stored levels as they are, below
+the ground included.
+
+On NOAA's NAM 12 km and GDAS 1-degree files, at five western-US points from
+1 m to 3 km above ground, ``TEMP``, ``UWND`` and ``VWND`` agree with the
+compiled ``prfprs`` within 0.001; pressure differs by up to 0.5 hPa, the
+difference between linear and ``ln p`` interpolation.
+
 Sigma files with PRES
 ---------------------
 
@@ -224,6 +252,7 @@ Limitations
   hybrid coefficients that would give them from eta are not in the ARL file.
 - ``pressure()`` for terrain-following files (flag=3) requires a stored ``PRES``
   field; it is not derived.
-- Only sigma and hybrid files take the ground as a level in
-  :func:`arlmet.sample_points`; on pressure (flag=2), terrain-following (flag=3)
-  and WRF (flag=5) files a point below the lowest level with data is NaN.
+- Only sigma, hybrid and pressure-level files take the ground as a level in
+  :func:`arlmet.sample_points` (pressure-level files at heights only); on
+  terrain-following (flag=3) and WRF (flag=5) files a point below the lowest
+  level with data is NaN.

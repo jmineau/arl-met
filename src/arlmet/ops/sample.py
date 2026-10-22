@@ -34,12 +34,18 @@ __all__ = ["sample_points"]
 
 SURFACE_VARIABLES = {"PRSS", "SHGT"}
 
-#: On sigma and hybrid files, the surface field that gives an upper-level
-#: variable its value at the ground, as HYSPLIT's ``prfsig`` and ``prfecm``
-#: start their columns. ``TEMP`` takes the column's ground temperature
-#: (``T02M``, ``TMPS``, else the first level's brought down adiabatically),
-#: vertical motion is zero, and any other variable keeps its first level's value.
-_GROUND_FIELDS: dict[str, str] = {"PRES": "PRSS", "UWND": "U10M", "VWND": "V10M"}
+#: On sigma, pressure-level and hybrid files, the surface field that gives an
+#: upper-level variable its value at the ground, as HYSPLIT's ``prfsig``,
+#: ``prfprs`` and ``prfecm`` start their columns. ``TEMP`` takes the column's
+#: ground temperature (``T02M``, ``TMPS``, else the first level's brought down
+#: adiabatically), vertical motion is zero, and any other variable keeps its
+#: first level's value.
+_GROUND_FIELDS: dict[str, str] = {
+    "PRES": "PRSS",
+    "HGTS": "SHGT",
+    "UWND": "U10M",
+    "VWND": "V10M",
+}
 _ZERO_AT_GROUND = frozenset({"WWND", "DZDT"})
 #: Variables holding pressure, interpolated as ln p on sigma and hybrid files.
 _PRESSURE_VARIABLES = frozenset({"PRES", "pressure"})
@@ -439,7 +445,8 @@ def _vertical_coords(
 
     Dispatches to the vertical axis subclass methods, matching HYSPLIT:
 
-    - flag=2 (pressure): stored levels for pressure; HGTS for heights.
+    - flag=2 (pressure): stored levels for pressure; for heights the *column*
+      (the ground at level 0, then HGTS, levels at or below the ground left out).
     - flag=1/4 (sigma/hybrid): the *column* (PRSS at level 0, the ground; PRES on
       sigma files that have it, else the axis's pressure; HYSPLIT's heights).
     - flag=3 (terrain): stored level heights are AGL; no pressure coordinate.
@@ -459,6 +466,8 @@ def _vertical_coords(
 
     if z_kind == "pressure":
         if isinstance(axis, PressureAxis):
+            if column is not None:  # sampling at heights: PRSS at the ground
+                return column.pressure[:, level_list]
             return _broadcast(axis.to_pressure()[level_list])
         if isinstance(axis, (SigmaAxis, HybridAxis)):
             assert column is not None
@@ -484,21 +493,9 @@ def _vertical_coords(
             coords = coords + terrain[:, None]
         return coords
 
-    if isinstance(axis, PressureAxis):
-        # HYSPLIT PRFPRS: heights come from HGTS (geopotential height MSL).
-        hgts = _level_profiles(recordset, "HGTS", plan, level_list)
-        if hgts is None:
-            raise ValueError(
-                "Pressure-level (flag=2) files require HGTS records for AGL/MSL sampling."
-            )
-        if z_kind == "msl":
-            return hgts
-        return np.maximum(
-            hgts - _resolve_terrain(recordset, plan, terrain)[:, None], 0.0
-        )
-
-    if isinstance(axis, (SigmaAxis, HybridAxis)):
-        # HYSPLIT PRFSIG/PRFECM: hypsometric from the ground with virtual temperature.
+    if isinstance(axis, (PressureAxis, SigmaAxis, HybridAxis)):
+        # HYSPLIT PRFPRS: HGTS above the ground. PRFSIG/PRFECM: hypsometric from
+        # the ground with virtual temperature.
         assert column is not None
         agl = column.z_agl[:, level_list]
         if z_kind == "agl":
@@ -549,20 +546,31 @@ def _resolve_terrain(
 
 class _Column:
     """
-    The vertical column of one sigma or hybrid time step at the sample points.
+    The vertical column of one sigma, pressure-level or hybrid time step.
 
-    Built as HYSPLIT's ``prfsig`` (sigma, flag 1) and ``prfecm`` (hybrid, flag 4)
-    build theirs, and shared by every variable sampled at that time. Level 0
-    is the ground: 0 m above it, at the surface pressure ``PRSS``. Each field
-    is read only when first needed, and every array is ``(n_points, n_levels)``
-    over all the axis's levels, or ``(n_points,)`` for the ground.
+    Built at the sample points as HYSPLIT's ``prfsig`` (sigma, flag 1),
+    ``prfprs`` (pressure, flag 2) and ``prfecm`` (hybrid, flag 4) build theirs,
+    and shared by every variable sampled at that time. Level 0 is the ground:
+    0 m above it, at the surface pressure ``PRSS``. On a pressure-level file a
+    level at or below the ground has no height (NaN), so a profile runs from
+    the ground to the first level above it, as ``prfprs`` skips such levels.
+    Each field is read only when first needed, and every array is
+    ``(n_points, n_levels)`` over all the axis's levels, or ``(n_points,)`` for
+    the ground.
     """
 
-    def __init__(self, recordset: RecordSet, plan: HorizontalSamplePlan) -> None:
+    def __init__(
+        self,
+        recordset: RecordSet,
+        plan: HorizontalSamplePlan,
+        *,
+        terrain: npt.NDArray[Any] | None = None,
+    ) -> None:
         self.recordset = recordset
         self.plan = plan
         self.axis = recordset.vertical_axis
         self.upper = list(range(1, len(self.axis.levels)))
+        self.terrain = terrain
 
     def _surface(self, variable: str) -> npt.NDArray[Any] | None:
         """Sample the surface field *variable*, or None if the time step lacks it."""
@@ -593,6 +601,10 @@ class _Column:
         has one (HYSPLIT's ``ZFLG``), else the nominal pressure of the axis.
         """
         sp = self.surface_pressure
+        if isinstance(self.axis, PressureAxis):
+            p = np.tile(self.axis.to_pressure(), (len(sp), 1))
+            p[:, 0] = sp
+            return p
         assert isinstance(self.axis, (SigmaAxis, HybridAxis))
         p = self.axis.to_pressure(surface_pressure=sp)
         pres = self._upper("PRES") if isinstance(self.axis, SigmaAxis) else None
@@ -604,6 +616,8 @@ class _Column:
     @cached_property
     def z_agl(self) -> npt.NDArray[Any]:
         """Height above ground [m] of each level, 0 at the ground (HYSPLIT's heights)."""
+        if isinstance(self.axis, PressureAxis):
+            return self._hgts_agl
         z = np.zeros_like(self.pressure)
         if not self.upper:
             return z
@@ -618,6 +632,25 @@ class _Column:
             specific_humidity=self._upper("SPHU"),
             relative_humidity=self._upper("RELH"),
         )
+        return z
+
+    @cached_property
+    def _hgts_agl(self) -> npt.NDArray[Any]:
+        """
+        ``HGTS - SHGT`` [m] of each level of a pressure-level file, 0 at the ground.
+
+        A level at or below the ground is NaN: HYSPLIT's ``prfprs`` puts no
+        output level there and keeps the ground as the bottom of the profile.
+        """
+        hgts = self._upper("HGTS")
+        if hgts is None:
+            raise ValueError(
+                "Pressure-level (flag=2) files require HGTS records for AGL/MSL sampling."
+            )
+        terrain = _resolve_terrain(self.recordset, self.plan, self.terrain)
+        agl = hgts - terrain[:, None]
+        z = np.zeros((len(terrain), len(self.axis.levels)), dtype=np.float32)
+        z[:, 1:] = np.where(agl > 0.0, agl, np.nan)
         return z
 
     @cached_property
@@ -651,10 +684,14 @@ class _Column:
 
         It brings that level's temperature down to the ground: the stored sigma
         (``PSG(1)``) on sigma files, its nominal pressure over ``PRSS``
-        (``ESG(1)``) on hybrid files.
+        (``ESG(1)``) on hybrid files, and level 1's pressure over ``PRSS``
+        (``PSG(1)/P0``) on pressure-level files, where that level can be below
+        the ground.
         """
         if isinstance(self.axis, SigmaAxis):
             return np.full(len(self.plan.inside), self.axis.levels[1])
+        if isinstance(self.axis, PressureAxis):
+            return self.axis.levels[1] / self.surface_pressure
         sp = self.surface_pressure
         return self.axis.to_pressure(surface_pressure=sp)[:, 1] / sp
 
@@ -757,9 +794,10 @@ def _sample_variable(
         (n_points,) SHGT in meters. Required for AGL sampling with non-terrain
         vertical axes, and for MSL sampling with terrain-following (flag=3) axes.
     column :
-        The sigma/hybrid (flag 1/4) column of this time step, else None. On
-        those files level 0 is the ground, and a variable without a record
-        there takes its ground value (:meth:`_Column.ground_values`).
+        The column of this time step on sigma and hybrid files (flag 1/4), and
+        on pressure-level files (flag 2) sampled at heights; else None. Level
+        0 is then the ground, and a variable without a record there takes its
+        ground value (:meth:`_Column.ground_values`).
 
     Returns
     -------
@@ -768,7 +806,9 @@ def _sample_variable(
     interpolated as ln p, as HYSPLIT's ``prfsig`` and ``prfecm`` do.
     """
     axis = recordset.vertical_axis
-    log_p = column is not None and variable in _PRESSURE_VARIABLES
+    log_p = (
+        isinstance(axis, (SigmaAxis, HybridAxis)) and variable in _PRESSURE_VARIABLES
+    )
 
     def _interp(values: npt.NDArray[Any], coords: npt.NDArray[Any]) -> npt.NDArray[Any]:
         """Interpolate *values* to the targets, as ln p for pressure."""
@@ -871,11 +911,13 @@ def _sample_points_from_file(
           hypsometrically from the ground (PRSS, T02M) through those
           pressures with the virtual temperature (TEMP and SPHU or RELH), as
           HYSPLIT's ``prfsig``/``prfecm`` do; WRF from PRSS through PRES with
-          TEMP; pressure uses HGTS - SHGT (HGTS is required);
-          terrain-following uses the stored levels.
+          TEMP; pressure uses HGTS - SHGT (both required) from the ground
+          up, leaving out the levels at or below the ground, as HYSPLIT's
+          ``prfprs`` does; terrain-following uses the stored levels.
         - ``'msl'``: meters above mean sea level. Sigma/hybrid/WRF add SHGT to
-          the hypsometric AGL height; pressure uses HGTS (required);
-          terrain-following adds SHGT to the stored levels.
+          the hypsometric AGL height; pressure uses HGTS, from the ground
+          (SHGT) up (both required); terrain-following adds SHGT to the stored
+          levels.
     method :
         Horizontal interpolation: ``'linear'`` (bilinear) or ``'nearest'``.
     wind_pairs :
@@ -892,9 +934,10 @@ def _sample_points_from_file(
     # WRF needs PRSS for its surface pressure and hypsometric heights; sigma and
     # hybrid files read theirs through the column, when needed.
     need_surface_pressure = isinstance(axis, WrfAxis) and z_kind != "native"
-    # flag=2 AGL needs terrain for HGTS - SHGT; flag=3 MSL needs terrain;
-    # flag=1/4/5 MSL needs terrain for hypsometric AGL + SHGT.
-    need_terrain = (z_kind == "agl" and isinstance(axis, PressureAxis)) or (
+    heights = z_kind in ("agl", "msl")
+    # flag=2 heights need terrain for the ground and HGTS - SHGT; flag=3 MSL
+    # needs terrain; flag=1/4/5 MSL needs terrain for hypsometric AGL + SHGT.
+    need_terrain = (heights and isinstance(axis, PressureAxis)) or (
         z_kind == "msl"
         and isinstance(axis, (TerrainAxis, SigmaAxis, HybridAxis, WrfAxis))
     )
@@ -919,8 +962,13 @@ def _sample_points_from_file(
             )
         terrain = _sample_record(terrain_record, plan)
 
+    # Sigma and hybrid files always start their column at the ground; pressure
+    # files do when sampled at heights (at pressures the stored levels are used).
     column = (
-        _Column(recordset, plan) if isinstance(axis, (SigmaAxis, HybridAxis)) else None
+        _Column(recordset, plan, terrain=terrain)
+        if isinstance(axis, (SigmaAxis, HybridAxis))
+        or (heights and isinstance(axis, PressureAxis))
+        else None
     )
     targets = coords["z"].to_numpy(dtype=float)
     sampled = {
