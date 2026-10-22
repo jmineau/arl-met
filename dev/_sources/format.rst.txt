@@ -163,6 +163,12 @@ the record's precision (``2**exponent / 254``) is read as zero, except in the
 first column, which HYSPLIT's ``pakinp`` leaves as it is. :func:`arlmet.unpack`
 follows ``pakinp`` step for step and gives the same ``float32`` values.
 
+Writing is HYSPLIT's ``pakout``: the exponent is the smallest that holds the
+largest difference between neighbors, each byte is the difference from the
+previous value as a reader will rebuild it, and values are packed as they are
+(the initial value is the first cell's, even when it is below the precision).
+:func:`arlmet.pack` gives the same bytes, exponent, precision and initial value.
+
 Malformed files
 ~~~~~~~~~~~~~~~
 

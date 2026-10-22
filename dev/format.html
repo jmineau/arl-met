@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=d47ad982"></script>
+    <script src="_static/documentation_options.js?v=4349a97d"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Checking Files" href="checking.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev26+g9964fb6dd" />
+  <meta name="docsearch:version" content="0.1.0b4.dev27+gac8967002" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -604,6 +604,11 @@ one difference at a time in single precision. A value smaller in magnitude than
 the record’s precision (<code class="docutils literal notranslate"><span class="pre">2**exponent</span> <span class="pre">/</span> <span class="pre">254</span></code>) is read as zero, except in the
 first column, which HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">pakinp</span></code> leaves as it is. <a class="reference internal" href="_autosummary/arlmet.unpack.html#arlmet.unpack" title="arlmet.unpack"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.unpack()</span></code></a>
 follows <code class="docutils literal notranslate"><span class="pre">pakinp</span></code> step for step and gives the same <code class="docutils literal notranslate"><span class="pre">float32</span></code> values.</p>
+<p>Writing is HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">pakout</span></code>: the exponent is the smallest that holds the
+largest difference between neighbors, each byte is the difference from the
+previous value as a reader will rebuild it, and values are packed as they are
+(the initial value is the first cell’s, even when it is below the precision).
+<a class="reference internal" href="_autosummary/arlmet.pack.html#arlmet.pack" title="arlmet.pack"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.pack()</span></code></a> gives the same bytes, exponent, precision and initial value.</p>
 </section>
 <section id="malformed-files">
 <h3>Malformed files<a class="headerlink" href="#malformed-files" title="Link to this heading">#</a></h3>

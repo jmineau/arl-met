@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=d47ad982"></script>
+    <script src="../../_static/documentation_options.js?v=4349a97d"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev26+g9964fb6dd" />
+  <meta name="docsearch:version" content="0.1.0b4.dev27+gac8967002" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -456,55 +456,34 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Pack a 2D field using the ARL differential byte encoding.</span>
 
-<span class="sd">    This is the inverse of :func:`unpack` and mirrors the HYSPLIT</span>
-<span class="sd">    ``PAKOUT`` routine.</span>
+<span class="sd">    This is the inverse of :func:`unpack` and a translation of the HYSPLIT</span>
+<span class="sd">    ``PAKOUT`` routine, in single precision as ``PAKOUT`` is, so it gives the</span>
+<span class="sd">    same bytes, exponent, precision and initial value.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    unpacked : np.ndarray</span>
-<span class="sd">        The 2D numpy array of shape (ny, nx) to be packed.</span>
+<span class="sd">        The 2D numpy array of shape (ny, nx) to be packed; it is packed as</span>
+<span class="sd">        ``float32``.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    tuple[np.ndarray, float, int, float]</span>
 <span class="sd">        Tuple of ``(packed, precision, exponent, initial_value)``.</span>
 <span class="sd">        ``packed`` is the byte payload, ``precision`` and ``exponent`` are the</span>
-<span class="sd">        ARL packing parameters, and ``initial_value`` is the reference value at</span>
-<span class="sd">        the first grid cell.</span>
+<span class="sd">        ARL packing parameters, and ``initial_value`` is the value at the</span>
+<span class="sd">        first grid cell.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If the field is not 2D, is empty, or holds NaN or infinite values.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">unpacked_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">unpacked</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">initial_value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-
-    <span class="c1"># Build diffs in the same row-wise order expected by unpack().</span>
-    <span class="n">diffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">)</span>
-    <span class="n">diffs</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">unpacked_arr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">unpacked_arr</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">diffs</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">unpacked_arr</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">unpacked_arr</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-    <span class="n">diffs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">rmax</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">diffs</span><span class="p">)))</span>
-
-    <span class="c1"># --- Calculate packing exponent and precision ---</span>
-    <span class="k">if</span> <span class="n">rmax</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-        <span class="n">sexp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">rmax</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span>
-        <span class="n">exponent</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sexp</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">sexp</span> <span class="o">&gt;=</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">sexp</span><span class="o">.</span><span class="n">is_integer</span><span class="p">():</span>
-            <span class="n">exponent</span> <span class="o">+=</span> <span class="mi">1</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">exponent</span> <span class="o">=</span> <span class="mi">0</span>
-
-    <span class="n">precision</span> <span class="o">=</span> <span class="p">(</span><span class="mf">2.0</span><span class="o">**</span><span class="n">exponent</span><span class="p">)</span> <span class="o">/</span> <span class="mf">254.0</span>
-    <span class="n">scale</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">**</span> <span class="p">(</span><span class="mi">7</span> <span class="o">-</span> <span class="n">exponent</span><span class="p">)</span>
-    <span class="n">inv_scale</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">scale</span>
-
-    <span class="c1"># Zero tiny values before packing so round-trip precision matches unpack().</span>
-    <span class="n">unpacked_arr</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">precision</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">initial_value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-
-    <span class="c1"># Feedback-loop encoder: each delta is computed against the *reconstructed*</span>
-    <span class="c1"># running value (what unpack&#39;s cumsum will reproduce), not the original float.</span>
-    <span class="c1"># This keeps per-cell quantisation error bounded to 0.5 * inv_scale regardless</span>
-    <span class="c1"># of grid width.  Implemented as a C extension (_pack.c) for native speed.</span>
-    <span class="n">packed</span> <span class="o">=</span> <span class="n">_pack_core</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">inv_scale</span><span class="p">,</span> <span class="n">initial_value</span><span class="p">)</span>
-
+    <span class="n">unpacked_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">unpacked</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">unpacked_arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot pack NaN or infinite values.&quot;</span><span class="p">)</span>
+    <span class="c1"># The C extension (_pack.c) is PAKOUT line by line, for speed.</span>
+    <span class="n">packed</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">exponent</span><span class="p">,</span> <span class="n">initial_value</span> <span class="o">=</span> <span class="n">_pack_core</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">packed</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">exponent</span><span class="p">,</span> <span class="n">initial_value</span></div>
 
 
