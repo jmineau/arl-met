@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Developer notes &#8212; arl-met 0.1.0b4</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=283e4333" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+
+    <script src="_static/documentation_options.js?v=bcec09ca"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'development';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            true;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.0b4" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">arl-met 0.1.0b4</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-3"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-3"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-3"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-3">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Developer notes</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="developer-notes">
+<h1>Developer notes<a class="headerlink" href="#developer-notes" title="Link to this heading">#</a></h1>
+<p>Reference material for people changing arl-met itself. The rules a change must
+keep (the ARL format rules and the design invariants) and the commands are in
+<a class="reference external" href="https://github.com/jmineau/arl-met/blob/main/AGENTS.md">AGENTS.md</a>; how to
+send a change is in <a class="reference internal" href="contributing.html"><span class="doc">Contributing</span></a>.</p>
+<section id="hysplit-routines-arl-met-mirrors">
+<h2>HYSPLIT routines arl-met mirrors<a class="headerlink" href="#hysplit-routines-arl-met-mirrors" title="Link to this heading">#</a></h2>
+<p>arl-met follows HYSPLIT’s own reader and writer wherever the format leaves room
+for choice. The Fortran routines it matches:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>HYSPLIT</p></th>
+<th class="head"><p>What it does</p></th>
+<th class="head"><p>In arl-met</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pakout</span></code> / <code class="docutils literal notranslate"><span class="pre">pakinp</span></code></p></td>
+<td><p>pack and unpack one field as byte differences; compute the checksum</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.pack.html#arlmet.pack" title="arlmet.pack"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.pack()</span></code></a>, <a class="reference internal" href="_autosummary/arlmet.unpack.html#arlmet.unpack" title="arlmet.unpack"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.unpack()</span></code></a>, <a class="reference internal" href="_autosummary/arlmet.calculate_checksum.html#arlmet.calculate_checksum" title="arlmet.calculate_checksum"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.calculate_checksum()</span></code></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pakrec</span></code> / <code class="docutils literal notranslate"><span class="pre">pakndx</span></code></p></td>
+<td><p>write records and the index record; the checksum table is reset to 0 at
+each time step and filled only for the records packed</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.DataRecord.verify_checksum.html#arlmet.DataRecord.verify_checksum" title="arlmet.DataRecord.verify_checksum"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.DataRecord.verify_checksum()</span></code></a> treats a stored 0 as “none”</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">metinp</span></code></p></td>
+<td><p>read a met file; never compares checksums</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.File.check.html#arlmet.File.check" title="arlmet.File.check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.File.check()</span></code></a> reads headers only</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">metset.f</span></code></p></td>
+<td><p>read the 12 projection values raw (<code class="docutils literal notranslate"><span class="pre">12F7.0</span></code>)</p></td>
+<td><p>read and written raw too; only <a class="reference internal" href="_autosummary/arlmet.Grid.calculate_coords.html#arlmet.Grid.calculate_coords" title="arlmet.Grid.calculate_coords"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.Grid.calculate_coords()</span></code></a>
+wraps longitudes</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gblset</span></code> / <code class="docutils literal notranslate"><span class="pre">gbl2xy</span></code></p></td>
+<td><p>place a longitude on a lat/lon grid: in 0-360, measured from
+<code class="docutils literal notranslate"><span class="pre">sync_lon</span></code>, unless <code class="docutils literal notranslate"><span class="pre">sync_lon</span> <span class="pre">&lt;</span> <span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">pole_lon</span></code> (<code class="docutils literal notranslate"><span class="pre">PRIME</span></code>)</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.Grid.subset.html#arlmet.Grid.subset" title="arlmet.Grid.subset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.Grid.subset()</span></code></a> writes a crop as <code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> does:
+<code class="docutils literal notranslate"><span class="pre">sync_*</span></code> its first cell with <code class="docutils literal notranslate"><span class="pre">sync_lon</span></code> in 0-360, <code class="docutils literal notranslate"><span class="pre">pole_*</span></code> its last</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">stlmbr</span></code> / <code class="docutils literal notranslate"><span class="pre">stcm1p</span></code> (set up in <code class="docutils literal notranslate"><span class="pre">metini.f</span></code>)</p></td>
+<td><p>the map projection of a projected grid: <code class="docutils literal notranslate"><span class="pre">cone_angle</span></code> alone picks
+polar stereographic (±90), Mercator (0) or a Lambert cone tangent there;
+<code class="docutils literal notranslate"><span class="pre">grid_size</span></code> holds at the reference latitude, <code class="docutils literal notranslate"><span class="pre">tangent_lat</span></code></p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.Projection.params.html#arlmet.Projection.params" title="arlmet.Projection.params"><code class="xref py py-attr docutils literal notranslate"><span class="pre">arlmet.Projection.params</span></code></a>: <code class="docutils literal notranslate"><span class="pre">lat_ts</span></code>, or a Lambert <code class="docutils literal notranslate"><span class="pre">k_0</span></code> that
+makes the scale 1 at <code class="docutils literal notranslate"><span class="pre">tangent_lat</span></code>; agrees with the compiled routines
+within 0.001 cells on HRRR, NAM, NARR, NAMS and WRF files</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prfcom</span></code></p></td>
+<td><p>choose the vertical conversion from the vertical flag</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.VerticalAxis.from_flag.html#arlmet.VerticalAxis.from_flag" title="arlmet.VerticalAxis.from_flag"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.VerticalAxis.from_flag()</span></code></a> and its subclasses</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prfsig</span></code> / <code class="docutils literal notranslate"><span class="pre">prfecm</span></code></p></td>
+<td><p>the sigma (flag 1, and flag 5 without WRF’s hybrid coefficients) and
+hybrid (flag 4) profiles: heights from the ground
+(<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code>) with the virtual temperature; <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> takes each
+level’s pressure from <code class="docutils literal notranslate"><span class="pre">PRES</span></code> when the file has it (<code class="docutils literal notranslate"><span class="pre">ZFLG</span></code>), <code class="docutils literal notranslate"><span class="pre">prfecm</span></code>
+always from the levels; <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code> linear in height</p></td>
+<td><p>the column in <code class="docutils literal notranslate"><span class="pre">ops/sample.py</span></code> and <a class="reference internal" href="_autosummary/arlmet.z_agl.html#arlmet.z_agl" title="arlmet.z_agl"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.z_agl()</span></code></a>, through
+<code class="docutils literal notranslate"><span class="pre">vertical._hysplit_z_agl</span></code>; on two HRRR columns it agrees with the
+compiled <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> within 0.006 hPa</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prfprs</span></code></p></td>
+<td><p>the pressure-level (flag 2) profile: heights from <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>, the ground
+(<code class="docutils literal notranslate"><span class="pre">SHGT</span></code>, <code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code>, <code class="docutils literal notranslate"><span class="pre">U10M</span></code>) at the bottom, levels at or
+below the ground skipped; <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code> linear in height</p></td>
+<td><p>the column in <code class="docutils literal notranslate"><span class="pre">ops/sample.py</span></code>; <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> and winds agree with the
+compiled <code class="docutils literal notranslate"><span class="pre">prfprs</span></code> within 0.001 on NAM12 and GDAS columns, pressure
+within 0.0006 hPa (float32 rounding of <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prfwrf</span></code></p></td>
+<td><p>the WRF (flag 5) profile: pressure from the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field, heights from
+WRF’s hybrid coefficients (read from a side file, <code class="docutils literal notranslate"><span class="pre">hybrid_wrfvcoords.txt</span></code>)</p></td>
+<td><p>not used: the coefficients are not in the ARL file, so
+<a class="reference internal" href="_autosummary/arlmet.WrfAxis.html#arlmet.WrfAxis" title="arlmet.WrfAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.WrfAxis</span></code></a> files take the <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> path, pressure from
+<code class="docutils literal notranslate"><span class="pre">PRES</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xtrct_grid.f</span></code></p></td>
+<td><p>crop a met file to a grid window</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.Grid.window_from_bbox.html#arlmet.Grid.window_from_bbox" title="arlmet.Grid.window_from_bbox"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.Grid.window_from_bbox()</span></code></a>, <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a>
+(<code class="docutils literal notranslate"><span class="pre">tests/test_subset_slow.py</span></code> compares the two on real files). The same
+cells, but a projected crop keeps the source’s sync point, where
+<code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> writes the corner cell’s latitude and longitude to 0.01
+degree and so moves its crop by up to 0.15 cells (<a class="reference internal" href="_autosummary/arlmet.Grid.subset.html#arlmet.Grid.subset" title="arlmet.Grid.subset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.Grid.subset()</span></code></a>)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="vertical-axis-conversions">
+<h2>Vertical-axis conversions<a class="headerlink" href="#vertical-axis-conversions" title="Link to this heading">#</a></h2>
+<p>Each subclass of <a class="reference internal" href="_autosummary/arlmet.VerticalAxis.html#arlmet.VerticalAxis" title="arlmet.VerticalAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.VerticalAxis</span></code></a> converts its levels with
+keyword-only inputs (<code class="docutils literal notranslate"><span class="pre">to_pressure(*,</span> <span class="pre">surface_pressure=None)</span></code> and
+<code class="docutils literal notranslate"><span class="pre">to_height_agl(*,</span> <span class="pre">surface_pressure=None,</span> <span class="pre">temperature=None,</span> <span class="pre">pressure=None,</span>
+<span class="pre">hgts=None,</span> <span class="pre">terrain=None)</span></code>), uses only the ones its coordinate system needs, and
+raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> naming a missing one.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Class</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">to_pressure</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">to_height_agl</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.SigmaAxis.html#arlmet.SigmaAxis" title="arlmet.SigmaAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">SigmaAxis</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">offset</span> <span class="pre">+</span> <span class="pre">(surface_pressure</span> <span class="pre">-</span> <span class="pre">offset)</span> <span class="pre">*</span> <span class="pre">sigma</span></code> (nominal; a file’s
+<code class="docutils literal notranslate"><span class="pre">PRES</span></code> is the real pressure)</p></td>
+<td><p>hypsometric, from <code class="docutils literal notranslate"><span class="pre">surface_pressure</span></code> (PRSS) through <code class="docutils literal notranslate"><span class="pre">pressure</span></code> (PRES)
+when given, else the nominal pressure, with <code class="docutils literal notranslate"><span class="pre">temperature</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.PressureAxis.html#arlmet.PressureAxis" title="arlmet.PressureAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">PressureAxis</span></code></a></p></td>
+<td><p>the stored levels</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hgts</span> <span class="pre">-</span> <span class="pre">terrain</span></code> (HGTS minus SHGT)</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.TerrainAxis.html#arlmet.TerrainAxis" title="arlmet.TerrainAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">TerrainAxis</span></code></a></p></td>
+<td><p>raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> (no pressure coordinate)</p></td>
+<td><p>the stored levels (already above ground)</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.HybridAxis.html#arlmet.HybridAxis" title="arlmet.HybridAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">HybridAxis</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">surface_pressure</span> <span class="pre">*</span> <span class="pre">sigma</span> <span class="pre">+</span> <span class="pre">floor(level)</span></code>; the first level is the surface</p></td>
+<td><p>hypsometric, as for flag 1</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.WrfAxis.html#arlmet.WrfAxis" title="arlmet.WrfAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">WrfAxis</span></code></a></p></td>
+<td><p>raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> (needs WRF’s hybrid coefficients; use <code class="docutils literal notranslate"><span class="pre">PRES</span></code>)</p></td>
+<td><p>hypsometric, as for flag 1 with <code class="docutils literal notranslate"><span class="pre">pressure</span></code> (PRES); the ground
+temperature is the first level’s brought down from its eta</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Any other flag raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> in <code class="docutils literal notranslate"><span class="pre">from_flag</span></code>.</p>
+<p>Flag 5 is what HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code> writes for a WRF run with
+<code class="docutils literal notranslate"><span class="pre">hybrid_opt=2</span></code>: the levels are WRF’s mass-level eta (<code class="docutils literal notranslate"><span class="pre">ZNU</span></code>) with 1.0 for
+the surface, and the offset is WRF’s model top <code class="docutils literal notranslate"><span class="pre">P_TOP</span></code> in hPa. HYSPLIT’s
+<code class="docutils literal notranslate"><span class="pre">prfcom</span></code> sends a flag-5 file to <code class="docutils literal notranslate"><span class="pre">prfwrf</span></code> only when the file has <code class="docutils literal notranslate"><span class="pre">MUBA</span></code> and
+<code class="docutils literal notranslate"><span class="pre">MUPE</span></code> and <code class="docutils literal notranslate"><span class="pre">hybrid_wrfvcoords.txt</span></code> sits beside it; otherwise <code class="docutils literal notranslate"><span class="pre">metini</span></code>
+treats it as flag 1 and <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> integrates heights between the <code class="docutils literal notranslate"><span class="pre">PRES</span></code>
+levels. <code class="docutils literal notranslate"><span class="pre">WrfAxis</span></code> files follow that <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> path exactly as sigma files
+with <code class="docutils literal notranslate"><span class="pre">PRES</span></code> do (<code class="docutils literal notranslate"><span class="pre">vertical._hysplit_z_agl</span></code> and the column in
+<code class="docutils literal notranslate"><span class="pre">ops/sample.py</span></code>); on two HRRR columns written as flag-5 files they agree with
+the compiled <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> within 0.007 hPa.</p>
+</section>
+<section id="module-layout">
+<h2>Module layout<a class="headerlink" href="#module-layout" title="Link to this heading">#</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>src/arlmet/
+  __init__.py    public exports
+  file.py        File: file handle, scan of index records, check(), factories
+  recordset.py   RecordSet: the records of one valid time
+  record.py      DataRecord (one packed 2D field) and the _require_mode helper
+  collection.py  RecordCollection protocol, VariableView, VariableAccessor
+  header.py      Header: the 50-byte record header codec, grid letter helpers
+  indexrecord.py IndexRecord, VarInfo, LvlInfo: the index record codec
+  grid.py        Projection, Grid, GridWindow: horizontal geometry only
+  vertical.py    VerticalAxis (abstract) and SigmaAxis, PressureAxis,
+                 TerrainAxis, HybridAxis, WrfAxis
+  packing.py     pack(), unpack(), calculate_checksum()
+  _pack.c        C extension arlmet._pack: pack_core, HYSPLIT&#39;s pakout
+  exceptions.py  ARLFormatError, ARLFormatWarning
+  _io.py         atomic_output(), reject_same_file(): safe output paths
+  _time.py       ensure_timestamp()
+  archives.py    Archive, HRRRArchive, NAMArchive, GDASArchive, ...;
+                 ARCHIVES registry, get_archive(): NOAA archive downloads
+  directoryindex.py index(), DirectoryIndex: a folder&#39;s files by their headers
+  ops/
+    subset.py    extract_subset(), resolve_window(), normalize_levels()
+    sample.py    sample_points()
+    concat.py    concat(), concat_by_time()
+  xarray/
+    dataset.py     open_dataset(), write_dataset(): the flat Dataset path
+    _entrypoint.py ARLBackendEntrypoint: xr.open_dataset(path, engine=&quot;arl&quot;)
+    _backend.py    ArlVariableArray (xarray BackendArray)
+    _coords.py     the arl_grid coordinate codec, vertical-axis coordinates
+    _accessor.py   ds.arl.grid, .vertical_axis, .source
+    _vertical.py   pressure(), z_agl(), z_msl()
+</pre></div>
+</div>
+</section>
+<section id="module-imports">
+<h2>Module imports<a class="headerlink" href="#module-imports" title="Link to this heading">#</a></h2>
+<p>Runtime imports between modules (<code class="docutils literal notranslate"><span class="pre">TYPE_CHECKING</span></code> imports left out; <em>lazy</em>
+means inside a function body):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>vertical, exceptions, _io, _time        no arlmet imports
+grid           (pyproj)
+packing      → _pack (C extension), grid
+header       → _time, exceptions, grid
+index        → _time, exceptions, grid, header, vertical
+record       → exceptions, grid, header, packing, vertical; lazy: xarray
+collection   → grid, record, vertical
+recordset    → collection, grid, header, index, record, vertical
+file         → _time, collection, exceptions, grid, header, index, record,
+               recordset, vertical, xarray.backends.CachingFileManager;
+               lazy: ops.sample, ops.subset, xarray.dataset
+ops.subset   → _io, exceptions, file, grid, header, index, packing, record, vertical
+ops.sample   → _time, grid, vertical; lazy: file
+ops.concat   → exceptions, file
+xarray.*     → _io, _time, grid, ops.subset, vertical; lazy: file
+archives     → _time; lazy: fsspec, ops.subset
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">file</span></code> imports the operations and the Dataset builder lazily because they
+import <code class="docutils literal notranslate"><span class="pre">file</span></code>. <code class="docutils literal notranslate"><span class="pre">archives</span></code> is not imported by <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">arlmet</span></code>, and imports
+<code class="docutils literal notranslate"><span class="pre">fsspec</span></code> only when it downloads.</p>
+</section>
+<section id="memory-tests">
+<h2>Memory tests<a class="headerlink" href="#memory-tests" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tests/test_memory.py</span></code> measures the writers with <code class="docutils literal notranslate"><span class="pre">tracemalloc</span></code>: the peak
+during <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">extract_subset()</span></code></a> (both the byte-copy path, without a bbox,
+and the repack path, with one) and <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">write_dataset()</span></code></a> (including from
+a lazy Dataset), and what is still held after they return with the garbage
+collector disabled. Its grids are about 200x200, so array buffers dominate Python
+object overhead.</p>
+<p>Python sizes each open file’s buffer from the filesystem’s <code class="docutils literal notranslate"><span class="pre">st_blksize</span></code>. On a
+filesystem with a large block size (some network filesystems report 128 KB,
+where a local disk reports 4 KB) each open file adds that much, and three of
+these tests fail. Run them with the temporary directory on a local disk.</p>
+</section>
+<section id="examples-in-the-docs">
+<h2>Examples in the docs<a class="headerlink" href="#examples-in-the-docs" title="Link to this heading">#</a></h2>
+<p>The user guides run their examples when the docs are built (<code class="docutils literal notranslate"><span class="pre">just</span> <span class="pre">build-docs</span></code>,
+as CI does), so they show real output and the build fails when one breaks. There
+is no sample ARL file in the repository, and an example never downloads one, so
+<code class="docutils literal notranslate"><span class="pre">docs/_ext/docs_examples.py</span></code> writes small files of made-up values with
+<a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>. A page that reads a file starts with a block that
+is run but not shown:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">ipython</span><span class="p">::</span> python
+   <span class="nc">:suppress:</span>
+
+   import os
+
+   import docs_examples
+
+   docs_cwd = docs_examples.temp_workdir()
+   docs_examples.sample_file(&quot;met.arl&quot;)
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">temp_workdir()</span></code> changes to a new temporary folder, so the examples can write
+files with short names, and the page ends with another such block,
+<code class="docutils literal notranslate"><span class="pre">os.chdir(docs_cwd)</span></code>. <code class="docutils literal notranslate"><span class="pre">sample_file()</span></code> takes the valid times, and
+<code class="docutils literal notranslate"><span class="pre">upper=False</span></code> for surface variables only or <code class="docutils literal notranslate"><span class="pre">projected=True</span></code> for a Lambert
+grid. A few things to know:</p>
+<ul class="simple">
+<li><p>An expression is echoed only at the top level of a block: <code class="docutils literal notranslate"><span class="pre">print</span></code> one inside
+a <code class="docutils literal notranslate"><span class="pre">with</span></code> or <code class="docutils literal notranslate"><span class="pre">for</span></code>.</p></li>
+<li><p>A block that raises or warns fails the build, unless it has <code class="docutils literal notranslate"><span class="pre">:okexcept:</span></code> or
+<code class="docutils literal notranslate"><span class="pre">:okwarning:</span></code>.</p></li>
+<li><p>All pages share one session, so each page imports what it uses.</p></li>
+<li><p>An example that downloads stays a plain <code class="docutils literal notranslate"><span class="pre">code-block</span></code>, and its page says so.</p></li>
+</ul>
+</section>
+<section id="benchmarks">
+<h2>Benchmarks<a class="headerlink" href="#benchmarks" title="Link to this heading">#</a></h2>
+<p>Use real files from the archives for performance work, for example the July 2024
+NCEP/NCAR Reanalysis month:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.archives</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_archive</span>
+
+<span class="n">get_archive</span><span class="p">(</span><span class="s2">&quot;reanalysis&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s2">&quot;2024-07-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-07-01&quot;</span><span class="p">,</span> <span class="n">dest_dir</span><span class="o">=</span><span class="s2">&quot;met/&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This gives <code class="docutils literal notranslate"><span class="pre">RP202407.gbl</span></code> (73x144, 124 times, 18 levels). Measured on one
+development machine, <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">extract_subset()</span></code></a> took about 2.1 s for
+<code class="docutils literal notranslate"><span class="pre">bbox=(-170,</span> <span class="pre">10,</span> <span class="pre">-40,</span> <span class="pre">70)</span></code> (repack path) and about 0.3 s for
+<code class="docutils literal notranslate"><span class="pre">levels=[0,</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">3,</span> <span class="pre">4]</span></code> without a bbox (byte-copy path). A 614x428 NAM12 day
+(<code class="docutils literal notranslate"><span class="pre">get_archive(&quot;nam12&quot;)</span></code>) took about 0.27 s for the same levels.</p>
+</section>
+<section id="format-references">
+<h2>Format references<a class="headerlink" href="#format-references" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.ready.noaa.gov/hysplitusersguide/S141.htm">HYSPLIT meteorology files</a>:
+the ARL format overview.</p></li>
+<li><p><a class="reference external" href="https://www.ready.noaa.gov/hysplitusersguide/S310.htm">HYSPLIT CONTROL file</a>,
+the “number of input data grids” line: one number <code class="docutils literal notranslate"><span class="pre">N</span></code> makes each file its own
+grid; two numbers <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">N</span></code> are one grid with <code class="docutils literal notranslate"><span class="pre">N</span></code> files in time.</p></li>
+<li><p><a class="reference external" href="https://www.ready.noaa.gov/hysplitusersguide/S441.htm">HYSPLIT compilation limits</a>:
+at most 12 met files with the one-number form and 128 files per grid with
+<code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">N</span></code>, the reason <a class="reference internal" href="_autosummary/arlmet.concat.html#arlmet.concat" title="arlmet.concat"><code class="xref py py-func docutils literal notranslate"><span class="pre">concat()</span></code></a> and <a class="reference internal" href="_autosummary/arlmet.concat_by_time.html#arlmet.concat_by_time" title="arlmet.concat_by_time"><code class="xref py py-func docutils literal notranslate"><span class="pre">concat_by_time()</span></code></a>
+exist.</p></li>
+<li><p><a class="reference external" href="https://www.ready.noaa.gov/gdas1.php">GDAS1 packing notes</a> and the
+<a class="reference external" href="https://www.ready.noaa.gov/archives.php">READY archive catalog</a>.</p></li>
+<li><p><a class="reference external" href="https://github.com/martin-rdz/ARLreader/blob/master/working_with_ARLformat.md">ARLreader’s notes on the format</a>.</p></li>
+</ul>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#hysplit-routines-arl-met-mirrors">HYSPLIT routines arl-met mirrors</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vertical-axis-conversions">Vertical-axis conversions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-layout">Module layout</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-imports">Module imports</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#memory-tests">Memory tests</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples-in-the-docs">Examples in the docs</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#benchmarks">Benchmarks</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#format-references">Format references</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/development.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, James Mineau.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

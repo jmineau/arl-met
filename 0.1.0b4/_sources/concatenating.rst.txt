@@ -1,0 +1,153 @@
+Concatenating ARL Files
+=======================
+
+Use :func:`arlmet.concat` to join several ARL files into one, and
+:func:`arlmet.concat_by_time` to do it in batch across a directory. The common
+reason is HYSPLIT's limit on how many meteorological files one simulation
+reads. The line of the ``CONTROL`` file that gives the number of input data
+grids takes one number or two (`CONTROL file
+<https://www.ready.noaa.gov/hysplitusersguide/S310.htm>`_), and the limit
+depends on which (`Compilation Limits
+<https://www.ready.noaa.gov/hysplitusersguide/S441.htm>`_):
+
+- One number, ``N``, makes each of the ``N`` files its own grid. HYSPLIT then
+  accepts at most 12 files.
+- Two numbers, ``1 N``, are one grid with ``N`` files in time. HYSPLIT then
+  accepts up to 128 files per grid. HYSPLIT's GUI does not offer this form; it
+  is for a ``CONTROL`` file written by hand or by a tool.
+
+Combining many short files (e.g. 6-hourly) into fewer long ones (e.g. daily)
+keeps a long run under either cap. It is still needed when a run takes more than
+128 files, and when the tool that writes the ``CONTROL`` file gives one number,
+as STILT-R does.
+
+ARL files are flat streams of fixed-size records, so joining them is a
+byte-level copy with no repacking: each time step (its index record and data
+records) is copied unchanged, so every record, including ``DIF*`` records and
+checksums, is preserved exactly. The time steps are written in valid-time
+order, because HYSPLIT finds a time step by its position in the file
+(``advpnt.f``) and stops when the spacing between them changes (``metset.f``).
+For inputs that are each in order and do not overlap in time, this is the same
+result as ``cat a.arl b.arl > out.arl``.
+
+The examples run when the docs are built, on a folder ``hrrr/`` of eight small
+files of made-up values that the build writes with :func:`arlmet.write_dataset`
+(:doc:`quickstart` describes them): six hourly time steps each, named by their
+first hour, from ``20240101_00_hrrr`` to ``20240102_18_hrrr``.
+
+.. ipython:: python
+   :suppress:
+
+   import os
+
+   import pandas as pd
+
+   import docs_examples
+
+   docs_cwd = docs_examples.temp_workdir()
+   os.mkdir("hrrr")
+   for first in pd.date_range("2024-01-01", "2024-01-02 18:00", freq="6h"):
+       hours = pd.date_range(first, periods=6, freq="h")
+       docs_examples.sample_file(f"hrrr/{first:%Y%m%d_%H}_hrrr", hours, upper=False)
+
+Joining a list of files
+-----------------------
+
+Pass the input paths and an output path. The output is chronological
+regardless of the order you list them in.
+
+.. ipython:: python
+
+   import arlmet
+
+   paths = [
+       "hrrr/20240101_00_hrrr",
+       "hrrr/20240101_06_hrrr",
+       "hrrr/20240101_12_hrrr",
+   ]
+   arlmet.concat(paths, "20240101_hrrr")
+
+``concat()`` returns the output path as a :class:`pathlib.Path`, so you can pass
+it straight to :class:`arlmet.File` or :func:`arlmet.open_dataset`:
+
+.. ipython:: python
+
+   out = arlmet.concat(paths, "20240101_hrrr")
+   with arlmet.File(out) as combined:
+       print(len(combined.times), combined.times[0], combined.times[-1])
+
+Inputs whose hours interleave (one file with the odd hours, one with the even)
+are merged hour by hour. A time step that an input repeats byte for byte, as
+some NOAA HRRR archive files do, is written once; :class:`arlmet.File` warns
+when it opens such an input.
+
+What is validated
+-----------------
+
+Before writing, the inputs are scanned and joined only if they form one coherent
+record stream. ``concat()`` raises ``ValueError`` when:
+
+- the inputs disagree on grid or vertical axis (different grids produce different
+  record lengths, which would corrupt the stream)
+- the same valid time appears in more than one input (HYSPLIT behavior on
+  repeated times is undefined)
+- an input file is empty, or the output path is also one of the inputs
+
+Batch concatenation by time
+---------------------------
+
+:func:`arlmet.concat_by_time` groups every ARL file in a directory into
+time-binned chunks and concatenates each group. Each file is assigned to a bin by
+its **valid times, read from the file's index records** — not parsed from the
+filename — so it is robust to any naming scheme.
+
+.. ipython:: python
+
+   arlmet.concat_by_time(
+       "hrrr/",                       # directory to scan
+       "daily/",                      # dest_dir (created if missing)
+       freq="1D",                     # one output file per day (keyword-only)
+       pattern="*_hrrr",              # which files to read
+       template="{time:%Y%m%d}_hrrr",  # how to name each output
+   )
+
+``freq`` is a fixed-frequency pandas offset alias giving the size of each output
+chunk: ``"1D"`` is one file per day, ``"6h"`` one per six hours, and so on.
+Files are never split: each file's first and last valid times must floor to the
+same bin, or ``concat_by_time()`` raises ``ValueError`` before writing anything.
+
+``template`` is a ``str.format`` string for the output filenames, given the bin
+start time as ``time`` (a :class:`pandas.Timestamp`). It must keep bins distinct
+at ``freq`` — ``"{time:%Y%m%d}_hrrr"`` with ``freq="6h"`` would name four bins
+the same, which raises ``ValueError``. ``concat_by_time()`` returns the list of
+written paths, in time order.
+
+Limit the range with ``start=`` and ``end=`` to skip files whose first valid
+time falls outside those inclusive bounds (either may be left open):
+
+.. ipython:: python
+
+   arlmet.concat_by_time(
+       "hrrr/",
+       "second_day/",
+       freq="1D",
+       pattern="*_hrrr",
+       template="{time:%Y%m%d}_hrrr",
+       start="2024-01-02",
+       end="2024-01-02 23:00",
+   )
+
+.. ipython:: python
+   :suppress:
+
+   os.chdir(docs_cwd)
+
+Limitations
+-----------
+
+- Concatenated files must share one grid and one vertical axis.
+- Valid times must not repeat across the inputs of a single output file.
+- ``concat_by_time`` does not split files, so no input may cross a ``freq`` bin
+  boundary (e.g. use ``freq="1D"`` for 6-hourly inputs, not ``freq="1h"``).
+- ``pattern`` should match only ARL files; a matched file that cannot be read as
+  ARL raises :class:`arlmet.ARLFormatError` (a ``ValueError``).

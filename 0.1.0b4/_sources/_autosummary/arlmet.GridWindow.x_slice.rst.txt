@@ -1,0 +1,6 @@
+arlmet.GridWindow.x\_slice
+==========================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: GridWindow.x_slice

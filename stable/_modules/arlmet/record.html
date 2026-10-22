@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.record &#8212; arl-met 0.1.0b3</title>
+    <title>arlmet.record &#8212; arl-met 0.1.0b4</title>
   
   
   
@@ -29,6 +29,7 @@
 <link href="../../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=283e4333" />
   
@@ -38,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=77659907"></script>
+    <script src="../../_static/documentation_options.js?v=bcec09ca"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -47,7 +48,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b3';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -56,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3" />
+  <meta name="docsearch:version" content="0.1.0b4" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -124,7 +125,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b3</p>
+    <p class="title logo__title">arl-met 0.1.0b4</p>
   
 </a></div>
     
@@ -424,7 +425,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARLFormatError</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span><span class="p">,</span> <span class="n">GridWindow</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span><span class="p">,</span> <span class="n">GridWindow</span><span class="p">,</span> <span class="n">_split_at_seam</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span><span class="p">,</span> <span class="n">record_length_from_grid</span><span class="p">,</span> <span class="n">split_grid_component</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.packing</span><span class="w"> </span><span class="kn">import</span> <span class="n">calculate_checksum</span><span class="p">,</span> <span class="n">pack</span><span class="p">,</span> <span class="n">unpack</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerticalAxis</span>
@@ -435,6 +436,86 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.recordset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordSet</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;DataRecord&quot;</span><span class="p">]</span>
+
+<span class="c1"># HYSPLIT&#39;s reader (metinp.f) adds each DIF record into a field it picks by the</span>
+<span class="c1"># DIF&#39;s name. Above the surface, DIFW goes into the vertical velocity (filled by</span>
+<span class="c1"># WWND or DZDT) and DIFT into the TKE (TKEN or TKEU); any other name is skipped.</span>
+<span class="c1"># At the surface it matches the first three letters only, so every DIF* name goes</span>
+<span class="c1"># into the precipitation (TPP* or PRT*). The field holds the last of its records</span>
+<span class="c1"># read on the level, so a DIF corrects the nearest such record before it.</span>
+<span class="n">_UPPER_DIF_PARENTS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;DIFW&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;WWND&quot;</span><span class="p">,</span> <span class="s2">&quot;DZDT&quot;</span><span class="p">),</span> <span class="s2">&quot;DIFT&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;TKEN&quot;</span><span class="p">,</span> <span class="s2">&quot;TKEU&quot;</span><span class="p">)}</span>
+<span class="n">_SURFACE_DIF_PARENTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;TPP&quot;</span><span class="p">,</span> <span class="s2">&quot;PRT&quot;</span><span class="p">)</span>
+
+<span class="c1">#: The name in a record header that marks the record missing, whatever its</span>
+<span class="c1">#: index record lists (old converters wrote it for fields they never filled).</span>
+<span class="n">_MISSING_NAME</span> <span class="o">=</span> <span class="s2">&quot;NULL&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_missing</span><span class="p">(</span><span class="n">header</span><span class="p">:</span> <span class="n">Header</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return True when *header* marks its record as missing data.</span>
+
+<span class="sd">    HYSPLIT&#39;s reader (``metinp.f``) skips a record whose forecast hour is</span>
+<span class="sd">    negative or whose name is ``NULL``; its writer starts every record of a</span>
+<span class="sd">    time step so (``pakini.f``: forecast hour -1) before a converter fills it.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">header</span><span class="o">.</span><span class="n">forecast</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">header</span><span class="o">.</span><span class="n">variable</span> <span class="o">==</span> <span class="n">_MISSING_NAME</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_checked_header</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">DataRecord</span><span class="p">,</span> <span class="n">raw</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Header</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse the header at the start of *raw* and check it is *record*&#39;s.</span>
+
+<span class="sd">    A header named ``NULL`` passes whatever variable the index lists: it marks</span>
+<span class="sd">    the record missing (:func:`_is_missing`).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="n">Header</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">raw</span><span class="p">[:</span> <span class="n">Header</span><span class="o">.</span><span class="n">N_BYTES</span><span class="p">])</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">header</span><span class="o">.</span><span class="n">variable</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span> <span class="n">_MISSING_NAME</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">header</span><span class="o">.</span><span class="n">level</span> <span class="o">!=</span> <span class="n">record</span><span class="o">.</span><span class="n">level</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;DataRecord header mismatch at position </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">position</span><span class="si">}</span><span class="s2">: &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;expected variable &#39;</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39; level </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;got variable &#39;</span><span class="si">{</span><span class="n">header</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39; level &#39;</span><span class="si">{</span><span class="n">header</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">header</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_missing_payload</span><span class="p">(</span><span class="n">n_bytes</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the packed bytes ``pakini.f`` writes for a missing record: spaces, a CR last.&quot;&quot;&quot;</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_bytes</span><span class="p">,</span> <span class="nb">ord</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+    <span class="n">payload</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">13</span>
+    <span class="k">return</span> <span class="n">payload</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_corrects</span><span class="p">(</span><span class="n">dif</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return True when a ``dif`` record at ``level`` corrects a ``parent`` record.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">level</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">parent</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="ow">in</span> <span class="n">_SURFACE_DIF_PARENTS</span>
+    <span class="k">return</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">_UPPER_DIF_PARENTS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">dif</span><span class="p">,</span> <span class="p">())</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_dif_parents</span><span class="p">(</span><span class="n">dif</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Name the records a ``dif`` record at ``level`` corrects, for a message.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">level</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;TPP* or PRT* (at the surface, any DIF* name)&quot;</span>
+    <span class="n">parents</span> <span class="o">=</span> <span class="n">_UPPER_DIF_PARENTS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">dif</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">parents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;no record (above the surface only DIFW and DIFT correct one)&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot; or &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parents</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_dif_parent</span><span class="p">(</span><span class="n">dif</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raise ValueError unless a ``dif`` record at ``level`` corrects ``parent``.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">dif</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;DIF&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Difference record names must start with &#39;DIF&#39;, got &#39;</span><span class="si">{</span><span class="n">dif</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_corrects</span><span class="p">(</span><span class="n">dif</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">level</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;A </span><span class="si">{</span><span class="n">dif</span><span class="si">}</span><span class="s2"> record at level </span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s2"> corrects </span><span class="si">{</span><span class="n">_dif_parents</span><span class="p">(</span><span class="n">dif</span><span class="p">,</span><span class="w"> </span><span class="n">level</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;not </span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s2">: a DIF record is paired with its parent by HYSPLIT&#39;s &quot;</span>
+            <span class="s2">&quot;name table.&quot;</span>
+        <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_require_mode</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="n">allowed_modes</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -520,7 +601,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_bytes</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># The packed record bytes</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_packed</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Packed payload</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_unpacked</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># The unpacked data</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="p">:</span> <span class="n">DataRecord</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># The difference DataRecord if applicable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># The DIF records after this one</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_derive_diff_on_pack</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_checksum</span> <span class="o">=</span> <span class="n">checksum</span>  <span class="c1"># The stored checksum if applicable</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_reserved</span> <span class="o">=</span> <span class="n">reserved</span>  <span class="c1"># Reserved field if applicable</span>
@@ -546,17 +627,13 @@
         <span class="n">reserved</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataRecord</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Create a DataRecord of the difference between this record and *other*.</span>
-
-<span class="sd">        The values are ``self - other``.</span>
+<span class="sd">        Attach a DIF record after this record and any DIF records it already has.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        DataRecord</span>
-<span class="sd">            A new DataRecord representing the difference.</span>
+<span class="sd">            The new DIF record.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Difference record already exists.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">variable</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;DIF&quot;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Difference record names must start with &#39;DIF&#39;, got &#39;</span><span class="si">{</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
@@ -575,7 +652,7 @@
             <span class="n">checksum</span><span class="o">=</span><span class="n">checksum</span><span class="p">,</span>
             <span class="n">reserved</span><span class="o">=</span><span class="n">reserved</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span> <span class="o">=</span> <span class="n">diff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">diff</span>
 
     <span class="nd">@property</span>
@@ -584,9 +661,30 @@
         <span class="k">return</span> <span class="s2">&quot;w&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;r&quot;</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">diff</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataRecord</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the attached DIF record when present.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">diffs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The ``DIF*`` records that correct this record, in stream order.</span>
+
+<span class="sd">        A ``DIF*`` record holds what packing lost from its parent: the</span>
+<span class="sd">        original values minus the packed ones. It is paired with its parent</span>
+<span class="sd">        by HYSPLIT&#39;s name table: ``DIFW`` corrects ``WWND`` or ``DZDT``,</span>
+<span class="sd">        ``DIFT`` corrects ``TKEN`` or ``TKEU``, and at the surface any</span>
+<span class="sd">        ``DIF*`` corrects ``TPP*`` or ``PRT*``, in each case the nearest such</span>
+<span class="sd">        record before it on its level. A record has none, one, or, rarely,</span>
+<span class="sd">        several; :meth:`read` returns the record plus each of them, added in</span>
+<span class="sd">        stream order, as HYSPLIT does.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        arlmet.DataRecord.read : The record&#39;s values with its DIF records added.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; record = met[0][(1, &quot;WWND&quot;)]</span>
+<span class="sd">        &gt;&gt;&gt; [dif.variable for dif in record.diffs]</span>
+<span class="sd">        [&#39;DIFW&#39;]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
@@ -620,18 +718,9 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_header</span><span class="p">,</span> <span class="n">Header</span><span class="p">):</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;r&quot;</span><span class="p">:</span>
-                <span class="n">header</span> <span class="o">=</span> <span class="n">Header</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">_read_at</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="n">Header</span><span class="o">.</span><span class="n">N_BYTES</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_header</span> <span class="o">=</span> <span class="n">_checked_header</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">_read_at</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="n">Header</span><span class="o">.</span><span class="n">N_BYTES</span><span class="p">)</span>
                 <span class="p">)</span>
-
-                <span class="k">if</span> <span class="n">header</span><span class="o">.</span><span class="n">variable</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable</span> <span class="ow">or</span> <span class="n">header</span><span class="o">.</span><span class="n">level</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;DataRecord header mismatch at position </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="si">}</span><span class="s2">: &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;expected variable &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39; level </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">, &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;got variable &#39;</span><span class="si">{</span><span class="n">header</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39; level &#39;</span><span class="si">{</span><span class="n">header</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
-                    <span class="p">)</span>
-
-                <span class="bp">self</span><span class="o">.</span><span class="n">_header</span> <span class="o">=</span> <span class="n">header</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_header</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -721,6 +810,10 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">checksum</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get the stored checksum for this data record.</span>
+
+<span class="sd">        A stored 0 means no checksum was recorded: a computed checksum is 0</span>
+<span class="sd">        only when every packed byte is 0. NOAA&#39;s GDAS and NAM12 files store</span>
+<span class="sd">        0 for the fields taken from a 6-hour forecast.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checksum</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;r&quot;</span><span class="p">:</span>
@@ -737,10 +830,24 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Verify the packed payload against the checksum stored in metadata.</span>
 
+<span class="sd">        A stored checksum of 0 means none was recorded, so there is nothing</span>
+<span class="sd">        to compare and the record is not reported as a mismatch. HYSPLIT&#39;s</span>
+<span class="sd">        writer sets every checksum of a time step to 0 and fills in a</span>
+<span class="sd">        record&#39;s checksum only when it packs that record, and HYSPLIT does</span>
+<span class="sd">        not compare checksums when it reads a file. NOAA&#39;s GDAS and NAM12</span>
+<span class="sd">        files store 0 for the precipitation and fluxes taken from a 6-hour</span>
+<span class="sd">        forecast (at 00, 06, 12 and 18 UTC), and their values are good.</span>
+
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        bool</span>
-<span class="sd">            True if the checksum matches, False otherwise.</span>
+<span class="sd">            False if the record has a stored checksum that the packed payload</span>
+<span class="sd">            does not match, True otherwise.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        arlmet.DataRecord.checksum : The stored checksum.</span>
+<span class="sd">        arlmet.calculate_checksum : The checksum of a packed payload.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;r&quot;</span><span class="p">:</span>
             <span class="n">packed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">_read_at</span><span class="p">(</span>
@@ -749,8 +856,10 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">packed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pack</span><span class="p">()</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span>
 
-        <span class="n">calculated_checksum</span> <span class="o">=</span> <span class="n">calculate_checksum</span><span class="p">(</span><span class="n">packed</span><span class="o">=</span><span class="n">packed</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">calculated_checksum</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">checksum</span></div>
+        <span class="n">stored</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">checksum</span>
+        <span class="k">if</span> <span class="n">stored</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># none recorded</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">calculate_checksum</span><span class="p">(</span><span class="n">packed</span><span class="o">=</span><span class="n">packed</span><span class="p">)</span> <span class="o">==</span> <span class="n">stored</span></div>
 
 
     <span class="nd">@property</span>
@@ -814,48 +923,67 @@
 
 <span class="sd">        Each call returns a new array and nothing is cached on the record, so</span>
 <span class="sd">        reading many records does not accumulate memory. Use :attr:`data` for</span>
-<span class="sd">        a cached full-grid copy.</span>
+<span class="sd">        a cached full-grid copy. Each of the record&#39;s :attr:`diffs` is added,</span>
+<span class="sd">        in stream order, as HYSPLIT does.</span>
+
+<span class="sd">        A record flagged missing (a negative forecast hour in its header, or</span>
+<span class="sd">        the name ``NULL``) reads as NaN, and a missing ``DIF*`` record adds</span>
+<span class="sd">        nothing: HYSPLIT&#39;s reader skips both. :meth:`arlmet.File.check` lists</span>
+<span class="sd">        such records.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        window : GridWindow, optional</span>
-<span class="sd">            Spatial subset to unpack. When omitted, the full grid is read.</span>
+<span class="sd">            Spatial subset to unpack. When omitted, the full grid is read. A</span>
+<span class="sd">            window across the seam of a lat/lon grid that spans 360 degrees</span>
+<span class="sd">            (``x_stop`` past ``nx``) reads its columns in that order, wrapping</span>
+<span class="sd">            from the last column to the first.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        numpy.ndarray</span>
 <span class="sd">            Unpacked ``float32`` array for the full field or the requested</span>
-<span class="sd">            window.</span>
+<span class="sd">            window, NaN where the record is flagged missing.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">unpacked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_own</span><span class="p">(</span><span class="n">window</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">unpacked</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="k">if</span> <span class="n">window</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">window</span><span class="o">.</span><span class="n">shape</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">diff</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="p">:</span>
+            <span class="n">correction</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">_read_own</span><span class="p">(</span><span class="n">window</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">correction</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">unpacked</span> <span class="o">=</span> <span class="n">unpacked</span> <span class="o">+</span> <span class="n">correction</span>
+
+        <span class="k">return</span> <span class="n">unpacked</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_read_own</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">window</span><span class="p">:</span> <span class="n">GridWindow</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Unpack this record alone, without its DIF records; None if it is missing.&quot;&quot;&quot;</span>
         <span class="n">raw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">_read_at</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_bytes</span><span class="p">)</span>
 
         <span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_header</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="n">Header</span><span class="p">):</span>
-            <span class="n">header</span> <span class="o">=</span> <span class="n">Header</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">raw</span><span class="p">[:</span> <span class="n">Header</span><span class="o">.</span><span class="n">N_BYTES</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">header</span><span class="o">.</span><span class="n">variable</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable</span> <span class="ow">or</span> <span class="n">header</span><span class="o">.</span><span class="n">level</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;DataRecord header mismatch at position </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="si">}</span><span class="s2">: &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;expected variable &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39; level </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">, &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;got variable &#39;</span><span class="si">{</span><span class="n">header</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39; level &#39;</span><span class="si">{</span><span class="n">header</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
-                <span class="p">)</span>
+            <span class="n">header</span> <span class="o">=</span> <span class="n">_checked_header</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_header</span> <span class="o">=</span> <span class="n">header</span>
+        <span class="k">if</span> <span class="n">_is_missing</span><span class="p">(</span><span class="n">header</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
 
-        <span class="n">unpacked</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span>
-            <span class="n">packed</span><span class="o">=</span><span class="n">raw</span><span class="p">[</span><span class="n">Header</span><span class="o">.</span><span class="n">N_BYTES</span> <span class="p">:],</span>
-            <span class="n">nx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span>
-            <span class="n">ny</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span>
-            <span class="n">precision</span><span class="o">=</span><span class="n">header</span><span class="o">.</span><span class="n">precision</span><span class="p">,</span>
-            <span class="n">exponent</span><span class="o">=</span><span class="n">header</span><span class="o">.</span><span class="n">exponent</span><span class="p">,</span>
-            <span class="n">initial_value</span><span class="o">=</span><span class="n">header</span><span class="o">.</span><span class="n">initial_value</span><span class="p">,</span>
-            <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">unpacked</span> <span class="o">=</span> <span class="n">unpacked</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">unpacked</span></div>
-
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="k">if</span> <span class="n">window</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_split_at_seam</span><span class="p">(</span><span class="n">window</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
+        <span class="n">pieces</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">unpack</span><span class="p">(</span>
+                <span class="n">packed</span><span class="o">=</span><span class="n">raw</span><span class="p">[</span><span class="n">Header</span><span class="o">.</span><span class="n">N_BYTES</span> <span class="p">:],</span>
+                <span class="n">nx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span>
+                <span class="n">ny</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span>
+                <span class="n">precision</span><span class="o">=</span><span class="n">header</span><span class="o">.</span><span class="n">precision</span><span class="p">,</span>
+                <span class="n">exponent</span><span class="o">=</span><span class="n">header</span><span class="o">.</span><span class="n">exponent</span><span class="p">,</span>
+                <span class="n">initial_value</span><span class="o">=</span><span class="n">header</span><span class="o">.</span><span class="n">initial_value</span><span class="p">,</span>
+                <span class="n">window</span><span class="o">=</span><span class="n">part</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">parts</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">pieces</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pieces</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">pieces</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DataRecord.to_xarray">
 <a class="viewcode-back" href="../../_autosummary/arlmet.DataRecord.to_xarray.html#arlmet.DataRecord.to_xarray">[docs]</a>
@@ -921,11 +1049,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_packed</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_bytes</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_checksum</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="p">,</span> <span class="n">DataRecord</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_header</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;forecast&quot;</span><span class="p">:</span> <span class="n">forecast</span><span class="p">}</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_packed</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_bytes</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_checksum</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">diff</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="p">:</span>
+            <span class="n">diff</span><span class="o">.</span><span class="n">_header</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;forecast&quot;</span><span class="p">:</span> <span class="n">forecast</span><span class="p">}</span>
+            <span class="n">diff</span><span class="o">.</span><span class="n">_packed</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">diff</span><span class="o">.</span><span class="n">_bytes</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">diff</span><span class="o">.</span><span class="n">_checksum</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_pack</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Pack cached unpacked data and update header state for writing.&quot;&quot;&quot;</span>
@@ -937,6 +1065,9 @@
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">&quot;Header must be a dictionary in write mode before packing.&quot;</span>
                 <span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unpacked</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                <span class="c1"># A field of NaN is missing data, as a missing record reads.</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pack_missing</span><span class="p">()</span>
             <span class="n">packed</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">exponent</span><span class="p">,</span> <span class="n">initial_value</span> <span class="o">=</span> <span class="n">pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unpacked</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_packed</span> <span class="o">=</span> <span class="n">packed</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_header</span><span class="p">[</span><span class="s2">&quot;precision&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">precision</span>
@@ -945,25 +1076,59 @@
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_checksum</span> <span class="o">=</span> <span class="n">calculate_checksum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_packed</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
 
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="p">,</span> <span class="n">DataRecord</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derive_diff_on_pack</span><span class="p">:</span>
-                <span class="n">reconstructed</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span>
-                    <span class="n">packed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_packed</span><span class="o">.</span><span class="n">tobytes</span><span class="p">(),</span>
-                    <span class="n">nx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span>
-                    <span class="n">ny</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span>
-                    <span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span>
-                    <span class="n">exponent</span><span class="o">=</span><span class="n">exponent</span><span class="p">,</span>
-                    <span class="n">initial_value</span><span class="o">=</span><span class="n">initial_value</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_unpacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_unpacked</span> <span class="o">-</span> <span class="n">reconstructed</span><span class="p">,</span>
-                    <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_invalidate_write_cache</span><span class="p">()</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_pack</span><span class="p">()</span>
-            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="p">,</span> <span class="n">DataRecord</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_packed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_diff</span><span class="o">.</span><span class="n">_pack</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derive_diff_on_pack</span><span class="p">:</span>
+                <span class="c1"># Each DIF is what packing left of the target after this record</span>
+                <span class="c1"># and the DIF records before it, so a reader that adds them in</span>
+                <span class="c1"># order (as HYSPLIT does) gets back to the target.</span>
+                <span class="n">reconstructed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unpack_packed</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">diff</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="p">:</span>
+                    <span class="n">diff</span><span class="o">.</span><span class="n">_unpacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_unpacked</span> <span class="o">-</span> <span class="n">reconstructed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+                    <span class="p">)</span>
+                    <span class="n">diff</span><span class="o">.</span><span class="n">_invalidate_write_cache</span><span class="p">()</span>
+                    <span class="n">diff</span><span class="o">.</span><span class="n">_pack</span><span class="p">()</span>
+                    <span class="n">reconstructed</span> <span class="o">=</span> <span class="n">reconstructed</span> <span class="o">+</span> <span class="n">diff</span><span class="o">.</span><span class="n">_unpack_packed</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">diff</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">diff</span><span class="o">.</span><span class="n">_packed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">diff</span><span class="o">.</span><span class="n">_pack</span><span class="p">()</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_packed</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_pack_missing</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pack this record, and its DIF records, as missing, as ``pakini.f`` does.</span>
+
+<span class="sd">        Forecast hour -1, no precision, exponent or first value, spaces for the</span>
+<span class="sd">        packed values, and no checksum (HYSPLIT&#39;s index gets 0 for a record it</span>
+<span class="sd">        never packed). Readers then skip it, HYSPLIT&#39;s and arlmet&#39;s alike.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">packed</span> <span class="o">=</span> <span class="n">_missing_payload</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_packed</span> <span class="o">=</span> <span class="n">packed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_header</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;forecast&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;precision&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">&quot;exponent&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;initial_value&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checksum</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">diff</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diffs</span><span class="p">:</span>
+            <span class="n">diff</span><span class="o">.</span><span class="n">_unpacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="n">diff</span><span class="o">.</span><span class="n">_pack_missing</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">packed</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_unpack_packed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Unpack this writable record&#39;s packed payload, as a reader would.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_packed</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_header</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Record must be packed before it is unpacked.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">unpack</span><span class="p">(</span>
+            <span class="n">packed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_packed</span><span class="o">.</span><span class="n">tobytes</span><span class="p">(),</span>
+            <span class="n">nx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span>
+            <span class="n">ny</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span>
+            <span class="n">precision</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_header</span><span class="p">[</span><span class="s2">&quot;precision&quot;</span><span class="p">],</span>
+            <span class="n">exponent</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_header</span><span class="p">[</span><span class="s2">&quot;exponent&quot;</span><span class="p">],</span>
+            <span class="n">initial_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_header</span><span class="p">[</span><span class="s2">&quot;initial_value&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_flush</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>

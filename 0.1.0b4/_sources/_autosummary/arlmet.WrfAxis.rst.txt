@@ -1,0 +1,31 @@
+﻿arlmet.WrfAxis
+==============
+
+.. currentmodule:: arlmet
+
+.. autoclass:: WrfAxis
+   :no-members:
+   :show-inheritance:
+
+
+
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~WrfAxis.to_height_agl
+   ~WrfAxis.to_pressure
+
+
+
+
+.. rubric:: Inherited
+
+
+From :class:`~.VerticalAxis`: :py:obj:`~.VerticalAxis.from_flag`
+
+

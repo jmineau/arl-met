@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Checking Files &#8212; arl-met 0.1.0b3</title>
+    <title>Checking Files &#8212; arl-met 0.1.0b4</title>
   
   
   
@@ -30,6 +30,7 @@
 <link href="_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css?v=283e4333" />
   
@@ -39,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=77659907"></script>
+    <script src="_static/documentation_options.js?v=bcec09ca"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -48,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b3';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -59,7 +60,7 @@
     <link rel="prev" title="Vertical Coordinates" href="vertical.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3" />
+  <meta name="docsearch:version" content="0.1.0b4" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -127,7 +128,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b3</p>
+    <p class="title logo__title">arl-met 0.1.0b4</p>
   
 </a></div>
     
@@ -378,6 +379,7 @@
 <li class="toctree-l1"><a class="reference internal" href="cropping.html">Cropping ARL Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="writing.html">Writing ARL Files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="concatenating.html">Concatenating ARL Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indexing.html">Indexing a Directory</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sampling.html">Sampling Points</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vertical.html">Vertical Coordinates</a></li>
 <li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Checking Files</a></li>
@@ -450,18 +452,27 @@ cut short. A file can also hold a time step written partway, skip a time step,
 or have records overwritten with other bytes, and still open. HYSPLIT then stops
 partway through a run, or reads bad values. Checking a file before a run, or
 after downloading or cropping it, finds these first.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+<p>The examples run when the docs are built, on <code class="docutils literal notranslate"><span class="pre">met.arl</span></code>, a small file of made-up
+values that the build writes with <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>
+(<a class="reference internal" href="quickstart.html"><span class="doc">Quick Start</span></a> describes it), and on a folder <code class="docutils literal notranslate"><span class="pre">hrrr/</span></code> of more like it, in
+which one file has a record overwritten with null bytes and one was cut short.</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 
-<span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;20210226_18-23_hrrr&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">problem</span> <span class="ow">in</span> <span class="n">met</span><span class="o">.</span><span class="n">check</span><span class="p">():</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">problem</span><span class="p">)</span>
+<span class="gp">In [2]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;hrrr/20240101_06_hrrr&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ...: </span>    <span class="k">for</span> <span class="n">problem</span> <span class="ow">in</span> <span class="n">met</span><span class="o">.</span><span class="n">check</span><span class="p">():</span>
+<span class="gp">   ...: </span>        <span class="nb">print</span><span class="p">(</span><span class="n">problem</span><span class="p">)</span>
+<span class="gp">   ...: </span>
+<span class="go">2024-01-01 07:00: the SHGT record at level 0 (byte 18966) cannot be read. Invalid ARL record header: cannot parse year from &#39;\x00\x00&#39; (bytes 0-2)</span>
 </pre></div>
 </div>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>2021-02-26 19:00 has 43 of the 298 data records the first time step has.
+<p><code class="docutils literal notranslate"><span class="pre">check()</span></code> returns one message per problem, and an empty list for a file
+with none:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [3]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ...: </span>    <span class="nb">print</span><span class="p">(</span><span class="n">met</span><span class="o">.</span><span class="n">check</span><span class="p">())</span>
+<span class="gp">   ...: </span>
+<span class="go">[]</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">check()</span></code> returns one sentence per problem, and an empty list for a file
-with none.</p>
 <section id="what-is-checked">
 <h2>What is checked<a class="headerlink" href="#what-is-checked" title="Link to this heading">#</a></h2>
 <p>The checks follow how HYSPLIT reads a file (<code class="docutils literal notranslate"><span class="pre">metset.f</span></code>):</p>
@@ -469,12 +480,22 @@ with none.</p>
 <li><p><strong>Every time step has as many data records as the first.</strong> HYSPLIT steps from
 one index record to the next by the first time step’s record count, so a
 shorter time step makes it lose its place, and the file seems to end early.</p></li>
-<li><p><strong>The time steps are as far apart as the first two.</strong> HYSPLIT stops with
-<code class="docutils literal notranslate"><span class="pre">meteorological</span> <span class="pre">data</span> <span class="pre">time</span> <span class="pre">interval</span> <span class="pre">varies</span></code> when the spacing changes, as it
-does where a time step is missing.</p></li>
+<li><p><strong>Each time step in the file is as far after the one before it as the second
+is after the first.</strong> HYSPLIT walks the time steps in file order and stops
+with <code class="docutils literal notranslate"><span class="pre">meteorological</span> <span class="pre">data</span> <span class="pre">time</span> <span class="pre">interval</span> <span class="pre">varies</span></code> when the spacing changes, as
+it does where a time step is missing, repeated, or out of order. It also finds
+a time step by its position in the file (<code class="docutils literal notranslate"><span class="pre">advpnt.f</span></code>), so where it does not
+stop it reads the wrong hours. <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a> itself orders time steps
+by valid time and skips a byte-for-byte repeat (some NOAA HRRR archive files
+have one), so such a file reads well in arlmet and still needs fixing before
+HYSPLIT reads it: <a class="reference internal" href="_autosummary/arlmet.concat.html#arlmet.concat" title="arlmet.concat"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.concat()</span></code></a> with the file alone, or
+<a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a>, writes each time step once and in order.</p></li>
 <li><p><strong>Every data record’s header can be read</strong>, and names the variable, level, and
 hour its index record lists. A record overwritten with null bytes, or copied
 from another time step, fails this.</p></li>
+<li><p><strong>No record is flagged missing</strong>, by a negative forecast hour or the name
+<code class="docutils literal notranslate"><span class="pre">NULL</span></code> in its header (see <a class="reference internal" href="format.html"><span class="doc">ARL File Format</span></a>). HYSPLIT skips such a record, and
+stops when a time step has more than 20; arl-met reads it as NaN.</p></li>
 </ul>
 <p><code class="docutils literal notranslate"><span class="pre">check()</span></code> reads each record’s 50-byte header. For a 1 GB HRRR block that takes
 a few seconds the first time the file is read from disk, and under a second
@@ -483,29 +504,49 @@ once it is cached.</p>
 <section id="what-is-not-checked">
 <h2>What is not checked<a class="headerlink" href="#what-is-not-checked" title="Link to this heading">#</a></h2>
 <ul class="simple">
-<li><p><strong>The values.</strong> Index records hold a checksum for each record, but NOAA’s GDAS
-and NAM12 files store 0 for the precipitation and fluxes taken from a 6-hour
-forecast, so <code class="docutils literal notranslate"><span class="pre">check()</span></code> does not compare them.</p></li>
+<li><p><strong>The values.</strong> <code class="docutils literal notranslate"><span class="pre">check()</span></code> reads only the headers. To compare each record’s
+packed bytes with the checksum its index record holds, call
+<a class="reference internal" href="_autosummary/arlmet.DataRecord.verify_checksum.html#arlmet.DataRecord.verify_checksum" title="arlmet.DataRecord.verify_checksum"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.DataRecord.verify_checksum()</span></code></a>, which reads the whole record (see
+below).</p></li>
 <li><p><strong>Hours the file should hold but does not.</strong> A file cut after a whole time step
 looks complete. Compare <a class="reference internal" href="_autosummary/arlmet.File.times.html#arlmet.File.times" title="arlmet.File.times"><code class="xref py py-attr docutils literal notranslate"><span class="pre">arlmet.File.times</span></code></a> with the hours you expect,
 for example from the file’s name.</p></li>
 </ul>
 </section>
+<section id="checking-the-values">
+<h2>Checking the values<a class="headerlink" href="#checking-the-values" title="Link to this heading">#</a></h2>
+<p>Each index record holds a checksum of each data record’s packed bytes.
+<a class="reference internal" href="_autosummary/arlmet.DataRecord.verify_checksum.html#arlmet.DataRecord.verify_checksum" title="arlmet.DataRecord.verify_checksum"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.DataRecord.verify_checksum()</span></code></a> returns <code class="docutils literal notranslate"><span class="pre">False</span></code> when a record’s
+bytes do not match it:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ...: </span>    <span class="n">bad</span> <span class="o">=</span> <span class="p">[</span><span class="n">record</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">met</span><span class="o">.</span><span class="n">records</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">record</span><span class="o">.</span><span class="n">verify_checksum</span><span class="p">()]</span>
+<span class="gp">   ...: </span>
+
+<span class="gp">In [5]: </span><span class="n">bad</span>
+<span class="gh">Out[5]: </span><span class="go">[]</span>
+</pre></div>
+</div>
+<p>This reads every byte of the file. A stored checksum of 0 means none was
+recorded, and <code class="docutils literal notranslate"><span class="pre">verify_checksum()</span></code> returns <code class="docutils literal notranslate"><span class="pre">True</span></code> for it: NOAA’s GDAS and
+NAM12 files store 0 for the precipitation and fluxes taken from a 6-hour
+forecast, at 00, 06, 12 and 18 UTC, and those values are good.</p>
+</section>
 <section id="checking-a-folder">
 <h2>Checking a folder<a class="headerlink" href="#checking-a-folder" title="Link to this heading">#</a></h2>
 <p>To check a folder of files, catch the files that do not open as well:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
-
-<span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;hrrr&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*_hrrr&quot;</span><span class="p">)):</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
-            <span class="n">problems</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">check</span><span class="p">()</span>
-    <span class="k">except</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">ARLFormatError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-        <span class="n">problems</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)]</span>
-    <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">problems</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="gp">In [7]: </span><span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;hrrr&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*_hrrr&quot;</span><span class="p">)):</span>
+<span class="gp">   ...: </span>    <span class="k">try</span><span class="p">:</span>
+<span class="gp">   ...: </span>        <span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ...: </span>            <span class="n">problems</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">check</span><span class="p">()</span>
+<span class="gp">   ...: </span>    <span class="k">except</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">ARLFormatError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+<span class="gp">   ...: </span>        <span class="n">problems</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)]</span>
+<span class="gp">   ...: </span>    <span class="k">if</span> <span class="n">problems</span><span class="p">:</span>
+<span class="gp">   ...: </span>        <span class="nb">print</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">problems</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="gp">   ...: </span>
+<span class="go">20240101_06_hrrr 2024-01-01 07:00: the SHGT record at level 0 (byte 18966) cannot be read. Invalid ARL record header: cannot parse year from &#39;\x00\x00&#39; (bytes 0-2)</span>
+<span class="go">20240101_12_hrrr hrrr/20240101_12_hrrr: file size 75364 bytes is not a whole number of 3161-byte records (61x51 grid); the file is truncated or corrupt.</span>
 </pre></div>
 </div>
 </section>
@@ -560,6 +601,7 @@ for example from the file’s name.</p></li>
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-is-checked">What is checked</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-is-not-checked">What is not checked</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#checking-the-values">Checking the values</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#checking-a-folder">Checking a folder</a></li>
 </ul>
   </nav></div>

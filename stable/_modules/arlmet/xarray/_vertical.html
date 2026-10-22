@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.xarray._vertical &#8212; arl-met 0.1.0b3</title>
+    <title>arlmet.xarray._vertical &#8212; arl-met 0.1.0b4</title>
   
   
   
@@ -29,6 +29,7 @@
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=283e4333" />
   
@@ -38,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../../_static/documentation_options.js?v=77659907"></script>
+    <script src="../../../_static/documentation_options.js?v=bcec09ca"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -47,7 +48,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b3';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -56,7 +57,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3" />
+  <meta name="docsearch:version" content="0.1.0b4" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -124,7 +125,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b3</p>
+    <p class="title logo__title">arl-met 0.1.0b4</p>
   
 </a></div>
     
@@ -426,52 +427,17 @@
     <span class="n">PressureAxis</span><span class="p">,</span>
     <span class="n">SigmaAxis</span><span class="p">,</span>
     <span class="n">TerrainAxis</span><span class="p">,</span>
-    <span class="n">hypsometric_z_agl</span><span class="p">,</span>
+    <span class="n">WrfAxis</span><span class="p">,</span>
+    <span class="n">_hysplit_z_agl</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">,</span> <span class="s2">&quot;z_agl&quot;</span><span class="p">,</span> <span class="s2">&quot;z_msl&quot;</span><span class="p">]</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_hypsometric_z_agl</span><span class="p">(</span>
-    <span class="n">p_levels</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">,</span>
-    <span class="n">p_surface</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">,</span>
-    <span class="n">temp</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Height AGL (m) at each level via the hypsometric equation.</span>
-
-<span class="sd">    Thin xarray wrapper around :func:`arlmet.vertical.hypsometric_z_agl`.</span>
-<span class="sd">    ``p_levels`` must be ordered from high to low pressure (surface to top).</span>
-<span class="sd">    For flag=2, ``p_levels`` is 1D ``(level,)`` and is broadcast to match</span>
-<span class="sd">    ``temp``. For flags 1/4, ``p_levels`` has the same shape as ``temp``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="s2">&quot;level&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">temp</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;TEMP&#39; must have a &#39;level&#39; dimension.&quot;</span><span class="p">)</span>
-
-    <span class="n">level_ax</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">temp</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;level&quot;</span><span class="p">)</span>
-    <span class="n">z_vals</span> <span class="o">=</span> <span class="n">hypsometric_z_agl</span><span class="p">(</span>
-        <span class="n">p_levels</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
-        <span class="n">p_surface</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
-        <span class="n">temp</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
-        <span class="n">level_axis</span><span class="o">=</span><span class="n">level_ax</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
-        <span class="n">z_vals</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-        <span class="n">dims</span><span class="o">=</span><span class="n">temp</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span>
-        <span class="n">coords</span><span class="o">=</span><span class="n">temp</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span>
-        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span>
-            <span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;m&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;long_name&quot;</span><span class="p">:</span> <span class="s2">&quot;height above ground level&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;standard_name&quot;</span><span class="p">:</span> <span class="s2">&quot;height&quot;</span><span class="p">,</span>
-        <span class="p">},</span>
-    <span class="p">)</span>
-
-
 <span class="k">def</span><span class="w"> </span><span class="nf">_sigma_hybrid_pressure</span><span class="p">(</span>
     <span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="n">SigmaAxis</span> <span class="o">|</span> <span class="n">HybridAxis</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute spatially varying pressure for sigma/hybrid axes.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute spatially varying nominal pressure for sigma/hybrid axes.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="s2">&quot;PRSS&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="s2">&quot;Sigma/hybrid pressure conversion requires &#39;PRSS&#39; (surface pressure) in dataset.&quot;</span>
@@ -517,6 +483,61 @@
     <span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_hysplit_z_agl_da</span><span class="p">(</span>
+    <span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="n">SigmaAxis</span> <span class="o">|</span> <span class="n">HybridAxis</span> <span class="o">|</span> <span class="n">WrfAxis</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Height AGL (m) of each level of a sigma, hybrid or WRF dataset, as HYSPLIT finds it.</span>
+
+<span class="sd">    HYSPLIT&#39;s ``prfsig`` (flag 1, and flag 5 without WRF&#39;s hybrid</span>
+<span class="sd">    coefficients) and ``prfecm`` (flag 4): from the ground</span>
+<span class="sd">    (``PRSS``, ``T02M`` or ``TMPS``) through :func:`pressure` with the virtual</span>
+<span class="sd">    temperature from ``TEMP`` and ``SPHU`` (or ``RELH``), each when present.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;PRSS&quot;</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;z_agl() for </span><span class="si">{</span><span class="n">axis</span><span class="o">.</span><span class="n">coord_system</span><span class="si">}</span><span class="s2"> (flag=</span><span class="si">{</span><span class="n">axis</span><span class="o">.</span><span class="n">flag</span><span class="si">}</span><span class="s2">) files &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;requires &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; in dataset.&quot;</span>
+            <span class="p">)</span>
+    <span class="n">temp</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s2">&quot;level&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">temp</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;TEMP&#39; must have a &#39;level&#39; dimension.&quot;</span><span class="p">)</span>
+    <span class="n">level_ax</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">temp</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;level&quot;</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">pressure</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">*</span><span class="n">temp</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">prss</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PRSS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">)):</span>
+        <span class="n">first_sigma</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">temp</span><span class="p">[</span><span class="s2">&quot;level&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">first_sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">level_ax</span><span class="p">)</span> <span class="o">/</span> <span class="n">prss</span>
+    <span class="n">surface_t</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">ds</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;T02M&quot;</span><span class="p">,</span> <span class="s2">&quot;TMPS&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_upper</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;*name* on TEMP&#39;s dims, or None when the dataset lacks it.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">*</span><span class="n">temp</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span><span class="o">.</span><span class="n">values</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ds</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="n">z</span> <span class="o">=</span> <span class="n">_hysplit_z_agl</span><span class="p">(</span>
+        <span class="n">p</span><span class="p">,</span>
+        <span class="n">prss</span><span class="p">,</span>
+        <span class="n">temp</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+        <span class="n">first_sigma</span><span class="o">=</span><span class="n">first_sigma</span><span class="p">,</span>
+        <span class="n">surface_temperature</span><span class="o">=</span><span class="n">surface_t</span><span class="p">,</span>
+        <span class="n">specific_humidity</span><span class="o">=</span><span class="n">_upper</span><span class="p">(</span><span class="s2">&quot;SPHU&quot;</span><span class="p">),</span>
+        <span class="n">relative_humidity</span><span class="o">=</span><span class="n">_upper</span><span class="p">(</span><span class="s2">&quot;RELH&quot;</span><span class="p">),</span>
+        <span class="n">level_axis</span><span class="o">=</span><span class="n">level_ax</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
+        <span class="n">z</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="n">dims</span><span class="o">=</span><span class="n">temp</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span>
+        <span class="n">coords</span><span class="o">=</span><span class="n">temp</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span>
+        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;m&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;long_name&quot;</span><span class="p">:</span> <span class="s2">&quot;height above ground level&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;standard_name&quot;</span><span class="p">:</span> <span class="s2">&quot;height&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+
+
 <div class="viewcode-block" id="pressure">
 <a class="viewcode-back" href="../../../_autosummary/arlmet.pressure.html#arlmet.pressure">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">pressure</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
@@ -532,11 +553,18 @@
 <span class="sd">    -------</span>
 <span class="sd">    xr.DataArray</span>
 <span class="sd">        - **flag=2**: the stored 1D ``pressure`` non-dim coord ``(level,)``.</span>
-<span class="sd">        - **flag=1/4**: spatially varying array ``(time, level, y, x)`` computed</span>
-<span class="sd">          from surface pressure (``PRSS``) via sigma-to-pressure conversion.</span>
+<span class="sd">        - **flag=1** (sigma): the ``PRES`` data variable when the dataset has</span>
+<span class="sd">          it, as HYSPLIT&#39;s ``prfsig`` uses it; otherwise, as for flag 4, a</span>
+<span class="sd">          spatially varying array ``(time, level, y, x)`` computed from surface</span>
+<span class="sd">          pressure (``PRSS``) via sigma-to-pressure conversion.</span>
+<span class="sd">        - **flag=4** (hybrid): computed from ``PRSS`` and the stored levels;</span>
+<span class="sd">          ``PRES`` is not used, as in HYSPLIT&#39;s ``prfecm``.</span>
 <span class="sd">        - **flag=3**: returns the ``PRES`` data variable (3D pressure field in</span>
 <span class="sd">          hPa) if present in the dataset. Terrain-following ARL files typically</span>
 <span class="sd">          store this field. Raises ``ValueError`` if ``PRES`` is absent.</span>
+<span class="sd">        - **flag=5** (WRF): returns the ``PRES`` data variable, as HYSPLIT&#39;s</span>
+<span class="sd">          ``prfwrf`` does; WRF&#39;s hybrid levels need coefficients the file does</span>
+<span class="sd">          not store. Raises ``ValueError`` if ``PRES`` is absent.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">vaxis</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">vertical_axis</span>
 
@@ -545,6 +573,8 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Dataset has no &#39;pressure&#39; coordinate.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">]</span>
 
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vaxis</span><span class="p">,</span> <span class="n">SigmaAxis</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;PRES&quot;</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PRES&quot;</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vaxis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">)):</span>
         <span class="k">return</span> <span class="n">_sigma_hybrid_pressure</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">vaxis</span><span class="p">)</span>
 
@@ -553,6 +583,14 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;pressure() for terrain-following (flag=3) files requires a &#39;PRES&#39; &quot;</span>
                 <span class="s2">&quot;(3D pressure) variable in the dataset.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PRES&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vaxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;PRES&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;pressure() for WRF (flag=5) files requires a &#39;PRES&#39; (3D pressure) &quot;</span>
+                <span class="s2">&quot;variable in the dataset.&quot;</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PRES&quot;</span><span class="p">]</span>
 
@@ -578,10 +616,20 @@
 <span class="sd">    xr.DataArray</span>
 <span class="sd">        - **flag=2**: ``HGTS - SHGT`` (geopotential height minus terrain).</span>
 <span class="sd">          Requires ``HGTS`` and ``SHGT`` in the dataset.</span>
-<span class="sd">        - **flag=1/4**: hypsometric integration from surface pressure and</span>
-<span class="sd">          temperature. Requires ``PRSS`` and ``TEMP``.</span>
+<span class="sd">        - **flag=1/4**: hypsometric integration from the ground through</span>
+<span class="sd">          :func:`pressure` with the virtual temperature, as HYSPLIT&#39;s</span>
+<span class="sd">          ``prfsig`` and ``prfecm`` do: the ground is at ``PRSS`` and ``T02M``</span>
+<span class="sd">          (else ``TMPS``, else the first level&#39;s ``TEMP`` brought down</span>
+<span class="sd">          adiabatically), and the virtual temperature is ``TEMP (1 + 0.61 q)``</span>
+<span class="sd">          with ``q`` from ``SPHU``, else ``RELH``, else 0. Requires ``PRSS``</span>
+<span class="sd">          and ``TEMP``.</span>
 <span class="sd">        - **flag=3**: the stored 1D ``height`` non-dim coord ``(level,)`` —</span>
 <span class="sd">          terrain-following levels are heights AGL.</span>
+<span class="sd">        - **flag=5** (WRF): as flag 1 with ``PRES``, as HYSPLIT&#39;s ``prfsig``</span>
+<span class="sd">          does for a WRF file without WRF&#39;s hybrid coefficients; the ground</span>
+<span class="sd">          temperature without ``T02M`` is the first level&#39;s brought down</span>
+<span class="sd">          adiabatically from its eta. Requires ``PRSS``, ``TEMP`` and</span>
+<span class="sd">          ``PRES``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">vaxis</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">vertical_axis</span>
 
@@ -593,15 +641,8 @@
                 <span class="p">)</span>
         <span class="k">return</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;HGTS&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;SHGT&quot;</span><span class="p">]</span>
 
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vaxis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">)):</span>
-        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;PRSS&quot;</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;z_agl() for </span><span class="si">{</span><span class="n">vaxis</span><span class="o">.</span><span class="n">coord_system</span><span class="si">}</span><span class="s2"> (flag=</span><span class="si">{</span><span class="n">vaxis</span><span class="o">.</span><span class="n">flag</span><span class="si">}</span><span class="s2">) files &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;requires &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; in dataset.&quot;</span>
-                <span class="p">)</span>
-        <span class="n">p_levels</span> <span class="o">=</span> <span class="n">pressure</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">_hypsometric_z_agl</span><span class="p">(</span><span class="n">p_levels</span><span class="p">,</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PRSS&quot;</span><span class="p">],</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vaxis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">_hysplit_z_agl_da</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">vaxis</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vaxis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
         <span class="k">if</span> <span class="s2">&quot;height&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>

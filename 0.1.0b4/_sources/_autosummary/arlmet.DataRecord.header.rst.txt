@@ -1,0 +1,6 @@
+arlmet.DataRecord.header
+========================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: DataRecord.header

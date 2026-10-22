@@ -1,0 +1,6 @@
+arlmet.File.extract\_subset
+===========================
+
+.. currentmodule:: arlmet
+
+.. automethod:: File.extract_subset

@@ -1,0 +1,6 @@
+arlmet.GridWindow.nx
+====================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: GridWindow.nx

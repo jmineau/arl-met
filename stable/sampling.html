@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Sampling Points &#8212; arl-met 0.1.0b3</title>
+    <title>Sampling Points &#8212; arl-met 0.1.0b4</title>
   
   
   
@@ -30,6 +30,7 @@
 <link href="_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css?v=283e4333" />
   
@@ -39,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=77659907"></script>
+    <script src="_static/documentation_options.js?v=bcec09ca"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -48,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b3';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -56,10 +57,10 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Vertical Coordinates" href="vertical.html" />
-    <link rel="prev" title="Concatenating ARL Files" href="concatenating.html" />
+    <link rel="prev" title="Indexing a Directory" href="indexing.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3" />
+  <meta name="docsearch:version" content="0.1.0b4" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -127,7 +128,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b3</p>
+    <p class="title logo__title">arl-met 0.1.0b4</p>
   
 </a></div>
     
@@ -378,6 +379,7 @@
 <li class="toctree-l1"><a class="reference internal" href="cropping.html">Cropping ARL Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="writing.html">Writing ARL Files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="concatenating.html">Concatenating ARL Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indexing.html">Indexing a Directory</a></li>
 <li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Sampling Points</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vertical.html">Vertical Coordinates</a></li>
 <li class="toctree-l1"><a class="reference internal" href="checking.html">Checking Files</a></li>
@@ -448,25 +450,37 @@
 arbitrary <code class="docutils literal notranslate"><span class="pre">(lon,</span> <span class="pre">lat,</span> <span class="pre">z,</span> <span class="pre">time)</span></code> points. This is the direct path when you have
 trajectory points, station locations, or receptors and want field values at
 each one without building a full Dataset.</p>
+<p>The examples run when the docs are built, on <code class="docutils literal notranslate"><span class="pre">met.arl</span></code>, a small file of made-up
+values that the build writes with <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>
+(<a class="reference internal" href="quickstart.html"><span class="doc">Quick Start</span></a> describes it), and on a few more like it, named where they
+are used.</p>
 <section id="basic-usage">
 <h2>Basic usage<a class="headerlink" href="#basic-usage" title="Link to this heading">#</a></h2>
 <p>Provide the points as a DataFrame (or dict) with <code class="docutils literal notranslate"><span class="pre">lon</span></code>, <code class="docutils literal notranslate"><span class="pre">lat</span></code>, <code class="docutils literal notranslate"><span class="pre">z</span></code>, and
 <code class="docutils literal notranslate"><span class="pre">time</span></code> columns, plus the variables you want sampled. The first argument,
 <code class="docutils literal notranslate"><span class="pre">files</span></code>, can be a path to an ARL file — <a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> opens and
 closes it for you.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
-<span class="n">points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-    <span class="p">{</span>
-        <span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">112.0</span><span class="p">],</span>
-        <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">,</span> <span class="mf">40.8</span><span class="p">],</span>
-        <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">,</span> <span class="mf">700.0</span><span class="p">],</span>
-        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">],</span>
-    <span class="p">}</span>
-<span class="p">)</span>
+<span class="gp">In [2]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 
-<span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
+<span class="gp">In [3]: </span><span class="n">points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<span class="gp">   ...: </span>    <span class="p">{</span>
+<span class="gp">   ...: </span>        <span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">112.0</span><span class="p">],</span>
+<span class="gp">   ...: </span>        <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">,</span> <span class="mf">40.8</span><span class="p">],</span>
+<span class="gp">   ...: </span>        <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">,</span> <span class="mf">700.0</span><span class="p">],</span>
+<span class="gp">   ...: </span>        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">],</span>
+<span class="gp">   ...: </span>    <span class="p">}</span>
+<span class="gp">   ...: </span><span class="p">)</span>
+<span class="gp">   ...: </span>
+
+<span class="gp">In [4]: </span><span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
+
+<span class="gp">In [5]: </span><span class="n">result</span>
+<span class="gh">Out[5]: </span>
+<span class="go">     lon   lat      z              time      UWND      VWND        TEMP</span>
+<span class="go">0 -111.9  40.7  850.0  2024-07-18 00:00  6.191424 -3.834117  286.884491</span>
+<span class="go">1 -112.0  40.8  700.0  2024-07-18 00:00  9.181901 -3.827037  276.727997</span>
 </pre></div>
 </div>
 <p>The returned DataFrame is a copy of <code class="docutils literal notranslate"><span class="pre">points</span></code> with one column added per
@@ -476,8 +490,15 @@ observations row by row. A requested variable whose name matches an existing
 column raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> rather than overwriting it.</p>
 <p>If you already have an open file, pass it instead of a path. The
 <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a> object also exposes the same operation as a method:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ...: </span>    <span class="n">result</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
+<span class="gp">   ...: </span>
+
+<span class="gp">In [7]: </span><span class="n">result</span>
+<span class="gh">Out[7]: </span>
+<span class="go">     lon   lat      z              time      UWND      VWND        TEMP</span>
+<span class="go">0 -111.9  40.7  850.0  2024-07-18 00:00  6.191424 -3.834117  286.884491</span>
+<span class="go">1 -112.0  40.8  700.0  2024-07-18 00:00  9.181901 -3.827037  276.727997</span>
 </pre></div>
 </div>
 <p>A file you open yourself is left open for you to manage; only paths that
@@ -501,27 +522,62 @@ column raises <code class="docutils literal notranslate"><span class="pre">Value
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;pressure&quot;</span></code></p></td>
 <td><p>hPa</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">PRSS</span></code> for sigma/hybrid files</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PRSS</span></code> for sigma/hybrid files (sigma files use <code class="docutils literal notranslate"><span class="pre">PRES</span></code> too when they
+have it); <code class="docutils literal notranslate"><span class="pre">PRES</span></code> for WRF files (flag=5)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;agl&quot;</span></code></p></td>
-<td><p>metres above ground level</p></td>
-<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>; flag=3: none</p></td>
+<td><p>meters above ground level</p></td>
+<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>; flag=3: none;
+flag=5: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">PRES</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code></p></td>
-<td><p>metres above mean sea level</p></td>
-<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=3: <code class="docutils literal notranslate"><span class="pre">SHGT</span></code></p></td>
+<td><p>meters above mean sea level</p></td>
+<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=3: <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>;
+flag=5: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">PRES</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code></p></td>
 </tr>
 </tbody>
 </table>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span>
-        <span class="n">met</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">z_kind</span><span class="o">=</span><span class="s2">&quot;agl&quot;</span>
-    <span class="p">)</span>
+<p>On sigma, hybrid and WRF files (flags 1, 4 and 5) the heights are HYSPLIT’s:
+from the ground (<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code>) through each level’s pressure (<code class="docutils literal notranslate"><span class="pre">PRES</span></code> on
+sigma files that have it and on WRF files) with the virtual temperature
+(<code class="docutils literal notranslate"><span class="pre">SPHU</span></code> or <code class="docutils literal notranslate"><span class="pre">RELH</span></code>), as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> and <code class="docutils literal notranslate"><span class="pre">prfecm</span></code> build them. Level 0 is the ground, so a point
+between the ground and the first level is interpolated from the ground values
+(<code class="docutils literal notranslate"><span class="pre">PRSS</span></code> for <code class="docutils literal notranslate"><span class="pre">PRES</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code> for <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>, <code class="docutils literal notranslate"><span class="pre">U10M</span></code> for <code class="docutils literal notranslate"><span class="pre">UWND</span></code>, …)
+instead of being NaN, and pressure is interpolated as <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code>. The
+<a class="reference internal" href="vertical.html"><span class="doc">Vertical Coordinates</span></a> guide has the details.</p>
+<p>On pressure-level files (flag 2) the heights are <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>, and the column also
+starts at the ground, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfprs</span></code> builds it: over high ground the
+lowest pressure levels are below the surface (their values extrapolated by the
+model), and they are left out, so a point between the ground and the first
+level above it is interpolated from the ground values. A point under the
+lowest level at a low site gets them too, instead of NaN. At heights pressure
+is interpolated as <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code> here too.</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [8]: </span><span class="n">above_ground</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">z</span><span class="o">=</span><span class="p">[</span><span class="mf">500.0</span><span class="p">,</span> <span class="mf">1500.0</span><span class="p">])</span>  <span class="c1"># meters above ground level</span>
+
+<span class="gp">In [9]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ...: </span>    <span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span>
+<span class="gp">   ...: </span>        <span class="n">met</span><span class="p">,</span> <span class="n">above_ground</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">z_kind</span><span class="o">=</span><span class="s2">&quot;agl&quot;</span>
+<span class="gp">   ...: </span>    <span class="p">)</span>
+<span class="gp">   ...: </span>
+
+<span class="gp">In [10]: </span><span class="n">result</span>
+<span class="gh">Out[10]: </span>
+<span class="go">     lon   lat       z              time        TEMP</span>
+<span class="go">0 -111.9  40.7   500.0  2024-07-18 00:00  284.426208</span>
+<span class="go">1 -112.0  40.8  1500.0  2024-07-18 00:00  277.969055</span>
 </pre></div>
 </div>
-<p>The virtual <code class="docutils literal notranslate"><span class="pre">&quot;pressure&quot;</span></code> variable can also be requested as a sampled column:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">met</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
+<p>The virtual <code class="docutils literal notranslate"><span class="pre">&quot;pressure&quot;</span></code> variable, the pressure of the levels interpolated to
+each point, can also be requested as a sampled column. On sigma files with
+<code class="docutils literal notranslate"><span class="pre">PRES</span></code> it is the same as sampling <code class="docutils literal notranslate"><span class="pre">PRES</span></code>:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
+
+<span class="gp">In [12]: </span><span class="n">result</span>
+<span class="gh">Out[12]: </span>
+<span class="go">     lon   lat      z              time  pressure        TEMP</span>
+<span class="go">0 -111.9  40.7  850.0  2024-07-18 00:00     850.0  286.884491</span>
+<span class="go">1 -112.0  40.8  700.0  2024-07-18 00:00     700.0  276.727997</span>
 </pre></div>
 </div>
 </section>
@@ -532,7 +588,13 @@ column raises <code class="docutils literal notranslate"><span class="pre">Value
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;linear&quot;</span></code> (default) — bilinear interpolation</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;nearest&quot;</span></code> — nearest grid cell</p></li>
 </ul>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">met</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">)</span>
+
+<span class="gp">In [14]: </span><span class="n">result</span>
+<span class="gh">Out[14]: </span>
+<span class="go">     lon   lat      z              time        TEMP</span>
+<span class="go">0 -111.9  40.7  850.0  2024-07-18 00:00  286.884491</span>
+<span class="go">1 -112.0  40.8  700.0  2024-07-18 00:00  276.727997</span>
 </pre></div>
 </div>
 </section>
@@ -545,14 +607,29 @@ not directly comparable with observed winds. Pass <code class="docutils literal 
 rotate each pair so that <code class="docutils literal notranslate"><span class="pre">u</span></code> points east and <code class="docutils literal notranslate"><span class="pre">v</span></code> north, using the meridian
 convergence of the file’s grid at each point. Both components of a pair must
 be requested. Lat/lon grids are unaffected.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span>
-    <span class="s2">&quot;hrrr.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">],</span> <span class="n">earth_relative</span><span class="o">=</span><span class="kc">True</span>
-<span class="p">)</span>
+<p>Here <code class="docutils literal notranslate"><span class="pre">lambert.arl</span></code> is a made-up file on a Lambert conformal grid, and the
+same points are sampled both ways:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;lambert.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">])</span>
+<span class="gh">Out[15]: </span>
+<span class="go">     lon   lat      z              time      UWND      VWND</span>
+<span class="go">0 -111.9  40.7  850.0  2024-07-18 00:00  6.191374 -3.834104</span>
+<span class="go">1 -112.0  40.8  700.0  2024-07-18 00:00  9.181660 -3.826986</span>
+
+<span class="gp">In [16]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;lambert.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">],</span> <span class="n">earth_relative</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gh">Out[16]: </span>
+<span class="go">     lon   lat      z              time      UWND      VWND</span>
+<span class="go">0 -111.9  40.7  850.0  2024-07-18 00:00  6.713172 -2.822549</span>
+<span class="go">1 -112.0  40.8  700.0  2024-07-18 00:00  9.668372 -2.339076</span>
 </pre></div>
 </div>
 <p>The same rotation is available on the grid for winds you obtained another way,
 for example from <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">u_earth</span><span class="p">,</span> <span class="n">v_earth</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">rotate_winds</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;lambert.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ....: </span>    <span class="n">u_earth</span><span class="p">,</span> <span class="n">v_earth</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">rotate_winds</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">v</span><span class="o">=-</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">lon</span><span class="o">=-</span><span class="mf">111.9</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="mf">40.7</span><span class="p">)</span>
+<span class="gp">   ....: </span>
+
+<span class="gp">In [18]: </span><span class="nb">print</span><span class="p">(</span><span class="n">u_earth</span><span class="p">,</span> <span class="n">v_earth</span><span class="p">)</span>
+<span class="go">5.406381770513552 -2.1842701644848668</span>
 </pre></div>
 </div>
 </section>
@@ -568,12 +645,19 @@ for example from <a class="reference internal" href="_autosummary/arlmet.open_da
 <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>, as does giving neither for inputs that hold more than one time.
 A point time that no input file contains raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> naming the
 missing times.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">],</span> <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">],</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">]})</span>
+<p>Here <code class="docutils literal notranslate"><span class="pre">single_time.arl</span></code> is a made-up file like <code class="docutils literal notranslate"><span class="pre">met.arl</span></code> with one time step,
+and <code class="docutils literal notranslate"><span class="pre">met.arl</span></code> holds four:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="n">points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">],</span> <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">],</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">]})</span>
 
-<span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;single_time.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span>
-    <span class="s2">&quot;multi_time.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">time</span><span class="o">=</span><span class="s2">&quot;2024-07-18 06:00&quot;</span>
-<span class="p">)</span>
+<span class="gp">In [20]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;single_time.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
+<span class="gh">Out[20]: </span>
+<span class="go">     lon   lat      z        TEMP</span>
+<span class="go">0 -111.9  40.7  850.0  286.884491</span>
+
+<span class="gp">In [21]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">time</span><span class="o">=</span><span class="s2">&quot;2024-07-18 06:00&quot;</span><span class="p">)</span>
+<span class="gh">Out[21]: </span>
+<span class="go">     lon   lat      z        TEMP</span>
+<span class="go">0 -111.9  40.7  850.0  285.275391</span>
 </pre></div>
 </div>
 </section>
@@ -583,8 +667,24 @@ missing times.</p>
 stored in different files. Each timestamp must appear in at most one file;
 arl-met routes each point to the file that contains its time and closes any
 paths it opened.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;met_00.arl&quot;</span><span class="p">,</span> <span class="s2">&quot;met_06.arl&quot;</span><span class="p">,</span> <span class="s2">&quot;met_12.arl&quot;</span><span class="p">]</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">])</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [22]: </span><span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;met_00.arl&quot;</span><span class="p">,</span> <span class="s2">&quot;met_06.arl&quot;</span><span class="p">,</span> <span class="s2">&quot;met_12.arl&quot;</span><span class="p">]</span>
+
+<span class="gp">In [23]: </span><span class="n">points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<span class="gp">   ....: </span>    <span class="p">{</span>
+<span class="gp">   ....: </span>        <span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">111.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">111.9</span><span class="p">],</span>
+<span class="gp">   ....: </span>        <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">,</span> <span class="mf">40.7</span><span class="p">,</span> <span class="mf">40.7</span><span class="p">],</span>
+<span class="gp">   ....: </span>        <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">,</span> <span class="mf">850.0</span><span class="p">,</span> <span class="mf">850.0</span><span class="p">],</span>
+<span class="gp">   ....: </span>        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-07-18 06:00&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-07-18 12:00&quot;</span><span class="p">],</span>
+<span class="gp">   ....: </span>    <span class="p">}</span>
+<span class="gp">   ....: </span><span class="p">)</span>
+<span class="gp">   ....: </span>
+
+<span class="gp">In [24]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">])</span>
+<span class="gh">Out[24]: </span>
+<span class="go">     lon   lat      z              time      UWND      VWND</span>
+<span class="go">0 -111.9  40.7  850.0  2024-07-18 00:00  6.191424 -3.834117</span>
+<span class="go">1 -111.9  40.7  850.0  2024-07-18 06:00  6.191424 -3.834117</span>
+<span class="go">2 -111.9  40.7  850.0  2024-07-18 12:00  6.191424 -3.834117</span>
 </pre></div>
 </div>
 <p>You can mix open files and paths in the same sequence; files you opened stay
@@ -597,10 +697,14 @@ open, and paths are closed for you.</p>
 raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
 <li><p>Point times not covered by any input file raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">z_kind=&quot;agl&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code> use different field requirements depending on
-the vertical flag: pressure files (flag=2) require <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>; sigma/hybrid
+the vertical flag: pressure files (flag=2) require <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> and <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; sigma/hybrid
 files (flag=1/4) use hypsometric integration from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> and <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>;
-terrain-following files (flag=3) use the stored level heights directly. See
+terrain-following files (flag=3) use the stored level heights directly; WRF
+files (flag=5) integrate as sigma files do, through the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field. See
 the <a class="reference internal" href="vertical.html"><span class="doc">Vertical Coordinates</span></a> guide.</p></li>
+<li><p>Only sigma, pressure-level, hybrid and WRF files take the ground as a level
+(pressure-level files only at heights); on terrain-following files a point below
+the lowest level with data is NaN.</p></li>
 </ul>
 </section>
 </section>
@@ -616,12 +720,12 @@ the <a class="reference internal" href="vertical.html"><span class="doc">Vertica
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="concatenating.html"
+       href="indexing.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Concatenating ARL Files</p>
+        <p class="prev-next-title">Indexing a Directory</p>
       </div>
     </a>
     <a class="right-next"

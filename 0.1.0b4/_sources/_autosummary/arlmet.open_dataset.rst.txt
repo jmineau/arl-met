@@ -1,0 +1,6 @@
+﻿arlmet.open\_dataset
+====================
+
+.. currentmodule:: arlmet
+
+.. autofunction:: open_dataset

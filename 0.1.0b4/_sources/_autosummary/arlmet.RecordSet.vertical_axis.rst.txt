@@ -1,0 +1,6 @@
+arlmet.RecordSet.vertical\_axis
+===============================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: RecordSet.vertical_axis

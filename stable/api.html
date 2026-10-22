@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>API Reference &#8212; arl-met 0.1.0b3</title>
+    <title>API Reference &#8212; arl-met 0.1.0b4</title>
   
   
   
@@ -30,6 +30,7 @@
 <link href="_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css?v=283e4333" />
   
@@ -39,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=77659907"></script>
+    <script src="_static/documentation_options.js?v=bcec09ca"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -48,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b3';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -59,7 +60,7 @@
     <link rel="prev" title="ARL File Format" href="format.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3" />
+  <meta name="docsearch:version" content="0.1.0b4" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -127,7 +128,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b3</p>
+    <p class="title logo__title">arl-met 0.1.0b4</p>
   
 </a></div>
     
@@ -384,17 +385,32 @@
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.concat_by_time.html">arlmet.concat_by_time</a></li>
 </ul>
 <ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.index.html">arlmet.index</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.html">arlmet.DirectoryIndex</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.cache.html">arlmet.DirectoryIndex.cache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.directory.html">arlmet.DirectoryIndex.directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.step.html">arlmet.DirectoryIndex.step</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.table.html">arlmet.DirectoryIndex.table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.covering.html">arlmet.DirectoryIndex.covering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.missing.html">arlmet.DirectoryIndex.missing</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.pressure.html">arlmet.pressure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.z_agl.html">arlmet.z_agl</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.z_msl.html">arlmet.z_msl</a></li>
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="_autosummary/arlmet.File.html">arlmet.File</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.File.grid.html">arlmet.File.grid</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.File.handle.html">arlmet.File.handle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.File.record_length.html">arlmet.File.record_length</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.File.records.html">arlmet.File.records</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.File.size.html">arlmet.File.size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.File.source.html">arlmet.File.source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.File.times.html">arlmet.File.times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.File.vertical_axis.html">arlmet.File.vertical_axis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.File.add_record.html">arlmet.File.add_record</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.File.check.html">arlmet.File.check</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.File.close.html">arlmet.File.close</a></li>
@@ -420,7 +436,7 @@
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DataRecord.bytes.html">arlmet.DataRecord.bytes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DataRecord.checksum.html">arlmet.DataRecord.checksum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DataRecord.data.html">arlmet.DataRecord.data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DataRecord.diff.html">arlmet.DataRecord.diff</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DataRecord.diffs.html">arlmet.DataRecord.diffs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DataRecord.dtype.html">arlmet.DataRecord.dtype</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DataRecord.forecast.html">arlmet.DataRecord.forecast</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DataRecord.grid.html">arlmet.DataRecord.grid</a></li>
@@ -458,7 +474,14 @@
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.Grid.window_from_bbox.html">arlmet.Grid.window_from_bbox</a></li>
 </ul>
 </details></li>
-<li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.GridWindow.html">arlmet.GridWindow</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="_autosummary/arlmet.GridWindow.html">arlmet.GridWindow</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.GridWindow.nx.html">arlmet.GridWindow.nx</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.GridWindow.ny.html">arlmet.GridWindow.ny</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.GridWindow.shape.html">arlmet.GridWindow.shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.GridWindow.x_slice.html">arlmet.GridWindow.x_slice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.GridWindow.y_slice.html">arlmet.GridWindow.y_slice</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="_autosummary/arlmet.VerticalAxis.html">arlmet.VerticalAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.VerticalAxis.from_flag.html">arlmet.VerticalAxis.from_flag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.VerticalAxis.to_height_agl.html">arlmet.VerticalAxis.to_height_agl</a></li>
@@ -483,6 +506,11 @@
 <li class="toctree-l1 has-children"><a class="reference internal" href="_autosummary/arlmet.HybridAxis.html">arlmet.HybridAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.HybridAxis.to_height_agl.html">arlmet.HybridAxis.to_height_agl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.HybridAxis.to_pressure.html">arlmet.HybridAxis.to_pressure</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="_autosummary/arlmet.WrfAxis.html">arlmet.WrfAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.WrfAxis.to_height_agl.html">arlmet.WrfAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.WrfAxis.to_pressure.html">arlmet.WrfAxis.to_pressure</a></li>
 </ul>
 </details></li>
 </ul>
@@ -631,6 +659,22 @@ See the <a class="reference internal" href="cropping.html"><span class="doc">Cro
 </table>
 </div>
 </section>
+<section id="finding-files">
+<h2>Finding Files<a class="headerlink" href="#finding-files" title="Link to this heading">#</a></h2>
+<p>Find the files that cover a time window by their headers. See the
+<a class="reference internal" href="indexing.html"><span class="doc">Indexing a Directory</span></a> guide.</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.index.html#arlmet.index" title="arlmet.index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">index</span></code></a></p></td>
+<td><p>Index the ARL files in a directory by their headers.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.html#arlmet.DirectoryIndex" title="arlmet.DirectoryIndex"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DirectoryIndex</span></code></a></p></td>
+<td><p>The ARL files in a directory, by the times their headers say they hold.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
 <section id="vertical-coordinates">
 <h2>Vertical Coordinates<a class="headerlink" href="#vertical-coordinates" title="Link to this heading">#</a></h2>
 <p>Derive pressure and height coordinates from an open Dataset. See the
@@ -670,7 +714,7 @@ See the <a class="reference internal" href="cropping.html"><span class="doc">Cro
 <section id="grid-and-vertical-metadata">
 <h2>Grid And Vertical Metadata<a class="headerlink" href="#grid-and-vertical-metadata" title="Link to this heading">#</a></h2>
 <p>These are immutable, hashable value objects. Derive modified copies with
-<a class="reference external" href="https://docs.python.org/3/library/dataclasses.html#dataclasses.replace" title="(in Python v3.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataclasses.replace()</span></code></a> (<code class="docutils literal notranslate"><span class="pre">Projection</span></code>, <code class="docutils literal notranslate"><span class="pre">Grid</span></code>, <code class="docutils literal notranslate"><span class="pre">GridWindow</span></code>) or by
+<a class="reference external" href="https://docs.python.org/3/library/dataclasses.html#dataclasses.replace" title="(in Python v3.15)"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataclasses.replace()</span></code></a> (<code class="docutils literal notranslate"><span class="pre">Projection</span></code>, <code class="docutils literal notranslate"><span class="pre">Grid</span></code>, <code class="docutils literal notranslate"><span class="pre">GridWindow</span></code>) or by
 constructing a new axis.</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
@@ -697,6 +741,9 @@ constructing a new axis.</p>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.HybridAxis.html#arlmet.HybridAxis" title="arlmet.HybridAxis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HybridAxis</span></code></a></p></td>
 <td><p>Flag=4.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.WrfAxis.html#arlmet.WrfAxis" title="arlmet.WrfAxis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">WrfAxis</span></code></a></p></td>
+<td><p>Flag=5.</p></td>
 </tr>
 </tbody>
 </table>
@@ -840,6 +887,7 @@ subclasses <code class="docutils literal notranslate"><span class="pre">ValueErr
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#high-level-i-o">High-Level I/O</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#file-operations">File Operations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#finding-files">Finding Files</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vertical-coordinates">Vertical Coordinates</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#low-level-file-model">Low-Level File Model</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#grid-and-vertical-metadata">Grid And Vertical Metadata</a></li>

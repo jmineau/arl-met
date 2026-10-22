@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>arlmet.VerticalAxis &#8212; arl-met 0.1.0b3</title>
+    <title>arlmet.VerticalAxis &#8212; arl-met 0.1.0b4</title>
   
   
   
@@ -30,6 +30,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=283e4333" />
   
@@ -39,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=77659907"></script>
+    <script src="../_static/documentation_options.js?v=bcec09ca"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -48,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b3';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -56,10 +57,10 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="arlmet.VerticalAxis.from_flag" href="arlmet.VerticalAxis.from_flag.html" />
-    <link rel="prev" title="arlmet.GridWindow" href="arlmet.GridWindow.html" />
+    <link rel="prev" title="arlmet.GridWindow.y_slice" href="arlmet.GridWindow.y_slice.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3" />
+  <meta name="docsearch:version" content="0.1.0b4" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -127,7 +128,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b3</p>
+    <p class="title logo__title">arl-met 0.1.0b4</p>
   
 </a></div>
     
@@ -384,17 +385,32 @@
 <li class="toctree-l1"><a class="reference internal" href="arlmet.concat_by_time.html">arlmet.concat_by_time</a></li>
 </ul>
 <ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="arlmet.index.html">arlmet.index</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.DirectoryIndex.html">arlmet.DirectoryIndex</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.cache.html">arlmet.DirectoryIndex.cache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.directory.html">arlmet.DirectoryIndex.directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.step.html">arlmet.DirectoryIndex.step</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.table.html">arlmet.DirectoryIndex.table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.covering.html">arlmet.DirectoryIndex.covering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.missing.html">arlmet.DirectoryIndex.missing</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="arlmet.pressure.html">arlmet.pressure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.z_agl.html">arlmet.z_agl</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.z_msl.html">arlmet.z_msl</a></li>
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.File.html">arlmet.File</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.grid.html">arlmet.File.grid</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.handle.html">arlmet.File.handle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.record_length.html">arlmet.File.record_length</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.records.html">arlmet.File.records</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.size.html">arlmet.File.size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.source.html">arlmet.File.source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.times.html">arlmet.File.times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.vertical_axis.html">arlmet.File.vertical_axis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.add_record.html">arlmet.File.add_record</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.check.html">arlmet.File.check</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.close.html">arlmet.File.close</a></li>
@@ -420,7 +436,7 @@
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.bytes.html">arlmet.DataRecord.bytes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.checksum.html">arlmet.DataRecord.checksum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.data.html">arlmet.DataRecord.data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.diff.html">arlmet.DataRecord.diff</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.diffs.html">arlmet.DataRecord.diffs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.dtype.html">arlmet.DataRecord.dtype</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.forecast.html">arlmet.DataRecord.forecast</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.grid.html">arlmet.DataRecord.grid</a></li>
@@ -458,7 +474,14 @@
 <li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.window_from_bbox.html">arlmet.Grid.window_from_bbox</a></li>
 </ul>
 </details></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.GridWindow.html">arlmet.GridWindow</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.GridWindow.html">arlmet.GridWindow</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.nx.html">arlmet.GridWindow.nx</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.ny.html">arlmet.GridWindow.ny</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.shape.html">arlmet.GridWindow.shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.x_slice.html">arlmet.GridWindow.x_slice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.y_slice.html">arlmet.GridWindow.y_slice</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1 current active has-children"><a aria-current="page" class="current reference internal" href="#">arlmet.VerticalAxis</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.from_flag.html">arlmet.VerticalAxis.from_flag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.to_height_agl.html">arlmet.VerticalAxis.to_height_agl</a></li>
@@ -483,6 +506,11 @@
 <li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.HybridAxis.html">arlmet.HybridAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.HybridAxis.to_height_agl.html">arlmet.HybridAxis.to_height_agl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.HybridAxis.to_pressure.html">arlmet.HybridAxis.to_pressure</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.WrfAxis.html">arlmet.WrfAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.WrfAxis.to_height_agl.html">arlmet.WrfAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.WrfAxis.to_pressure.html">arlmet.WrfAxis.to_pressure</a></li>
 </ul>
 </details></li>
 </ul>
@@ -597,7 +625,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="arlmet.VerticalAxis">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">arlmet.</span></span><span class="sig-name descname"><span class="pre">VerticalAxis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">levels</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/vertical.html#VerticalAxis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.VerticalAxis" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
 <p>Abstract base class for ARL vertical coordinate axes.</p>
 <p>Use <a class="reference internal" href="arlmet.VerticalAxis.from_flag.html#arlmet.VerticalAxis.from_flag" title="arlmet.VerticalAxis.from_flag"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_flag()</span></code></a> to construct from a raw ARL flag integer, or
 instantiate a subclass directly (e.g. <code class="docutils literal notranslate"><span class="pre">PressureAxis(levels=[...])</span></code>).</p>
@@ -608,16 +636,17 @@ equally. Build a new axis to change one.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>levels</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeAliasType</span></code></span>) – Native level values stored in the file (1-D).</p></li>
-<li><p><strong>offset</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Pressure offset used by sigma and hybrid coordinate conversions.</p></li>
+<li><p><strong>offset</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Pressure offset [hPa] stored in the index record: the sigma offset,
+or WRF’s model-top pressure for flag 5.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Variables<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
-<li><p><strong>flag</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – ARL vertical coordinate flag (1=sigma, 2=pressure, 3=terrain,
-4=hybrid).</p></li>
-<li><p><strong>coord_system</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Human-readable coordinate system name.</p></li>
+<li><p><strong>flag</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a>) – ARL vertical coordinate flag (1=sigma, 2=pressure, 3=terrain,
+4=hybrid, 5=WRF).</p></li>
+<li><p><strong>coord_system</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><em>str</em></a>) – Human-readable coordinate system name.</p></li>
 <li><p><strong>levels</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><em>numpy.ndarray</em></a>) – Read-only <code class="docutils literal notranslate"><span class="pre">float64</span></code> array of native level values.</p></li>
-<li><p><strong>offset</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Pressure offset stored in the index record.</p></li>
+<li><p><strong>offset</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><em>float</em></a>) – Pressure offset stored in the index record.</p></li>
 </ul>
 </dd>
 </dl>
@@ -651,12 +680,12 @@ equally. Build a new axis to change one.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="arlmet.GridWindow.html"
+       href="arlmet.GridWindow.y_slice.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">arlmet.GridWindow</p>
+        <p class="prev-next-title">arlmet.GridWindow.y_slice</p>
       </div>
     </a>
     <a class="right-next"

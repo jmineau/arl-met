@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.packing &#8212; arl-met 0.1.0b3</title>
+    <title>arlmet.packing &#8212; arl-met 0.1.0b4</title>
   
   
   
@@ -29,6 +29,7 @@
 <link href="../../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=283e4333" />
   
@@ -38,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=77659907"></script>
+    <script src="../../_static/documentation_options.js?v=bcec09ca"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -47,7 +48,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b3';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -56,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3" />
+  <meta name="docsearch:version" content="0.1.0b4" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -124,7 +125,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b3</p>
+    <p class="title logo__title">arl-met 0.1.0b4</p>
   
 </a></div>
     
@@ -455,55 +456,34 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Pack a 2D field using the ARL differential byte encoding.</span>
 
-<span class="sd">    This is the inverse of :func:`unpack` and mirrors the HYSPLIT</span>
-<span class="sd">    ``PAKOUT`` routine.</span>
+<span class="sd">    This is the inverse of :func:`unpack` and a translation of the HYSPLIT</span>
+<span class="sd">    ``PAKOUT`` routine, in single precision as ``PAKOUT`` is, so it gives the</span>
+<span class="sd">    same bytes, exponent, precision and initial value.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    unpacked : np.ndarray</span>
-<span class="sd">        The 2D numpy array of shape (ny, nx) to be packed.</span>
+<span class="sd">        The 2D numpy array of shape (ny, nx) to be packed; it is packed as</span>
+<span class="sd">        ``float32``.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    tuple[np.ndarray, float, int, float]</span>
 <span class="sd">        Tuple of ``(packed, precision, exponent, initial_value)``.</span>
 <span class="sd">        ``packed`` is the byte payload, ``precision`` and ``exponent`` are the</span>
-<span class="sd">        ARL packing parameters, and ``initial_value`` is the reference value at</span>
-<span class="sd">        the first grid cell.</span>
+<span class="sd">        ARL packing parameters, and ``initial_value`` is the value at the</span>
+<span class="sd">        first grid cell.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If the field is not 2D, is empty, or holds NaN or infinite values.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">unpacked_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">unpacked</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">initial_value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-
-    <span class="c1"># Build diffs in the same row-wise order expected by unpack().</span>
-    <span class="n">diffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">)</span>
-    <span class="n">diffs</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">unpacked_arr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">unpacked_arr</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">diffs</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">unpacked_arr</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">unpacked_arr</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-    <span class="n">diffs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">rmax</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">diffs</span><span class="p">)))</span>
-
-    <span class="c1"># --- Calculate packing exponent and precision ---</span>
-    <span class="k">if</span> <span class="n">rmax</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-        <span class="n">sexp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">rmax</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span>
-        <span class="n">exponent</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sexp</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">sexp</span> <span class="o">&gt;=</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">sexp</span><span class="o">.</span><span class="n">is_integer</span><span class="p">():</span>
-            <span class="n">exponent</span> <span class="o">+=</span> <span class="mi">1</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">exponent</span> <span class="o">=</span> <span class="mi">0</span>
-
-    <span class="n">precision</span> <span class="o">=</span> <span class="p">(</span><span class="mf">2.0</span><span class="o">**</span><span class="n">exponent</span><span class="p">)</span> <span class="o">/</span> <span class="mf">254.0</span>
-    <span class="n">scale</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">**</span> <span class="p">(</span><span class="mi">7</span> <span class="o">-</span> <span class="n">exponent</span><span class="p">)</span>
-    <span class="n">inv_scale</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">scale</span>
-
-    <span class="c1"># Zero tiny values before packing so round-trip precision matches unpack().</span>
-    <span class="n">unpacked_arr</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">precision</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">initial_value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-
-    <span class="c1"># Feedback-loop encoder: each delta is computed against the *reconstructed*</span>
-    <span class="c1"># running value (what unpack&#39;s cumsum will reproduce), not the original float.</span>
-    <span class="c1"># This keeps per-cell quantisation error bounded to 0.5 * inv_scale regardless</span>
-    <span class="c1"># of grid width.  Implemented as a C extension (_pack.c) for native speed.</span>
-    <span class="n">packed</span> <span class="o">=</span> <span class="n">_pack_core</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">inv_scale</span><span class="p">,</span> <span class="n">initial_value</span><span class="p">)</span>
-
+    <span class="n">unpacked_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">unpacked</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">unpacked_arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot pack NaN or infinite values.&quot;</span><span class="p">)</span>
+    <span class="c1"># The C extension (_pack.c) is PAKOUT line by line, for speed.</span>
+    <span class="n">packed</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">exponent</span><span class="p">,</span> <span class="n">initial_value</span> <span class="o">=</span> <span class="n">_pack_core</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">packed</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">exponent</span><span class="p">,</span> <span class="n">initial_value</span></div>
 
 
@@ -523,7 +503,10 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Unpack an ARL differential byte stream into a 2D field.</span>
 
-<span class="sd">    This is a vectorized translation of the HYSPLIT ``PAKINP`` routine.</span>
+<span class="sd">    This is a vectorized translation of the HYSPLIT ``PAKINP`` routine and</span>
+<span class="sd">    gives the same ``float32`` values, bit for bit: the arithmetic is in</span>
+<span class="sd">    single precision, in ``PAKINP``&#39;s order, and like ``PAKINP`` it sets a</span>
+<span class="sd">    value smaller than ``precision`` to zero in every column but the first.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -535,7 +518,8 @@
 <span class="sd">        The number of rows in the full data grid.</span>
 <span class="sd">    precision : float</span>
 <span class="sd">        Precision of the packed data. Values with an absolute value smaller</span>
-<span class="sd">        than this will be set to zero.</span>
+<span class="sd">        than this are set to zero, except in the first column (``x = 0``),</span>
+<span class="sd">        which ``PAKINP`` leaves as it is.</span>
 <span class="sd">    exponent : int</span>
 <span class="sd">        The packing scaling exponent.</span>
 <span class="sd">    initial_value : float</span>
@@ -550,66 +534,9 @@
 <span class="sd">        Unpacked ``float32`` 2D array with shape ``(ny, nx)`` or the requested windowed</span>
 <span class="sd">        shape when ``window`` is provided.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_unpack_window</span><span class="p">(</span>
-            <span class="n">packed</span><span class="o">=</span><span class="n">packed</span><span class="p">,</span>
-            <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span>
-            <span class="n">ny</span><span class="o">=</span><span class="n">ny</span><span class="p">,</span>
-            <span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span>
-            <span class="n">exponent</span><span class="o">=</span><span class="n">exponent</span><span class="p">,</span>
-            <span class="n">initial_value</span><span class="o">=</span><span class="n">initial_value</span><span class="p">,</span>
-            <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="c1"># Convert packed bytes to an eager NumPy array for unpacking.</span>
-    <span class="n">packed_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">packed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
-
-    <span class="c1"># Prepare initial value as array</span>
-    <span class="n">initial_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">initial_value</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
-    <span class="c1"># Reshape the flat byte stream back to the full 2D ARL grid.</span>
-    <span class="k">if</span> <span class="n">packed_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">ny</span> <span class="o">*</span> <span class="n">nx</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Packed data length </span><span class="si">{</span><span class="n">packed_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> does not match expected length </span><span class="si">{</span><span class="n">ny</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">nx</span><span class="si">}</span><span class="s2">.&quot;</span>
-        <span class="p">)</span>
-    <span class="n">packed_arr</span> <span class="o">=</span> <span class="n">packed_arr</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">ny</span><span class="p">,</span> <span class="n">nx</span><span class="p">))</span>
-
-    <span class="c1"># Convert packed bytes to float before applying the signed differential</span>
-    <span class="c1"># transform and cumulative sums used by the unpacker.</span>
-    <span class="c1"># THIS IS VERY IMPORTANT!!!</span>
-    <span class="n">packed_arr</span> <span class="o">=</span> <span class="n">packed_arr</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-
-    <span class="c1"># Calculate the scaling exponent</span>
-    <span class="n">scexp</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">**</span> <span class="p">(</span><span class="mi">7</span> <span class="o">-</span> <span class="n">exponent</span><span class="p">))</span>
-
-    <span class="c1"># The first column is vertically differential-coded across rows; once that</span>
-    <span class="c1"># running state is restored, the rest of each row can be recovered with a</span>
-    <span class="c1"># standard cumulative sum across x.</span>
-    <span class="n">diffs</span> <span class="o">=</span> <span class="p">(</span><span class="n">packed_arr</span> <span class="o">-</span> <span class="mf">127.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">scexp</span>
-    <span class="n">diffs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">diffs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">initial_arr</span>
-    <span class="n">unpacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">diffs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-
-    <span class="c1"># Apply the precision check to the final grid.</span>
-    <span class="n">unpacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">unpacked</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">precision</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">unpacked</span><span class="p">)</span>
-
-    <span class="c1"># Force float32 (4 bytes per value)</span>
-    <span class="k">return</span> <span class="n">unpacked</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span></div>
-
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_unpack_window</span><span class="p">(</span>
-    <span class="n">packed</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span><span class="p">,</span>
-    <span class="n">nx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">ny</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">precision</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-    <span class="n">exponent</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">initial_value</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-    <span class="n">window</span><span class="p">:</span> <span class="n">GridWindow</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Unpack only a rectangular subset of the grid.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">window</span><span class="o">.</span><span class="n">x_stop</span> <span class="o">&gt;</span> <span class="n">nx</span> <span class="ow">or</span> <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">&gt;</span> <span class="n">ny</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">window</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">window</span> <span class="o">=</span> <span class="n">GridWindow</span><span class="p">(</span><span class="n">x_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_stop</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">y_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y_stop</span><span class="o">=</span><span class="n">ny</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">window</span><span class="o">.</span><span class="n">x_stop</span> <span class="o">&gt;</span> <span class="n">nx</span> <span class="ow">or</span> <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">&gt;</span> <span class="n">ny</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;GridWindow extends beyond the packed grid bounds.&quot;</span><span class="p">)</span>
 
     <span class="n">packed_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">packed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
@@ -617,38 +544,38 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Packed data length </span><span class="si">{</span><span class="n">packed_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> does not match expected length </span><span class="si">{</span><span class="n">ny</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">nx</span><span class="si">}</span><span class="s2">.&quot;</span>
         <span class="p">)</span>
-
-    <span class="c1"># Keep the source buffer byte-typed here and only cast the slices that feed</span>
-    <span class="c1"># the requested window, so subset extraction does not promote the full grid.</span>
+    <span class="c1"># Keep the source buffer byte-typed and cast only the rows and columns</span>
+    <span class="c1"># that feed the window, so a crop does not promote the full grid.</span>
     <span class="n">packed_arr</span> <span class="o">=</span> <span class="n">packed_arr</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">ny</span><span class="p">,</span> <span class="n">nx</span><span class="p">))</span>
 
-    <span class="n">scexp</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">**</span> <span class="p">(</span><span class="mi">7</span> <span class="o">-</span> <span class="n">exponent</span><span class="p">))</span>
-    <span class="n">row0_diffs</span> <span class="o">=</span> <span class="n">packed_arr</span><span class="p">[:</span> <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="n">row0_diffs</span> <span class="o">-=</span> <span class="mf">127.0</span>
-    <span class="n">row0_diffs</span> <span class="o">*=</span> <span class="n">scexp</span>
-    <span class="n">row0_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">row0_diffs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="n">row0_vals</span> <span class="o">+=</span> <span class="n">initial_value</span>
+    <span class="c1"># Each byte is a difference from the previous value in units of scexp, a</span>
+    <span class="c1"># power of 2, so converting them to float32 is exact.</span>
+    <span class="n">scexp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">**</span> <span class="p">(</span><span class="n">exponent</span> <span class="o">-</span> <span class="mi">7</span><span class="p">))</span>
 
-    <span class="n">x_start</span> <span class="o">=</span> <span class="n">window</span><span class="o">.</span><span class="n">x_start</span>
-    <span class="n">x_stop</span> <span class="o">=</span> <span class="n">window</span><span class="o">.</span><span class="n">x_stop</span>
-    <span class="n">y_slice</span> <span class="o">=</span> <span class="n">window</span><span class="o">.</span><span class="n">y_slice</span>
-    <span class="n">subset_diffs</span> <span class="o">=</span> <span class="n">packed_arr</span><span class="p">[</span><span class="n">y_slice</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="n">x_stop</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="n">subset_diffs</span> <span class="o">-=</span> <span class="mf">127.0</span>
-    <span class="n">subset_diffs</span> <span class="o">*=</span> <span class="n">scexp</span>
-    <span class="n">subset_prefix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">subset_diffs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="n">subset_prefix</span> <span class="o">+=</span> <span class="n">row0_vals</span><span class="p">[</span><span class="n">y_slice</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="c1"># The first column is coded down the rows from the initial value. PAKINP</span>
+    <span class="c1"># adds one row&#39;s difference at a time in single precision, so start the</span>
+    <span class="c1"># running sum at the float32 initial value instead of adding it at the end.</span>
+    <span class="n">column0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">column0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">initial_value</span>
+    <span class="n">column0</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">packed_arr</span><span class="p">[:</span> <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">column0</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-=</span> <span class="mf">127.0</span>
+    <span class="n">column0</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">*=</span> <span class="n">scexp</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">column0</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">column0</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">x_start</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="c1"># Windows that include the first column need that reconstructed origin</span>
-        <span class="c1"># inserted explicitly before the row-wise prefixes from x=1 onward.</span>
-        <span class="n">subset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">-</span> <span class="n">window</span><span class="o">.</span><span class="n">y_start</span><span class="p">,</span> <span class="n">x_stop</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-        <span class="n">subset</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">row0_vals</span><span class="p">[</span><span class="n">y_slice</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">x_stop</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">subset</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">subset_prefix</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">subset</span> <span class="o">=</span> <span class="n">subset_prefix</span><span class="p">[:,</span> <span class="n">x_start</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:]</span>
-    <span class="n">subset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">subset</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">precision</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">subset</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">subset</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="c1"># Each row is then coded across x from its first-column value; cumsum along</span>
+    <span class="c1"># a row adds one difference at a time, as PAKINP&#39;s loop over I does.</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">packed_arr</span><span class="p">[</span><span class="n">window</span><span class="o">.</span><span class="n">y_slice</span><span class="p">,</span> <span class="p">:</span> <span class="n">window</span><span class="o">.</span><span class="n">x_stop</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">-=</span> <span class="mf">127.0</span>
+    <span class="n">rows</span> <span class="o">*=</span> <span class="n">scexp</span>
+    <span class="n">rows</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">column0</span><span class="p">[</span><span class="n">window</span><span class="o">.</span><span class="n">y_start</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">rows</span><span class="p">)</span>
+
+    <span class="c1"># PAKINP&#39;s precision test, which it applies to every column but the first.</span>
+    <span class="n">rest</span> <span class="o">=</span> <span class="n">rows</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
+    <span class="n">rest</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">precision</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">rows</span><span class="p">[:,</span> <span class="n">window</span><span class="o">.</span><span class="n">x_start</span> <span class="p">:])</span></div>
+
 </pre></div>
 
                 </article>

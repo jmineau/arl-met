@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.xarray.dataset &#8212; arl-met 0.1.0b3</title>
+    <title>arlmet.xarray.dataset &#8212; arl-met 0.1.0b4</title>
   
   
   
@@ -29,6 +29,7 @@
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=283e4333" />
   
@@ -38,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../../_static/documentation_options.js?v=77659907"></script>
+    <script src="../../../_static/documentation_options.js?v=bcec09ca"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -47,7 +48,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b3';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -56,7 +57,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3" />
+  <meta name="docsearch:version" content="0.1.0b4" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -124,7 +125,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b3</p>
+    <p class="title logo__title">arl-met 0.1.0b4</p>
   
 </a></div>
     
@@ -659,11 +660,22 @@
 <span class="sd">    (e.g. from ``open_dataset(levels=...)`` or ``ds.sel(level=...)``) is</span>
 <span class="sd">    written as a compact file, like :func:`arlmet.extract_subset` does. A</span>
 <span class="sd">    slice that is entirely NaN is taken to be absent from the file (as</span>
-<span class="sd">    :func:`open_dataset` represents it) and no record is written for it.</span>
+<span class="sd">    :func:`open_dataset` represents it) and no record is written for it. A</span>
+<span class="sd">    record flagged missing in the source file also reads as an all-NaN slice,</span>
+<span class="sd">    so it is left out too, and that time step then has fewer records than the</span>
+<span class="sd">    others (:meth:`arlmet.File.check` reports it); :func:`arlmet.extract_subset`</span>
+<span class="sd">    keeps such a record, flagged missing.</span>
 
 <span class="sd">    Per-variable forecast heterogeneity is intentionally not represented in the</span>
 <span class="sd">    flat Dataset API. ``forecast_hour(time)`` supplies only the ARL index-record</span>
 <span class="sd">    forecast written for each time step.</span>
+
+<span class="sd">    A variable whose ``attrs[&quot;diff&quot;]`` names a ``DIF*`` record is written with</span>
+<span class="sd">    that DIF record after it on each level (see</span>
+<span class="sd">    :meth:`arlmet.RecordSet.create_datarecord`). The name must be one</span>
+<span class="sd">    HYSPLIT&#39;s name table pairs with the variable: ``DIFW`` for ``WWND`` or</span>
+<span class="sd">    ``DZDT`` and ``DIFT`` for ``TKEN`` or ``TKEU`` above the surface, any</span>
+<span class="sd">    ``DIF*`` name for ``TPP*`` or ``PRT*`` at the surface.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -685,8 +697,9 @@
 <span class="sd">    ------</span>
 <span class="sd">    ValueError</span>
 <span class="sd">        If the Dataset does not match the layout above, a slice is partly NaN</span>
-<span class="sd">        or non-finite, or ``filename_or_obj`` is the file ``ds`` was opened</span>
-<span class="sd">        from.</span>
+<span class="sd">        or non-finite, an ``attrs[&quot;diff&quot;]`` name is not one the name table</span>
+<span class="sd">        pairs with its variable, or ``filename_or_obj`` is the file ``ds`` was</span>
+<span class="sd">        opened from.</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>

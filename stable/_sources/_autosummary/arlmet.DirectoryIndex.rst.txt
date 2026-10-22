@@ -1,0 +1,33 @@
+﻿arlmet.DirectoryIndex
+=====================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: DirectoryIndex
+   :no-members:
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+
+   ~DirectoryIndex.cache
+   ~DirectoryIndex.directory
+   ~DirectoryIndex.step
+   ~DirectoryIndex.table
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~DirectoryIndex.covering
+   ~DirectoryIndex.missing
+
+
+

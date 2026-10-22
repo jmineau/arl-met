@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Concatenating ARL Files &#8212; arl-met 0.1.0b3</title>
+    <title>Concatenating ARL Files &#8212; arl-met 0.1.0b4</title>
   
   
   
@@ -30,6 +30,7 @@
 <link href="_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css?v=283e4333" />
   
@@ -39,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=77659907"></script>
+    <script src="_static/documentation_options.js?v=bcec09ca"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -48,18 +49,18 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b3';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Sampling Points" href="sampling.html" />
+    <link rel="next" title="Indexing a Directory" href="indexing.html" />
     <link rel="prev" title="Writing ARL Files" href="writing.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3" />
+  <meta name="docsearch:version" content="0.1.0b4" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -127,7 +128,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b3</p>
+    <p class="title logo__title">arl-met 0.1.0b4</p>
   
 </a></div>
     
@@ -378,6 +379,7 @@
 <li class="toctree-l1"><a class="reference internal" href="cropping.html">Cropping ARL Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="writing.html">Writing ARL Files</a></li>
 <li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Concatenating ARL Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indexing.html">Indexing a Directory</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sampling.html">Sampling Points</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vertical.html">Vertical Coordinates</a></li>
 <li class="toctree-l1"><a class="reference internal" href="checking.html">Checking Files</a></li>
@@ -446,35 +448,64 @@
 <h1>Concatenating ARL Files<a class="headerlink" href="#concatenating-arl-files" title="Link to this heading">#</a></h1>
 <p>Use <a class="reference internal" href="_autosummary/arlmet.concat.html#arlmet.concat" title="arlmet.concat"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.concat()</span></code></a> to join several ARL files into one, and
 <a class="reference internal" href="_autosummary/arlmet.concat_by_time.html#arlmet.concat_by_time" title="arlmet.concat_by_time"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.concat_by_time()</span></code></a> to do it in batch across a directory. The common
-reason is HYSPLIT’s input limit: a simulation accepts at most 12 meteorological
-files when a single grid is used (<a class="reference external" href="https://www.ready.noaa.gov/hysplitusersguide/S441.htm">Compilation Limits</a>). Combining many short
-files (e.g. 6-hourly) into fewer long ones (e.g. daily) keeps a long run under
-that cap.</p>
+reason is HYSPLIT’s limit on how many meteorological files one simulation
+reads. The line of the <code class="docutils literal notranslate"><span class="pre">CONTROL</span></code> file that gives the number of input data
+grids takes one number or two (<a class="reference external" href="https://www.ready.noaa.gov/hysplitusersguide/S310.htm">CONTROL file</a>), and the limit
+depends on which (<a class="reference external" href="https://www.ready.noaa.gov/hysplitusersguide/S441.htm">Compilation Limits</a>):</p>
+<ul class="simple">
+<li><p>One number, <code class="docutils literal notranslate"><span class="pre">N</span></code>, makes each of the <code class="docutils literal notranslate"><span class="pre">N</span></code> files its own grid. HYSPLIT then
+accepts at most 12 files.</p></li>
+<li><p>Two numbers, <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">N</span></code>, are one grid with <code class="docutils literal notranslate"><span class="pre">N</span></code> files in time. HYSPLIT then
+accepts up to 128 files per grid. HYSPLIT’s GUI does not offer this form; it
+is for a <code class="docutils literal notranslate"><span class="pre">CONTROL</span></code> file written by hand or by a tool.</p></li>
+</ul>
+<p>Combining many short files (e.g. 6-hourly) into fewer long ones (e.g. daily)
+keeps a long run under either cap. It is still needed when a run takes more than
+128 files, and when the tool that writes the <code class="docutils literal notranslate"><span class="pre">CONTROL</span></code> file gives one number,
+as STILT-R does.</p>
 <p>ARL files are flat streams of fixed-size records, so joining them is a
-byte-level append — the same result as <code class="docutils literal notranslate"><span class="pre">cat</span> <span class="pre">a.arl</span> <span class="pre">b.arl</span> <span class="pre">&gt;</span> <span class="pre">out.arl</span></code> — with no
-repacking. Every record, including <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> records and checksums, is preserved
-exactly.</p>
+byte-level copy with no repacking: each time step (its index record and data
+records) is copied unchanged, so every record, including <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> records and
+checksums, is preserved exactly. The time steps are written in valid-time
+order, because HYSPLIT finds a time step by its position in the file
+(<code class="docutils literal notranslate"><span class="pre">advpnt.f</span></code>) and stops when the spacing between them changes (<code class="docutils literal notranslate"><span class="pre">metset.f</span></code>).
+For inputs that are each in order and do not overlap in time, this is the same
+result as <code class="docutils literal notranslate"><span class="pre">cat</span> <span class="pre">a.arl</span> <span class="pre">b.arl</span> <span class="pre">&gt;</span> <span class="pre">out.arl</span></code>.</p>
+<p>The examples run when the docs are built, on a folder <code class="docutils literal notranslate"><span class="pre">hrrr/</span></code> of eight small
+files of made-up values that the build writes with <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>
+(<a class="reference internal" href="quickstart.html"><span class="doc">Quick Start</span></a> describes them): six hourly time steps each, named by their
+first hour, from <code class="docutils literal notranslate"><span class="pre">20240101_00_hrrr</span></code> to <code class="docutils literal notranslate"><span class="pre">20240102_18_hrrr</span></code>.</p>
 <section id="joining-a-list-of-files">
 <h2>Joining a list of files<a class="headerlink" href="#joining-a-list-of-files" title="Link to this heading">#</a></h2>
-<p>Pass the input paths and an output path. By default the inputs are ordered by
-their earliest valid time, so the output is chronological regardless of the
-order you list them in.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+<p>Pass the input paths and an output path. The output is chronological
+regardless of the order you list them in.</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 
-<span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-    <span class="p">[</span><span class="s2">&quot;20240101_00_hrrr&quot;</span><span class="p">,</span> <span class="s2">&quot;20240101_06_hrrr&quot;</span><span class="p">,</span> <span class="s2">&quot;20240101_12_hrrr&quot;</span><span class="p">],</span>
-    <span class="s2">&quot;20240101_hrrr&quot;</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="gp">In [2]: </span><span class="n">paths</span> <span class="o">=</span> <span class="p">[</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;hrrr/20240101_00_hrrr&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;hrrr/20240101_06_hrrr&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;hrrr/20240101_12_hrrr&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span><span class="p">]</span>
+<span class="gp">   ...: </span>
+
+<span class="gp">In [3]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;20240101_hrrr&quot;</span><span class="p">)</span>
+<span class="gh">Out[3]: </span><span class="go">PosixPath(&#39;20240101_hrrr&#39;)</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">concat()</span></code> returns the output path as a <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a>, so you can pass
+<p><code class="docutils literal notranslate"><span class="pre">concat()</span></code> returns the output path as a <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a>, so you can pass
 it straight to <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a> or <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">out</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;20240101_hrrr&quot;</span><span class="p">)</span>
-<span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="k">as</span> <span class="n">combined</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">combined</span><span class="o">.</span><span class="n">times</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="n">out</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="s2">&quot;20240101_hrrr&quot;</span><span class="p">)</span>
+
+<span class="gp">In [5]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="k">as</span> <span class="n">combined</span><span class="p">:</span>
+<span class="gp">   ...: </span>    <span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">combined</span><span class="o">.</span><span class="n">times</span><span class="p">),</span> <span class="n">combined</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">combined</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="gp">   ...: </span>
+<span class="go">18 2024-01-01 00:00:00 2024-01-01 17:00:00</span>
 </pre></div>
 </div>
-<p>Pass <code class="docutils literal notranslate"><span class="pre">sort=False</span></code> to join the files in exactly the order given, like <code class="docutils literal notranslate"><span class="pre">cat</span></code>.</p>
+<p>Inputs whose hours interleave (one file with the odd hours, one with the even)
+are merged hour by hour. A time step that an input repeats byte for byte, as
+some NOAA HRRR archive files do, is written once; <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a> warns
+when it opens such an input.</p>
 </section>
 <section id="what-is-validated">
 <h2>What is validated<a class="headerlink" href="#what-is-validated" title="Link to this heading">#</a></h2>
@@ -483,7 +514,7 @@ record stream. <code class="docutils literal notranslate"><span class="pre">conc
 <ul class="simple">
 <li><p>the inputs disagree on grid or vertical axis (different grids produce different
 record lengths, which would corrupt the stream)</p></li>
-<li><p>the same valid time appears in more than one input (HYSPLIT behaviour on
+<li><p>the same valid time appears in more than one input (HYSPLIT behavior on
 repeated times is undefined)</p></li>
 <li><p>an input file is empty, or the output path is also one of the inputs</p></li>
 </ul>
@@ -494,15 +525,15 @@ repeated times is undefined)</p></li>
 time-binned chunks and concatenates each group. Each file is assigned to a bin by
 its <strong>valid times, read from the file’s index records</strong> — not parsed from the
 filename — so it is robust to any naming scheme.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
-
-<span class="n">arlmet</span><span class="o">.</span><span class="n">concat_by_time</span><span class="p">(</span>
-    <span class="s2">&quot;hrrr/&quot;</span><span class="p">,</span>                       <span class="c1"># directory to scan</span>
-    <span class="s2">&quot;daily/&quot;</span><span class="p">,</span>                      <span class="c1"># dest_dir (created if missing)</span>
-    <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;1D&quot;</span><span class="p">,</span>                     <span class="c1"># one output file per day (keyword-only)</span>
-    <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;*_hrrr&quot;</span><span class="p">,</span>              <span class="c1"># which files to read</span>
-    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;{time:%Y%m</span><span class="si">%d</span><span class="s2">}_hrrr&quot;</span><span class="p">,</span>  <span class="c1"># how to name each output</span>
-<span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">concat_by_time</span><span class="p">(</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;hrrr/&quot;</span><span class="p">,</span>                       <span class="c1"># directory to scan</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;daily/&quot;</span><span class="p">,</span>                      <span class="c1"># dest_dir (created if missing)</span>
+<span class="gp">   ...: </span>    <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;1D&quot;</span><span class="p">,</span>                     <span class="c1"># one output file per day (keyword-only)</span>
+<span class="gp">   ...: </span>    <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;*_hrrr&quot;</span><span class="p">,</span>              <span class="c1"># which files to read</span>
+<span class="gp">   ...: </span>    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;{time:%Y%m</span><span class="si">%d</span><span class="s2">}_hrrr&quot;</span><span class="p">,</span>  <span class="c1"># how to name each output</span>
+<span class="gp">   ...: </span><span class="p">)</span>
+<span class="gp">   ...: </span>
+<span class="gh">Out[6]: </span><span class="go">[PosixPath(&#39;daily/20240101_hrrr&#39;), PosixPath(&#39;daily/20240102_hrrr&#39;)]</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">freq</span></code> is a fixed-frequency pandas offset alias giving the size of each output
@@ -510,21 +541,23 @@ chunk: <code class="docutils literal notranslate"><span class="pre">&quot;1D&quo
 Files are never split: each file’s first and last valid times must floor to the
 same bin, or <code class="docutils literal notranslate"><span class="pre">concat_by_time()</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> before writing anything.</p>
 <p><code class="docutils literal notranslate"><span class="pre">template</span></code> is a <code class="docutils literal notranslate"><span class="pre">str.format</span></code> string for the output filenames, given the bin
-start time as <code class="docutils literal notranslate"><span class="pre">time</span></code> (a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v3.0.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Timestamp</span></code></a>). It must keep bins distinct
+start time as <code class="docutils literal notranslate"><span class="pre">time</span></code> (a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v3.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Timestamp</span></code></a>). It must keep bins distinct
 at <code class="docutils literal notranslate"><span class="pre">freq</span></code> — <code class="docutils literal notranslate"><span class="pre">&quot;{time:%Y%m%d}_hrrr&quot;</span></code> with <code class="docutils literal notranslate"><span class="pre">freq=&quot;6h&quot;</span></code> would name four bins
 the same, which raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. <code class="docutils literal notranslate"><span class="pre">concat_by_time()</span></code> returns the list of
 written paths, in time order.</p>
 <p>Limit the range with <code class="docutils literal notranslate"><span class="pre">start=</span></code> and <code class="docutils literal notranslate"><span class="pre">end=</span></code> to skip files whose first valid
 time falls outside those inclusive bounds (either may be left open):</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">arlmet</span><span class="o">.</span><span class="n">concat_by_time</span><span class="p">(</span>
-    <span class="s2">&quot;hrrr/&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;daily/&quot;</span><span class="p">,</span>
-    <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;1D&quot;</span><span class="p">,</span>
-    <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;*_hrrr&quot;</span><span class="p">,</span>
-    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;{time:%Y%m</span><span class="si">%d</span><span class="s2">}_hrrr&quot;</span><span class="p">,</span>
-    <span class="n">start</span><span class="o">=</span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">,</span>
-    <span class="n">end</span><span class="o">=</span><span class="s2">&quot;2024-01-31 23:00&quot;</span><span class="p">,</span>
-<span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">concat_by_time</span><span class="p">(</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;hrrr/&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="s2">&quot;second_day/&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;1D&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;*_hrrr&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;{time:%Y%m</span><span class="si">%d</span><span class="s2">}_hrrr&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="n">start</span><span class="o">=</span><span class="s2">&quot;2024-01-02&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="n">end</span><span class="o">=</span><span class="s2">&quot;2024-01-02 23:00&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span><span class="p">)</span>
+<span class="gp">   ...: </span>
+<span class="gh">Out[7]: </span><span class="go">[PosixPath(&#39;second_day/20240102_hrrr&#39;)]</span>
 </pre></div>
 </div>
 </section>
@@ -561,11 +594,11 @@ ARL raises <a class="reference internal" href="_autosummary/arlmet.ARLFormatErro
       </div>
     </a>
     <a class="right-next"
-       href="sampling.html"
+       href="indexing.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Sampling Points</p>
+        <p class="prev-next-title">Indexing a Directory</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

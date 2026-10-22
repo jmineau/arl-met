@@ -1,0 +1,6 @@
+﻿arlmet.ARLFormatWarning
+=======================
+
+.. currentmodule:: arlmet
+
+.. autoexception:: ARLFormatWarning

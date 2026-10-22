@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>arlmet.IndexRecord &#8212; arl-met 0.1.0b3</title>
+    <title>arlmet.IndexRecord &#8212; arl-met 0.1.0b4</title>
   
   
   
@@ -30,6 +30,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=283e4333" />
   
@@ -39,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=77659907"></script>
+    <script src="../_static/documentation_options.js?v=bcec09ca"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -48,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b3';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -59,7 +60,7 @@
     <link rel="prev" title="arlmet.Header.tobytes" href="arlmet.Header.tobytes.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b3" />
+  <meta name="docsearch:version" content="0.1.0b4" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -127,7 +128,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b3</p>
+    <p class="title logo__title">arl-met 0.1.0b4</p>
   
 </a></div>
     
@@ -384,17 +385,32 @@
 <li class="toctree-l1"><a class="reference internal" href="arlmet.concat_by_time.html">arlmet.concat_by_time</a></li>
 </ul>
 <ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="arlmet.index.html">arlmet.index</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.DirectoryIndex.html">arlmet.DirectoryIndex</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.cache.html">arlmet.DirectoryIndex.cache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.directory.html">arlmet.DirectoryIndex.directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.step.html">arlmet.DirectoryIndex.step</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.table.html">arlmet.DirectoryIndex.table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.covering.html">arlmet.DirectoryIndex.covering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DirectoryIndex.missing.html">arlmet.DirectoryIndex.missing</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="arlmet.pressure.html">arlmet.pressure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.z_agl.html">arlmet.z_agl</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.z_msl.html">arlmet.z_msl</a></li>
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.File.html">arlmet.File</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.grid.html">arlmet.File.grid</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.handle.html">arlmet.File.handle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.record_length.html">arlmet.File.record_length</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.records.html">arlmet.File.records</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.size.html">arlmet.File.size</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.source.html">arlmet.File.source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.times.html">arlmet.File.times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.File.vertical_axis.html">arlmet.File.vertical_axis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.add_record.html">arlmet.File.add_record</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.check.html">arlmet.File.check</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.File.close.html">arlmet.File.close</a></li>
@@ -420,7 +436,7 @@
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.bytes.html">arlmet.DataRecord.bytes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.checksum.html">arlmet.DataRecord.checksum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.data.html">arlmet.DataRecord.data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.diff.html">arlmet.DataRecord.diff</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.diffs.html">arlmet.DataRecord.diffs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.dtype.html">arlmet.DataRecord.dtype</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.forecast.html">arlmet.DataRecord.forecast</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.DataRecord.grid.html">arlmet.DataRecord.grid</a></li>
@@ -458,7 +474,14 @@
 <li class="toctree-l2"><a class="reference internal" href="arlmet.Grid.window_from_bbox.html">arlmet.Grid.window_from_bbox</a></li>
 </ul>
 </details></li>
-<li class="toctree-l1"><a class="reference internal" href="arlmet.GridWindow.html">arlmet.GridWindow</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.GridWindow.html">arlmet.GridWindow</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.nx.html">arlmet.GridWindow.nx</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.ny.html">arlmet.GridWindow.ny</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.shape.html">arlmet.GridWindow.shape</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.x_slice.html">arlmet.GridWindow.x_slice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.GridWindow.y_slice.html">arlmet.GridWindow.y_slice</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.VerticalAxis.html">arlmet.VerticalAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.from_flag.html">arlmet.VerticalAxis.from_flag</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.VerticalAxis.to_height_agl.html">arlmet.VerticalAxis.to_height_agl</a></li>
@@ -483,6 +506,11 @@
 <li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.HybridAxis.html">arlmet.HybridAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.HybridAxis.to_height_agl.html">arlmet.HybridAxis.to_height_agl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.HybridAxis.to_pressure.html">arlmet.HybridAxis.to_pressure</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.WrfAxis.html">arlmet.WrfAxis</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.WrfAxis.to_height_agl.html">arlmet.WrfAxis.to_height_agl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.WrfAxis.to_pressure.html">arlmet.WrfAxis.to_pressure</a></li>
 </ul>
 </details></li>
 </ul>
@@ -596,65 +624,66 @@
 <h1>arlmet.IndexRecord<a class="headerlink" href="#arlmet-indexrecord" title="Link to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="arlmet.IndexRecord">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">arlmet.</span></span><span class="sig-name descname"><span class="pre">IndexRecord</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forecast</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minutes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pole_lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pole_lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tangent_lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tangent_lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cone_angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reserved</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vertical_flag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">levels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/index.html#IndexRecord"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.IndexRecord" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">arlmet.</span></span><span class="sig-name descname"><span class="pre">IndexRecord</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forecast</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minutes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pole_lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pole_lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tangent_lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tangent_lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cone_angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync_lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reserved</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vertical_flag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">levels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/indexrecord.html#IndexRecord"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.IndexRecord" title="Link to this definition">#</a></dt>
 <dd><p>Index record describing one ARL time step and its contained variables.</p>
-<p>Index records are immutable value objects; use <a class="reference external" href="https://docs.python.org/3/library/dataclasses.html#dataclasses.replace" title="(in Python v3.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataclasses.replace()</span></code></a>
+<p>Index records are immutable value objects; use <a class="reference external" href="https://docs.python.org/3/library/dataclasses.html#dataclasses.replace" title="(in Python v3.15)"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataclasses.replace()</span></code></a>
 to derive a modified copy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>header</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="arlmet.Header.html#arlmet.Header" title="arlmet.header.Header"><code class="xref py py-class docutils literal notranslate"><span class="pre">Header</span></code></a></span>) – The header information for the index record.</p></li>
-<li><p><strong>source</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Source identifier (4 characters).</p></li>
-<li><p><strong>forecast</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Forecast hour.</p></li>
-<li><p><strong>minutes</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Minutes after the hour.</p></li>
-<li><p><strong>pole_lat</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Pole latitude position of the grid projection.
+<li><p><strong>source</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Source identifier (4 characters).</p></li>
+<li><p><strong>forecast</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Forecast hour.</p></li>
+<li><p><strong>minutes</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Minutes after the hour.</p></li>
+<li><p><strong>pole_lat</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Pole latitude position of the grid projection.
 For lat-lon grids: max latitude of the grid.</p></li>
-<li><p><strong>pole_lon</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Pole longitude position of the grid projection.
+<li><p><strong>pole_lon</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Pole longitude position of the grid projection.
 For lat-lon grids: max longitude of the grid.</p></li>
-<li><p><strong>tangent_lat</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Reference latitude at which the grid spacing is defined.
+<li><p><strong>tangent_lat</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Reference latitude at which the grid spacing is defined.
 For conical and mercator projections, this is the latitude
 at which the grid touches the surface.
 For lat-lon grids: grid spacing in degrees latitude.</p></li>
-<li><p><strong>tangent_lon</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Reference longitude at which the grid spacing is defined.
+<li><p><strong>tangent_lon</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Reference longitude at which the grid spacing is defined.
 For conical and mercator projections, this is the longitude
 at which the grid touches the surface.
 For lat-lon grids: grid spacing in degrees longitude.</p></li>
-<li><p><strong>grid_size</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Grid spacing in km at the reference position.
+<li><p><strong>grid_size</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Grid spacing in km at the reference position.
 For lat-lon grids: value of zero signals that the grid is a lat-lon grid.</p></li>
-<li><p><strong>orientation</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Angle at the reference point made by the y-axis and the local direction of north.
+<li><p><strong>orientation</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Angle at the reference point made by the y-axis and the local direction of north.
 For lat-lon grids: 0</p></li>
-<li><p><strong>cone_angle</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Angle between the axis and the surface of the cone.
+<li><p><strong>cone_angle</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Angle between the axis and the surface of the cone.
 For regular projections it equals the latitude at which the grid is tangent to the earth’s surface.
 Stereographic: ±90, Mercator: 0, Lambert Conformal: 0 ~ 90
 For lat-lon grids: 0</p></li>
-<li><p><strong>sync_x</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Grid x-coordinate used to equate a position on the grid with a position on earth.
+<li><p><strong>sync_x</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Grid x-coordinate used to equate a position on the grid with a position on earth.
 This is a unitless grid index (FORTRAN 1-based).</p></li>
-<li><p><strong>sync_y</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Grid y-coordinate used to equate a position on the grid with a position on earth.
+<li><p><strong>sync_y</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Grid y-coordinate used to equate a position on the grid with a position on earth.
 This is a unitless grid index (FORTRAN 1-based).</p></li>
-<li><p><strong>sync_lat</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Earth latitude corresponding to the grid position (sync_x, sync_y).
+<li><p><strong>sync_lat</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Earth latitude corresponding to the grid position (sync_x, sync_y).
 For lat-lon grids: latitude of the (0,0) grid point position.</p></li>
-<li><p><strong>sync_lon</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Earth longitude corresponding to the grid position (sync_x, sync_y).
+<li><p><strong>sync_lon</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Earth longitude corresponding to the grid position (sync_x, sync_y).
 For lat-lon grids: longitude of the (0,0) grid point position.</p></li>
-<li><p><strong>reserved</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Twelfth projection field; holds the vertical-axis pressure offset.</p></li>
-<li><p><strong>nx</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Number of grid points in the x-direction (columns). This is the full
+<li><p><strong>reserved</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Twelfth projection field; holds the vertical-axis pressure offset.</p></li>
+<li><p><strong>nx</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Number of grid points in the x-direction (columns). This is the full
 size: the index record stores only <code class="docutils literal notranslate"><span class="pre">nx</span> <span class="pre">%</span> <span class="pre">1000</span></code> and the header’s grid
 letters carry the thousands (see <code class="xref py py-attr docutils literal notranslate"><span class="pre">Header.grid</span></code>).</p></li>
-<li><p><strong>ny</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Number of grid points in the y-direction (rows), full size as <code class="docutils literal notranslate"><span class="pre">nx</span></code>.</p></li>
-<li><p><strong>nz</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Number of vertical levels.</p></li>
-<li><p><strong>vertical_flag</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain, 4=hybrid).</p></li>
-<li><p><strong>levels</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">LvlInfo</span></code>]</span>) – Variable manifests for each stored vertical level.</p></li>
+<li><p><strong>ny</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Number of grid points in the y-direction (rows), full size as <code class="docutils literal notranslate"><span class="pre">nx</span></code>.</p></li>
+<li><p><strong>nz</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Number of vertical levels.</p></li>
+<li><p><strong>vertical_flag</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Vertical coordinate system type (1=sigma, 2=pressure, 3=terrain,
+4=hybrid, 5=WRF).</p></li>
+<li><p><strong>levels</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">LvlInfo</span></code>]</span>) – Variable manifests for each stored vertical level.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Variables<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>N_BYTES_FIXED</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of bytes in the fixed portion of the index record (108 bytes).</p>
+<dd class="field-even"><p><strong>N_BYTES_FIXED</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a>) – Number of bytes in the fixed portion of the index record (108 bytes).</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">header.grid</span></code> does not carry the thousands of <code class="docutils literal notranslate"><span class="pre">nx</span></code>/<code class="docutils literal notranslate"><span class="pre">ny</span></code>.</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">header.grid</span></code> does not carry the thousands of <code class="docutils literal notranslate"><span class="pre">nx</span></code>/<code class="docutils literal notranslate"><span class="pre">ny</span></code>.</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.index</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.indexrecord</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">header</span> <span class="o">=</span> <span class="n">Header</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">year</span><span class="o">=</span><span class="mi">2024</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="n">month</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>

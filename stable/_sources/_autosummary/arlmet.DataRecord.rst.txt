@@ -17,7 +17,7 @@
    ~DataRecord.bytes
    ~DataRecord.checksum
    ~DataRecord.data
-   ~DataRecord.diff
+   ~DataRecord.diffs
    ~DataRecord.dtype
    ~DataRecord.forecast
    ~DataRecord.grid

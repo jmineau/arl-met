@@ -1,0 +1,6 @@
+arlmet.GridWindow.shape
+=======================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: GridWindow.shape

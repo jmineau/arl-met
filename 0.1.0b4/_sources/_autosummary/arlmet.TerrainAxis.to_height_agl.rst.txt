@@ -1,0 +1,6 @@
+arlmet.TerrainAxis.to\_height\_agl
+==================================
+
+.. currentmodule:: arlmet
+
+.. automethod:: TerrainAxis.to_height_agl
