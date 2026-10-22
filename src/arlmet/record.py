@@ -32,6 +32,48 @@ __all__ = ["DataRecord"]
 _UPPER_DIF_PARENTS = {"DIFW": ("WWND", "DZDT"), "DIFT": ("TKEN", "TKEU")}
 _SURFACE_DIF_PARENTS = ("TPP", "PRT")
 
+#: The name in a record header that marks the record missing, whatever its
+#: index record lists (old converters wrote it for fields they never filled).
+_MISSING_NAME = "NULL"
+
+
+def _is_missing(header: Header) -> bool:
+    """
+    Return True when *header* marks its record as missing data.
+
+    HYSPLIT's reader (``metinp.f``) skips a record whose forecast hour is
+    negative or whose name is ``NULL``; its writer starts every record of a
+    time step so (``pakini.f``: forecast hour -1) before a converter fills it.
+    """
+    return header.forecast < 0 or header.variable == _MISSING_NAME
+
+
+def _checked_header(record: DataRecord, raw: bytes) -> Header:
+    """
+    Parse the header at the start of *raw* and check it is *record*'s.
+
+    A header named ``NULL`` passes whatever variable the index lists: it marks
+    the record missing (:func:`_is_missing`).
+    """
+    header = Header.from_bytes(raw[: Header.N_BYTES])
+    if (
+        header.variable not in (record.variable, _MISSING_NAME)
+        or header.level != record.level
+    ):
+        raise ARLFormatError(
+            f"DataRecord header mismatch at position {record.position}: "
+            f"expected variable '{record.variable}' level {record.level}, "
+            f"got variable '{header.variable}' level '{header.level}'"
+        )
+    return header
+
+
+def _missing_payload(n_bytes: int) -> npt.NDArray[np.uint8]:
+    """Return the packed bytes ``pakini.f`` writes for a missing record: spaces, a CR last."""
+    payload = np.full(n_bytes, ord(" "), dtype=np.uint8)
+    payload[-1] = 13
+    return payload
+
 
 def _corrects(dif: str, parent: str, level: int) -> bool:
     """Return True when a ``dif`` record at ``level`` corrects a ``parent`` record."""
@@ -260,18 +302,9 @@ class DataRecord:
         """
         if not isinstance(self._header, Header):
             if self.mode == "r":
-                header = Header.from_bytes(
-                    self.recordset.file._read_at(self.position, Header.N_BYTES)
+                self._header = _checked_header(
+                    self, self.recordset.file._read_at(self.position, Header.N_BYTES)
                 )
-
-                if header.variable != self.variable or header.level != self.level:
-                    raise ARLFormatError(
-                        f"DataRecord header mismatch at position {self.position}: "
-                        f"expected variable '{self.variable}' level {self.level}, "
-                        f"got variable '{header.variable}' level '{header.level}'"
-                    )
-
-                self._header = header
             else:
                 if not isinstance(self._header, dict):
                     raise ValueError(
@@ -472,6 +505,11 @@ class DataRecord:
         a cached full-grid copy. Each of the record's :attr:`diffs` is added,
         in stream order, as HYSPLIT does.
 
+        A record flagged missing (a negative forecast hour in its header, or
+        the name ``NULL``) reads as NaN, and a missing ``DIF*`` record adds
+        nothing: HYSPLIT's reader skips both. :meth:`arlmet.File.check` lists
+        such records.
+
         Parameters
         ----------
         window : GridWindow, optional
@@ -484,21 +522,31 @@ class DataRecord:
         -------
         numpy.ndarray
             Unpacked ``float32`` array for the full field or the requested
-            window.
+            window, NaN where the record is flagged missing.
         """
         _require_mode(self, "r")
+        unpacked = self._read_own(window)
+        if unpacked is None:
+            shape = self.shape if window is None else window.shape
+            return np.full(shape, np.nan, dtype=np.float32)
+
+        for diff in self._diffs:
+            correction = diff._read_own(window)
+            if correction is not None:
+                unpacked = unpacked + correction
+
+        return unpacked
+
+    def _read_own(self, window: GridWindow | None) -> npt.NDArray[np.float32] | None:
+        """Unpack this record alone, without its DIF records; None if it is missing."""
         raw = self.recordset.file._read_at(self.position, self.n_bytes)
 
         header = self._header
         if not isinstance(header, Header):
-            header = Header.from_bytes(raw[: Header.N_BYTES])
-            if header.variable != self.variable or header.level != self.level:
-                raise ARLFormatError(
-                    f"DataRecord header mismatch at position {self.position}: "
-                    f"expected variable '{self.variable}' level {self.level}, "
-                    f"got variable '{header.variable}' level '{header.level}'"
-                )
+            header = _checked_header(self, raw)
             self._header = header
+        if _is_missing(header):
+            return None
 
         parts = (None,) if window is None else _split_at_seam(window, self.grid)
         pieces = [
@@ -513,12 +561,7 @@ class DataRecord:
             )
             for part in parts
         ]
-        unpacked = pieces[0] if len(pieces) == 1 else np.hstack(pieces)
-
-        for diff in self._diffs:
-            unpacked = unpacked + diff.read(window=window)
-
-        return unpacked
+        return pieces[0] if len(pieces) == 1 else np.hstack(pieces)
 
     def to_xarray(self, *, squeeze: bool = True) -> xr.DataArray:
         """
@@ -597,6 +640,9 @@ class DataRecord:
                 raise ValueError(
                     "Header must be a dictionary in write mode before packing."
                 )
+            if np.isnan(self._unpacked).all():
+                # A field of NaN is missing data, as a missing record reads.
+                return self._pack_missing()
             packed, precision, exponent, initial_value = pack(self._unpacked)
             self._packed = packed
             self._header["precision"] = precision
@@ -623,6 +669,28 @@ class DataRecord:
                         diff._pack()
 
         return self._packed
+
+    def _pack_missing(self) -> npt.NDArray[np.uint8]:
+        """
+        Pack this record, and its DIF records, as missing, as ``pakini.f`` does.
+
+        Forecast hour -1, no precision, exponent or first value, spaces for the
+        packed values, and no checksum (HYSPLIT's index gets 0 for a record it
+        never packed). Readers then skip it, HYSPLIT's and arlmet's alike.
+        """
+        packed = _missing_payload(self.grid.nx * self.grid.ny)
+        self._packed = packed
+        self._header = {
+            "forecast": -1,
+            "precision": 0.0,
+            "exponent": 0,
+            "initial_value": 0.0,
+        }
+        self._checksum = 0
+        for diff in self._diffs:
+            diff._unpacked = np.full(self.shape, np.nan, dtype=np.float32)
+            diff._pack_missing()
+        return packed
 
     def _unpack_packed(self) -> npt.NDArray[np.float32]:
         """Unpack this writable record's packed payload, as a reader would."""

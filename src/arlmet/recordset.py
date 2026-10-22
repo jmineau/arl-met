@@ -163,8 +163,11 @@ class RecordSet:
         level : int
             ARL level index for the record.
         forecast : int
-            Forecast hour to write into the record header.
-            Missing data should use a value of -1.
+            Forecast hour to write into the record header. A field that is
+            NaN everywhere is written as missing data, as HYSPLIT's writer
+            leaves a field it never fills (``pakini.f``): forecast hour -1 and
+            no values, whatever ``forecast`` says. Readers skip it, and
+            :meth:`DataRecord.read` returns NaN for it.
         data : numpy.ndarray, optional
             Initial ``(ny, nx)`` field values to assign. When omitted, assign
             the whole field later with ``record[:] = values``.
