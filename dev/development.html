@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=84b822b9"></script>
+    <script src="_static/documentation_options.js?v=4afc801c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -58,7 +58,7 @@
     <link rel="search" title="Search" href="search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev24+g5cc300dea" />
+  <meta name="docsearch:version" content="0.1.0b4.dev25+g235bfd581" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -455,11 +455,19 @@ wraps longitudes</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.Grid.subset.html#arlmet.Grid.subset" title="arlmet.Grid.subset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.Grid.subset()</span></code></a> writes a crop as <code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> does:
 <code class="docutils literal notranslate"><span class="pre">sync_*</span></code> its first cell with <code class="docutils literal notranslate"><span class="pre">sync_lon</span></code> in 0-360, <code class="docutils literal notranslate"><span class="pre">pole_*</span></code> its last</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prfcom</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">stlmbr</span></code> / <code class="docutils literal notranslate"><span class="pre">stcm1p</span></code> (set up in <code class="docutils literal notranslate"><span class="pre">metini.f</span></code>)</p></td>
+<td><p>the map projection of a projected grid: <code class="docutils literal notranslate"><span class="pre">cone_angle</span></code> alone picks
+polar stereographic (±90), Mercator (0) or a Lambert cone tangent there;
+<code class="docutils literal notranslate"><span class="pre">grid_size</span></code> holds at the reference latitude, <code class="docutils literal notranslate"><span class="pre">tangent_lat</span></code></p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.Projection.params.html#arlmet.Projection.params" title="arlmet.Projection.params"><code class="xref py py-attr docutils literal notranslate"><span class="pre">arlmet.Projection.params</span></code></a>: <code class="docutils literal notranslate"><span class="pre">lat_ts</span></code>, or a Lambert <code class="docutils literal notranslate"><span class="pre">k_0</span></code> that
+makes the scale 1 at <code class="docutils literal notranslate"><span class="pre">tangent_lat</span></code>; agrees with the compiled routines
+within 0.001 cells on HRRR, NAM, NARR, NAMS and WRF files</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prfcom</span></code></p></td>
 <td><p>choose the vertical conversion from the vertical flag</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.VerticalAxis.from_flag.html#arlmet.VerticalAxis.from_flag" title="arlmet.VerticalAxis.from_flag"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.VerticalAxis.from_flag()</span></code></a> and its subclasses</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prfsig</span></code> / <code class="docutils literal notranslate"><span class="pre">prfecm</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prfsig</span></code> / <code class="docutils literal notranslate"><span class="pre">prfecm</span></code></p></td>
 <td><p>the sigma (flag 1) and hybrid (flag 4) profiles: heights from the ground
 (<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code>) with the virtual temperature; <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> takes each
 level’s pressure from <code class="docutils literal notranslate"><span class="pre">PRES</span></code> when the file has it (<code class="docutils literal notranslate"><span class="pre">ZFLG</span></code>), <code class="docutils literal notranslate"><span class="pre">prfecm</span></code>
@@ -468,13 +476,13 @@ always from the levels; <code class="docutils literal notranslate"><span class="
 <code class="docutils literal notranslate"><span class="pre">vertical._hysplit_z_agl</span></code>; on two HRRR columns it agrees with the
 compiled <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> within 0.006 hPa</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prfwrf</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prfwrf</span></code></p></td>
 <td><p>the WRF (flag 5) profile: pressure from the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field, heights from
 WRF’s hybrid coefficients (read from a side file, <code class="docutils literal notranslate"><span class="pre">hybrid_wrfvcoords.txt</span></code>)</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.WrfAxis.html#arlmet.WrfAxis" title="arlmet.WrfAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.WrfAxis</span></code></a>: pressure from <code class="docutils literal notranslate"><span class="pre">PRES</span></code>; heights hypsometric
 from <code class="docutils literal notranslate"><span class="pre">PRES</span></code>, since the coefficients are not in the ARL file</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xtrct_grid.f</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xtrct_grid.f</span></code></p></td>
 <td><p>crop a met file to a grid window</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.Grid.window_from_bbox.html#arlmet.Grid.window_from_bbox" title="arlmet.Grid.window_from_bbox"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.Grid.window_from_bbox()</span></code></a>, <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a>
 (<code class="docutils literal notranslate"><span class="pre">tests/test_subset_slow.py</span></code> compares the two on real files). The same

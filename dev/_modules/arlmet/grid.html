@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=84b822b9"></script>
+    <script src="../../_static/documentation_options.js?v=4afc801c"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev24+g5cc300dea" />
+  <meta name="docsearch:version" content="0.1.0b4.dev25+g235bfd581" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -420,6 +420,7 @@
 <span class="sd">coordinates live in ``arlmet.vertical``.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">replace</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span>
@@ -452,6 +453,27 @@
     <span class="k">return</span> <span class="p">((</span><span class="n">lons</span> <span class="o">+</span> <span class="mi">180</span><span class="p">)</span> <span class="o">%</span> <span class="mi">360</span><span class="p">)</span> <span class="o">-</span> <span class="mi">180</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_lambert_scale_factor</span><span class="p">(</span><span class="n">cone_lat</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">ref_lat</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Scale factor that makes a tangent Lambert cone true to scale at ``ref_lat``.</span>
+
+<span class="sd">    A spherical Lambert conformal cone tangent at ``cone_lat`` has map scale</span>
+<span class="sd">    ``k = cos(cone_lat) / cos(ref_lat) * (t(ref_lat) / t(cone_lat)) ** n`` at</span>
+<span class="sd">    ``ref_lat``, with ``t(lat) = tan(pi/4 - lat/2)`` and ``n = sin(cone_lat)``.</span>
+<span class="sd">    Returns ``1 / k`` (exactly 1 when the two latitudes are equal), the</span>
+<span class="sd">    ``k_0`` that scales the cone as HYSPLIT&#39;s ``stcm1p`` does.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">ref_lat</span> <span class="o">==</span> <span class="n">cone_lat</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">1.0</span>
+    <span class="n">phi_c</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">cone_lat</span><span class="p">)</span>
+    <span class="n">phi_r</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">ref_lat</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi_c</span><span class="p">)</span>
+    <span class="n">t_c</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span> <span class="o">-</span> <span class="n">phi_c</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">t_r</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span> <span class="o">-</span> <span class="n">phi_r</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi_c</span><span class="p">)</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi_r</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">t_r</span> <span class="o">/</span> <span class="n">t_c</span><span class="p">)</span> <span class="o">**</span> <span class="n">n</span>
+    <span class="k">return</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">k</span>
+
+
 <div class="viewcode-block" id="Projection">
 <a class="viewcode-back" href="../../_autosummary/arlmet.Projection.html#arlmet.Projection">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -473,8 +495,9 @@
 <span class="sd">        which the projection is cut. For lat-lon grids: longitude of the grid point with</span>
 <span class="sd">        the maximum grid point value.</span>
 <span class="sd">    tangent_lat : float</span>
-<span class="sd">        Reference latitude at which the grid spacing is defined. For lat-lon grids:</span>
-<span class="sd">        grid spacing in degrees latitude.</span>
+<span class="sd">        Reference latitude at which the grid spacing is defined. It may differ</span>
+<span class="sd">        from ``cone_angle`` (WRF grids converted by ``arw2arl``). For lat-lon</span>
+<span class="sd">        grids: grid spacing in degrees latitude.</span>
 <span class="sd">    tangent_lon : float</span>
 <span class="sd">        Reference longitude at which the grid spacing is defined. For lat-lon grids:</span>
 <span class="sd">        grid spacing in degrees longitude.</span>
@@ -487,8 +510,9 @@
 <span class="sd">    cone_angle : float</span>
 <span class="sd">        Angle between the axis and the surface of the cone. For regular projections it</span>
 <span class="sd">        equals the latitude at which the grid is tangent to the earth&#39;s surface. Polar</span>
-<span class="sd">        stereographic: ±90, Mercator: 0, Lambert Conformal: between limits, Oblique</span>
-<span class="sd">        stereographic: 90. For lat-lon grids: value always = 0.</span>
+<span class="sd">        stereographic: ±90, Mercator: 0, Lambert Conformal: between limits. As in</span>
+<span class="sd">        HYSPLIT, this value alone picks the projection, so ±90 is always polar</span>
+<span class="sd">        stereographic. For lat-lon grids: value always = 0.</span>
 <span class="sd">    sync_x : float</span>
 <span class="sd">        Grid x-coordinate used to equate a position on the grid with a position on earth</span>
 <span class="sd">        (paired with sync_y, sync_lat, sync_lon). One-based; it may lie outside the</span>
@@ -593,25 +617,17 @@
                     <span class="s2">&quot;proj&quot;</span><span class="p">:</span> <span class="s2">&quot;latlong&quot;</span><span class="p">,</span>
                 <span class="p">}</span>
             <span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cone_angle</span><span class="p">)</span> <span class="o">==</span> <span class="mf">90.0</span><span class="p">:</span>  <span class="c1"># Stereographic</span>
-            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pole_lat</span><span class="p">)</span> <span class="o">==</span> <span class="mf">90.0</span><span class="p">:</span>  <span class="c1"># Polar Stereographic</span>
-                <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-                    <span class="p">{</span>
-                        <span class="s2">&quot;proj&quot;</span><span class="p">:</span> <span class="s2">&quot;stere&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;lat_0&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pole_lat</span><span class="p">,</span>
-                        <span class="s2">&quot;lon_0&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_lon</span><span class="p">,</span>
-                        <span class="s2">&quot;lat_ts&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_lat</span><span class="p">,</span>
-                    <span class="p">}</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>  <span class="c1"># Oblique Stereographic</span>
-                <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-                    <span class="p">{</span>
-                        <span class="s2">&quot;proj&quot;</span><span class="p">:</span> <span class="s2">&quot;sterea&quot;</span><span class="p">,</span>
-                        <span class="s2">&quot;lat_0&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pole_lat</span><span class="p">,</span>
-                        <span class="s2">&quot;lon_0&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_lon</span><span class="p">,</span>
-                        <span class="s2">&quot;lat_ts&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_lat</span><span class="p">,</span>
-                    <span class="p">}</span>
-                <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cone_angle</span><span class="p">)</span> <span class="o">==</span> <span class="mf">90.0</span><span class="p">:</span>  <span class="c1"># Polar stereographic</span>
+            <span class="c1"># As HYSPLIT&#39;s stlmbr: the cone angle alone picks the projection,</span>
+            <span class="c1"># so +-90 is stereographic about that pole whatever pole_lat says.</span>
+            <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;proj&quot;</span><span class="p">:</span> <span class="s2">&quot;stere&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;lat_0&quot;</span><span class="p">:</span> <span class="n">math</span><span class="o">.</span><span class="n">copysign</span><span class="p">(</span><span class="mf">90.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cone_angle</span><span class="p">),</span>
+                    <span class="s2">&quot;lon_0&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_lon</span><span class="p">,</span>
+                    <span class="s2">&quot;lat_ts&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_lat</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">cone_angle</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>  <span class="c1"># Mercator</span>
             <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
                 <span class="p">{</span>
@@ -621,12 +637,15 @@
                 <span class="p">}</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>  <span class="c1"># Lambert Conformal Conic</span>
+            <span class="c1"># The cone is tangent at cone_angle; grid_size holds at tangent_lat</span>
+            <span class="c1"># (HYSPLIT&#39;s stlmbr then stcm1p, as metini.f sets them up).</span>
             <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
                 <span class="p">{</span>
                     <span class="s2">&quot;proj&quot;</span><span class="p">:</span> <span class="s2">&quot;lcc&quot;</span><span class="p">,</span>
                     <span class="s2">&quot;lat_0&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_lat</span><span class="p">,</span>
                     <span class="s2">&quot;lon_0&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_lon</span><span class="p">,</span>
                     <span class="s2">&quot;lat_1&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cone_angle</span><span class="p">,</span>
+                    <span class="s2">&quot;k_0&quot;</span><span class="p">:</span> <span class="n">_lambert_scale_factor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cone_angle</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_lat</span><span class="p">),</span>
                 <span class="p">}</span>
             <span class="p">)</span>
 

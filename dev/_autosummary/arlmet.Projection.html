@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=84b822b9"></script>
+    <script src="../_static/documentation_options.js?v=4afc801c"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.DataRecord.verify_checksum" href="arlmet.DataRecord.verify_checksum.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev24+g5cc300dea" />
+  <meta name="docsearch:version" content="0.1.0b4.dev25+g235bfd581" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -637,8 +637,9 @@ grid point with the maximum grid point value.</p></li>
 <li><p><strong>pole_lon</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Pole longitude position of the grid projection. The longitude 180 degrees from
 which the projection is cut. For lat-lon grids: longitude of the grid point with
 the maximum grid point value.</p></li>
-<li><p><strong>tangent_lat</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Reference latitude at which the grid spacing is defined. For lat-lon grids:
-grid spacing in degrees latitude.</p></li>
+<li><p><strong>tangent_lat</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Reference latitude at which the grid spacing is defined. It may differ
+from <code class="docutils literal notranslate"><span class="pre">cone_angle</span></code> (WRF grids converted by <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code>). For lat-lon
+grids: grid spacing in degrees latitude.</p></li>
 <li><p><strong>tangent_lon</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Reference longitude at which the grid spacing is defined. For lat-lon grids:
 grid spacing in degrees longitude.</p></li>
 <li><p><strong>grid_size</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Grid spacing in km at the reference position. For lat-lon grids: value of zero
@@ -647,8 +648,9 @@ signals that the grid is a lat-lon grid.</p></li>
 local direction of north. For lat-lon grids: value always = 0.</p></li>
 <li><p><strong>cone_angle</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Angle between the axis and the surface of the cone. For regular projections it
 equals the latitude at which the grid is tangent to the earth’s surface. Polar
-stereographic: ±90, Mercator: 0, Lambert Conformal: between limits, Oblique
-stereographic: 90. For lat-lon grids: value always = 0.</p></li>
+stereographic: ±90, Mercator: 0, Lambert Conformal: between limits. As in
+HYSPLIT, this value alone picks the projection, so ±90 is always polar
+stereographic. For lat-lon grids: value always = 0.</p></li>
 <li><p><strong>sync_x</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Grid x-coordinate used to equate a position on the grid with a position on earth
 (paired with sync_y, sync_lat, sync_lon). One-based; it may lie outside the
 grid, as in a subset of a projected grid (<a class="reference internal" href="arlmet.Grid.subset.html#arlmet.Grid.subset" title="arlmet.Grid.subset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Grid.subset()</span></code></a>).</p></li>
