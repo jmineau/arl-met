@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=4349a97d"></script>
+    <script src="../_static/documentation_options.js?v=0bb03440"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.open_dataset" href="arlmet.open_dataset.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev27+gac8967002" />
+  <meta name="docsearch:version" content="0.1.0b4.dev28+g111cb553e" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -638,7 +638,11 @@
 (e.g. from <code class="docutils literal notranslate"><span class="pre">open_dataset(levels=...)</span></code> or <code class="docutils literal notranslate"><span class="pre">ds.sel(level=...)</span></code>) is
 written as a compact file, like <a class="reference internal" href="arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a> does. A
 slice that is entirely NaN is taken to be absent from the file (as
-<a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">open_dataset()</span></code></a> represents it) and no record is written for it.</p>
+<a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">open_dataset()</span></code></a> represents it) and no record is written for it. A
+record flagged missing in the source file also reads as an all-NaN slice,
+so it is left out too, and that time step then has fewer records than the
+others (<a class="reference internal" href="arlmet.File.check.html#arlmet.File.check" title="arlmet.File.check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.File.check()</span></code></a> reports it); <a class="reference internal" href="arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a>
+keeps such a record, flagged missing.</p>
 <p>Per-variable forecast heterogeneity is intentionally not represented in the
 flat Dataset API. <code class="docutils literal notranslate"><span class="pre">forecast_hour(time)</span></code> supplies only the ARL index-record
 forecast written for each time step.</p>

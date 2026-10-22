@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../../_static/documentation_options.js?v=4349a97d"></script>
+    <script src="../../../_static/documentation_options.js?v=0bb03440"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev27+gac8967002" />
+  <meta name="docsearch:version" content="0.1.0b4.dev28+g111cb553e" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -660,7 +660,11 @@
 <span class="sd">    (e.g. from ``open_dataset(levels=...)`` or ``ds.sel(level=...)``) is</span>
 <span class="sd">    written as a compact file, like :func:`arlmet.extract_subset` does. A</span>
 <span class="sd">    slice that is entirely NaN is taken to be absent from the file (as</span>
-<span class="sd">    :func:`open_dataset` represents it) and no record is written for it.</span>
+<span class="sd">    :func:`open_dataset` represents it) and no record is written for it. A</span>
+<span class="sd">    record flagged missing in the source file also reads as an all-NaN slice,</span>
+<span class="sd">    so it is left out too, and that time step then has fewer records than the</span>
+<span class="sd">    others (:meth:`arlmet.File.check` reports it); :func:`arlmet.extract_subset`</span>
+<span class="sd">    keeps such a record, flagged missing.</span>
 
 <span class="sd">    Per-variable forecast heterogeneity is intentionally not represented in the</span>
 <span class="sd">    flat Dataset API. ``forecast_hour(time)`` supplies only the ARL index-record</span>

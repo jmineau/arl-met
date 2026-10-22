@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=4349a97d"></script>
+    <script src="_static/documentation_options.js?v=0bb03440"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Checking Files" href="checking.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev27+gac8967002" />
+  <meta name="docsearch:version" content="0.1.0b4.dev28+g111cb553e" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -630,6 +630,23 @@ data records, byte for byte. arl-met keeps the first copy, ignores the repeat,
 and emits an <a class="reference internal" href="_autosummary/arlmet.ARLFormatWarning.html#arlmet.ARLFormatWarning" title="arlmet.ARLFormatWarning"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.ARLFormatWarning</span></code></a>. Rewriting such a file (e.g. with
 <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a>) produces a clean file without the repeat.</p>
 </section>
+<section id="missing-records">
+<h3>Missing records<a class="headerlink" href="#missing-records" title="Link to this heading">#</a></h3>
+<p>A data record whose header has a negative forecast hour, or the name <code class="docutils literal notranslate"><span class="pre">NULL</span></code>,
+is flagged missing. HYSPLIT’s writer starts every record of a time step that
+way (<code class="docutils literal notranslate"><span class="pre">pakini.f</span></code>: forecast hour -1, no precision, exponent or first value, the
+packed values spaces) before a converter fills it, so a field the converter
+never writes stays flagged. HYSPLIT’s reader (<code class="docutils literal notranslate"><span class="pre">metinp.f</span></code>) skips such a record
+with a warning, and stops when a time step has more than 20.</p>
+<p>arl-met reads a missing record as NaN, through <a class="reference internal" href="_autosummary/arlmet.DataRecord.read.html#arlmet.DataRecord.read" title="arlmet.DataRecord.read"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.DataRecord.read()</span></code></a>,
+<a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a> and <a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a>; a missing
+<code class="docutils literal notranslate"><span class="pre">DIF*</span></code> record adds nothing to its parent, as in HYSPLIT.
+<a class="reference internal" href="_autosummary/arlmet.File.check.html#arlmet.File.check" title="arlmet.File.check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.File.check()</span></code></a> lists missing records. A field that is NaN
+everywhere is written as a missing record, as <code class="docutils literal notranslate"><span class="pre">pakini.f</span></code> leaves one, so
+<a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a> keeps a missing record missing.
+<a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> writes no record for an all-NaN slice, a missing
+one included.</p>
+</section>
 <section id="checksums">
 <h3>Checksums<a class="headerlink" href="#checksums" title="Link to this heading">#</a></h3>
 <p>Each time step’s index record holds a checksum for each data record: the sum of
@@ -745,6 +762,7 @@ source workflow that produced it.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#individual-data-record-structure">3. Individual Data Record Structure</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#packing-algorithm">4. Packing Algorithm</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#malformed-files">Malformed files</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#missing-records">Missing records</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#checksums">Checksums</a></li>
 </ul>
 </li>

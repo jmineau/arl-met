@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=4349a97d"></script>
+    <script src="../../_static/documentation_options.js?v=0bb03440"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev27+gac8967002" />
+  <meta name="docsearch:version" content="0.1.0b4.dev28+g111cb553e" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -581,8 +581,11 @@
 <span class="sd">        level : int</span>
 <span class="sd">            ARL level index for the record.</span>
 <span class="sd">        forecast : int</span>
-<span class="sd">            Forecast hour to write into the record header.</span>
-<span class="sd">            Missing data should use a value of -1.</span>
+<span class="sd">            Forecast hour to write into the record header. A field that is</span>
+<span class="sd">            NaN everywhere is written as missing data, as HYSPLIT&#39;s writer</span>
+<span class="sd">            leaves a field it never fills (``pakini.f``): forecast hour -1 and</span>
+<span class="sd">            no values, whatever ``forecast`` says. Readers skip it, and</span>
+<span class="sd">            :meth:`DataRecord.read` returns NaN for it.</span>
 <span class="sd">        data : numpy.ndarray, optional</span>
 <span class="sd">            Initial ``(ny, nx)`` field values to assign. When omitted, assign</span>
 <span class="sd">            the whole field later with ``record[:] = values``.</span>

@@ -191,6 +191,25 @@ data records, byte for byte. arl-met keeps the first copy, ignores the repeat,
 and emits an :class:`arlmet.ARLFormatWarning`. Rewriting such a file (e.g. with
 :func:`arlmet.extract_subset`) produces a clean file without the repeat.
 
+Missing records
+~~~~~~~~~~~~~~~
+
+A data record whose header has a negative forecast hour, or the name ``NULL``,
+is flagged missing. HYSPLIT's writer starts every record of a time step that
+way (``pakini.f``: forecast hour -1, no precision, exponent or first value, the
+packed values spaces) before a converter fills it, so a field the converter
+never writes stays flagged. HYSPLIT's reader (``metinp.f``) skips such a record
+with a warning, and stops when a time step has more than 20.
+
+arl-met reads a missing record as NaN, through :meth:`arlmet.DataRecord.read`,
+:func:`arlmet.open_dataset` and :func:`arlmet.sample_points`; a missing
+``DIF*`` record adds nothing to its parent, as in HYSPLIT.
+:meth:`arlmet.File.check` lists missing records. A field that is NaN
+everywhere is written as a missing record, as ``pakini.f`` leaves one, so
+:func:`arlmet.extract_subset` keeps a missing record missing.
+:func:`arlmet.write_dataset` writes no record for an all-NaN slice, a missing
+one included.
+
 Checksums
 ~~~~~~~~~
 

@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=4349a97d"></script>
+    <script src="../_static/documentation_options.js?v=0bb03440"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.File.add_record" href="arlmet.File.add_record.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev27+gac8967002" />
+  <meta name="docsearch:version" content="0.1.0b4.dev28+g111cb553e" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -645,6 +645,10 @@ level, and time its index record lists.</p></li>
 <p>It reads each record’s 50-byte header, not its values, so it does
 not compare checksums. <a class="reference internal" href="arlmet.DataRecord.verify_checksum.html#arlmet.DataRecord.verify_checksum" title="arlmet.DataRecord.verify_checksum"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.DataRecord.verify_checksum()</span></code></a> compares
 one record’s packed bytes with its stored checksum.</p>
+<p>It also lists each record flagged missing (a negative forecast hour, or
+the name <code class="docutils literal notranslate"><span class="pre">NULL</span></code>, in its header), which arlmet reads as NaN: HYSPLIT
+skips such a record, and stops when a time step has more than 20
+(<code class="docutils literal notranslate"><span class="pre">metinp.f</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>One sentence per problem. Empty when none is found.</p>
