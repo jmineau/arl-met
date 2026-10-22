@@ -2,8 +2,10 @@
 Concatenate ARL meteorology files into a single ARL file.
 
 ARL files are flat streams of fixed-size records, so joining several files is a
-byte-level append — the same operation as ``cat a.arl b.arl > out.arl``. This is
-the standard way to combine short (e.g. 6-hourly) met files into longer (e.g.
+byte-level copy with no repacking: each time step (its index record and data
+records) is copied unchanged, in valid-time order. HYSPLIT finds a time step by
+its position in the file, so the order matters; for inputs already in order
+this is the same as ``cat a.arl b.arl > out.arl``. This is the standard way to combine short (e.g. 6-hourly) met files into longer (e.g.
 daily) files: HYSPLIT's ``CONTROL`` file takes at most 12 meteorological files
 when its number of input data grids is one number (each file its own grid) and
 at most 128 per grid when it is two numbers, ``1 N`` (one grid with ``N`` files),
@@ -18,10 +20,11 @@ The original idea and the HRRR use case come from Derek Mallia's
 from __future__ import annotations
 
 import os
-import shutil
 from collections import defaultdict
 from collections.abc import Iterable
+from contextlib import ExitStack
 from pathlib import Path
+from typing import BinaryIO
 
 import pandas as pd
 
@@ -35,16 +38,19 @@ __all__ = ["concat", "concat_by_time"]
 def concat(
     paths: Iterable[str | os.PathLike[str]],
     dest: str | os.PathLike[str],
-    *,
-    sort: bool = True,
 ) -> Path:
     """
     Concatenate multiple ARL files into a single ARL file.
 
-    Each input is appended to the output byte-for-byte, preserving every record
-    (including diff records and checksums) exactly. The inputs are first scanned
-    to ensure they share one grid and vertical axis and do not repeat valid
-    times, since a concatenated ARL file must be a single coherent record stream.
+    Every time step of the inputs is copied to the output byte for byte, in
+    valid-time order, preserving every record (including diff records and
+    checksums) exactly. HYSPLIT finds a time step by its position in the file,
+    so the output must hold its time steps in order: inputs whose hours
+    interleave are merged hour by hour, and a time step an input repeats byte
+    for byte (as some NOAA HRRR archive files do) is written once. The inputs
+    are first scanned to ensure they share one grid and vertical axis and do
+    not repeat valid times, since a concatenated ARL file must be a single
+    coherent record stream.
 
     Parameters
     ----------
@@ -55,10 +61,6 @@ def concat(
         Output ARL file. It is written to a hidden ``.partial`` file beside
         it and renamed once complete, so it replaces an existing file only on
         success. Must not be one of ``paths``.
-    sort : bool, default True
-        Order the inputs by their earliest valid time before joining, so the
-        output is chronological regardless of input order. When False, inputs
-        are joined in the order given (like ``cat``).
 
     Returns
     -------
@@ -84,8 +86,8 @@ def concat(
     ...     "20240101_hrrr",
     ... )
 
-    Combine every 6-hourly file for one day discovered by glob (``sort=True``
-    orders them by valid time, so glob order does not matter):
+    Combine every 6-hourly file for one day discovered by glob (the output is
+    in valid-time order, so glob order does not matter):
 
     >>> import glob
     >>> arlmet.concat(glob.glob("20240101_*_hrrr"), "20240101_hrrr")
@@ -110,24 +112,49 @@ def concat(
             "concatenating a file onto itself is not allowed."
         )
 
-    ordered_paths = _scan_inputs(input_paths, sort=sort)
+    steps = _scan_inputs(input_paths)
 
     # Write a hidden partial file and rename it only once every input is in, so
     # an interrupted run never leaves a short file under the final name.
-    with atomic_output(dest) as tmp_path, open(tmp_path, "wb") as out:
-        for path in ordered_paths:
-            with open(path, "rb") as src:
-                shutil.copyfileobj(src, out)
+    with (
+        atomic_output(dest) as tmp_path,
+        open(tmp_path, "wb") as out,
+        ExitStack() as stack,
+    ):
+        sources = {
+            path: stack.enter_context(open(path, "rb"))
+            for path in dict.fromkeys(path for _, path, _, _ in steps)
+        }
+        for _, path, position, n_bytes in steps:
+            _copy_step(sources[path], out, position, n_bytes)
 
     return dest
 
 
-def _scan_inputs(paths: list[Path], *, sort: bool) -> list[Path]:
+#: Bytes copied per read: a few HRRR records, so memory stays small.
+_CHUNK = 16 * 1024 * 1024
+
+
+def _copy_step(src: BinaryIO, out: BinaryIO, position: int, n_bytes: int) -> None:
+    """Copy the ``n_bytes`` of one time step, starting at ``position``, to ``out``."""
+    src.seek(position)
+    remaining = n_bytes
+    while remaining:
+        block = src.read(min(remaining, _CHUNK))
+        if not block:
+            # File() checked the size when it scanned the input.
+            raise ARLFormatError(f"{src.name} ended inside a time step.")
+        out.write(block)
+        remaining -= len(block)
+
+
+def _scan_inputs(paths: list[Path]) -> list[tuple[pd.Timestamp, Path, int, int]]:
     """
     Read each input's index records to validate compatibility and order by time.
 
-    Returns the paths in write order. Raises if any input is empty, the grids
-    or vertical axes disagree, or a valid time is shared across inputs.
+    Returns every time step to write as ``(time, path, position, n_bytes)``,
+    in valid-time order, each once. Raises if any input is empty, the grids or
+    vertical axes disagree, or a valid time is shared across inputs.
     """
     scanned = []
     for path in paths:
@@ -138,12 +165,17 @@ def _scan_inputs(paths: list[Path], *, sort: bool) -> list[Path]:
                 raise ValueError(f"Input file {path} contains no records.")
             grid = src.grid
             axis = src.vertical_axis
+            # File raised if a repeated time step differs, so a repeat is a
+            # byte-identical copy: write the first one only.
+            steps: dict[pd.Timestamp, tuple[pd.Timestamp, Path, int, int]] = {}
+            for time, position, n_bytes in src._steps:
+                steps.setdefault(time, (time, path, position, n_bytes))
 
-        scanned.append((path, times, grid, axis))
+        scanned.append((path, times, grid, axis, steps))
 
     # paths is non-empty (checked by concat), so scanned[0] exists.
-    reference_path, _, reference_grid, reference_axis = scanned[0]
-    for path, _times, grid, axis in scanned[1:]:
+    reference_path, _, reference_grid, reference_axis, _ = scanned[0]
+    for path, _times, grid, axis, _ in scanned[1:]:
         if grid != reference_grid:
             raise ValueError(
                 f"Grid mismatch: {path} has grid {grid.nx}x{grid.ny}, "
@@ -160,13 +192,13 @@ def _scan_inputs(paths: list[Path], *, sort: bool) -> list[Path]:
                 "files must share a single vertical axis."
             )
 
-    if sort:
-        # times is sorted by File.times, so times[0] is each file's earliest.
-        scanned.sort(key=lambda item: item[1][0])
+    _reject_duplicate_times([(path, times) for path, times, _, _, _ in scanned])
 
-    _reject_duplicate_times([(path, times) for path, times, _, _ in scanned])
-
-    return [path for path, _, _, _ in scanned]
+    # Valid times are unique across the inputs now, so this is a total order.
+    return sorted(
+        (step for *_, steps in scanned for step in steps.values()),
+        key=lambda step: step[0],
+    )
 
 
 def _reject_duplicate_times(scanned: list[tuple[Path, list[pd.Timestamp]]]) -> None:
@@ -193,7 +225,6 @@ def concat_by_time(
     start: str | pd.Timestamp | None = None,
     end: str | pd.Timestamp | None = None,
     template: str = "{time:%Y%m%d}_arl",
-    sort: bool = True,
 ) -> list[Path]:
     """
     Group every ARL file in a directory by valid time and concatenate each group.
@@ -228,8 +259,6 @@ def concat_by_time(
         as ``time`` (a ``pandas.Timestamp``), e.g. ``"{time:%Y%m%d}_hrrr"``. It
         must encode enough resolution to keep bins distinct at ``freq``; two
         bins that format to the same filename raise ``ValueError``.
-    sort : bool, default True
-        Passed through to :func:`concat` for each group.
 
     Returns
     -------
@@ -304,7 +333,7 @@ def concat_by_time(
 
     outputs: list[Path] = []
     for bin_start, out_path in out_paths.items():
-        outputs.append(concat(groups[bin_start], out_path, sort=sort))
+        outputs.append(concat(groups[bin_start], out_path))
     return outputs
 
 
