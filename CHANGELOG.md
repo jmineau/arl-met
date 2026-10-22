@@ -6,6 +6,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0b4] - 2026-10-22
+
 ### Added
 
 - `arlmet.index(folder)` finds meteorology files by reading their headers instead of by a file-name pattern. It opens each file in a folder once (`recursive=True` reads every folder below it too, as a copy of NOAA's `YYYY/MM/` layout needs) and returns a `DirectoryIndex`: a table of each file's source, grid, first and last valid time and time step, cached in a CSV file (beside the files when that folder is writable, else in `$ARLMET_CACHE_DIR` or the user cache folder) and read again only for files that are new or changed. Links to files are followed, and each real file is one row, shown by its real path; a link that cannot be followed is a row with its error. `DirectoryIndex.covering(start, end)` returns the files that hold every valid time a window needs, from the one at or before its start to the one at or after its end, and `DirectoryIndex.missing(start, end)` the valid times no file holds; `covering` raises `ValueError` naming the missing times, or naming both files when two hold the same time. Files that are not ARL, are damaged, or whose time steps are not evenly spaced are listed with the reason in an `error` column and are not used (#43)
