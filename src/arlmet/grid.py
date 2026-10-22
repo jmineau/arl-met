@@ -6,6 +6,7 @@ horizontal coordinate systems used in ARL meteorological files. Vertical
 coordinates live in ``arlmet.vertical``.
 """
 
+import math
 from dataclasses import dataclass, replace
 from functools import cached_property
 from typing import Any, ClassVar
@@ -38,6 +39,27 @@ def wrap_lons(lons: npt.NDArray[Any]) -> npt.NDArray[Any]:
     return ((lons + 180) % 360) - 180
 
 
+def _lambert_scale_factor(cone_lat: float, ref_lat: float) -> float:
+    """
+    Scale factor that makes a tangent Lambert cone true to scale at ``ref_lat``.
+
+    A spherical Lambert conformal cone tangent at ``cone_lat`` has map scale
+    ``k = cos(cone_lat) / cos(ref_lat) * (t(ref_lat) / t(cone_lat)) ** n`` at
+    ``ref_lat``, with ``t(lat) = tan(pi/4 - lat/2)`` and ``n = sin(cone_lat)``.
+    Returns ``1 / k`` (exactly 1 when the two latitudes are equal), the
+    ``k_0`` that scales the cone as HYSPLIT's ``stcm1p`` does.
+    """
+    if ref_lat == cone_lat:
+        return 1.0
+    phi_c = math.radians(cone_lat)
+    phi_r = math.radians(ref_lat)
+    n = math.sin(phi_c)
+    t_c = math.tan(math.pi / 4 - phi_c / 2)
+    t_r = math.tan(math.pi / 4 - phi_r / 2)
+    k = math.cos(phi_c) / math.cos(phi_r) * (t_r / t_c) ** n
+    return 1.0 / k
+
+
 @dataclass(frozen=True)
 class Projection:
     """
@@ -57,8 +79,9 @@ class Projection:
         which the projection is cut. For lat-lon grids: longitude of the grid point with
         the maximum grid point value.
     tangent_lat : float
-        Reference latitude at which the grid spacing is defined. For lat-lon grids:
-        grid spacing in degrees latitude.
+        Reference latitude at which the grid spacing is defined. It may differ
+        from ``cone_angle`` (WRF grids converted by ``arw2arl``). For lat-lon
+        grids: grid spacing in degrees latitude.
     tangent_lon : float
         Reference longitude at which the grid spacing is defined. For lat-lon grids:
         grid spacing in degrees longitude.
@@ -71,8 +94,9 @@ class Projection:
     cone_angle : float
         Angle between the axis and the surface of the cone. For regular projections it
         equals the latitude at which the grid is tangent to the earth's surface. Polar
-        stereographic: ±90, Mercator: 0, Lambert Conformal: between limits, Oblique
-        stereographic: 90. For lat-lon grids: value always = 0.
+        stereographic: ±90, Mercator: 0, Lambert Conformal: between limits. As in
+        HYSPLIT, this value alone picks the projection, so ±90 is always polar
+        stereographic. For lat-lon grids: value always = 0.
     sync_x : float
         Grid x-coordinate used to equate a position on the grid with a position on earth
         (paired with sync_y, sync_lat, sync_lon). One-based; it may lie outside the
@@ -177,25 +201,17 @@ class Projection:
                     "proj": "latlong",
                 }
             )
-        elif abs(self.cone_angle) == 90.0:  # Stereographic
-            if abs(self.pole_lat) == 90.0:  # Polar Stereographic
-                params.update(
-                    {
-                        "proj": "stere",
-                        "lat_0": self.pole_lat,
-                        "lon_0": self.tangent_lon,
-                        "lat_ts": self.tangent_lat,
-                    }
-                )
-            else:  # Oblique Stereographic
-                params.update(
-                    {
-                        "proj": "sterea",
-                        "lat_0": self.pole_lat,
-                        "lon_0": self.tangent_lon,
-                        "lat_ts": self.tangent_lat,
-                    }
-                )
+        elif abs(self.cone_angle) == 90.0:  # Polar stereographic
+            # As HYSPLIT's stlmbr: the cone angle alone picks the projection,
+            # so +-90 is stereographic about that pole whatever pole_lat says.
+            params.update(
+                {
+                    "proj": "stere",
+                    "lat_0": math.copysign(90.0, self.cone_angle),
+                    "lon_0": self.tangent_lon,
+                    "lat_ts": self.tangent_lat,
+                }
+            )
         elif self.cone_angle == 0.0:  # Mercator
             params.update(
                 {
@@ -205,12 +221,15 @@ class Projection:
                 }
             )
         else:  # Lambert Conformal Conic
+            # The cone is tangent at cone_angle; grid_size holds at tangent_lat
+            # (HYSPLIT's stlmbr then stcm1p, as metini.f sets them up).
             params.update(
                 {
                     "proj": "lcc",
                     "lat_0": self.tangent_lat,
                     "lon_0": self.tangent_lon,
                     "lat_1": self.cone_angle,
+                    "k_0": _lambert_scale_factor(self.cone_angle, self.tangent_lat),
                 }
             )
 
