@@ -22,16 +22,19 @@ keeps a long run under either cap. It is still needed when a run takes more than
 as STILT-R does.
 
 ARL files are flat streams of fixed-size records, so joining them is a
-byte-level append — the same result as ``cat a.arl b.arl > out.arl`` — with no
-repacking. Every record, including ``DIF*`` records and checksums, is preserved
-exactly.
+byte-level copy with no repacking: each time step (its index record and data
+records) is copied unchanged, so every record, including ``DIF*`` records and
+checksums, is preserved exactly. The time steps are written in valid-time
+order, because HYSPLIT finds a time step by its position in the file
+(``advpnt.f``) and stops when the spacing between them changes (``metset.f``).
+For inputs that are each in order and do not overlap in time, this is the same
+result as ``cat a.arl b.arl > out.arl``.
 
 Joining a list of files
 -----------------------
 
-Pass the input paths and an output path. By default the inputs are ordered by
-their earliest valid time, so the output is chronological regardless of the
-order you list them in.
+Pass the input paths and an output path. The output is chronological
+regardless of the order you list them in.
 
 .. code-block:: python
 
@@ -51,7 +54,10 @@ it straight to :class:`arlmet.File` or :func:`arlmet.open_dataset`:
    with arlmet.File(out) as combined:
        print(combined.times)
 
-Pass ``sort=False`` to join the files in exactly the order given, like ``cat``.
+Inputs whose hours interleave (one file with the odd hours, one with the even)
+are merged hour by hour. A time step that an input repeats byte for byte, as
+some NOAA HRRR archive files do, is written once; :class:`arlmet.File` warns
+when it opens such an input.
 
 What is validated
 -----------------

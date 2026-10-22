@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=8467c4f6"></script>
+    <script src="../_static/documentation_options.js?v=05105e5b"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.sample_points" href="arlmet.sample_points.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev29+g1c77afd5c" />
+  <meta name="docsearch:version" content="0.1.0b4.dev30+g11340a57b" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -624,12 +624,17 @@
 <h1>arlmet.concat<a class="headerlink" href="#arlmet-concat" title="Link to this heading">#</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="arlmet.concat">
-<span class="sig-prename descclassname"><span class="pre">arlmet.</span></span><span class="sig-name descname"><span class="pre">concat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/ops/concat.html#concat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.concat" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">arlmet.</span></span><span class="sig-name descname"><span class="pre">concat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/ops/concat.html#concat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.concat" title="Link to this definition">#</a></dt>
 <dd><p>Concatenate multiple ARL files into a single ARL file.</p>
-<p>Each input is appended to the output byte-for-byte, preserving every record
-(including diff records and checksums) exactly. The inputs are first scanned
-to ensure they share one grid and vertical axis and do not repeat valid
-times, since a concatenated ARL file must be a single coherent record stream.</p>
+<p>Every time step of the inputs is copied to the output byte for byte, in
+valid-time order, preserving every record (including diff records and
+checksums) exactly. HYSPLIT finds a time step by its position in the file,
+so the output must hold its time steps in order: inputs whose hours
+interleave are merged hour by hour, and a time step an input repeats byte
+for byte (as some NOAA HRRR archive files do) is written once. The inputs
+are first scanned to ensure they share one grid and vertical axis and do
+not repeat valid times, since a concatenated ARL file must be a single
+coherent record stream.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -638,9 +643,6 @@ or path is rejected — wrap a single file in a list.</p></li>
 <li><p><strong>dest</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">PathLike</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Output ARL file. It is written to a hidden <code class="docutils literal notranslate"><span class="pre">.partial</span></code> file beside
 it and renamed once complete, so it replaces an existing file only on
 success. Must not be one of <code class="docutils literal notranslate"><span class="pre">paths</span></code>.</p></li>
-<li><p><strong>sort</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Order the inputs by their earliest valid time before joining, so the
-output is chronological regardless of input order. When False, inputs
-are joined in the order given (like <code class="docutils literal notranslate"><span class="pre">cat</span></code>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -667,8 +669,8 @@ are joined in the order given (like <code class="docutils literal notranslate"><
 <span class="gp">... </span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Combine every 6-hourly file for one day discovered by glob (<code class="docutils literal notranslate"><span class="pre">sort=True</span></code>
-orders them by valid time, so glob order does not matter):</p>
+<p>Combine every 6-hourly file for one day discovered by glob (the output is
+in valid-time order, so glob order does not matter):</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">glob</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;20240101_*_hrrr&quot;</span><span class="p">),</span> <span class="s2">&quot;20240101_hrrr&quot;</span><span class="p">)</span>
 </pre></div>

@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=8467c4f6"></script>
+    <script src="_static/documentation_options.js?v=05105e5b"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Writing ARL Files" href="writing.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev29+g1c77afd5c" />
+  <meta name="docsearch:version" content="0.1.0b4.dev30+g11340a57b" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -464,14 +464,17 @@ keeps a long run under either cap. It is still needed when a run takes more than
 128 files, and when the tool that writes the <code class="docutils literal notranslate"><span class="pre">CONTROL</span></code> file gives one number,
 as STILT-R does.</p>
 <p>ARL files are flat streams of fixed-size records, so joining them is a
-byte-level append — the same result as <code class="docutils literal notranslate"><span class="pre">cat</span> <span class="pre">a.arl</span> <span class="pre">b.arl</span> <span class="pre">&gt;</span> <span class="pre">out.arl</span></code> — with no
-repacking. Every record, including <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> records and checksums, is preserved
-exactly.</p>
+byte-level copy with no repacking: each time step (its index record and data
+records) is copied unchanged, so every record, including <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> records and
+checksums, is preserved exactly. The time steps are written in valid-time
+order, because HYSPLIT finds a time step by its position in the file
+(<code class="docutils literal notranslate"><span class="pre">advpnt.f</span></code>) and stops when the spacing between them changes (<code class="docutils literal notranslate"><span class="pre">metset.f</span></code>).
+For inputs that are each in order and do not overlap in time, this is the same
+result as <code class="docutils literal notranslate"><span class="pre">cat</span> <span class="pre">a.arl</span> <span class="pre">b.arl</span> <span class="pre">&gt;</span> <span class="pre">out.arl</span></code>.</p>
 <section id="joining-a-list-of-files">
 <h2>Joining a list of files<a class="headerlink" href="#joining-a-list-of-files" title="Link to this heading">#</a></h2>
-<p>Pass the input paths and an output path. By default the inputs are ordered by
-their earliest valid time, so the output is chronological regardless of the
-order you list them in.</p>
+<p>Pass the input paths and an output path. The output is chronological
+regardless of the order you list them in.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 
 <span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
@@ -487,7 +490,10 @@ it straight to <a class="reference internal" href="_autosummary/arlmet.File.html
     <span class="nb">print</span><span class="p">(</span><span class="n">combined</span><span class="o">.</span><span class="n">times</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Pass <code class="docutils literal notranslate"><span class="pre">sort=False</span></code> to join the files in exactly the order given, like <code class="docutils literal notranslate"><span class="pre">cat</span></code>.</p>
+<p>Inputs whose hours interleave (one file with the odd hours, one with the even)
+are merged hour by hour. A time step that an input repeats byte for byte, as
+some NOAA HRRR archive files do, is written once; <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a> warns
+when it opens such an input.</p>
 </section>
 <section id="what-is-validated">
 <h2>What is validated<a class="headerlink" href="#what-is-validated" title="Link to this heading">#</a></h2>

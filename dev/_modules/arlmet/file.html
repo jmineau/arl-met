@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=8467c4f6"></script>
+    <script src="../../_static/documentation_options.js?v=05105e5b"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev29+g1c77afd5c" />
+  <meta name="docsearch:version" content="0.1.0b4.dev30+g11340a57b" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -575,6 +575,10 @@
         <span class="c1"># Initialize recordsets as an ordered dict to preserve time order</span>
         <span class="c1"># Mapping: time -&gt; RecordSet</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="n">RecordSet</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="c1"># Every index record in file order, repeats included, as (valid time,</span>
+        <span class="c1"># byte position, bytes in the time step). HYSPLIT finds a time step by</span>
+        <span class="c1"># its position, so check() and concat need this order, not ``times``.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">variables</span> <span class="o">=</span> <span class="n">VariableAccessor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
         <span class="c1"># Scan the file to populate recordsets in read mode</span>
@@ -932,6 +936,8 @@
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">remaining</span><span class="si">}</span><span class="s2"> remain in the file; the file is truncated.&quot;</span>
                 <span class="p">)</span>
 
+            <span class="bp">self</span><span class="o">.</span><span class="n">_steps</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">index</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">n_bytes</span><span class="p">))</span>
+
             <span class="c1"># Some NOAA archive files repeat a whole time step. Skip a</span>
             <span class="c1"># byte-identical copy; anything else is ambiguous, so raise.</span>
             <span class="k">if</span> <span class="n">index</span><span class="o">.</span><span class="n">time</span> <span class="ow">in</span> <span class="n">extents</span><span class="p">:</span>
@@ -1071,12 +1077,17 @@
 <span class="sd">        A file can also be damaged in ways that open cleanly: a time step</span>
 <span class="sd">        written partway, a missing time step, or a record overwritten with</span>
 <span class="sd">        other bytes. HYSPLIT then stops partway through a run or reads bad</span>
-<span class="sd">        values. ``check`` looks for these the way HYSPLIT reads a file:</span>
+<span class="sd">        values. ``check`` looks for these the way HYSPLIT reads a file, time</span>
+<span class="sd">        step by time step in file order (``metset.f``):</span>
 
 <span class="sd">        - every time step has as many data records as the first, since</span>
 <span class="sd">          HYSPLIT steps from one index record to the next by that count;</span>
-<span class="sd">        - the time steps are as far apart as the first two, since HYSPLIT</span>
-<span class="sd">          stops when the spacing changes;</span>
+<span class="sd">        - each time step is as far after the one before it on disk as the</span>
+<span class="sd">          second is after the first. HYSPLIT stops when the spacing changes,</span>
+<span class="sd">          and it finds a time step by its position in the file, so a time</span>
+<span class="sd">          step repeated (some NOAA HRRR archive files repeat one byte for</span>
+<span class="sd">          byte; opening skips the copy) or out of order makes it stop or read</span>
+<span class="sd">          the wrong hours. A missing time step changes the spacing too;</span>
 <span class="sd">        - every data record&#39;s header can be read, and names the variable,</span>
 <span class="sd">          level, and time its index record lists.</span>
 
@@ -1092,7 +1103,7 @@
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        list of str</span>
-<span class="sd">            One sentence per problem. Empty when none is found.</span>
+<span class="sd">            One message per problem. Empty when none is found.</span>
 
 <span class="sd">        Raises</span>
 <span class="sd">        ------</span>
@@ -1109,7 +1120,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
         <span class="n">problems</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">recordsets</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="p">[</span><span class="n">time</span><span class="p">]</span> <span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">]</span>
+        <span class="c1"># HYSPLIT reads the time steps in file order, so check them so too.</span>
+        <span class="n">recordsets</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recordsets</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">rs</span><span class="p">:</span> <span class="n">rs</span><span class="o">.</span><span class="n">position</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">recordsets</span><span class="p">:</span>
             <span class="n">n_first</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">_with_diffs</span><span class="p">(</span><span class="n">recordsets</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
@@ -1121,15 +1133,35 @@
                         <span class="s2">&quot;the first time step has.&quot;</span>
                     <span class="p">)</span>
 
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">recordsets</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="n">step</span> <span class="o">=</span> <span class="n">recordsets</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">time</span> <span class="o">-</span> <span class="n">recordsets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">time</span>
-            <span class="k">for</span> <span class="n">before</span><span class="p">,</span> <span class="n">after</span> <span class="ow">in</span> <span class="n">pairwise</span><span class="p">(</span><span class="n">recordsets</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
-                <span class="k">if</span> <span class="n">after</span><span class="o">.</span><span class="n">time</span> <span class="o">-</span> <span class="n">before</span><span class="o">.</span><span class="n">time</span> <span class="o">!=</span> <span class="n">step</span><span class="p">:</span>
+        <span class="c1"># Walk every index record on disk, repeats included: HYSPLIT takes the</span>
+        <span class="c1"># spacing from the first two and finds a time step by its position.</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="n">steps</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">steps</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">),</span> <span class="p">(</span><span class="n">after</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">pairwise</span><span class="p">(</span><span class="n">steps</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">after</span> <span class="o">-</span> <span class="n">before</span> <span class="o">==</span> <span class="n">step</span> <span class="ow">and</span> <span class="n">step</span> <span class="o">&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="mi">0</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="n">after</span> <span class="o">==</span> <span class="n">before</span><span class="p">:</span>
                     <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_at</span><span class="p">(</span><span class="n">before</span><span class="o">.</span><span class="n">time</span><span class="p">)</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">_at</span><span class="p">(</span><span class="n">after</span><span class="o">.</span><span class="n">time</span><span class="p">)</span><span class="si">}</span><span class="s2"> is &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_span</span><span class="p">(</span><span class="n">after</span><span class="o">.</span><span class="n">time</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">before</span><span class="o">.</span><span class="n">time</span><span class="p">)</span><span class="si">}</span><span class="s2">; the first two time &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;steps are </span><span class="si">{</span><span class="n">_span</span><span class="p">(</span><span class="n">step</span><span class="p">)</span><span class="si">}</span><span class="s2"> apart.&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_at</span><span class="p">(</span><span class="n">after</span><span class="p">)</span><span class="si">}</span><span class="s2"> is repeated at byte </span><span class="si">{</span><span class="n">position</span><span class="si">}</span><span class="s2">. arlmet &quot;</span>
+                        <span class="s2">&quot;skips the copy, but HYSPLIT finds a time step by its &quot;</span>
+                        <span class="s2">&quot;position, so it stops or reads each later time step as &quot;</span>
+                        <span class="s2">&quot;the one before it.&quot;</span>
                     <span class="p">)</span>
+                <span class="k">elif</span> <span class="n">after</span> <span class="o">&lt;</span> <span class="n">before</span><span class="p">:</span>
+                    <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_at</span><span class="p">(</span><span class="n">after</span><span class="p">)</span><span class="si">}</span><span class="s2"> (byte </span><span class="si">{</span><span class="n">position</span><span class="si">}</span><span class="s2">) comes after &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_at</span><span class="p">(</span><span class="n">before</span><span class="p">)</span><span class="si">}</span><span class="s2"> in the file. HYSPLIT reads the time &quot;</span>
+                        <span class="s2">&quot;steps in file order, so it stops or reads the wrong hours.&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">problems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_at</span><span class="p">(</span><span class="n">before</span><span class="p">)</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">_at</span><span class="p">(</span><span class="n">after</span><span class="p">)</span><span class="si">}</span><span class="s2"> is &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_span</span><span class="p">(</span><span class="n">after</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">before</span><span class="p">)</span><span class="si">}</span><span class="s2">; the first two time steps are &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_span</span><span class="p">(</span><span class="n">step</span><span class="p">)</span><span class="si">}</span><span class="s2"> apart.&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">if</span> <span class="n">step</span> <span class="o">&lt;=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="mi">0</span><span class="p">):</span>
+                    <span class="k">break</span>  <span class="c1"># the first two set no spacing to compare with</span>
 
         <span class="k">for</span> <span class="n">rs</span> <span class="ow">in</span> <span class="n">recordsets</span><span class="p">:</span>
             <span class="n">n_missing</span> <span class="o">=</span> <span class="mi">0</span>

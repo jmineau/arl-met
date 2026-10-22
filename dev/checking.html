@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=8467c4f6"></script>
+    <script src="_static/documentation_options.js?v=05105e5b"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Vertical Coordinates" href="vertical.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev29+g1c77afd5c" />
+  <meta name="docsearch:version" content="0.1.0b4.dev30+g11340a57b" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -462,7 +462,7 @@ after downloading or cropping it, finds these first.</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>2021-02-26 19:00 has 43 of the 298 data records the first time step has.
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">check()</span></code> returns one sentence per problem, and an empty list for a file
+<p><code class="docutils literal notranslate"><span class="pre">check()</span></code> returns one message per problem, and an empty list for a file
 with none.</p>
 <section id="what-is-checked">
 <h2>What is checked<a class="headerlink" href="#what-is-checked" title="Link to this heading">#</a></h2>
@@ -471,9 +471,16 @@ with none.</p>
 <li><p><strong>Every time step has as many data records as the first.</strong> HYSPLIT steps from
 one index record to the next by the first time step’s record count, so a
 shorter time step makes it lose its place, and the file seems to end early.</p></li>
-<li><p><strong>The time steps are as far apart as the first two.</strong> HYSPLIT stops with
-<code class="docutils literal notranslate"><span class="pre">meteorological</span> <span class="pre">data</span> <span class="pre">time</span> <span class="pre">interval</span> <span class="pre">varies</span></code> when the spacing changes, as it
-does where a time step is missing.</p></li>
+<li><p><strong>Each time step in the file is as far after the one before it as the second
+is after the first.</strong> HYSPLIT walks the time steps in file order and stops
+with <code class="docutils literal notranslate"><span class="pre">meteorological</span> <span class="pre">data</span> <span class="pre">time</span> <span class="pre">interval</span> <span class="pre">varies</span></code> when the spacing changes, as
+it does where a time step is missing, repeated, or out of order. It also finds
+a time step by its position in the file (<code class="docutils literal notranslate"><span class="pre">advpnt.f</span></code>), so where it does not
+stop it reads the wrong hours. <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a> itself orders time steps
+by valid time and skips a byte-for-byte repeat (some NOAA HRRR archive files
+have one), so such a file reads well in arlmet and still needs fixing before
+HYSPLIT reads it: <a class="reference internal" href="_autosummary/arlmet.concat.html#arlmet.concat" title="arlmet.concat"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.concat()</span></code></a> with the file alone, or
+<a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a>, writes each time step once and in order.</p></li>
 <li><p><strong>Every data record’s header can be read</strong>, and names the variable, level, and
 hour its index record lists. A record overwritten with null bytes, or copied
 from another time step, fails this.</p></li>

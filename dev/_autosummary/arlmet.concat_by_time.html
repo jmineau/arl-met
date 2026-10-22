@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=8467c4f6"></script>
+    <script src="../_static/documentation_options.js?v=05105e5b"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.concat" href="arlmet.concat.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev29+g1c77afd5c" />
+  <meta name="docsearch:version" content="0.1.0b4.dev30+g11340a57b" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -624,7 +624,7 @@
 <h1>arlmet.concat_by_time<a class="headerlink" href="#arlmet-concat-by-time" title="Link to this heading">#</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="arlmet.concat_by_time">
-<span class="sig-prename descclassname"><span class="pre">arlmet.</span></span><span class="sig-name descname"><span class="pre">concat_by_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_dir</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'1D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'*'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'{time:%Y%m%d}_arl'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/ops/concat.html#concat_by_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.concat_by_time" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">arlmet.</span></span><span class="sig-name descname"><span class="pre">concat_by_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_dir</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'1D'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'*'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'{time:%Y%m%d}_arl'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/ops/concat.html#concat_by_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.concat_by_time" title="Link to this definition">#</a></dt>
 <dd><p>Group every ARL file in a directory by valid time and concatenate each group.</p>
 <p>Each input is assigned to a time bin from its valid times — read from the
 file’s index records, not parsed from its name — floored to <code class="docutils literal notranslate"><span class="pre">freq</span></code>. All
@@ -652,7 +652,6 @@ are skipped. Either may be omitted to leave that side open.</p></li>
 as <code class="docutils literal notranslate"><span class="pre">time</span></code> (a <code class="docutils literal notranslate"><span class="pre">pandas.Timestamp</span></code>), e.g. <code class="docutils literal notranslate"><span class="pre">&quot;{time:%Y%m%d}_hrrr&quot;</span></code>. It
 must encode enough resolution to keep bins distinct at <code class="docutils literal notranslate"><span class="pre">freq</span></code>; two
 bins that format to the same filename raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
-<li><p><strong>sort</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Passed through to <a class="reference internal" href="arlmet.concat.html#arlmet.concat" title="arlmet.concat"><code class="xref py py-func docutils literal notranslate"><span class="pre">concat()</span></code></a> for each group.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
