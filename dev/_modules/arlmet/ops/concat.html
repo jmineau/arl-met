@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../../_static/documentation_options.js?v=0bb03440"></script>
+    <script src="../../../_static/documentation_options.js?v=8467c4f6"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev28+g111cb553e" />
+  <meta name="docsearch:version" content="0.1.0b4.dev29+g1c77afd5c" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -439,6 +439,7 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_output</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARLFormatError</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span>
 
@@ -467,8 +468,9 @@
 <span class="sd">        Input ARL files to join. Must contain at least one path. A bare string</span>
 <span class="sd">        or path is rejected — wrap a single file in a list.</span>
 <span class="sd">    dest : path-like</span>
-<span class="sd">        Output ARL file. Overwrites any existing file. Must not be one of</span>
-<span class="sd">        ``paths``.</span>
+<span class="sd">        Output ARL file. It is written to a hidden ``.partial`` file beside</span>
+<span class="sd">        it and renamed once complete, so it replaces an existing file only on</span>
+<span class="sd">        success. Must not be one of ``paths``.</span>
 <span class="sd">    sort : bool, default True</span>
 <span class="sd">        Order the inputs by their earliest valid time before joining, so the</span>
 <span class="sd">        output is chronological regardless of input order. When False, inputs</span>
@@ -526,7 +528,9 @@
 
     <span class="n">ordered_paths</span> <span class="o">=</span> <span class="n">_scan_inputs</span><span class="p">(</span><span class="n">input_paths</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
+    <span class="c1"># Write a hidden partial file and rename it only once every input is in, so</span>
+    <span class="c1"># an interrupted run never leaves a short file under the final name.</span>
+    <span class="k">with</span> <span class="n">atomic_output</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmp_path</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">ordered_paths</span><span class="p">:</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
                 <span class="n">shutil</span><span class="o">.</span><span class="n">copyfileobj</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>

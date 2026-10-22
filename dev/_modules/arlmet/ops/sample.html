@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../../_static/documentation_options.js?v=0bb03440"></script>
+    <script src="../../../_static/documentation_options.js?v=8467c4f6"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev28+g111cb553e" />
+  <meta name="docsearch:version" content="0.1.0b4.dev29+g1c77afd5c" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -444,6 +444,7 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.recordset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordSet</span>
 
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sample_points&quot;</span><span class="p">]</span>
 
 <span class="n">SURFACE_VARIABLES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;PRSS&quot;</span><span class="p">,</span> <span class="s2">&quot;SHGT&quot;</span><span class="p">}</span>
 
@@ -1161,13 +1162,13 @@
 <span class="sd">    z_kind :</span>
 <span class="sd">        ``&#39;native&#39;`` — target is a level index (fractional);</span>
 <span class="sd">        ``&#39;pressure&#39;`` — target is pressure in hPa;</span>
-<span class="sd">        ``&#39;agl&#39;`` — target is metres above ground level;</span>
-<span class="sd">        ``&#39;msl&#39;`` — target is metres above mean sea level.</span>
+<span class="sd">        ``&#39;agl&#39;`` — target is meters above ground level;</span>
+<span class="sd">        ``&#39;msl&#39;`` — target is meters above mean sea level.</span>
 <span class="sd">    surface_pressure :</span>
 <span class="sd">        (n_points,) PRSS in hPa. Required for WRF (flag 5) when z_kind is</span>
 <span class="sd">        &#39;pressure&#39;, &#39;agl&#39; or &#39;msl&#39;.</span>
 <span class="sd">    terrain :</span>
-<span class="sd">        (n_points,) SHGT in metres. Required for AGL sampling with non-terrain</span>
+<span class="sd">        (n_points,) SHGT in meters. Required for AGL sampling with non-terrain</span>
 <span class="sd">        vertical axes, and for MSL sampling with terrain-following (flag=3) axes.</span>
 <span class="sd">    column :</span>
 <span class="sd">        The sigma/hybrid (flag 1/4) column of this time step, else None. On</span>
@@ -1280,13 +1281,13 @@
 <span class="sd">          else converts from PRSS, as hybrid (flag 4) does; pressure (flag 2)</span>
 <span class="sd">          uses the stored levels; terrain-following (flag 3) raises</span>
 <span class="sd">          ``ValueError``; WRF (flag 5) uses PRES.</span>
-<span class="sd">        - ``&#39;agl&#39;``: metres above ground. Sigma/hybrid integrate</span>
+<span class="sd">        - ``&#39;agl&#39;``: meters above ground. Sigma/hybrid integrate</span>
 <span class="sd">          hypsometrically from the ground (PRSS, T02M) through those</span>
 <span class="sd">          pressures with the virtual temperature (TEMP and SPHU or RELH), as</span>
 <span class="sd">          HYSPLIT&#39;s ``prfsig``/``prfecm`` do; WRF from PRSS through PRES with</span>
 <span class="sd">          TEMP; pressure uses HGTS - SHGT (HGTS is required);</span>
 <span class="sd">          terrain-following uses the stored levels.</span>
-<span class="sd">        - ``&#39;msl&#39;``: metres above mean sea level. Sigma/hybrid/WRF add SHGT to</span>
+<span class="sd">        - ``&#39;msl&#39;``: meters above mean sea level. Sigma/hybrid/WRF add SHGT to</span>
 <span class="sd">          the hypsometric AGL height; pressure uses HGTS (required);</span>
 <span class="sd">          terrain-following adds SHGT to the stored levels.</span>
 <span class="sd">    method :</span>
