@@ -75,10 +75,10 @@ The ``z`` column is interpreted according to ``z_kind`` (default
      - flag=2: ``HGTS`` + ``SHGT``; flag=1/4: ``PRSS`` + ``TEMP`` + ``SHGT``; flag=3: ``SHGT``;
        flag=5: ``PRSS`` + ``PRES`` + ``TEMP`` + ``SHGT``
 
-On sigma and hybrid files (flags 1 and 4) the heights are HYSPLIT's: from the
-ground (``PRSS``, ``T02M``) through each level's pressure (``PRES`` on sigma
-files that have it) with the virtual temperature (``SPHU`` or ``RELH``), as
-HYSPLIT's ``prfsig`` and ``prfecm`` build them. Level 0 is the ground, so a point
+On sigma, hybrid and WRF files (flags 1, 4 and 5) the heights are HYSPLIT's:
+from the ground (``PRSS``, ``T02M``) through each level's pressure (``PRES`` on
+sigma files that have it and on WRF files) with the virtual temperature
+(``SPHU`` or ``RELH``), as HYSPLIT's ``prfsig`` and ``prfecm`` build them. Level 0 is the ground, so a point
 between the ground and the first level is interpolated from the ground values
 (``PRSS`` for ``PRES``, ``T02M`` for ``TEMP``, ``U10M`` for ``UWND``, ...)
 instead of being NaN, and pressure is interpolated as ``ln p``. The
@@ -89,7 +89,8 @@ starts at the ground, as HYSPLIT's ``prfprs`` builds it: over high ground the
 lowest pressure levels are below the surface (their values extrapolated by the
 model), and they are left out, so a point between the ground and the first
 level above it is interpolated from the ground values. A point under the
-lowest level at a low site gets them too, instead of NaN.
+lowest level at a low site gets them too, instead of NaN. At heights pressure
+is interpolated as ``ln p`` here too.
 
 .. code-block:: python
 
@@ -191,7 +192,8 @@ Limitations
   the vertical flag: pressure files (flag=2) require ``HGTS`` and ``SHGT``; sigma/hybrid
   files (flag=1/4) use hypsometric integration from ``PRSS`` and ``TEMP``;
   terrain-following files (flag=3) use the stored level heights directly; WRF
-  files (flag=5) integrate from ``PRSS`` through the ``PRES`` field. See
+  files (flag=5) integrate as sigma files do, through the ``PRES`` field. See
   the :doc:`vertical` guide.
-- Only sigma, pressure-level and hybrid files take the ground as a level (pressure-level
-  files only at heights); on the others a point below the lowest level with data is NaN.
+- Only sigma, pressure-level, hybrid and WRF files take the ground as a level
+  (pressure-level files only at heights); on terrain-following files a point below
+  the lowest level with data is NaN.

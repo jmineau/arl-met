@@ -15,46 +15,9 @@ from arlmet.vertical import (
     TerrainAxis,
     WrfAxis,
     _hysplit_z_agl,
-    hypsometric_z_agl,
 )
 
 __all__ = ["pressure", "z_agl", "z_msl"]
-
-
-def _hypsometric_z_agl(
-    p_levels: xr.DataArray,
-    p_surface: xr.DataArray,
-    temp: xr.DataArray,
-) -> xr.DataArray:
-    """
-    Height AGL (m) at each level via the hypsometric equation.
-
-    Thin xarray wrapper around :func:`arlmet.vertical.hypsometric_z_agl`.
-    ``p_levels`` must be ordered from high to low pressure (surface to top).
-    For flag=2, ``p_levels`` is 1D ``(level,)`` and is broadcast to match
-    ``temp``. For flags 1/4/5, ``p_levels`` has the same shape as ``temp``.
-    """
-    if "level" not in temp.dims:
-        raise ValueError("'TEMP' must have a 'level' dimension.")
-
-    level_ax = list(temp.dims).index("level")
-    z_vals = hypsometric_z_agl(
-        p_levels.values,
-        p_surface.values,
-        temp.values,
-        level_axis=level_ax,
-    )
-
-    return xr.DataArray(
-        z_vals.astype(np.float32),
-        dims=temp.dims,
-        coords=temp.coords,
-        attrs={
-            "units": "m",
-            "long_name": "height above ground level",
-            "standard_name": "height",
-        },
-    )
 
 
 def _sigma_hybrid_pressure(
@@ -106,11 +69,14 @@ def _sigma_hybrid_pressure(
     )
 
 
-def _hysplit_z_agl_da(ds: xr.Dataset, axis: SigmaAxis | HybridAxis) -> xr.DataArray:
+def _hysplit_z_agl_da(
+    ds: xr.Dataset, axis: SigmaAxis | HybridAxis | WrfAxis
+) -> xr.DataArray:
     """
-    Height AGL (m) of each level of a sigma/hybrid dataset, as HYSPLIT finds it.
+    Height AGL (m) of each level of a sigma, hybrid or WRF dataset, as HYSPLIT finds it.
 
-    HYSPLIT's ``prfsig`` (flag 1) and ``prfecm`` (flag 4): from the ground
+    HYSPLIT's ``prfsig`` (flag 1, and flag 5 without WRF's hybrid
+    coefficients) and ``prfecm`` (flag 4): from the ground
     (``PRSS``, ``T02M`` or ``TMPS``) through :func:`pressure` with the virtual
     temperature from ``TEMP`` and ``SPHU`` (or ``RELH``), each when present.
     """
@@ -126,7 +92,7 @@ def _hysplit_z_agl_da(ds: xr.Dataset, axis: SigmaAxis | HybridAxis) -> xr.DataAr
     level_ax = list(temp.dims).index("level")
     p = pressure(ds).transpose(*temp.dims).values
     prss = ds["PRSS"].values
-    if isinstance(axis, SigmaAxis):
+    if isinstance(axis, (SigmaAxis, WrfAxis)):
         first_sigma = axis.levels[int(temp["level"].values[0])]
     else:
         first_sigma = np.take(p, 0, axis=level_ax) / prss
@@ -240,8 +206,10 @@ def z_agl(ds: xr.Dataset) -> xr.DataArray:
           and ``TEMP``.
         - **flag=3**: the stored 1D ``height`` non-dim coord ``(level,)`` —
           terrain-following levels are heights AGL.
-        - **flag=5** (WRF): hypsometric integration of the ``PRES`` field from
-          surface pressure with temperature. Requires ``PRSS``, ``TEMP`` and
+        - **flag=5** (WRF): as flag 1 with ``PRES``, as HYSPLIT's ``prfsig``
+          does for a WRF file without WRF's hybrid coefficients; the ground
+          temperature without ``T02M`` is the first level's brought down
+          adiabatically from its eta. Requires ``PRSS``, ``TEMP`` and
           ``PRES``.
     """
     vaxis = ds.arl.vertical_axis
@@ -254,7 +222,7 @@ def z_agl(ds: xr.Dataset) -> xr.DataArray:
                 )
         return ds["HGTS"] - ds["SHGT"]
 
-    if isinstance(vaxis, (SigmaAxis, HybridAxis)):
+    if isinstance(vaxis, (SigmaAxis, HybridAxis, WrfAxis)):
         return _hysplit_z_agl_da(ds, vaxis)
 
     if isinstance(vaxis, TerrainAxis):
@@ -263,15 +231,6 @@ def z_agl(ds: xr.Dataset) -> xr.DataArray:
                 "Dataset has no 'height' coordinate and no 'HGTS' variable."
             )
         return ds.coords["height"]
-
-    if isinstance(vaxis, WrfAxis):
-        for name in ("PRSS", "TEMP", "PRES"):
-            if name not in ds:
-                raise ValueError(
-                    f"z_agl() for WRF (flag=5) files requires '{name}' in dataset."
-                )
-        temp = ds["TEMP"]
-        return _hypsometric_z_agl(ds["PRES"].transpose(*temp.dims), ds["PRSS"], temp)
 
     raise NotImplementedError(f"z_agl() is not supported for {type(vaxis).__name__}.")
 

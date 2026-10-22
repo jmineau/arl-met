@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import arlmet
 from arlmet import File, sample_points
 from arlmet.grid import Grid, Projection
 from arlmet.vertical import (
@@ -11,6 +12,7 @@ from arlmet.vertical import (
     PressureAxis,
     SigmaAxis,
     TerrainAxis,
+    WrfAxis,
 )
 
 
@@ -188,6 +190,8 @@ class TestPointSampling:
         z1 = (surface_pressure - 900.0) * _DZ
         z_agl_mid = 0.5 * z1
         z_msl_mid = z_agl_mid + terrain
+        # Pressure is linear in ln p, as in prfprs: the geometric mean halfway.
+        p_mid = np.sqrt(surface_pressure * 900.0)  # 949.39 hPa, not 950.75
 
         points = pd.DataFrame(
             {
@@ -212,9 +216,9 @@ class TestPointSampling:
             )
 
         np.testing.assert_allclose(agl["TEMP"].iloc[0], 290.5, atol=0.01)
-        np.testing.assert_allclose(agl["pressure"].iloc[0], 950.75, atol=0.1)
+        np.testing.assert_allclose(agl["pressure"].iloc[0], p_mid, atol=0.01)
         np.testing.assert_allclose(msl["TEMP"].iloc[0], 290.5, atol=0.01)
-        np.testing.assert_allclose(msl["pressure"].iloc[0], 950.75, atol=0.1)
+        np.testing.assert_allclose(msl["pressure"].iloc[0], p_mid, atol=0.01)
 
     def test_module_sample_points_dispatches_across_multiple_sources_by_time(
         self, tmp_path
@@ -310,7 +314,8 @@ class TestPointSampling:
             )
 
         assert len(sampled) == 1000
-        np.testing.assert_allclose(sampled["pressure"].iloc[0], 1000.0, atol=1e-5)
+        # ln p in float32 is within a few units in the last place of 1000 hPa.
+        np.testing.assert_allclose(sampled["pressure"].iloc[0], 1000.0, rtol=1e-6)
         np.testing.assert_allclose(sampled["TEMP"].iloc[0], 280.0, atol=1e-5)
 
         finite_pressure = sampled["pressure"].dropna().to_numpy()
@@ -625,7 +630,8 @@ class TestHgtsBasedSampling:
         time = pd.Timestamp("2024-07-18 00:00")
         write_sampling_file_with_hgts(path, time=time)
 
-        # 500m AGL = midpoint of [0, 1000] → TEMP=285, pressure=950
+        # 500m AGL = midpoint of [0, 1000] → TEMP=285; pressure is linear in
+        # ln p, as in HYSPLIT's prfprs: sqrt(1000 * 900) = 948.68, not 950.
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
         with File(path) as arl:
             result = arl.sample_points(
@@ -633,14 +639,17 @@ class TestHgtsBasedSampling:
             )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
-        np.testing.assert_allclose(result["pressure"].iloc[0], 950.0, atol=1e-4)
+        np.testing.assert_allclose(
+            result["pressure"].iloc[0], np.sqrt(1000.0 * 900.0), rtol=1e-6
+        )
 
     def test_flag2_msl_uses_hgts_directly(self, tmp_path):
         path = tmp_path / "hgts.arl"
         time = pd.Timestamp("2024-07-18 00:00")
         write_sampling_file_with_hgts(path, time=time)
 
-        # 700m MSL = midpoint of HGTS [200, 1200] → TEMP=285
+        # 700m MSL = midpoint of HGTS [200, 1200] → TEMP=285, pressure (ln p)
+        # the geometric mean of 1000 and 900 hPa
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [700.0]})
         with File(path) as arl:
             result = arl.sample_points(
@@ -648,7 +657,9 @@ class TestHgtsBasedSampling:
             )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
-        np.testing.assert_allclose(result["pressure"].iloc[0], 950.0, atol=1e-4)
+        np.testing.assert_allclose(
+            result["pressure"].iloc[0], np.sqrt(1000.0 * 900.0), rtol=1e-6
+        )
 
     def test_flag2_pressure_virtual_variable_agl(self, tmp_path):
         path = tmp_path / "hgts.arl"
@@ -1044,6 +1055,64 @@ class TestSigmaColumnAsHysplit:
         np.testing.assert_allclose(result["TEMP"], [t_ground], atol=1e-3)
 
 
+#: A WRF (flag 5) axis: eta levels, model top 50 hPa. Without WRF's hybrid
+#: coefficients HYSPLIT's metini sends such a file to prfsig, as a sigma file.
+_WRF_AXIS = WrfAxis(levels=[1.0, 0.99, 0.95, 0.9], offset=50.0)
+
+
+class TestWrfColumnAsHysplit:
+    """WRF heights as HYSPLIT's prfsig finds them: the sigma recipe, with PRES."""
+
+    def test_samples_as_a_sigma_file_with_pres(self, tmp_path):
+        # The same fields as a sigma file: every value at every height agrees,
+        # below level 1 (from the ground values) and between levels (ln p).
+        sigma, wrf = tmp_path / "sigma.arl", tmp_path / "wrf.arl"
+        write_column_file(sigma)
+        write_column_file(wrf, axis=_WRF_AXIS)
+        variables = ["TEMP", "PRES", "pressure", "UWND", "WWND", "SPHU"]
+        z = TestSigmaColumnAsHysplit.Z
+        heights = [0.0, 0.5 * z[1], z[1], 0.5 * (z[2] + z[3]), z[3] - 1e-6]
+        for z_kind, offset in (("agl", 0.0), ("msl", _SHGT)):
+            targets = [h + offset for h in heights]
+            pd.testing.assert_frame_equal(
+                _sample_column(wrf, variables, targets, z_kind=z_kind),
+                _sample_column(sigma, variables, targets, z_kind=z_kind),
+            )
+        result = _sample_column(wrf, ["TEMP"], [z[1], z[2], z[3] - 1e-6])
+        np.testing.assert_allclose(result["TEMP"], _TEMP, atol=1e-3)
+
+    def test_ground_and_pres_at_pressures_and_native_levels(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        write_column_file(path, axis=_WRF_AXIS)
+        by_p = _sample_column(path, ["TEMP"], [0.5 * (_PRSS + _PRES[0])], "pressure")
+        np.testing.assert_allclose(by_p["TEMP"], [0.5 * (_T02M + _TEMP[0])], atol=1e-3)
+        native = _sample_column(path, ["pressure"], [0.0, 0.5, 2.0], z_kind="native")
+        np.testing.assert_allclose(
+            native["pressure"],
+            [_PRSS, np.sqrt(_PRSS * _PRES[0]), _PRES[1]],
+            rtol=1e-6,
+        )
+
+    def test_without_t02m_the_ground_comes_from_level_one_eta(self, tmp_path):
+        # PRFSFCT with PSG(1), the first level's eta: T_ground = T1 * 0.99 ** -0.286.
+        path = tmp_path / "wrf.arl"
+        write_column_file(path, axis=_WRF_AXIS, t02m=False)
+        t_ground = _TEMP[0] * 0.99**-0.286
+        tv = [t_ground * (1 + 0.61 * _SPHU[0])] + TestSigmaColumnAsHysplit.TV[1:]
+        z = _ground_up_agl([_PRSS, *_PRES], tv)
+        result = _sample_column(path, ["TEMP"], [0.0, z[1], z[2]])
+        np.testing.assert_allclose(
+            result["TEMP"], [t_ground, _TEMP[0], _TEMP[1]], atol=1e-3
+        )
+
+    def test_z_agl_matches_sample_points(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        write_column_file(path, axis=_WRF_AXIS)
+        ds = arlmet.open_dataset(path)
+        z = arlmet.z_agl(ds).isel(time=0, lat=0, lon=0).values
+        np.testing.assert_allclose(z, TestSigmaColumnAsHysplit.Z[1:], atol=1e-3)
+
+
 # --- pressure-level files over high ground, as NAM12's over the mountain West (prfprs) ---
 
 # Levels 1 to 5 (hPa) and their HGTS (m MSL). With the ground at _SHGT = 1300 m and
@@ -1110,9 +1179,25 @@ class TestPressureColumnAsHysplit:
         )
         np.testing.assert_allclose(result["WWND"], frac * _PRS_WWND[3], atol=1e-5)
         np.testing.assert_allclose(result["HGTS"], _SHGT + np.array(z), atol=1e-2)
-        # Pressure stays linear in height on pressure-level files.
+        # PRSS and the first level above the ground are both 850 hPa here.
+        np.testing.assert_allclose(result["pressure"], [_PRSS, _PRSS], rtol=1e-6)
+
+    def test_pressure_is_interpolated_as_ln_p(self, tmp_path):
+        # prfprs: ln p is linear in height between two levels (850 hPa at 160 m
+        # AGL, 800 hPa at 650 m), so halfway it is the geometric mean, 824.62
+        # hPa, not 825; at the levels it is the stored pressure.
+        path = tmp_path / "prs.arl"
+        write_pressure_column_file(path)
+        z4, z5 = _PRS_HGTS[3] - _SHGT, _PRS_HGTS[4] - _SHGT
+        result = _sample_column(path, ["pressure"], [z4, 0.5 * (z4 + z5), z5])
         np.testing.assert_allclose(
-            result["pressure"], _PRSS + frac * (_PRS_LEVELS[3] - _PRSS), atol=1e-3
+            result["pressure"],
+            [_PRS_LEVELS[3], np.sqrt(_PRS_LEVELS[3] * _PRS_LEVELS[4]), _PRS_LEVELS[4]],
+            rtol=1e-6,
+        )
+        msl = _sample_column(path, ["pressure"], [0.5 * (z4 + z5) + _SHGT], "msl")
+        np.testing.assert_allclose(
+            msl["pressure"], [np.sqrt(_PRS_LEVELS[3] * _PRS_LEVELS[4])], rtol=1e-6
         )
 
     def test_levels_below_the_ground_are_not_used(self, tmp_path):
