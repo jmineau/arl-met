@@ -11,7 +11,7 @@ import pandas as pd
 from typing_extensions import override
 
 from arlmet.exceptions import ARLFormatError
-from arlmet.grid import Grid, GridWindow
+from arlmet.grid import Grid, GridWindow, _split_at_seam
 from arlmet.header import Header, record_length_from_grid, split_grid_component
 from arlmet.packing import calculate_checksum, pack, unpack
 from arlmet.vertical import VerticalAxis
@@ -475,7 +475,10 @@ class DataRecord:
         Parameters
         ----------
         window : GridWindow, optional
-            Spatial subset to unpack. When omitted, the full grid is read.
+            Spatial subset to unpack. When omitted, the full grid is read. A
+            window across the seam of a lat/lon grid that spans 360 degrees
+            (``x_stop`` past ``nx``) reads its columns in that order, wrapping
+            from the last column to the first.
 
         Returns
         -------
@@ -497,15 +500,20 @@ class DataRecord:
                 )
             self._header = header
 
-        unpacked = unpack(
-            packed=raw[Header.N_BYTES :],
-            nx=self.grid.nx,
-            ny=self.grid.ny,
-            precision=header.precision,
-            exponent=header.exponent,
-            initial_value=header.initial_value,
-            window=window,
-        )
+        parts = (None,) if window is None else _split_at_seam(window, self.grid)
+        pieces = [
+            unpack(
+                packed=raw[Header.N_BYTES :],
+                nx=self.grid.nx,
+                ny=self.grid.ny,
+                precision=header.precision,
+                exponent=header.exponent,
+                initial_value=header.initial_value,
+                window=part,
+            )
+            for part in parts
+        ]
+        unpacked = pieces[0] if len(pieces) == 1 else np.hstack(pieces)
 
         for diff in self._diffs:
             unpacked = unpacked + diff.read(window=window)

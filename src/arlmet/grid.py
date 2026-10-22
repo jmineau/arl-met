@@ -6,6 +6,7 @@ horizontal coordinate systems used in ARL meteorological files. Vertical
 coordinates live in ``arlmet.vertical``.
 """
 
+import math
 from dataclasses import dataclass, replace
 from functools import cached_property
 from typing import Any, ClassVar
@@ -38,6 +39,27 @@ def wrap_lons(lons: npt.NDArray[Any]) -> npt.NDArray[Any]:
     return ((lons + 180) % 360) - 180
 
 
+def _lambert_scale_factor(cone_lat: float, ref_lat: float) -> float:
+    """
+    Scale factor that makes a tangent Lambert cone true to scale at ``ref_lat``.
+
+    A spherical Lambert conformal cone tangent at ``cone_lat`` has map scale
+    ``k = cos(cone_lat) / cos(ref_lat) * (t(ref_lat) / t(cone_lat)) ** n`` at
+    ``ref_lat``, with ``t(lat) = tan(pi/4 - lat/2)`` and ``n = sin(cone_lat)``.
+    Returns ``1 / k`` (exactly 1 when the two latitudes are equal), the
+    ``k_0`` that scales the cone as HYSPLIT's ``stcm1p`` does.
+    """
+    if ref_lat == cone_lat:
+        return 1.0
+    phi_c = math.radians(cone_lat)
+    phi_r = math.radians(ref_lat)
+    n = math.sin(phi_c)
+    t_c = math.tan(math.pi / 4 - phi_c / 2)
+    t_r = math.tan(math.pi / 4 - phi_r / 2)
+    k = math.cos(phi_c) / math.cos(phi_r) * (t_r / t_c) ** n
+    return 1.0 / k
+
+
 @dataclass(frozen=True)
 class Projection:
     """
@@ -57,8 +79,9 @@ class Projection:
         which the projection is cut. For lat-lon grids: longitude of the grid point with
         the maximum grid point value.
     tangent_lat : float
-        Reference latitude at which the grid spacing is defined. For lat-lon grids:
-        grid spacing in degrees latitude.
+        Reference latitude at which the grid spacing is defined. It may differ
+        from ``cone_angle`` (WRF grids converted by ``arw2arl``). For lat-lon
+        grids: grid spacing in degrees latitude.
     tangent_lon : float
         Reference longitude at which the grid spacing is defined. For lat-lon grids:
         grid spacing in degrees longitude.
@@ -71,8 +94,9 @@ class Projection:
     cone_angle : float
         Angle between the axis and the surface of the cone. For regular projections it
         equals the latitude at which the grid is tangent to the earth's surface. Polar
-        stereographic: ±90, Mercator: 0, Lambert Conformal: between limits, Oblique
-        stereographic: 90. For lat-lon grids: value always = 0.
+        stereographic: ±90, Mercator: 0, Lambert Conformal: between limits. As in
+        HYSPLIT, this value alone picks the projection, so ±90 is always polar
+        stereographic. For lat-lon grids: value always = 0.
     sync_x : float
         Grid x-coordinate used to equate a position on the grid with a position on earth
         (paired with sync_y, sync_lat, sync_lon). One-based; it may lie outside the
@@ -177,25 +201,17 @@ class Projection:
                     "proj": "latlong",
                 }
             )
-        elif abs(self.cone_angle) == 90.0:  # Stereographic
-            if abs(self.pole_lat) == 90.0:  # Polar Stereographic
-                params.update(
-                    {
-                        "proj": "stere",
-                        "lat_0": self.pole_lat,
-                        "lon_0": self.tangent_lon,
-                        "lat_ts": self.tangent_lat,
-                    }
-                )
-            else:  # Oblique Stereographic
-                params.update(
-                    {
-                        "proj": "sterea",
-                        "lat_0": self.pole_lat,
-                        "lon_0": self.tangent_lon,
-                        "lat_ts": self.tangent_lat,
-                    }
-                )
+        elif abs(self.cone_angle) == 90.0:  # Polar stereographic
+            # As HYSPLIT's stlmbr: the cone angle alone picks the projection,
+            # so +-90 is stereographic about that pole whatever pole_lat says.
+            params.update(
+                {
+                    "proj": "stere",
+                    "lat_0": math.copysign(90.0, self.cone_angle),
+                    "lon_0": self.tangent_lon,
+                    "lat_ts": self.tangent_lat,
+                }
+            )
         elif self.cone_angle == 0.0:  # Mercator
             params.update(
                 {
@@ -205,12 +221,15 @@ class Projection:
                 }
             )
         else:  # Lambert Conformal Conic
+            # The cone is tangent at cone_angle; grid_size holds at tangent_lat
+            # (HYSPLIT's stlmbr then stcm1p, as metini.f sets them up).
             params.update(
                 {
                     "proj": "lcc",
                     "lat_0": self.tangent_lat,
                     "lon_0": self.tangent_lon,
                     "lat_1": self.cone_angle,
+                    "k_0": _lambert_scale_factor(self.cone_angle, self.tangent_lat),
                 }
             )
 
@@ -232,7 +251,10 @@ class GridWindow:
     Parameters
     ----------
     x_start, x_stop : int
-        Inclusive start and exclusive stop indices in the x direction.
+        Inclusive start and exclusive stop indices in the x direction. On a
+        lat/lon grid that spans 360 degrees (:attr:`Grid.wraps_lon`),
+        ``x_stop`` may pass the grid's ``nx``: the window then runs on from the
+        last column to the first, as a crop across the grid's seam does.
     y_start, y_stop : int
         Inclusive start and exclusive stop indices in the y direction.
     """
@@ -274,6 +296,25 @@ class GridWindow:
     def y_slice(self) -> slice:
         """Slice object for selecting the y range."""
         return slice(self.y_start, self.y_stop)
+
+
+def _split_at_seam(window: GridWindow, grid: "Grid") -> tuple[GridWindow, ...]:
+    """
+    Split a window that runs past the grid's last column into its two parts.
+
+    A window within the grid comes back alone; one across the seam of a grid
+    that spans 360 degrees comes back as its eastern part (up to the last
+    column) and its western part (from the first), in that order.
+    """
+    nx = grid.nx
+    if window.x_stop <= nx:
+        return (window,)
+    if not grid.wraps_lon or window.nx > nx:
+        raise ValueError("GridWindow extends beyond the grid bounds.")
+    return (
+        replace(window, x_stop=nx),
+        replace(window, x_start=0, x_stop=window.x_stop - nx),
+    )
 
 
 @dataclass(frozen=True)
@@ -696,9 +737,25 @@ class Grid:
         if x_idx.size == 0 or y_idx.size == 0:
             raise ValueError("bbox does not intersect the grid.")
 
+        x_start, x_stop = int(x_idx.min()), int(x_idx.max()) + 1
+        gap = np.flatnonzero(~lon_mask[x_start:x_stop])
+        if gap.size:
+            # The bbox's columns are at both ends of the grid: it crosses the
+            # grid's seam (0 E on a grid from 0 E, 180 on one from 180 W).
+            if not self.wraps_lon:
+                raise ValueError(
+                    f"bbox {bbox} selects columns at both ends of a lat/lon grid "
+                    "that does not span 360 degrees, which no single grid holds."
+                )
+            # Start at the eastern run and wrap on past the last column.
+            x_start, x_stop = (
+                x_start + int(gap[-1]) + 1,
+                self.nx + x_start + int(gap[0]),
+            )
+
         return GridWindow(
-            x_start=int(x_idx.min()),
-            x_stop=int(x_idx.max()) + 1,
+            x_start=x_start,
+            x_stop=x_stop,
             y_start=int(y_idx.min()),
             y_stop=int(y_idx.max()) + 1,
         )
@@ -732,26 +789,45 @@ class Grid:
         A lat-lon grid's sync point is always its first cell (HYSPLIT ignores
         ``sync_x`` and ``sync_y`` there), so the subset's is the window's
         corner cell, a whole number of cells from this grid's. It is stored
-        exactly when the spacing is a multiple of 0.01 degree.
+        exactly when the spacing is a multiple of 0.01 degree. The subset is
+        written as HYSPLIT's ``xtrct_grid`` writes a crop: ``sync_lon`` in
+        0-360 east and ``pole_lat``/``pole_lon`` its last cell, so
+        ``pole_lon`` can pass 360. HYSPLIT's ``gbl2xy`` measures a longitude
+        from a negative ``sync_lon`` only when ``pole_lon`` is not negative
+        (``gblset``'s ``PRIME``); a 0-360 ``sync_lon`` needs no such case.
+        The window covering the whole grid returns this grid unchanged.
         """
-        if window.x_stop > self.nx or window.y_stop > self.ny:
+        x_limit = 2 * self.nx if self.wraps_lon else self.nx
+        if window.x_stop > x_limit or window.nx > self.nx or window.y_stop > self.ny:
             raise ValueError("GridWindow extends beyond the grid bounds.")
 
         if self.is_latlon:
-            coords = self.calculate_coords()
-            subset_projection = replace(
-                self.projection,
-                sync_x=1.0,
-                sync_y=1.0,
-                sync_lat=float(coords["lat"][1][window.y_start]),
-                sync_lon=float(coords["lon"][1][window.x_start]),
-            )
-        else:
-            subset_projection = replace(
-                self.projection,
-                sync_x=self.projection.sync_x - window.x_start,
-                sync_y=self.projection.sync_y - window.y_start,
-            )
+            return self._latlon_subset(window)
+        subset_projection = replace(
+            self.projection,
+            sync_x=self.projection.sync_x - window.x_start,
+            sync_y=self.projection.sync_y - window.y_start,
+        )
+        return Grid(projection=subset_projection, nx=window.nx, ny=window.ny)
+
+    def _latlon_subset(self, window: GridWindow) -> "Grid":
+        """Build the lat/lon subset :meth:`subset` describes, as ``xtrct_grid`` does."""
+        if window == self.full_window():
+            return self
+        proj = self.projection
+        dlon, dlat = proj.tangent_lon, proj.tangent_lat
+        sync_lat = proj.sync_lat + window.y_start * dlat
+        # East of Greenwich, so HYSPLIT's gbl2xy needs no PRIME (xtrct_grid's form)
+        sync_lon = (proj.sync_lon + window.x_start * dlon) % 360.0
+        subset_projection = replace(
+            proj,
+            pole_lat=sync_lat + (window.ny - 1) * dlat,
+            pole_lon=sync_lon + (window.nx - 1) * dlon,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=sync_lat,
+            sync_lon=sync_lon,
+        )
         return Grid(projection=subset_projection, nx=window.nx, ny=window.ny)
 
     @override

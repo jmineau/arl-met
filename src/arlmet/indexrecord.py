@@ -209,14 +209,6 @@ class IndexRecord:
 
     N_BYTES_FIXED: ClassVar[int] = 108
 
-    # Only the longitude fields of the 12 projection values are wrapped to
-    # [-180, 180]. HYSPLIT reads all 12 raw (metset.f: `12F7.0`); wrapping
-    # others such as sync_x/sync_y (grid indices) or grid_size (km) would
-    # corrupt legitimate values above 180.
-    _LONGITUDE_FIELDS: ClassVar[frozenset[str]] = frozenset(
-        {"pole_lon", "tangent_lon", "sync_lon"}
-    )
-
     def __post_init__(self) -> None:
         """Check that the header grid letters match ``nx``/``ny``."""
         thousands = (
@@ -406,10 +398,10 @@ class IndexRecord:
         for i in range(12):
             start = i * 7
             end = start + 7
-            val = float(proj_section[start:end].strip())
-            if proj_names[i] in IndexRecord._LONGITUDE_FIELDS and val > 180:
-                val = -(360 - val)
-            fields[proj_names[i]] = val
+            # Kept as stored, as HYSPLIT reads them (metset.f: `12F7.0`): on a
+            # lat/lon grid whether a longitude is 235 or -125 changes where
+            # HYSPLIT puts the grid (gblset.f, gbl2xy.f).
+            fields[proj_names[i]] = float(proj_section[start:end].strip())
 
         grid_section = fixed[93:102]
         fields["nx"] = int(grid_section[0:3].strip())

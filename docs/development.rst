@@ -32,7 +32,20 @@ for choice. The Fortran routines it matches:
      - :meth:`arlmet.File.check` reads headers only
    * - ``metset.f``
      - read the 12 projection values raw (``12F7.0``)
-     - only the longitudes are wrapped to [-180, 180]
+     - read and written raw too; only :meth:`arlmet.Grid.calculate_coords`
+       wraps longitudes
+   * - ``gblset`` / ``gbl2xy``
+     - place a longitude on a lat/lon grid: in 0-360, measured from
+       ``sync_lon``, unless ``sync_lon < 0 <= pole_lon`` (``PRIME``)
+     - :meth:`arlmet.Grid.subset` writes a crop as ``xtrct_grid`` does:
+       ``sync_*`` its first cell with ``sync_lon`` in 0-360, ``pole_*`` its last
+   * - ``stlmbr`` / ``stcm1p`` (set up in ``metini.f``)
+     - the map projection of a projected grid: ``cone_angle`` alone picks
+       polar stereographic (±90), Mercator (0) or a Lambert cone tangent there;
+       ``grid_size`` holds at the reference latitude, ``tangent_lat``
+     - :attr:`arlmet.Projection.params`: ``lat_ts``, or a Lambert ``k_0`` that
+       makes the scale 1 at ``tangent_lat``; agrees with the compiled routines
+       within 0.001 cells on HRRR, NAM, NARR, NAMS and WRF files
    * - ``prfcom``
      - choose the vertical conversion from the vertical flag
      - :meth:`arlmet.VerticalAxis.from_flag` and its subclasses

@@ -5,7 +5,7 @@ import pytest
 
 from arlmet._pack import pack_core as _pack_core
 from arlmet.grid import GridWindow
-from arlmet.header import Header
+from arlmet.header import Header, format_fortran_float
 from arlmet.packing import calculate_checksum, pack, unpack
 
 
@@ -127,6 +127,30 @@ class TestChecksum:
 
 
 class TestHeaderSerialization:
+    @pytest.mark.parametrize(
+        ("value", "text"),
+        [
+            # What gfortran's WRITE(...,'(E14.7)') gives for these float32
+            # values; the first three are exact ties at the seventh digit, which
+            # Fortran rounds to even.
+            (9763.0625, " 0.9763062E+04"),
+            (5301842.5, " 0.5301842E+07"),
+            (-83888.125, "-0.8388812E+05"),
+            # float32(1e-4) is just under 1e-4; its mantissa rounds up to 1.
+            (9.999999747378752e-05, " 0.1000000E-03"),
+            (0.003937007859349251, " 0.3937008E-02"),
+            (101325.3671875, " 0.1013254E+06"),
+            (-2.700000047683716, "-0.2700000E+01"),
+            (1.0000000031710769e-30, " 0.1000000E-29"),
+            (3.3999999521443642e38, " 0.3400000E+39"),
+            (0.5, " 0.5000000E+00"),
+            (1.0, " 0.1000000E+01"),
+            (0.0, " 0.0000000E+00"),
+        ],
+    )
+    def test_floats_are_written_as_fortran_e14_7(self, value, text):
+        assert format_fortran_float(value) == text
+
     def test_header_roundtrip(self):
         header = Header(
             year=2024,

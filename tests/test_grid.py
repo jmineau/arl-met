@@ -3,6 +3,7 @@
 from dataclasses import FrozenInstanceError, replace
 
 import numpy as np
+import pyproj
 import pytest
 
 from arlmet.grid import Grid, GridWindow, Projection, wrap_lons
@@ -98,6 +99,105 @@ class TestProjection:
         assert proj.is_latlon is False
         assert proj.params["proj"] == "lcc"
         assert proj.params["lat_1"] == 30.0
+
+    def test_lambert_scale_is_one_at_equal_latitudes(self):
+        """A cone true to scale at its tangent latitude is not rescaled."""
+        proj = Projection(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=38.5,
+            tangent_lon=-97.5,
+            grid_size=3.0,
+            orientation=0.0,
+            cone_angle=38.5,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=21.1381,
+            sync_lon=-122.719,
+        )
+        assert proj.params["k_0"] == 1.0
+
+    @pytest.mark.parametrize(
+        ("tangent_lat", "cone_angle"), [(25.0, 37.8589), (45.0, 38.5), (-40.0, -30.0)]
+    )
+    def test_lambert_grid_size_holds_at_reference_latitude(
+        self, tangent_lat, cone_angle
+    ):
+        """The map scale is 1 at tangent_lat, where HYSPLIT defines grid_size."""
+        proj = Projection(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=tangent_lat,
+            tangent_lon=-98.0,
+            grid_size=27.0,
+            orientation=0.0,
+            cone_angle=cone_angle,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=tangent_lat,
+            sync_lon=-98.0,
+        )
+        grid = Grid(projection=proj, nx=10, ny=10)
+        factors = pyproj.Proj(grid.crs).get_factors(
+            [-98.0, -120.0], [tangent_lat, tangent_lat]
+        )
+        np.testing.assert_allclose(factors.parallel_scale, 1.0, rtol=1e-9)
+        np.testing.assert_allclose(factors.meridional_scale, 1.0, rtol=1e-9)
+
+    def test_lambert_reference_latitude_matches_hysplit(self):
+        """A WRF grid from arw2arl (reference latitude 25, cone 37.86) as HYSPLIT."""
+        # The index record of a 27 km WRF run converted by arw2arl. The corners
+        # are from HYSPLIT's stlmbr/stcm1p/cxy2ll, set up as metini.f does.
+        proj = Projection(
+            pole_lat=37.8589,
+            pole_lon=-98.0,
+            tangent_lat=25.0,
+            tangent_lon=-98.0,
+            grid_size=27.0,
+            orientation=0.0,
+            cone_angle=37.8589,
+            sync_x=108.5,
+            sync_y=87.5,
+            sync_lat=37.0,
+            sync_lon=-98.0,
+        )
+        grid = Grid(projection=proj, nx=216, ny=174)
+        coords = grid.calculate_coords()
+        lat, lon = coords["lat"][1], coords["lon"][1]
+        hysplit = {
+            (0, 0): (12.625857, -123.338722),
+            (-1, -1): (52.003647, -54.417603),
+            (0, -1): (12.625857, -72.661278),
+            (-1, 0): (52.003647, -141.582397),
+        }
+        for (j, i), (hlat, hlon) in hysplit.items():
+            assert lat[j, i] == pytest.approx(hlat, abs=2e-4)
+            assert lon[j, i] == pytest.approx(hlon, abs=2e-4)
+        x, y = grid.fractional_indices(-54.417603, 52.003647)
+        assert float(x) == pytest.approx(215.0, abs=1e-3)
+        assert float(y) == pytest.approx(173.0, abs=1e-3)
+
+    def test_stereographic_follows_cone_angle_not_pole_lat(self):
+        """As HYSPLIT's stlmbr, cone_angle +-90 is polar stereographic."""
+        fields = dict(
+            pole_lon=0.0,
+            tangent_lat=60.0,
+            tangent_lon=-150.0,
+            grid_size=11.904,
+            orientation=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=40.53,
+            sync_lon=-178.571,
+        )
+        north = Projection(pole_lat=0.0, cone_angle=90.0, **fields)
+        assert north.params["proj"] == "stere"
+        assert north.params["lat_0"] == 90.0
+        assert (
+            north.params == Projection(pole_lat=90.0, cone_angle=90.0, **fields).params
+        )
+        south = Projection(pole_lat=0.0, cone_angle=-90.0, **fields)
+        assert south.params["lat_0"] == -90.0
 
     def test_mercator_projection(self):
         """Test Mercator projection initialization."""
@@ -344,6 +444,128 @@ class TestGrid:
         inner = subset.subset(GridWindow(x_start=3, x_stop=8, y_start=2, y_stop=6))
         direct = hrrr.subset(GridWindow(x_start=8, x_stop=13, y_start=329, y_stop=333))
         assert inner == direct
+
+    @staticmethod
+    def _global_grid(sync_lon: float, pole_lon: float) -> Grid:
+        """A global 1-degree grid, as GDAS (0 E) or one starting at 180 W."""
+        return Grid(
+            projection=Projection(
+                pole_lat=90.0,
+                pole_lon=pole_lon,
+                tangent_lat=1.0,
+                tangent_lon=1.0,
+                grid_size=0.0,
+                orientation=0.0,
+                cone_angle=0.0,
+                sync_x=1.0,
+                sync_y=1.0,
+                sync_lat=-90.0,
+                sync_lon=sync_lon,
+            ),
+            nx=360,
+            ny=181,
+        )
+
+    @pytest.mark.parametrize(
+        ("source", "bbox", "corners"),
+        [
+            # as xtrct_grid writes a crop: sync_lon in 0-360, pole_lon its last cell
+            ((0.0, 359.0), (-125, 30, -100, 50), (30.0, 235.0, 50.0, 260.0)),
+            ((0.0, 359.0), (100, -10, 120, 10), (-10.0, 100.0, 10.0, 120.0)),
+            ((-180.0, 179.0), (-10, 40, 10, 60), (40.0, 350.0, 60.0, 370.0)),
+            ((-180.0, 179.0), (-125, 30, -100, 50), (30.0, 235.0, 50.0, 260.0)),
+            ((-180.0, 179.0), (100, -10, 120, 10), (-10.0, 100.0, 10.0, 120.0)),
+        ],
+    )
+    def test_latlon_subset_writes_hysplit_longitudes(self, source, bbox, corners):
+        """
+        A lat/lon subset's sync point is its first cell, its pole its last.
+
+        Its longitudes are ones HYSPLIT's gbl2xy places correctly (#82).
+        """
+        grid = self._global_grid(*source)
+        subset = grid.subset(grid.window_from_bbox(bbox))
+
+        p = subset.projection
+        assert (p.sync_lat, p.sync_lon, p.pole_lat, p.pole_lon) == corners
+        assert (p.sync_x, p.sync_y) == (1.0, 1.0)
+        coords = subset.calculate_coords()
+        assert coords["lon"][1][0] == pytest.approx(bbox[0])
+        assert coords["lon"][1][-1] == pytest.approx(bbox[2])
+        assert coords["lat"][1][0] == pytest.approx(bbox[1])
+
+    def test_latlon_subset_of_subset_stays_0_360(self):
+        """A crop of a crop is written as xtrct_grid writes it (#82)."""
+        grid = self._global_grid(0.0, 359.0)
+        crop = grid.subset(grid.window_from_bbox((-125, 30, -100, 50)))
+        inner = crop.subset(crop.window_from_bbox((-120, 35, -105, 45)))
+        p = inner.projection
+        assert (p.sync_lat, p.sync_lon, p.pole_lat, p.pole_lon) == (
+            35.0,
+            240.0,
+            45.0,
+            255.0,
+        )
+        assert inner == grid.subset(grid.window_from_bbox((-120, 35, -105, 45)))
+
+    @pytest.mark.parametrize(
+        ("source", "bbox", "window", "corners"),
+        [
+            # across 0 E on a grid from 0 E: columns 350 ... 359, 0 ... 10
+            ((0.0, 359.0), (-10, 40, 10, 60), (350, 371), (40.0, 350.0, 60.0, 370.0)),
+            # across 180 on a grid from 180 W: columns 350 ... 359, 0 ... 10
+            (
+                (-180.0, 179.0),
+                (170, -10, -170, 10),
+                (350, 371),
+                (-10.0, 170.0, 10.0, 190.0),
+            ),
+            # the same boxes on the other grid are inside it
+            (
+                (0.0, 359.0),
+                (170, -10, -170, 10),
+                (170, 191),
+                (-10.0, 170.0, 10.0, 190.0),
+            ),
+            (
+                (-180.0, 179.0),
+                (-10, 40, 10, 60),
+                (170, 191),
+                (40.0, 350.0, 60.0, 370.0),
+            ),
+        ],
+    )
+    def test_latlon_window_across_the_seam(self, source, bbox, window, corners):
+        """A bbox across a global grid's seam keeps only its own columns (#83)."""
+        grid = self._global_grid(*source)
+        win = grid.window_from_bbox(bbox)
+        assert (win.x_start, win.x_stop, win.nx, win.ny) == (*window, 21, 21)
+
+        subset = grid.subset(win)
+        p = subset.projection
+        assert (p.sync_lat, p.sync_lon, p.pole_lat, p.pole_lon) == corners
+        lons = subset.calculate_coords()["lon"][1]
+        np.testing.assert_allclose(np.diff(lons), 1.0)
+        assert lons[0] == pytest.approx(bbox[0])
+        x, _ = subset.fractional_indices(np.array([bbox[0], bbox[2]]), 0.0)
+        np.testing.assert_allclose(x, [0.0, 20.0])
+
+    def test_latlon_bbox_at_both_ends_of_a_regional_grid_raises(self):
+        """Columns at both ends of a grid short of 360 degrees are not one grid (#83)."""
+        grid = Grid(
+            projection=replace(
+                self._global_grid(100.0, 299.0).projection, sync_lat=0.0
+            ),
+            nx=200,
+            ny=20,
+        )
+        with pytest.raises(ValueError, match="both ends"):
+            grid.window_from_bbox((-80, 0, 110, 10))
+
+    @pytest.mark.parametrize("source", [(0.0, 359.0), (-180.0, 179.0)])
+    def test_latlon_subset_of_whole_grid_is_unchanged(self, source):
+        grid = self._global_grid(*source)
+        assert grid.subset(grid.full_window()) is grid
 
 
 class TestVerticalAxis:
