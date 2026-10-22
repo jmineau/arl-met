@@ -72,7 +72,7 @@ The ``z`` column is interpreted according to ``z_kind`` (default
        flag=5: ``PRSS`` + ``PRES`` + ``TEMP``
    * - ``"msl"``
      - meters above mean sea level
-     - flag=2: ``HGTS``; flag=1/4: ``PRSS`` + ``TEMP`` + ``SHGT``; flag=3: ``SHGT``;
+     - flag=2: ``HGTS`` + ``SHGT``; flag=1/4: ``PRSS`` + ``TEMP`` + ``SHGT``; flag=3: ``SHGT``;
        flag=5: ``PRSS`` + ``PRES`` + ``TEMP`` + ``SHGT``
 
 On sigma and hybrid files (flags 1 and 4) the heights are HYSPLIT's: from the
@@ -83,6 +83,13 @@ between the ground and the first level is interpolated from the ground values
 (``PRSS`` for ``PRES``, ``T02M`` for ``TEMP``, ``U10M`` for ``UWND``, ...)
 instead of being NaN, and pressure is interpolated as ``ln p``. The
 :doc:`vertical` guide has the details.
+
+On pressure-level files (flag 2) the heights are ``HGTS``, and the column also
+starts at the ground, as HYSPLIT's ``prfprs`` builds it: over high ground the
+lowest pressure levels are below the surface (their values extrapolated by the
+model), and they are left out, so a point between the ground and the first
+level above it is interpolated from the ground values. A point under the
+lowest level at a low site gets them too, instead of NaN.
 
 .. code-block:: python
 
@@ -181,10 +188,10 @@ Limitations
   raise ``ValueError``.
 - Point times not covered by any input file raise ``ValueError``.
 - ``z_kind="agl"`` and ``"msl"`` use different field requirements depending on
-  the vertical flag: pressure files (flag=2) require ``HGTS``; sigma/hybrid
+  the vertical flag: pressure files (flag=2) require ``HGTS`` and ``SHGT``; sigma/hybrid
   files (flag=1/4) use hypsometric integration from ``PRSS`` and ``TEMP``;
   terrain-following files (flag=3) use the stored level heights directly; WRF
   files (flag=5) integrate from ``PRSS`` through the ``PRES`` field. See
   the :doc:`vertical` guide.
-- Only sigma and hybrid files take the ground as a level; on the others a point
-  below the lowest level with data is NaN.
+- Only sigma, pressure-level and hybrid files take the ground as a level (pressure-level
+  files only at heights); on the others a point below the lowest level with data is NaN.

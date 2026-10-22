@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=05105e5b"></script>
+    <script src="_static/documentation_options.js?v=cdc64443"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Sampling Points" href="sampling.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev30+g11340a57b" />
+  <meta name="docsearch:version" content="0.1.0b4.dev31+g9312451a5" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -572,6 +572,32 @@ the virtual <code class="docutils literal notranslate"><span class="pre">&quot;p
 <code class="docutils literal notranslate"><span class="pre">WWND</span></code> and <code class="docutils literal notranslate"><span class="pre">DZDT</span></code>, and the first level’s value for any other variable.
 Pressure is interpolated as <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code>, linear in height, as HYSPLIT does.</p>
 </section>
+<section id="pressure-level-heights">
+<h2>Pressure-level heights<a class="headerlink" href="#pressure-level-heights" title="Link to this heading">#</a></h2>
+<p>On pressure-level files (flag 2) <a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> builds each column
+at heights (<code class="docutils literal notranslate"><span class="pre">z_kind=&quot;agl&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code>) as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfprs</span></code> does:</p>
+<ul class="simple">
+<li><p><strong>The ground is level 0:</strong> 0 m above ground (<code class="docutils literal notranslate"><span class="pre">SHGT</span></code> above sea level), at
+<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, with <code class="docutils literal notranslate"><span class="pre">T02M</span></code> (or <code class="docutils literal notranslate"><span class="pre">TMPS</span></code>) and <code class="docutils literal notranslate"><span class="pre">U10M</span></code>/<code class="docutils literal notranslate"><span class="pre">V10M</span></code>. Without a 2 m
+temperature, the ground temperature is level 1’s <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> brought down
+adiabatically, <code class="docutils literal notranslate"><span class="pre">T1</span> <span class="pre">*</span> <span class="pre">(p1</span> <span class="pre">/</span> <span class="pre">PRSS)</span> <span class="pre">**</span> <span class="pre">-0.286</span></code>; without 10 m winds, the
+ground takes level 1’s wind. Level 1 is the file’s first pressure level,
+which may be below the ground.</p></li>
+<li><p><strong>Levels at or below the ground are left out.</strong> Over high ground the lowest
+pressure levels have <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> under <code class="docutils literal notranslate"><span class="pre">SHGT</span></code> and values the model
+extrapolated below the surface. <code class="docutils literal notranslate"><span class="pre">prfprs</span></code> puts nothing there, so a point
+between the ground and the first level above it is interpolated from the
+ground values and that level.</p></li>
+</ul>
+<p>The ground values are the ones listed above for sigma files, and <code class="docutils literal notranslate"><span class="pre">SHGT</span></code> for
+<code class="docutils literal notranslate"><span class="pre">HGTS</span></code>. Pressure stays linear in height on these files. Sampling at
+pressures (<code class="docutils literal notranslate"><span class="pre">z_kind=&quot;pressure&quot;</span></code>) uses the stored levels as they are, below
+the ground included.</p>
+<p>On NOAA’s NAM 12 km and GDAS 1-degree files, at five western-US points from
+1 m to 3 km above ground, <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>, <code class="docutils literal notranslate"><span class="pre">UWND</span></code> and <code class="docutils literal notranslate"><span class="pre">VWND</span></code> agree with the
+compiled <code class="docutils literal notranslate"><span class="pre">prfprs</span></code> within 0.001; pressure differs by up to 0.5 hPa, the
+difference between linear and <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code> interpolation.</p>
+</section>
 <section id="sigma-files-with-pres">
 <h2>Sigma files with PRES<a class="headerlink" href="#sigma-files-with-pres" title="Link to this heading">#</a></h2>
 <p>Some sigma files also store the pressure of every level as the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field:
@@ -660,9 +686,10 @@ cannot be reassigned. Build a new axis instead (for example
 hybrid coefficients that would give them from eta are not in the ARL file.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">pressure()</span></code> for terrain-following files (flag=3) requires a stored <code class="docutils literal notranslate"><span class="pre">PRES</span></code>
 field; it is not derived.</p></li>
-<li><p>Only sigma and hybrid files take the ground as a level in
-<a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a>; on pressure (flag=2), terrain-following (flag=3)
-and WRF (flag=5) files a point below the lowest level with data is NaN.</p></li>
+<li><p>Only sigma, hybrid and pressure-level files take the ground as a level in
+<a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> (pressure-level files at heights only); on
+terrain-following (flag=3) and WRF (flag=5) files a point below the lowest
+level with data is NaN.</p></li>
 </ul>
 </section>
 </section>
@@ -718,6 +745,7 @@ and WRF (flag=5) files a point below the lowest level with data is NaN.</p></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pressure">Pressure</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#height-above-ground-level">Height above ground level</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sigma-and-hybrid-heights">Sigma and hybrid heights</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pressure-level-heights">Pressure-level heights</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sigma-files-with-pres">Sigma files with PRES</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wrf-files">WRF files</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#height-above-mean-sea-level">Height above mean sea level</a></li>

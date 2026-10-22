@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=05105e5b"></script>
+    <script src="_static/documentation_options.js?v=cdc64443"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Indexing a Directory" href="indexing.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4.dev30+g11340a57b" />
+  <meta name="docsearch:version" content="0.1.0b4.dev31+g9312451a5" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -513,7 +513,7 @@ flag=5: <code class="docutils literal notranslate"><span class="pre">PRSS</span>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code></p></td>
 <td><p>meters above mean sea level</p></td>
-<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=3: <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>;
+<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=3: <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>;
 flag=5: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">PRES</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code></p></td>
 </tr>
 </tbody>
@@ -527,6 +527,12 @@ between the ground and the first level is interpolated from the ground values
 (<code class="docutils literal notranslate"><span class="pre">PRSS</span></code> for <code class="docutils literal notranslate"><span class="pre">PRES</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code> for <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>, <code class="docutils literal notranslate"><span class="pre">U10M</span></code> for <code class="docutils literal notranslate"><span class="pre">UWND</span></code>, …)
 instead of being NaN, and pressure is interpolated as <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code>. The
 <a class="reference internal" href="vertical.html"><span class="doc">Vertical Coordinates</span></a> guide has the details.</p>
+<p>On pressure-level files (flag 2) the heights are <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>, and the column also
+starts at the ground, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfprs</span></code> builds it: over high ground the
+lowest pressure levels are below the surface (their values extrapolated by the
+model), and they are left out, so a point between the ground and the first
+level above it is interpolated from the ground values. A point under the
+lowest level at a low site gets them too, instead of NaN.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span>
         <span class="n">met</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">z_kind</span><span class="o">=</span><span class="s2">&quot;agl&quot;</span>
@@ -612,13 +618,13 @@ open, and paths are closed for you.</p>
 raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
 <li><p>Point times not covered by any input file raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">z_kind=&quot;agl&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code> use different field requirements depending on
-the vertical flag: pressure files (flag=2) require <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>; sigma/hybrid
+the vertical flag: pressure files (flag=2) require <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> and <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; sigma/hybrid
 files (flag=1/4) use hypsometric integration from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> and <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>;
 terrain-following files (flag=3) use the stored level heights directly; WRF
 files (flag=5) integrate from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> through the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field. See
 the <a class="reference internal" href="vertical.html"><span class="doc">Vertical Coordinates</span></a> guide.</p></li>
-<li><p>Only sigma and hybrid files take the ground as a level; on the others a point
-below the lowest level with data is NaN.</p></li>
+<li><p>Only sigma, pressure-level and hybrid files take the ground as a level (pressure-level
+files only at heights); on the others a point below the lowest level with data is NaN.</p></li>
 </ul>
 </section>
 </section>
