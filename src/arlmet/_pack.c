@@ -1,33 +1,30 @@
 /*
- * ARL differential pack core — C extension for arlmet.
+ * ARL differential packing: the C extension arlmet._pack.
  *
- * Implements the feedback-loop encoder that is the write-side inverse of
- * HYSPLIT's PAKINP cumsum decoder.  Each cell's delta is computed against the
- * *reconstructed* running value (i.e. what unpack's cumsum will reproduce),
- * not the original float.  This keeps per-cell quantisation error bounded to
- * 0.5 * inv_scale regardless of grid width.
+ * A line-by-line translation of HYSPLIT's PAKOUT (library/hysplit/pakout.f),
+ * in single precision as PAKOUT is, so it writes the same bytes, exponent,
+ * precision and initial value.  Each cell's byte is its difference from the
+ * previous value *as a reader will rebuild it* (the feedback loop), which
+ * keeps the error of every cell within half a packing step.
  *
  * Python signature:
- *   pack_core(unpacked: np.ndarray[float32, 2-D],
- *             scale: float,
- *             inv_scale: float,
- *             initial_value: float) -> np.ndarray[uint8, 2-D]
+ *   pack_core(unpacked: np.ndarray[float32, 2-D (ny, nx)])
+ *       -> (packed: np.ndarray[uint8, 2-D], precision: float,
+ *           exponent: int, initial_value: float)
  */
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <numpy/arrayobject.h>
+#include <math.h>
 #include <stdint.h>
 
 static PyObject *
 pack_core(PyObject *self, PyObject *args)
 {
     PyArrayObject *unpacked_in;
-    double scale, inv_scale, initial_value;
 
-    if (!PyArg_ParseTuple(args, "O!ddd",
-                          &PyArray_Type, &unpacked_in,
-                          &scale, &inv_scale, &initial_value))
+    if (!PyArg_ParseTuple(args, "O!", &PyArray_Type, &unpacked_in))
         return NULL;
 
     /* Ensure contiguous C-order float32. */
@@ -44,6 +41,11 @@ pack_core(PyObject *self, PyObject *args)
 
     npy_intp ny = PyArray_DIM(arr, 0);
     npy_intp nx = PyArray_DIM(arr, 1);
+    if (nx == 0 || ny == 0) {
+        PyErr_SetString(PyExc_ValueError, "unpacked must not be empty");
+        Py_DECREF(arr);
+        return NULL;
+    }
 
     npy_intp dims[2] = {ny, nx};
     PyArrayObject *packed = (PyArrayObject *)PyArray_SimpleNew(
@@ -53,38 +55,62 @@ pack_core(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    const float   *in  = (const float   *)PyArray_DATA(arr);
-          uint8_t *out = (      uint8_t *)PyArray_DATA(packed);
+    const float   *rvar = (const float   *)PyArray_DATA(arr);
+          uint8_t *cvar = (      uint8_t *)PyArray_DATA(packed);
 
-    /* First cell encodes delta from initial_value, which is unpacked[0,0]
-     * itself, so the delta is 0 and the byte is always 127. */
-    out[0] = 127;
+    float var1 = rvar[0];
 
-    double prev_row0 = initial_value;
-
-    for (npy_intp y = 0; y < ny; y++) {
-        if (y > 0) {
-            int icval = (int)((in[y * nx] - prev_row0) * scale + 127.5);
-            out[y * nx] = (uint8_t)icval;
-            prev_row0 += (icval - 127) * inv_scale;
+    /* The largest difference between neighbors along each row; the first
+     * element of a row is differenced from the first element of the row
+     * before. */
+    float rold = var1;
+    float rmax = 0.0f;
+    for (npy_intp j = 0; j < ny; j++) {
+        for (npy_intp i = 0; i < nx; i++) {
+            float d = fabsf(rvar[j * nx + i] - rold);
+            if (d > rmax)
+                rmax = d;
+            rold = rvar[j * nx + i];
         }
-        double prev = prev_row0;
-        for (npy_intp x = 1; x < nx; x++) {
-            int icval = (int)((in[y * nx + x] - prev) * scale + 127.5);
-            out[y * nx + x] = (uint8_t)icval;
-            prev += (icval - 127) * inv_scale;
+        rold = rvar[j * nx];
+    }
+
+    /* The scaling exponent: positive or whole-number logs round up. */
+    float sexp = 0.0f;
+    if (rmax != 0.0f)
+        sexp = logf(rmax) / logf(2.0f);
+    int nexp = (int)sexp;
+    if (sexp >= 0.0f || fmodf(sexp, 1.0f) == 0.0f)
+        nexp += 1;
+    /* The differences span -127 to 127, 254 steps. */
+    float prec = ldexpf(1.0f, nexp) / 254.0f;
+    float scexp = ldexpf(1.0f, 7 - nexp);
+
+    /* Pack from low to high, each difference from the previous value as it
+     * will be unpacked. */
+    float rcol = var1;
+    npy_intp k = 0;
+    for (npy_intp j = 0; j < ny; j++) {
+        rold = rcol;
+        for (npy_intp i = 0; i < nx; i++, k++) {
+            int icval = (int)((rvar[k] - rold) * scexp + 127.5f);
+            rold = (float)(icval - 127) / scexp + rold;
+            if (i == 0)
+                rcol = rold;
+            cvar[k] = (uint8_t)icval;
         }
     }
 
     Py_DECREF(arr);
-    return (PyObject *)packed;
+    return Py_BuildValue("Ndid", (PyObject *)packed, (double)prec, nexp,
+                         (double)var1);
 }
 
 /* ---------- module plumbing -------------------------------------------- */
 
 static PyMethodDef PackMethods[] = {
     {"pack_core", pack_core, METH_VARARGS,
-     "ARL differential feedback-loop encoder (C extension)."},
+     "HYSPLIT's PAKOUT: pack a 2-D float32 field as ARL byte differences."},
     {NULL, NULL, 0, NULL}
 };
 
@@ -95,6 +121,6 @@ static struct PyModuleDef packmodule = {
 PyMODINIT_FUNC
 PyInit__pack(void)
 {
-    import_array();  /* initialise NumPy C-API; returns NULL on failure */
+    import_array();  /* initialize NumPy's C API; returns NULL on failure */
     return PyModule_Create(&packmodule);
 }

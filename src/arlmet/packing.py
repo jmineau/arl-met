@@ -37,55 +37,34 @@ def pack(
     """
     Pack a 2D field using the ARL differential byte encoding.
 
-    This is the inverse of :func:`unpack` and mirrors the HYSPLIT
-    ``PAKOUT`` routine.
+    This is the inverse of :func:`unpack` and a translation of the HYSPLIT
+    ``PAKOUT`` routine, in single precision as ``PAKOUT`` is, so it gives the
+    same bytes, exponent, precision and initial value.
 
     Parameters
     ----------
     unpacked : np.ndarray
-        The 2D numpy array of shape (ny, nx) to be packed.
+        The 2D numpy array of shape (ny, nx) to be packed; it is packed as
+        ``float32``.
 
     Returns
     -------
     tuple[np.ndarray, float, int, float]
         Tuple of ``(packed, precision, exponent, initial_value)``.
         ``packed`` is the byte payload, ``precision`` and ``exponent`` are the
-        ARL packing parameters, and ``initial_value`` is the reference value at
-        the first grid cell.
+        ARL packing parameters, and ``initial_value`` is the value at the
+        first grid cell.
+
+    Raises
+    ------
+    ValueError
+        If the field is not 2D, is empty, or holds NaN or infinite values.
     """
-    unpacked_arr = np.array(unpacked, dtype=np.float32, copy=True)
-    initial_value = float(unpacked_arr[0, 0])
-
-    # Build diffs in the same row-wise order expected by unpack().
-    diffs = np.empty_like(unpacked_arr)
-    diffs[:, 1:] = unpacked_arr[:, 1:] - unpacked_arr[:, :-1]
-    diffs[1:, 0] = unpacked_arr[1:, 0] - unpacked_arr[:-1, 0]
-    diffs[0, 0] = 0.0
-    rmax = float(np.max(np.abs(diffs)))
-
-    # --- Calculate packing exponent and precision ---
-    if rmax > 0.0:
-        sexp = np.log(rmax) / np.log(2.0)
-        exponent = int(sexp)
-        if sexp >= 0.0 or sexp.is_integer():
-            exponent += 1
-    else:
-        exponent = 0
-
-    precision = (2.0**exponent) / 254.0
-    scale = 2.0 ** (7 - exponent)
-    inv_scale = 1.0 / scale
-
-    # Zero tiny values before packing so round-trip precision matches unpack().
-    unpacked_arr[np.abs(unpacked_arr) < precision] = 0.0
-    initial_value = float(unpacked_arr[0, 0])
-
-    # Feedback-loop encoder: each delta is computed against the *reconstructed*
-    # running value (what unpack's cumsum will reproduce), not the original float.
-    # This keeps per-cell quantisation error bounded to 0.5 * inv_scale regardless
-    # of grid width.  Implemented as a C extension (_pack.c) for native speed.
-    packed = _pack_core(unpacked_arr, scale, inv_scale, initial_value)
-
+    unpacked_arr = np.ascontiguousarray(unpacked, dtype=np.float32)
+    if unpacked_arr.ndim == 2 and not np.isfinite(unpacked_arr).all():
+        raise ValueError("Cannot pack NaN or infinite values.")
+    # The C extension (_pack.c) is PAKOUT line by line, for speed.
+    packed, precision, exponent, initial_value = _pack_core(unpacked_arr)
     return packed, precision, exponent, initial_value
 
 
@@ -102,7 +81,10 @@ def unpack(
     """
     Unpack an ARL differential byte stream into a 2D field.
 
-    This is a vectorized translation of the HYSPLIT ``PAKINP`` routine.
+    This is a vectorized translation of the HYSPLIT ``PAKINP`` routine and
+    gives the same ``float32`` values, bit for bit: the arithmetic is in
+    single precision, in ``PAKINP``'s order, and like ``PAKINP`` it sets a
+    value smaller than ``precision`` to zero in every column but the first.
 
     Parameters
     ----------
@@ -114,7 +96,8 @@ def unpack(
         The number of rows in the full data grid.
     precision : float
         Precision of the packed data. Values with an absolute value smaller
-        than this will be set to zero.
+        than this are set to zero, except in the first column (``x = 0``),
+        which ``PAKINP`` leaves as it is.
     exponent : int
         The packing scaling exponent.
     initial_value : float
@@ -129,65 +112,9 @@ def unpack(
         Unpacked ``float32`` 2D array with shape ``(ny, nx)`` or the requested windowed
         shape when ``window`` is provided.
     """
-    if window is not None:
-        return _unpack_window(
-            packed=packed,
-            nx=nx,
-            ny=ny,
-            precision=precision,
-            exponent=exponent,
-            initial_value=initial_value,
-            window=window,
-        )
-
-    # Convert packed bytes to an eager NumPy array for unpacking.
-    packed_arr = np.frombuffer(packed, dtype=np.uint8)
-
-    # Prepare initial value as array
-    initial_arr = np.expand_dims(np.array(initial_value), axis=0)
-
-    # Reshape the flat byte stream back to the full 2D ARL grid.
-    if packed_arr.shape[0] != ny * nx:
-        raise ValueError(
-            f"Packed data length {packed_arr.shape[0]} does not match expected length {ny * nx}."
-        )
-    packed_arr = packed_arr.reshape((ny, nx))
-
-    # Convert packed bytes to float before applying the signed differential
-    # transform and cumulative sums used by the unpacker.
-    # THIS IS VERY IMPORTANT!!!
-    packed_arr = packed_arr.astype(np.float32)
-
-    # Calculate the scaling exponent
-    scexp = 1.0 / (2.0 ** (7 - exponent))
-
-    # The first column is vertically differential-coded across rows; once that
-    # running state is restored, the rest of each row can be recovered with a
-    # standard cumulative sum across x.
-    diffs = (packed_arr - 127.0) * scexp
-    diffs[:, 0] = np.cumsum(diffs[:, 0], axis=0) + initial_arr
-    unpacked = np.cumsum(diffs, axis=1)
-
-    # Apply the precision check to the final grid.
-    unpacked = np.where(np.abs(unpacked) < precision, 0.0, unpacked)
-
-    # Force float32 (4 bytes per value)
-    return unpacked.astype(np.float32)
-
-
-def _unpack_window(
-    packed: bytes | bytearray,
-    nx: int,
-    ny: int,
-    precision: float,
-    exponent: int,
-    initial_value: float,
-    window: GridWindow,
-) -> npt.NDArray[np.float32]:
-    """
-    Unpack only a rectangular subset of the grid.
-    """
-    if window.x_stop > nx or window.y_stop > ny:
+    if window is None:
+        window = GridWindow(x_start=0, x_stop=nx, y_start=0, y_stop=ny)
+    elif window.x_stop > nx or window.y_stop > ny:
         raise ValueError("GridWindow extends beyond the packed grid bounds.")
 
     packed_arr = np.frombuffer(packed, dtype=np.uint8)
@@ -195,35 +122,34 @@ def _unpack_window(
         raise ValueError(
             f"Packed data length {packed_arr.shape[0]} does not match expected length {ny * nx}."
         )
-
-    # Keep the source buffer byte-typed here and only cast the slices that feed
-    # the requested window, so subset extraction does not promote the full grid.
+    # Keep the source buffer byte-typed and cast only the rows and columns
+    # that feed the window, so a crop does not promote the full grid.
     packed_arr = packed_arr.reshape((ny, nx))
 
-    scexp = 1.0 / (2.0 ** (7 - exponent))
-    row0_diffs = packed_arr[: window.y_stop, 0].astype(np.float32)
-    row0_diffs -= 127.0
-    row0_diffs *= scexp
-    row0_vals = np.cumsum(row0_diffs, dtype=np.float32)
-    row0_vals += initial_value
+    # Each byte is a difference from the previous value in units of scexp, a
+    # power of 2, so converting them to float32 is exact.
+    scexp = np.float32(2.0 ** (exponent - 7))
 
-    x_start = window.x_start
-    x_stop = window.x_stop
-    y_slice = window.y_slice
-    subset_diffs = packed_arr[y_slice, 1:x_stop].astype(np.float32)
-    subset_diffs -= 127.0
-    subset_diffs *= scexp
-    subset_prefix = np.cumsum(subset_diffs, axis=1, dtype=np.float32)
-    subset_prefix += row0_vals[y_slice, np.newaxis]
+    # The first column is coded down the rows from the initial value. PAKINP
+    # adds one row's difference at a time in single precision, so start the
+    # running sum at the float32 initial value instead of adding it at the end.
+    column0 = np.empty(window.y_stop + 1, dtype=np.float32)
+    column0[0] = initial_value
+    column0[1:] = packed_arr[: window.y_stop, 0]
+    column0[1:] -= 127.0
+    column0[1:] *= scexp
+    np.cumsum(column0, out=column0)
 
-    if x_start == 0:
-        # Windows that include the first column need that reconstructed origin
-        # inserted explicitly before the row-wise prefixes from x=1 onward.
-        subset = np.empty((window.y_stop - window.y_start, x_stop), dtype=np.float32)
-        subset[:, 0] = row0_vals[y_slice]
-        if x_stop > 1:
-            subset[:, 1:] = subset_prefix
-    else:
-        subset = subset_prefix[:, x_start - 1 :]
-    subset = np.where(np.abs(subset) < precision, 0.0, subset)
-    return subset.astype(np.float32)
+    # Each row is then coded across x from its first-column value; cumsum along
+    # a row adds one difference at a time, as PAKINP's loop over I does.
+    rows = packed_arr[window.y_slice, : window.x_stop].astype(np.float32)
+    rows -= 127.0
+    rows *= scexp
+    rows[:, 0] = column0[window.y_start + 1 : window.y_stop + 1]
+    np.cumsum(rows, axis=1, out=rows)
+
+    # PAKINP's precision test, which it applies to every column but the first.
+    rest = rows[:, 1:]
+    rest[np.abs(rest) < np.float32(precision)] = 0.0
+
+    return np.ascontiguousarray(rows[:, window.x_start :])

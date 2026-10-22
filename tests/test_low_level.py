@@ -114,7 +114,7 @@ class StubDiff:
     def __init__(self, field: np.ndarray):
         self.field = field
 
-    def read(self, window=None):
+    def _read_own(self, window=None):
         return self.field
 
 

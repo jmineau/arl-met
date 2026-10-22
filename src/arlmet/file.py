@@ -23,7 +23,7 @@ from arlmet.exceptions import ARLFormatError, ARLFormatWarning
 from arlmet.grid import Grid, Projection
 from arlmet.header import record_length_from_grid
 from arlmet.indexrecord import IndexRecord
-from arlmet.record import DataRecord, _corrects, _require_mode
+from arlmet.record import DataRecord, _corrects, _is_missing, _require_mode
 from arlmet.recordset import RecordSet
 from arlmet.vertical import VerticalAxis
 
@@ -48,6 +48,10 @@ def _open_binary(path: str | os.PathLike[str], mode: str) -> BinaryIO:
 def _with_diffs(rs: RecordSet) -> list[DataRecord]:
     """Return the records of *rs* in index order, each followed by its DIF records."""
     return [rec for record in rs.records for rec in (record, *record.diffs)]
+
+
+#: More missing records than this in one time step stop HYSPLIT (``metinp.f``).
+_MAX_MISSING = 20
 
 
 def _at(time: pd.Timestamp) -> str:
@@ -653,6 +657,11 @@ class File:
         not compare checksums. :meth:`arlmet.DataRecord.verify_checksum` compares
         one record's packed bytes with its stored checksum.
 
+        It also lists each record flagged missing (a negative forecast hour, or
+        the name ``NULL``, in its header), which arlmet reads as NaN: HYSPLIT
+        skips such a record, and stops when a time step has more than 20
+        (``metinp.f``).
+
         Returns
         -------
         list of str
@@ -696,6 +705,7 @@ class File:
                     )
 
         for rs in recordsets:
+            n_missing = 0
             for record in _with_diffs(rs):
                 where = (
                     f"{_at(rs.time)}: the {record.variable} record at level "
@@ -710,6 +720,22 @@ class File:
                 # index record.
                 if header.time != rs.time.floor("h"):
                     problems.append(f"{where} is for {_at(header.time)}.")
+                if _is_missing(header):
+                    n_missing += 1
+                    flag = (
+                        f"forecast hour {header.forecast}"
+                        if header.forecast < 0
+                        else f"named {header.variable}"
+                    )
+                    problems.append(
+                        f"{where} is flagged missing ({flag}). HYSPLIT skips "
+                        "it, and arlmet reads it as NaN."
+                    )
+            if n_missing > _MAX_MISSING:
+                problems.append(
+                    f"{_at(rs.time)} has {n_missing} records flagged missing; "
+                    f"HYSPLIT stops at more than {_MAX_MISSING} in one time step."
+                )
         return problems
 
     def flush(self) -> None:

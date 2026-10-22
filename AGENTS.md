@@ -51,20 +51,20 @@ when it downloads, so it imports without the `archives` extra.
   step starts with an index record (`INDX`: grid, vertical axis, each level's
   variables), which must fit in one record; `validate_subset_record_length`
   (`ops/subset.py`) refuses a crop too small for it before writing anything.
-- **Projection fields.** Of the 12 projection values only the longitudes are wrapped
-  to [-180, 180] on read; HYSPLIT reads all 12 raw. `sync_x`/`sync_y` can exceed 180
-  or lie off the grid: a projected crop keeps its source's sync point (`Grid.subset`).
+- **Projection fields.** The 12 projection values are kept as stored (HYSPLIT reads
+  them raw; to its `gbl2xy` a lat/lon `sync_lon` of -125 is not 235). `sync_x`/`sync_y`
+  can lie off the grid: a projected crop keeps its source's sync point (`Grid.subset`).
 - **Grids over 999 cells.** The thousands of `nx`/`ny` are a letter in the header
   (`A` = 1000, ...). `Header.grid` holds the thousands and the index record only
   the remainder, but `IndexRecord.nx`/`ny` are the full sizes (`__post_init__`
   rejects a mismatched `header.grid`); `index_length` is computed, never stored.
-- **Packing.** Values are unsigned bytes of differences from the previous value
-  (HYSPLIT's `pakout`/`pakinp`); the encoder loop is the C extension `_pack.c`.
-  Do not change `pack`/`unpack` without a round-trip test.
+- **Packing.** Values are unsigned bytes of differences from the previous value.
+  `pack` (`_pack.c`) and `unpack` give HYSPLIT's `pakout`/`pakinp` results bit for bit;
+  `test_packing.py` transcribes both. Change them only with a round-trip test.
 - **Checksums** are 1 to 255 (the byte sum, less 255 each time it reaches 256)
-  unless every byte is 0. A stored 0 means none was recorded, so
-  `verify_checksum()` returns True for it (HYSPLIT writes 0 for records it did not
-  pack and never compares checksums; `docs/format.rst` has the NOAA cases).
+  unless every byte is 0; a stored 0 means none was recorded (`verify_checksum()`
+  is True). A record with a negative forecast or named `NULL` is missing: it reads
+  as NaN (HYSPLIT skips it), and an all-NaN field is written so (`pakini.f`).
 - **`DIF*` records** pair by name, as HYSPLIT's `metinp` does (`record._corrects`):
   each with the nearest earlier record of its level the name allows (`DIFW`: `WWND`,
   `DZDT`; `DIFT`: `TKEN`, `TKEU`; surface `DIF*`: `TPP*`, `PRT*`), else none (warned).
@@ -98,10 +98,10 @@ when it downloads, so it imports without the `archives` extra.
    each record's bytes (DIF records included), renumbers the header's level, and
    rebuilds the index records. Keep both paths writing the same index records.
 4. **Windowing matches HYSPLIT's `xtrct_grid`.** On lat/lon grids a cell is kept
-   when its center is inside the bbox, edges included, and `west > east` crosses
-   the dateline. On projected grids the SW and NE corners are mapped to grid
-   indices and rounded like Fortran `NINT`. `test_grid.py` holds the reference.
-   A bbox is `(west, south, east, north)` in degrees (EPSG:4326), never projected.
+   when its center is inside the bbox, edges included, `west > east` crosses the
+   dateline, and a window across a global grid's seam has `x_stop > nx`. On projected
+   grids the SW and NE corners are mapped to grid indices and rounded like Fortran
+   `NINT` (reference: `test_grid.py`). A bbox is `(west, south, east, north)` in degrees.
 5. **`write_dataset` handles the common case only:** the flat Dataset that
    `open_dataset` returns, with DIF records written from `attrs["diff"] =
    "DIF..."` on the parent. Per-variable forecast hours and other irregular

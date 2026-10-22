@@ -241,7 +241,11 @@ def write_dataset(
     (e.g. from ``open_dataset(levels=...)`` or ``ds.sel(level=...)``) is
     written as a compact file, like :func:`arlmet.extract_subset` does. A
     slice that is entirely NaN is taken to be absent from the file (as
-    :func:`open_dataset` represents it) and no record is written for it.
+    :func:`open_dataset` represents it) and no record is written for it. A
+    record flagged missing in the source file also reads as an all-NaN slice,
+    so it is left out too, and that time step then has fewer records than the
+    others (:meth:`arlmet.File.check` reports it); :func:`arlmet.extract_subset`
+    keeps such a record, flagged missing.
 
     Per-variable forecast heterogeneity is intentionally not represented in the
     flat Dataset API. ``forecast_hour(time)`` supplies only the ARL index-record
