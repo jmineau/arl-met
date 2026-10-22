@@ -159,6 +159,10 @@ class File:
         # Initialize recordsets as an ordered dict to preserve time order
         # Mapping: time -> RecordSet
         self._recordsets: OrderedDict[pd.Timestamp, RecordSet] = OrderedDict()
+        # Every index record in file order, repeats included, as (valid time,
+        # byte position, bytes in the time step). HYSPLIT finds a time step by
+        # its position, so check() and concat need this order, not ``times``.
+        self._steps: list[tuple[pd.Timestamp, int, int]] = []
         self.variables = VariableAccessor(self)
 
         # Scan the file to populate recordsets in read mode
@@ -507,6 +511,8 @@ class File:
                     f"{remaining} remain in the file; the file is truncated."
                 )
 
+            self._steps.append((index.time, position, n_bytes))
+
             # Some NOAA archive files repeat a whole time step. Skip a
             # byte-identical copy; anything else is ambiguous, so raise.
             if index.time in extents:
@@ -644,12 +650,17 @@ class File:
         A file can also be damaged in ways that open cleanly: a time step
         written partway, a missing time step, or a record overwritten with
         other bytes. HYSPLIT then stops partway through a run or reads bad
-        values. ``check`` looks for these the way HYSPLIT reads a file:
+        values. ``check`` looks for these the way HYSPLIT reads a file, time
+        step by time step in file order (``metset.f``):
 
         - every time step has as many data records as the first, since
           HYSPLIT steps from one index record to the next by that count;
-        - the time steps are as far apart as the first two, since HYSPLIT
-          stops when the spacing changes;
+        - each time step is as far after the one before it on disk as the
+          second is after the first. HYSPLIT stops when the spacing changes,
+          and it finds a time step by its position in the file, so a time
+          step repeated (some NOAA HRRR archive files repeat one byte for
+          byte; opening skips the copy) or out of order makes it stop or read
+          the wrong hours. A missing time step changes the spacing too;
         - every data record's header can be read, and names the variable,
           level, and time its index record lists.
 
@@ -665,7 +676,7 @@ class File:
         Returns
         -------
         list of str
-            One sentence per problem. Empty when none is found.
+            One message per problem. Empty when none is found.
 
         Raises
         ------
@@ -682,7 +693,8 @@ class File:
         """
         _require_mode(self, "r")
         problems = []
-        recordsets = [self._recordsets[time] for time in self.times]
+        # HYSPLIT reads the time steps in file order, so check them so too.
+        recordsets = sorted(self._recordsets.values(), key=lambda rs: rs.position)
 
         if recordsets:
             n_first = len(_with_diffs(recordsets[0]))
@@ -694,15 +706,35 @@ class File:
                         "the first time step has."
                     )
 
-        if len(recordsets) > 2:
-            step = recordsets[1].time - recordsets[0].time
-            for before, after in pairwise(recordsets[1:]):
-                if after.time - before.time != step:
+        # Walk every index record on disk, repeats included: HYSPLIT takes the
+        # spacing from the first two and finds a time step by its position.
+        steps = self._steps
+        if len(steps) > 1:
+            step = steps[1][0] - steps[0][0]
+            for (before, _, _), (after, position, _) in pairwise(steps):
+                if after - before == step and step > pd.Timedelta(0):
+                    continue
+                if after == before:
                     problems.append(
-                        f"{_at(before.time)} to {_at(after.time)} is "
-                        f"{_span(after.time - before.time)}; the first two time "
-                        f"steps are {_span(step)} apart."
+                        f"{_at(after)} is repeated at byte {position}. arlmet "
+                        "skips the copy, but HYSPLIT finds a time step by its "
+                        "position, so it stops or reads each later time step as "
+                        "the one before it."
                     )
+                elif after < before:
+                    problems.append(
+                        f"{_at(after)} (byte {position}) comes after "
+                        f"{_at(before)} in the file. HYSPLIT reads the time "
+                        "steps in file order, so it stops or reads the wrong hours."
+                    )
+                else:
+                    problems.append(
+                        f"{_at(before)} to {_at(after)} is "
+                        f"{_span(after - before)}; the first two time steps are "
+                        f"{_span(step)} apart."
+                    )
+                if step <= pd.Timedelta(0):
+                    break  # the first two set no spacing to compare with
 
         for rs in recordsets:
             n_missing = 0

@@ -16,6 +16,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Breaking:** `concat()` and `concat_by_time()` have no `sort` argument: the output always holds its time steps in valid-time order, since HYSPLIT finds a time step by its position in the file. Each time step is still copied byte for byte (#80)
+
 - **Breaking:** the index-record module `arlmet.index` is now `arlmet.indexrecord` (`from arlmet.indexrecord import IndexRecord, LvlInfo, VarInfo`), and `arlmet.index` is the new function that indexes a folder. `arlmet.IndexRecord` is unchanged (#43)
 
 - **Breaking:** `DataRecord.diffs` (a tuple, empty when there is none) replaces `DataRecord.diff` (one record or `None`), since a record can have several `DIF*` records. `LvlInfo.variables` (in `IndexRecord.levels`) is a list of `(name, VarInfo)` pairs in stream order instead of a dict, so it can hold a repeated `DIF*` name (#24)
@@ -29,6 +31,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A crop of a projected grid (`extract_subset` with a bbox, and `open_dataset(bbox=)`) puts its cells where the source file puts them. It used to give the crop a new sync point, the latitude and longitude of its corner cell, which the index record stores to 0.01 degree for a longitude past 100 degrees, so the whole crop moved by up to 0.15 cells (450 m on HRRR's 3 km grid) in HYSPLIT and in arlmet; HYSPLIT's `xtrct_grid` does the same. The crop now keeps the source's `sync_lat`/`sync_lon` and moves only `sync_x`/`sync_y`, the grid point the sync point sits at, by the crop's start (for a crop of HRRR from row 328: `sync_y = -326`). HYSPLIT's map routines read it so. A lat-lon crop's sync point is still its corner cell, which HYSPLIT requires there (#78)
 
 - `sample_points(..., z_kind="agl")` and `"msl"` on pressure-level files (vertical flag 2) start each column at the ground and leave out the levels at or below it, as HYSPLIT's `prfprs` does. Over high ground the lowest pressure levels are below the surface, with values the model extrapolated there; they all got height 0, so a point near the ground was interpolated from one of them: on NAM 12 km at Ogden, `TEMP` at 10 m above ground read 306.1 K where HYSPLIT has 294.8 K. The ground takes `T02M` (or `TMPS`), `U10M`/`V10M` and `PRSS` (level 1's values without them), so a point under the first level at a low site is no longer NaN. `TEMP` and winds now agree with the compiled `prfprs` within 0.001 on NAM12 and GDAS columns. `"msl"` on these files now needs `SHGT` too. Sigma and hybrid files (HRRR) sample as before (#81)
+- `File.check()` walks the time steps in file order, as HYSPLIT does, and reports a time step repeated or out of order on disk. It used to test the spacing of the sorted `File.times`, so a file with a time step repeated byte for byte (as about nine NOAA HRRR archive files have) or written out of order passed, while HYSPLIT stops on it ("meteorological data time interval varies") or reads each later hour as the one before (#80)
+
+- `concat()` writes the time steps of its inputs in valid-time order, each once. Inputs whose hours interleave used to be appended file by file (00 02 04 01 03 05), and an input that repeats a time step byte for byte passed its copy through, so HYSPLIT stopped on the output or read the wrong hours (#80)
 
 - `concat()` writes its output to a hidden `.partial` file beside `dest` and renames it only when every input is in, as `extract_subset`, `write_dataset` and downloads do. An interrupted or failed run used to leave a short file under the final name, after truncating any earlier output there; now an earlier output stays as it was and no partial file is left behind
 

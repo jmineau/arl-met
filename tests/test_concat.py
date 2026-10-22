@@ -1,15 +1,18 @@
 """Tests for concatenating ARL files into a single file."""
 
-import shutil
+import importlib
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from arlmet import File, concat, concat_by_time
+from arlmet import ARLFormatWarning, File, concat, concat_by_time
 from arlmet.grid import Grid, Projection
 from arlmet.vertical import PressureAxis
+
+# The module, not the function arlmet.ops re-exports under the same name.
+concat_module = importlib.import_module("arlmet.ops.concat")
 
 
 def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
@@ -55,7 +58,7 @@ def test_concat_joins_files_in_time_order(tmp_path):
     late = write_arl(tmp_path / "late.arl", ["2024-01-01 12:00", "2024-01-01 18:00"])
     out = tmp_path / "day.arl"
 
-    # Pass out of order; sort=True should chronologically order the output.
+    # Pass out of order; the output is in valid-time order all the same.
     concat([late, early], out)
 
     with File(out) as merged:
@@ -74,10 +77,67 @@ def test_concat_is_byte_level_append(tmp_path):
     b = write_arl(tmp_path / "b.arl", ["2024-01-01 06:00"])
     out = tmp_path / "ab.arl"
 
-    concat([a, b], out, sort=False)
+    concat([b, a], out)
 
-    # With sort=False the output is exactly the inputs appended in order.
+    # Inputs that do not interleave are appended whole, in time order.
     assert out.read_bytes() == a.read_bytes() + b.read_bytes()
+
+
+def _steps_on_disk(path):
+    """Valid times of a file's index records in file order, repeats included."""
+    with File(path) as arl:
+        return [time.hour for time, _, _ in arl._steps]
+
+
+def test_concat_merges_interleaved_inputs_hour_by_hour(tmp_path):
+    # HYSPLIT finds a time step by its position, so 00 02 04 01 03 05 on disk
+    # would read 01 as 00, 03 as 02 and 05 as 04 (#80).
+    odd = write_arl(tmp_path / "odd.arl", [f"2024-01-01 {h:02d}:00" for h in (1, 3, 5)])
+    even = write_arl(
+        tmp_path / "even.arl", [f"2024-01-01 {h:02d}:00" for h in (0, 2, 4)]
+    )
+    out = tmp_path / "out.arl"
+
+    concat([odd, even], out)
+
+    assert _steps_on_disk(out) == [0, 1, 2, 3, 4, 5]
+    with File(out) as merged, File(odd) as fo, File(even) as fe:
+        assert merged.check() == []
+        for src in (fo, fe):
+            for time in src.times:
+                np.testing.assert_array_equal(
+                    merged[time][(1, "TEMP")].read(), src[time][(1, "TEMP")].read()
+                )
+
+
+def _repeat_step(path, dest, k):
+    """Write ``path`` to ``dest`` with time step ``k`` repeated after itself."""
+    raw = path.read_bytes()
+    with File(path) as arl:
+        _, position, n_bytes = arl._steps[k]
+    step = raw[position : position + n_bytes]
+    dest.write_bytes(raw[: position + n_bytes] + step + raw[position + n_bytes :])
+    return dest
+
+
+def test_concat_writes_a_repeated_time_step_once(tmp_path):
+    # As about nine NOAA HRRR archive files do, 14:00 is on disk twice.
+    clean = write_arl(
+        tmp_path / "clean.arl", [f"2015-11-30 {h:02d}:00" for h in range(12, 18)]
+    )
+    repeated = _repeat_step(clean, tmp_path / "repeated.arl", 2)
+    later = write_arl(
+        tmp_path / "later.arl", [f"2015-11-30 {h:02d}:00" for h in range(18, 24)]
+    )
+    out = tmp_path / "out.arl"
+
+    with pytest.warns(ARLFormatWarning, match="repeated"):
+        concat([repeated, later], out)
+
+    assert _steps_on_disk(out) == list(range(12, 24))
+    assert out.read_bytes() == clean.read_bytes() + later.read_bytes()
+    with File(out) as merged:
+        assert merged.check() == []
 
 
 def test_concat_preserves_record_values(tmp_path):
@@ -115,17 +175,17 @@ def test_concat_failure_keeps_old_dest_and_leaves_no_partial(tmp_path, monkeypat
     b = write_arl(tmp_path / "b.arl", ["2024-01-01 06:00"])
     out = tmp_path / "ab.arl"
     out.write_bytes(b"an earlier output")
-    copy = shutil.copyfileobj
+    copy = concat_module._copy_step
     calls = []
 
-    def interrupted(src, dst):
+    def interrupted(src, out, position, n_bytes):
         # Fail on the second input, after the first has been written.
         calls.append(src)
         if len(calls) > 1:
             raise RuntimeError("interrupted")
-        copy(src, dst)
+        copy(src, out, position, n_bytes)
 
-    monkeypatch.setattr(shutil, "copyfileobj", interrupted)
+    monkeypatch.setattr(concat_module, "_copy_step", interrupted)
     with pytest.raises(RuntimeError, match="interrupted"):
         concat([a, b], out)
 
