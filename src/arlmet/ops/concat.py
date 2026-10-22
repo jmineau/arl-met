@@ -25,6 +25,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from arlmet._io import atomic_output
 from arlmet.exceptions import ARLFormatError
 from arlmet.file import File
 
@@ -51,8 +52,9 @@ def concat(
         Input ARL files to join. Must contain at least one path. A bare string
         or path is rejected — wrap a single file in a list.
     dest : path-like
-        Output ARL file. Overwrites any existing file. Must not be one of
-        ``paths``.
+        Output ARL file. It is written to a hidden ``.partial`` file beside
+        it and renamed once complete, so it replaces an existing file only on
+        success. Must not be one of ``paths``.
     sort : bool, default True
         Order the inputs by their earliest valid time before joining, so the
         output is chronological regardless of input order. When False, inputs
@@ -110,7 +112,9 @@ def concat(
 
     ordered_paths = _scan_inputs(input_paths, sort=sort)
 
-    with open(dest, "wb") as out:
+    # Write a hidden partial file and rename it only once every input is in, so
+    # an interrupted run never leaves a short file under the final name.
+    with atomic_output(dest) as tmp_path, open(tmp_path, "wb") as out:
         for path in ordered_paths:
             with open(path, "rb") as src:
                 shutil.copyfileobj(src, out)

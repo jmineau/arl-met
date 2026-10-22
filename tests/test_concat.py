@@ -1,5 +1,6 @@
 """Tests for concatenating ARL files into a single file."""
 
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -107,6 +108,29 @@ def test_concat_returns_output_path(tmp_path):
     assert result == out
     with File(result) as merged:
         assert len(merged.times) == 2
+
+
+def test_concat_failure_keeps_old_dest_and_leaves_no_partial(tmp_path, monkeypatch):
+    a = write_arl(tmp_path / "a.arl", ["2024-01-01 00:00"])
+    b = write_arl(tmp_path / "b.arl", ["2024-01-01 06:00"])
+    out = tmp_path / "ab.arl"
+    out.write_bytes(b"an earlier output")
+    copy = shutil.copyfileobj
+    calls = []
+
+    def interrupted(src, dst):
+        # Fail on the second input, after the first has been written.
+        calls.append(src)
+        if len(calls) > 1:
+            raise RuntimeError("interrupted")
+        copy(src, dst)
+
+    monkeypatch.setattr(shutil, "copyfileobj", interrupted)
+    with pytest.raises(RuntimeError, match="interrupted"):
+        concat([a, b], out)
+
+    assert out.read_bytes() == b"an earlier output"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["a.arl", "ab.arl", "b.arl"]
 
 
 def test_concat_single_path_acts_as_copy(tmp_path):

@@ -29,7 +29,7 @@ from .xarray import open_dataset, pressure, write_dataset, z_agl, z_msl
 
 __version__ = importlib.metadata.version("arlmet")
 __author__ = "James Mineau"
-__email__ = "jmineau@gmail.com"
+__email__ = "jameskmineau@gmail.com"
 
 __all__ = [
     "File",

@@ -476,7 +476,7 @@ class Grid:
 
             - lat-lon grids: 1-D ``"lon"`` ``(("lon",), ...)`` and ``"lat"``
               ``(("lat",), ...)``.
-            - projected grids: 1-D ``"x"``/``"y"`` in metres and 2-D
+            - projected grids: 1-D ``"x"``/``"y"`` in meters and 2-D
               ``"lon"``/``"lat"`` with dims ``("y", "x")``.
         """
         proj = self.projection

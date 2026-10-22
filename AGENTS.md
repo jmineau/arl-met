@@ -118,15 +118,15 @@ when it downloads, so it imports without the `archives` extra.
    `close()` or xarray's LRU cache closing them (`File.handle` reacquires). It
    gets bare "r"/"w" through `_open_binary`: xarray turns only "w" into "a" on
    reopen, so "wb" would truncate the output each time.
-9. **Outputs appear only when complete.** `extract_subset`, `write_dataset` and
-   archive downloads write a hidden `.partial` file and rename it on success
-   (`_io.atomic_output`), and the first two refuse an output that is their input.
+9. **Outputs appear only when complete.** `extract_subset`, `write_dataset`, `concat`
+   and archive downloads write a hidden `.partial` file and rename it on success
+   (`_io.atomic_output`), and the first three refuse an output that is their input.
 10. **Metadata types are immutable values**: `Projection`, `Grid`, `GridWindow`,
     `Header` and `IndexRecord` are frozen dataclasses, and `VerticalAxis` blocks
     assignment and keeps `levels` read-only. Hashing and `cached_property`
     (`Grid.crs`, `Grid.origin`) rely on this; build a new value instead.
 11. **The public API is explicit.** The three `__init__.py` files re-export it,
-    and modules define `__all__` (all but `ops/subset.py` and `ops/sample.py`).
+    and every module but `_io`, `_time` and `_entrypoint` defines `__all__`.
     Options after the obvious leading arguments are keyword-only, except that
     `unpack` keeps six positional arguments (the wheel smoke test in
     `publish.yml` calls it so).

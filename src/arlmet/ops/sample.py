@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from arlmet.record import DataRecord
     from arlmet.recordset import RecordSet
 
+__all__ = ["sample_points"]
 
 SURFACE_VARIABLES = {"PRSS", "SHGT"}
 
@@ -747,13 +748,13 @@ def _sample_variable(
     z_kind :
         ``'native'`` — target is a level index (fractional);
         ``'pressure'`` — target is pressure in hPa;
-        ``'agl'`` — target is metres above ground level;
-        ``'msl'`` — target is metres above mean sea level.
+        ``'agl'`` — target is meters above ground level;
+        ``'msl'`` — target is meters above mean sea level.
     surface_pressure :
         (n_points,) PRSS in hPa. Required for WRF (flag 5) when z_kind is
         'pressure', 'agl' or 'msl'.
     terrain :
-        (n_points,) SHGT in metres. Required for AGL sampling with non-terrain
+        (n_points,) SHGT in meters. Required for AGL sampling with non-terrain
         vertical axes, and for MSL sampling with terrain-following (flag=3) axes.
     column :
         The sigma/hybrid (flag 1/4) column of this time step, else None. On
@@ -866,13 +867,13 @@ def _sample_points_from_file(
           else converts from PRSS, as hybrid (flag 4) does; pressure (flag 2)
           uses the stored levels; terrain-following (flag 3) raises
           ``ValueError``; WRF (flag 5) uses PRES.
-        - ``'agl'``: metres above ground. Sigma/hybrid integrate
+        - ``'agl'``: meters above ground. Sigma/hybrid integrate
           hypsometrically from the ground (PRSS, T02M) through those
           pressures with the virtual temperature (TEMP and SPHU or RELH), as
           HYSPLIT's ``prfsig``/``prfecm`` do; WRF from PRSS through PRES with
           TEMP; pressure uses HGTS - SHGT (HGTS is required);
           terrain-following uses the stored levels.
-        - ``'msl'``: metres above mean sea level. Sigma/hybrid/WRF add SHGT to
+        - ``'msl'``: meters above mean sea level. Sigma/hybrid/WRF add SHGT to
           the hypsometric AGL height; pressure uses HGTS (required);
           terrain-following adds SHGT to the stored levels.
     method :

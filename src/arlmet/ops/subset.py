@@ -20,6 +20,8 @@ from arlmet.vertical import VerticalAxis
 if TYPE_CHECKING:
     from arlmet.recordset import RecordSet
 
+__all__ = ["extract_subset"]
+
 
 def normalize_levels(
     vertical_axis: VerticalAxis, levels: Iterable[int] | None
