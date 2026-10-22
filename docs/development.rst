@@ -140,7 +140,7 @@ Module layout
      vertical.py    VerticalAxis (abstract) and SigmaAxis, PressureAxis,
                     TerrainAxis, HybridAxis, WrfAxis
      packing.py     pack(), unpack(), calculate_checksum()
-     _pack.c        C extension arlmet._pack: the packing encoder (pack_core)
+     _pack.c        C extension arlmet._pack: pack_core, HYSPLIT's pakout
      exceptions.py  ARLFormatError, ARLFormatWarning
      _io.py         atomic_output(), reject_same_file(): safe output paths
      _time.py       ensure_timestamp()
