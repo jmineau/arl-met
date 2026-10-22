@@ -729,3 +729,65 @@ def test_rewritten_latlon_files_keep_hysplit_longitudes(tmp_path):
         assert _hysplit_x(path, salt_lake_city) == pytest.approx(x + 1.0), name
         # each cell holds its 0-360 longitude
         assert temp[0, round(x)] == pytest.approx(248.0), name
+
+
+@pytest.mark.parametrize(
+    ("sync_lon", "bbox"),
+    [(0.0, (-10, 40, 10, 60)), (-180.0, (170, -10, -170, 10))],
+)
+def test_extract_subset_across_the_seam_keeps_the_box(tmp_path, sync_lon, bbox):
+    """
+    A crop across a global grid's seam holds only the box's columns (#83).
+
+    It used to keep all 360 degrees. The crop is written as HYSPLIT's
+    xtrct_grid writes its header (sync_lon 350 or 170, pole_lon 20 cells on),
+    with each cell's value read from the source's column for it.
+    """
+    grid = Grid(
+        projection=Projection(
+            pole_lat=90.0,
+            pole_lon=sync_lon + 359.0,
+            tangent_lat=1.0,
+            tangent_lon=1.0,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=-90.0,
+            sync_lon=sync_lon,
+        ),
+        nx=360,
+        ny=181,
+    )
+    lons = sync_lon + np.arange(360.0)
+    wave = (200.0 + 100.0 * np.sin(np.radians(lons))).astype(np.float32)
+    source = tmp_path / "global.arl"
+    with File(
+        source,
+        mode="w",
+        source="GDAS",
+        grid=grid,
+        vertical_axis=PressureAxis(levels=[0.0, 1000.0]),
+    ) as arl:
+        rs = arl.create_recordset(pd.Timestamp("2024-07-18"))
+        rs.create_datarecord("SHGT", level=0, forecast=0, data=np.tile(wave, (181, 1)))
+        rs.create_datarecord("TEMP", level=1, forecast=0, data=np.tile(wave, (181, 1)))
+
+    crop = extract_subset(source, tmp_path / "crop.arl", bbox=bbox)
+    with File(crop) as arl:
+        assert (arl.grid.nx, arl.grid.ny) == (21, 21)
+        crop_lons = arl.grid.calculate_coords()["lon"][1]
+        temp = arl[0][(1, "TEMP")].read()
+    np.testing.assert_allclose(crop_lons, bbox[0] + np.arange(21.0))
+    want = 200.0 + 100.0 * np.sin(np.radians(crop_lons))
+    np.testing.assert_allclose(temp[0], want, atol=0.05)
+    sync, pole, _ = _stored_longitudes(crop)
+    assert (sync, pole) == ((350.0, 370.0) if sync_lon == 0.0 else (170.0, 190.0))
+    for lon in (bbox[0], bbox[2]):
+        x = float(open_dataset(crop).arl.grid.fractional_indices(lon, 50.0)[0])
+        assert _hysplit_x(crop, lon) == pytest.approx(x + 1.0)
+
+    ds = open_dataset(source, bbox=bbox)
+    assert ds.sizes["lon"] == 21
+    np.testing.assert_allclose(ds["TEMP"].isel(time=0, level=0, lat=0), want, atol=0.05)
