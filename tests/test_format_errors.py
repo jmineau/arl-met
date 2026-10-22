@@ -364,7 +364,8 @@ class TestIndexLongitudeWrap:
             assert projection.sync_y == 530.0
             assert arl.grid == grid
 
-    def test_longitudes_in_0_360_are_wrapped(self, tmp_path):
+    def test_longitudes_above_180_are_kept_as_stored(self, tmp_path):
+        """Longitudes are read raw and place the grid as wrapped ones (#82)."""
         path = tmp_path / "lon360.arl"
         write_two_step_file(
             path, grid=self._projected_grid(tangent_lon=262.5, sync_lon=237.28)
@@ -372,6 +373,13 @@ class TestIndexLongitudeWrap:
 
         with File(path) as arl:
             projection = arl.grid.projection
-            assert projection.tangent_lon == pytest.approx(-97.5)
-            assert projection.sync_lon == pytest.approx(-122.72)
+            assert projection.tangent_lon == 262.5
+            assert projection.sync_lon == 237.28
             assert projection.sync_x == 900.5
+            coords = arl.grid.calculate_coords()
+        wrapped = self._projected_grid(tangent_lon=-97.5, sync_lon=-122.72)
+        expected = wrapped.calculate_coords()
+        for name in ("lon", "lat"):
+            np.testing.assert_allclose(
+                coords[name][1], expected[name][1], rtol=0, atol=1e-9
+            )
