@@ -83,9 +83,9 @@ def reference_unpack(record: bytes, *, nx: int = NX, ny: int = NY) -> np.ndarray
 
     Each cell is its left neighbor plus ``(byte - 127) * 2**(exponent - 7)``;
     column 0 continues from the cell above, row 0 from the header's initial
-    value. A value smaller than the precision becomes 0, in column 0 too, as
-    ``arlmet.unpack`` has it; ``pakinp`` leaves column 0 alone, which changes
-    a cell by less than the precision.
+    value. A value smaller than the precision becomes 0, except in column 0,
+    which ``pakinp`` leaves as it is. (In double precision, so it agrees with
+    ``arlmet.unpack`` to rounding, not bit for bit.)
     """
     header = Header.from_bytes(record[: Header.N_BYTES])
     payload = record[Header.N_BYTES :]
@@ -100,7 +100,8 @@ def reference_unpack(record: bytes, *, nx: int = NX, ny: int = NY) -> np.ndarray
         for i in range(1, nx):
             value += (payload[j * nx + i] - 127) * scale
             field[j, i] = value
-    field[np.abs(field) < header.precision] = 0.0
+    rest = field[:, 1:]
+    rest[np.abs(rest) < header.precision] = 0.0
     return field
 
 

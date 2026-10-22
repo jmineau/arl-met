@@ -156,6 +156,13 @@ The packing process::
        ↓                    ↓                  ↓              ↓
    [Real Array]    [Δ from neighbors]    [Scale to 0-255]  [1 byte/point]
 
+Reading a record reverses this: the first column is rebuilt down the rows from
+the header's initial value, then each row across from its first cell, adding
+one difference at a time in single precision. A value smaller in magnitude than
+the record's precision (``2**exponent / 254``) is read as zero, except in the
+first column, which HYSPLIT's ``pakinp`` leaves as it is. :func:`arlmet.unpack`
+follows ``pakinp`` step for step and gives the same ``float32`` values.
+
 Malformed files
 ~~~~~~~~~~~~~~~
 
