@@ -165,6 +165,18 @@ def _build_dataset_from_file(
     return ds
 
 
+def _read_slice(
+    transposed: xr.DataArray, time_index: int, slot: int | None
+) -> np.ndarray:
+    """Read one 2D slice of a variable as float32 (``slot`` on ``level``)."""
+    selected = (
+        transposed.isel(time=time_index)
+        if slot is None
+        else transposed.isel(time=time_index, level=slot)
+    )
+    return np.asarray(selected.values, dtype=np.float32)
+
+
 def open_dataset(
     filename_or_obj: str | os.PathLike[str],
     *,
@@ -179,8 +191,8 @@ def open_dataset(
     ``(time, lat, lon)`` with no ``level`` dimension. Upper-air variables
     (e.g. ``UWND``, ``VWND``, ``TEMP``) have dimensions
     ``(time, level, lat, lon)``. An upper-air variable stored on only some
-    levels (or times) is NaN where the file has no record for it;
-    :func:`write_dataset` writes no record for such all-NaN slices.
+    levels (or times) is NaN where the file has no record for it, and so is a
+    record flagged missing.
 
     The ``level`` coordinate holds the file's ARL level indices (surface is 0,
     so upper-air levels start at 1). With ``levels=`` the kept levels keep their
@@ -249,13 +261,18 @@ def write_dataset(
     Upper-air levels are written in ``level`` coordinate order and renumbered
     ``1..N`` (surface is 0), so a Dataset holding a subset of a file's levels
     (e.g. from ``open_dataset(levels=...)`` or ``ds.sel(level=...)``) is
-    written as a compact file, like :func:`arlmet.extract_subset` does. A
-    slice that is entirely NaN is taken to be absent from the file (as
-    :func:`open_dataset` represents it) and no record is written for it. A
-    record flagged missing in the source file also reads as an all-NaN slice,
-    so it is left out too, and that time step then has fewer records than the
-    others (:meth:`arlmet.File.check` reports it); :func:`arlmet.extract_subset`
-    keeps such a record, flagged missing.
+    written as a compact file, like :func:`arlmet.extract_subset` does.
+
+    Every (variable, level) that holds data at some time step is written at
+    every time step, so each time step has the same records. Where its slice
+    at a time step is entirely NaN (as a record flagged missing in the source
+    file reads), the record is written flagged missing, as HYSPLIT's writer
+    leaves a record it never fills (``pakini.f``: forecast hour -1, no values),
+    and HYSPLIT skips it. A (variable, level) that is NaN at every time step
+    gets no record: that is how :func:`open_dataset` represents a variable
+    stored on only some levels. Finding which slices hold data takes one pass
+    over the values before anything is written, so a lazy Dataset (as
+    :func:`open_dataset` returns) reads each slice twice.
 
     The ``forecast_hour(time)`` coordinate gives each time step's index-record
     forecast hour, and every record of that time step is written with it (0
@@ -352,6 +369,87 @@ def write_dataset(
             )
         diff_names[str(name)] = diff_name
 
+    # Check each variable and list its slots: (position on the ``level``
+    # dimension, ARL level index), or (None, 0) for a surface variable.
+    variables: list[tuple[str, xr.DataArray, list[tuple[int | None, int]]]] = []
+    for var_name in data_vars:
+        var_name = str(var_name)
+        if len(var_name) > 4:
+            raise ValueError(
+                f"Variable names must be 4 characters or fewer, got '{var_name}'."
+            )
+        if var_name.startswith("DIF"):
+            raise ValueError(
+                "Dataset DIF generation is parent-led; set attrs['diff'] on the parent variable instead of writing a DIF* data variable."
+            )
+
+        da = ds[var_name]
+        for dim, size in zip(h_dims, (grid.ny, grid.nx), strict=True):
+            if dim not in da.dims:
+                raise ValueError(
+                    f"Variable '{var_name}' is missing horizontal dimension '{dim}'."
+                )
+            if da.sizes[dim] != size:
+                raise ValueError(
+                    f"Variable '{var_name}' dimension '{dim}' has size {da.sizes[dim]}, expected {size}."
+                )
+
+        if "time" not in da.dims:
+            raise ValueError(
+                f"Variable '{var_name}' data must include the 'time' dimension."
+            )
+        data_times = pd.to_datetime(da.coords["time"].values)
+        if not data_times.equals(times):
+            raise ValueError(
+                f"Variable '{var_name}' time coordinate must align exactly with the dataset time coordinate."
+            )
+
+        if "level" in da.dims:
+            if "level" not in ds.coords:
+                raise ValueError(
+                    f"Variable '{var_name}' uses a 'level' dimension but the dataset has no shared level coordinate."
+                )
+            transposed = da.transpose("time", "level", *h_dims, missing_dims="raise")
+            # Renumber upper-air levels 1..N in coordinate order.
+            slots: list[tuple[int | None, int]] = [
+                (slot, slot + 1) for slot in range(ds.sizes["level"])
+            ]
+        else:
+            transposed = da.transpose("time", *h_dims, missing_dims="raise")
+            slots = [(None, 0)]
+        variables.append((var_name, transposed, slots))
+
+    # First pass: a (variable, level) that holds data at any time step is a
+    # slot at every time step. Each slice is read and checked here, so a
+    # partly-NaN slice raises before the output file is opened.
+    occupied: dict[str, list[tuple[int | None, int]]] = {}
+    for var_name, transposed, slots in variables:
+        has_data = [False] * len(slots)
+        for time_index, time in enumerate(times):
+            for i, (slot, level_index) in enumerate(slots):
+                data = _read_slice(transposed, time_index, slot)
+                if data.shape != (grid.ny, grid.nx):
+                    raise ValueError(
+                        f"Variable '{var_name}' slice has shape {data.shape}, expected {(grid.ny, grid.nx)}."
+                    )
+                nan_mask = np.isnan(data)
+                if nan_mask.all():
+                    continue
+                if nan_mask.any():
+                    raise ValueError(
+                        f"Variable '{var_name}' contains missing values at time {pd.Timestamp(time)} "
+                        f"level {level_index}; write_dataset() requires each slice to be "
+                        "complete or entirely NaN."
+                    )
+                if not np.isfinite(data).all():
+                    raise ValueError(
+                        f"Variable '{var_name}' contains non-finite values that cannot be packed."
+                    )
+                has_data[i] = True
+        occupied[var_name] = [
+            slot for slot, keep in zip(slots, has_data, strict=True) if keep
+        ]
+
     with (
         atomic_output(filename_or_obj) as tmp_path,
         File(
@@ -368,88 +466,15 @@ def write_dataset(
                 forecast=forecast_hours[time_index],
             )
 
-            for var_name in data_vars:
-                var_name = str(var_name)
-                if len(var_name) > 4:
-                    raise ValueError(
-                        f"Variable names must be 4 characters or fewer, got '{var_name}'."
-                    )
-                if var_name.startswith("DIF"):
-                    raise ValueError(
-                        "Dataset DIF generation is parent-led; set attrs['diff'] on the parent variable instead of writing a DIF* data variable."
-                    )
-
-                da = ds[var_name]
-                for dim, size in zip(h_dims, (grid.ny, grid.nx), strict=True):
-                    if dim not in da.dims:
-                        raise ValueError(
-                            f"Variable '{var_name}' is missing horizontal dimension '{dim}'."
-                        )
-                    if da.sizes[dim] != size:
-                        raise ValueError(
-                            f"Variable '{var_name}' dimension '{dim}' has size {da.sizes[dim]}, expected {size}."
-                        )
-
-                if "time" not in da.dims:
-                    raise ValueError(
-                        f"Variable '{var_name}' data must include the 'time' dimension."
-                    )
-                data_times = pd.to_datetime(da.coords["time"].values)
-                if not data_times.equals(times):
-                    raise ValueError(
-                        f"Variable '{var_name}' time coordinate must align exactly with the dataset time coordinate."
-                    )
-
-                if "level" in da.dims:
-                    if "level" not in ds.coords:
-                        raise ValueError(
-                            f"Variable '{var_name}' uses a 'level' dimension but the dataset has no shared level coordinate."
-                        )
-                    transposed = da.transpose(
-                        "time", "level", *h_dims, missing_dims="raise"
-                    )
-                    # Renumber upper-air levels 1..N in coordinate order.
-                    write_iter = [(slot, slot + 1) for slot in range(ds.sizes["level"])]
-                else:
-                    transposed = da.transpose("time", *h_dims, missing_dims="raise")
-                    write_iter = [(None, 0)]
-
-                for slot, level_index in write_iter:
-                    if slot is None:
-                        data = np.asarray(
-                            transposed.isel(time=time_index).values,
-                            dtype=np.float32,
-                        )
-                    else:
-                        data = np.asarray(
-                            transposed.isel(time=time_index, level=slot).values,
-                            dtype=np.float32,
-                        )
-
-                    if data.shape != (grid.ny, grid.nx):
-                        raise ValueError(
-                            f"Variable '{var_name}' slice has shape {data.shape}, expected {(grid.ny, grid.nx)}."
-                        )
-                    nan_mask = np.isnan(data)
-                    if nan_mask.all():
-                        # open_dataset NaN-fills levels/times with no record.
-                        continue
-                    if nan_mask.any():
-                        raise ValueError(
-                            f"Variable '{var_name}' contains missing values at time {pd.Timestamp(time)} "
-                            f"level {level_index}; write_dataset() requires each slice to be "
-                            "complete or entirely NaN (no record)."
-                        )
-                    if not np.isfinite(data).all():
-                        raise ValueError(
-                            f"Variable '{var_name}' contains non-finite values that cannot be packed."
-                        )
-
+            for var_name, transposed, _slots in variables:
+                for slot, level_index in occupied[var_name]:
+                    # An all-NaN slice in an occupied slot is written as a
+                    # record flagged missing (forecast hour -1, as pakini.f).
                     recordset.create_datarecord(
                         variable=var_name,
                         level=int(level_index),
                         forecast=forecast_hours[time_index],
-                        data=data,
+                        data=_read_slice(transposed, time_index, slot),
                         diff=diff_names.get(var_name),
                     )
 

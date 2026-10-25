@@ -10,6 +10,8 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Breaking:** `forecast_hour` in the Dataset from `open_dataset` moved from `data_vars` to `coords`: it is a `forecast_hour(time)` coordinate, each time step's index-record forecast hour, so it no longer shows up among the variables and it survives arithmetic (`ds + 1`). `write_dataset` reads it from the coordinates and writes it into the index record and every data record of that time step; a Dataset that holds it as a data variable (saved by an earlier version) raises `ValueError` (`ds.set_coords("forecast_hour")` converts it). A data record's own forecast hour, which can differ from its index record's, is still not represented in the Dataset: HYSPLIT reads a data record's forecast hour only as the missing flag, and the hour it uses is the index record's. `DataRecord.forecast` reads it, and `File` writes it (#40)
 
+- `write_dataset` gives every time step the same records: a (variable, level) that holds data at any time step is written at every time step, and where its slice is entirely NaN (as a record flagged missing in the source reads) it is written as a record flagged missing, as HYSPLIT's `pakini.f` writes one (forecast hour -1, no values, checksum 0), which HYSPLIT skips. It used to write no record for any all-NaN slice, so `write_dataset(open_dataset(...))` of a file with a missing record dropped it, and that time step had fewer records than the others. A (variable, level) that is NaN at every time step still gets no record. Finding which slices hold data takes one pass over the values before writing, so a lazy Dataset reads each slice twice (#98)
+
 ## [0.1.0b4] - 2026-10-22
 
 ### Added

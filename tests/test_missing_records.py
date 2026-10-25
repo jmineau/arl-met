@@ -282,16 +282,90 @@ class TestWrite:
         want = 200.0 + 100.0 * np.sin(np.radians(np.arange(-10.0, 11.0)))
         np.testing.assert_allclose(shgt[0], want, atol=0.05)
 
-    def test_dataset_round_trip_leaves_a_missing_record_out(
+    def test_dataset_round_trip_keeps_a_missing_record_missing(
         self, missing_file, tmp_path
     ):
-        # A missing record reads as an all-NaN slice, which write_dataset takes
-        # to be no record, as for any all-NaN slice; check() then says so.
+        # A missing record reads as an all-NaN slice. TEMP at level 1 holds
+        # data at 00:00, so it is a slot at every time step, and its all-NaN
+        # slice at 01:00 is written as a missing record, the bytes pakini.f
+        # leaves (the source's own missing record).
         dest = tmp_path / "round.arl"
         with open_dataset(missing_file) as ds:
             arlmet.write_dataset(ds, dest)
         with File(dest) as arl:
-            assert (1, "TEMP") not in arl[TIMES[1]]
+            rs = arl[TIMES[1]]
+            assert rs.forecast == 0
+            record = rs[(1, "TEMP")]
+            assert record.forecast == -1
+            assert record.checksum == 0
+            assert np.isnan(record.read()).all()
+            assert [r.variable for r in rs.records] == ["PRSS", "TEMP"]
             assert arl.check() == [
-                "2024-07-18 01:00 has 1 of the 2 data records the first time step has."
+                "2024-07-18 01:00: the TEMP record at level 1 "
+                f"(byte {SECOND_TEMP}) is flagged missing (forecast hour -1). "
+                "HYSPLIT skips it, and arlmet reads it as NaN."
             ]
+        raw_source = missing_file.read_bytes()
+        raw_dest = dest.read_bytes()
+        assert (
+            raw_dest[SECOND_TEMP : SECOND_TEMP + RECORD_LENGTH]
+            == raw_source[SECOND_TEMP : SECOND_TEMP + RECORD_LENGTH]
+        )
+        with open_dataset(dest) as ds:
+            temp = ds["TEMP"].load()
+        assert not np.isnan(temp.isel(time=0)).any()
+        assert np.isnan(temp.isel(time=1)).all()
+
+    def test_write_dataset_writes_an_all_nan_slice_of_a_slot_as_missing(self, tmp_path):
+        # A Dataset edited in memory: PRSS has no data at 00:00 and TEMP none
+        # at 01:00. Both hold data at some time, so each time step gets both
+        # records, the all-NaN one flagged missing.
+        source = write_file(tmp_path / "source.arl")
+        dest = tmp_path / "edited.arl"
+        ds = open_dataset(source).load()
+        ds["PRSS"][0] = np.nan
+        ds["TEMP"][1] = np.nan
+        arlmet.write_dataset(ds, dest)
+        with File(dest) as arl:
+            assert arl[TIMES[0]][(0, "PRSS")].forecast == -1
+            assert arl[TIMES[0]][(1, "TEMP")].forecast == 0
+            assert arl[TIMES[1]][(0, "PRSS")].forecast == 0
+            assert arl[TIMES[1]][(1, "TEMP")].forecast == -1
+            assert len(arl.check()) == 2
+        reopened = open_dataset(dest).load()
+        np.testing.assert_array_equal(
+            np.isnan(reopened["PRSS"]).all(dim=("lat", "lon")), [True, False]
+        )
+        np.testing.assert_array_equal(
+            np.isnan(reopened["TEMP"]).all(dim=("lat", "lon", "level")),
+            [False, True],
+        )
+
+    def test_write_dataset_gives_a_level_nan_at_every_time_no_slot(self, tmp_path):
+        # TEMP is NaN at level 2 at every time step (as open_dataset reads a
+        # variable stored on only some levels), so level 2 has no TEMP record.
+        source = tmp_path / "source.arl"
+        with File(
+            source,
+            mode="w",
+            source="TEST",
+            grid=make_grid(),
+            vertical_axis=PressureAxis(levels=[0.0, 1000.0, 900.0]),
+        ) as arl:
+            for time in TIMES:
+                rs = arl.create_recordset(time, forecast=0)
+                rs.create_datarecord("TEMP", level=1, forecast=0, data=field(290.0))
+                rs.create_datarecord("RELH", level=1, forecast=0, data=field(50.0))
+                rs.create_datarecord("RELH", level=2, forecast=0, data=field(40.0))
+        dest = tmp_path / "round.arl"
+        with open_dataset(source) as ds:
+            assert np.isnan(ds["TEMP"].isel(level=1)).all()
+            arlmet.write_dataset(ds, dest)
+        with File(dest) as arl:
+            for time in TIMES:
+                assert sorted((r.level, r.variable) for r in arl[time].records) == [
+                    (1, "RELH"),
+                    (1, "TEMP"),
+                    (2, "RELH"),
+                ]
+            assert arl.check() == []

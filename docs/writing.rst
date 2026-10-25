@@ -88,9 +88,15 @@ Write constraints
 
 - ``forecast_hour`` must be a coordinate with dims ``("time",)`` when present
 - variable names must be 4 characters or fewer
-- each 2D slice must be finite, or entirely NaN; an all-NaN slice is written
-  as no record (this is how :func:`arlmet.open_dataset` represents a variable
-  missing from some levels or times), while a partly-NaN slice raises
+- each 2D slice must be finite, or entirely NaN, while a partly-NaN slice
+  raises. A (variable, level) that holds data at some time step is written at
+  every time step, and where its slice is entirely NaN (as a record flagged
+  missing reads) the record is written flagged missing, as HYSPLIT's writer
+  leaves a record it never fills (forecast hour -1); a (variable, level) that
+  is NaN at every time step gets no record (this is how
+  :func:`arlmet.open_dataset` represents a variable stored on only some
+  levels). Finding which slices hold data takes one pass over the values
+  before writing, so a lazy Dataset reads each slice twice
 - upper-air levels are written in ``level`` coordinate order and renumbered
   ``1..N``, so a Dataset holding a subset of a file's levels (from
   ``open_dataset(levels=...)`` or ``ds.sel(level=...)``) is written as a
