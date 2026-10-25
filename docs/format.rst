@@ -199,7 +199,10 @@ is flagged missing. HYSPLIT's writer starts every record of a time step that
 way (``pakini.f``: forecast hour -1, no precision, exponent or first value, the
 packed values spaces) before a converter fills it, so a field the converter
 never writes stays flagged. HYSPLIT's reader (``metinp.f``) skips such a record
-with a warning, and stops when a time step has more than 20.
+with a warning, and stops when a time step has more than 20. This is the only
+use HYSPLIT makes of a data record's forecast hour: the forecast hour it carries
+is the index record's, which is why :func:`arlmet.open_dataset` keeps only that
+one, as the ``forecast_hour`` coordinate.
 
 arl-met reads a missing record as NaN, through :meth:`arlmet.DataRecord.read`,
 :func:`arlmet.open_dataset` and :func:`arlmet.sample_points`; a missing
@@ -207,8 +210,10 @@ arl-met reads a missing record as NaN, through :meth:`arlmet.DataRecord.read`,
 :meth:`arlmet.File.check` lists missing records. A field that is NaN
 everywhere is written as a missing record, as ``pakini.f`` leaves one, so
 :func:`arlmet.extract_subset` keeps a missing record missing.
-:func:`arlmet.write_dataset` writes no record for an all-NaN slice, a missing
-one included.
+:func:`arlmet.write_dataset` writes an all-NaN slice as a missing record when
+that variable and level hold data at another time step, so it keeps a missing
+record missing too; a variable and level that are NaN at every time step get no
+record.
 
 Checksums
 ~~~~~~~~~
