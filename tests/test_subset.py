@@ -297,7 +297,8 @@ def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
         source_prss = original[0][(0, "PRSS")].read(window=source_window)
         source_uwnd = original[0][(2, "UWND")].read(window=source_window)
 
-    assert set(ds.data_vars) == {"PRSS", "UWND", "forecast_hour"}
+    assert set(ds.data_vars) == {"PRSS", "UWND"}
+    assert "forecast_hour" in ds.coords
     np.testing.assert_array_equal(ds["forecast_hour"].values, [0, 3])
     assert ds.sizes["time"] == 2
     # PRSS is sfc (no level dim); UWND is the only upper var → level size 1

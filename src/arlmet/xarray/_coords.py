@@ -186,7 +186,12 @@ def _extract_dataset_forecast_hours(
     ds: xr.Dataset, times: pd.DatetimeIndex
 ) -> list[int]:
     """Return one index-record forecast hour per dataset time step."""
-    if "forecast_hour" not in ds.data_vars:
+    if "forecast_hour" in ds.data_vars:
+        raise ValueError(
+            "Dataset 'forecast_hour' is a data variable; it must be a coordinate "
+            "(open_dataset() returns it as one). Use ds.set_coords('forecast_hour')."
+        )
+    if "forecast_hour" not in ds.coords:
         return [0] * len(times)
 
     forecast = ds["forecast_hour"]

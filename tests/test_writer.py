@@ -168,6 +168,9 @@ class TestWriter:
         assert ds.attrs["source"] == "TEST"
         assert ds.arl.vertical_axis.flag == 2
         assert ds.arl.vertical_axis.levels.tolist() == [0.0, 1000.0]
+        assert "forecast_hour" in ds.coords
+        assert "forecast_hour" not in ds.data_vars
+        assert ds["forecast_hour"].dims == ("time",)
         np.testing.assert_array_equal(ds["forecast_hour"].values, [0, 3])
         assert (
             ds["forecast_hour"].attrs["long_name"] == "ARL index record forecast hour"
@@ -203,6 +206,60 @@ class TestWriter:
         np.testing.assert_array_equal(ds["forecast_hour"].values, [0])
         assert ds.sizes["time"] == 1
         assert ds.sizes["level"] == 1
+
+    def test_write_dataset_writes_the_index_forecast_hour_into_every_record(
+        self, tmp_path
+    ):
+        """
+        A round trip writes the time step's forecast hour into every record.
+
+        The Dataset keeps only the index record's hour, so TEMP's own hour (3)
+        becomes the index record's (0).
+        """
+        path = tmp_path / "mixed_forecast.arl"
+        written_path = tmp_path / "written.arl"
+        grid = make_test_grid()
+        vertical_axis = PressureAxis(levels=[0.0, 1000.0])
+        data = np.ones((grid.ny, grid.nx), dtype=np.float32)
+
+        with File(
+            path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+        ) as arl:
+            rs = arl.create_recordset(pd.Timestamp("2025-09-01 00:00"), forecast=0)
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=data)
+            rs.create_datarecord("TEMP", level=1, forecast=3, data=data)
+
+        write_dataset(open_dataset(path), written_path)
+
+        with File(written_path) as reopened:
+            rs = reopened[0]
+            assert rs.forecast == 0
+            assert [record.forecast for record in rs.records] == [0, 0]
+
+    def test_forecast_hour_coordinate_survives_arithmetic(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path)
+        shifted = ds + 1.0
+
+        np.testing.assert_array_equal(shifted["forecast_hour"].values, [0, 3])
+        write_dataset(shifted, written_path)
+        with File(written_path) as reopened:
+            assert [reopened[time].forecast for time in reopened.times] == [0, 3]
+
+    def test_write_dataset_rejects_forecast_hour_as_a_data_variable(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path).reset_coords("forecast_hour")
+        assert "forecast_hour" in ds.data_vars
+
+        with pytest.raises(ValueError, match="set_coords"):
+            write_dataset(ds, written_path)
+        assert not written_path.exists()
 
     def test_write_dataset_roundtrips_simple_dataset(self, tmp_path):
         source_path = tmp_path / "source.arl"
