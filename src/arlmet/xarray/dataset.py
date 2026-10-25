@@ -103,18 +103,20 @@ def _build_dataset_from_file(
                 "time", times, attrs={"standard_name": "time", "axis": "T"}
             )
         )
-        ds["forecast_hour"] = xr.Variable(
-            "time",
-            [int(value) for value in index_forecasts],
-            attrs={
-                "long_name": "ARL index record forecast hour",
-                "description": (
-                    "Forecast hour stored in the INDX record for each time step. "
-                    "Individual variable record forecasts may differ and are not represented "
-                    "in this Dataset API."
-                ),
-                "units": "hours",
-            },
+        ds = ds.assign_coords(
+            forecast_hour=xr.Variable(
+                "time",
+                [int(value) for value in index_forecasts],
+                attrs={
+                    "long_name": "ARL index record forecast hour",
+                    "description": (
+                        "Forecast hour stored in the INDX record for each time step. "
+                        "Individual variable record forecasts may differ and are not "
+                        "represented in this Dataset; arlmet.File reads them."
+                    ),
+                    "units": "hours",
+                },
+            )
         )
 
     shape = (len(times), len(selected_levels), selected_grid.ny, selected_grid.nx)
@@ -184,6 +186,14 @@ def open_dataset(
     so upper-air levels start at 1). With ``levels=`` the kept levels keep their
     original indices, which may therefore have gaps.
 
+    The ``forecast_hour(time)`` coordinate holds each time step's forecast
+    hour, the one its index record stores. A data record's own forecast hour
+    can differ (an accumulated field taken from a 6-hour forecast may say 6
+    where the index record says 0), but it is not represented here: HYSPLIT
+    reads a data record's forecast hour only as the missing flag, and the hour
+    it uses is the index record's. :attr:`arlmet.DataRecord.forecast` reads a
+    record's own hour.
+
     ARL metadata is accessible via the ``.arl`` accessor::
 
         ds = arlmet.open_dataset("met.arl")
@@ -247,9 +257,13 @@ def write_dataset(
     others (:meth:`arlmet.File.check` reports it); :func:`arlmet.extract_subset`
     keeps such a record, flagged missing.
 
-    Per-variable forecast heterogeneity is intentionally not represented in the
-    flat Dataset API. ``forecast_hour(time)`` supplies only the ARL index-record
-    forecast written for each time step.
+    The ``forecast_hour(time)`` coordinate gives each time step's index-record
+    forecast hour, and every record of that time step is written with it (0
+    when the coordinate is absent). A file whose records carry their own
+    forecast hours is rewritten with the time step's hour in each; HYSPLIT
+    reads a data record's forecast hour only as the missing flag, so this does
+    not change what it reads. To write per-record hours, use
+    :meth:`arlmet.RecordSet.create_datarecord`.
 
     A variable whose ``attrs["diff"]`` names a ``DIF*`` record is written with
     that DIF record after it on each level (see
@@ -318,7 +332,7 @@ def write_dataset(
         )
     forecast_hours = _extract_dataset_forecast_hours(ds, times)
 
-    data_vars = [name for name in ds.data_vars if name != "forecast_hour"]
+    data_vars = list(ds.data_vars)
     if not data_vars:
         raise ValueError("Dataset contains no data variables to write.")
 

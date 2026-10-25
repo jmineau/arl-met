@@ -104,8 +104,10 @@ when it downloads, so it imports without the `archives` extra.
    `NINT` (reference: `test_grid.py`). A bbox is `(west, south, east, north)` in degrees.
 5. **`write_dataset` handles the common case only:** the flat Dataset that
    `open_dataset` returns, with DIF records written from `attrs["diff"] =
-   "DIF..."` on the parent. Per-variable forecast hours and other irregular
-   layouts use `File`.
+   "DIF..."` on the parent. The `forecast_hour(time)` coordinate is the index
+   record's hour and is written into every record (HYSPLIT reads a data
+   record's hour only as the missing flag); per-record forecast hours and other
+   irregular layouts use `File`.
 6. **No backward compatibility.** When a metadata representation changes, change
    every read and write path together; no code that accepts old attrs or formats.
 7. **Writers stream one time step at a time, and reads do not cache.**

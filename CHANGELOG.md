@@ -6,6 +6,10 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `forecast_hour` in the Dataset from `open_dataset` moved from `data_vars` to `coords`: it is a `forecast_hour(time)` coordinate, each time step's index-record forecast hour, so it no longer shows up among the variables and it survives arithmetic (`ds + 1`). `write_dataset` reads it from the coordinates and writes it into the index record and every data record of that time step; a Dataset that holds it as a data variable (saved by an earlier version) raises `ValueError` (`ds.set_coords("forecast_hour")` converts it). A data record's own forecast hour, which can differ from its index record's, is still not represented in the Dataset: HYSPLIT reads a data record's forecast hour only as the missing flag, and the hour it uses is the index record's. `DataRecord.forecast` reads it, and `File` writes it (#40)
+
 ## [0.1.0b4] - 2026-10-22
 
 ### Added

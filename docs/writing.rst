@@ -6,7 +6,7 @@ arl-met has two supported authoring paths:
 - :func:`arlmet.open_dataset` / :func:`arlmet.write_dataset` for the common
   case where surface variables have no ``level`` dimension and upper-air
   variables share one ``level`` coordinate.
-- :class:`arlmet.File` for exact low-level control, including per-variable
+- :class:`arlmet.File` for exact low-level control, including per-record
   forecast hours and other irregular layouts.
 
 .. note::
@@ -59,21 +59,34 @@ Dataset write contract
 
 - ``time`` and ``arl_grid`` must be present
 - ``source`` must be in ``ds.attrs``
-- ``forecast_hour(time)`` is the ARL index-record forecast hour
+- ``forecast_hour(time)``, a coordinate, is the ARL index-record forecast hour
+  (0 when absent)
 - surface variables use dims ``(time, lat, lon)`` or ``(time, y, x)``
 - upper-air variables use dims ``(time, level, lat, lon)`` or
   ``(time, level, y, x)``
 - all upper-air variables must share the Dataset ``level`` coordinate
 
-The ``forecast_hour`` data variable is intentionally limited in scope. Its attrs
-clarify that it stores the forecast hour written to the ARL index record for
-each time step. Individual variable record forecasts may differ and are not
-represented in the Dataset API.
+The ``forecast_hour`` coordinate holds one forecast hour per time step, the one
+the ARL index record stores, and :func:`arlmet.write_dataset` writes it into the
+index record and into every data record of that time step. A data record's own
+forecast hour can differ from its index record's (an accumulated field taken from
+a 6-hour forecast may say 6 where the index says 0); that is a fact about the
+file's records, read with :attr:`arlmet.DataRecord.forecast`, and the Dataset
+does not represent it. HYSPLIT reads a data record's forecast hour only as the
+missing flag (a negative hour marks the record missing); the forecast hour it
+uses is the index record's. So a round trip through a Dataset changes no value
+HYSPLIT reads, and a file that must keep per-record hours is written with
+:class:`arlmet.File` (below).
+
+.. ipython:: python
+
+   ds = arlmet.open_dataset("met.arl")
+   ds["forecast_hour"]
 
 Write constraints
 -----------------
 
-- ``forecast_hour`` must have dims ``("time",)`` when present
+- ``forecast_hour`` must be a coordinate with dims ``("time",)`` when present
 - variable names must be 4 characters or fewer
 - each 2D slice must be finite, or entirely NaN; an all-NaN slice is written
   as no record (this is how :func:`arlmet.open_dataset` represents a variable

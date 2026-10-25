@@ -132,7 +132,8 @@ When levels are selected, the output file is renumbered from zero upward while
 preserving the original level values in the vertical axis metadata.
 
 When variables are selected, only those variables are written into each output
-time step. Forecast hours from the source index records are preserved.
+time step. Forecast hours are preserved, the index records' and each data
+record's own.
 
 A crop of a projected grid keeps the source's sync point, the latitude and
 longitude the index record ties to one grid point, and moves only that grid
