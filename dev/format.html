@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=88e83e0f"></script>
+    <script src="_static/documentation_options.js?v=136b8e6f"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Checking Files" href="checking.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev1+g343d633be" />
+  <meta name="docsearch:version" content="0.1.0b5.dev3+g98c9578fd" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -637,15 +637,20 @@ is flagged missing. HYSPLIT’s writer starts every record of a time step that
 way (<code class="docutils literal notranslate"><span class="pre">pakini.f</span></code>: forecast hour -1, no precision, exponent or first value, the
 packed values spaces) before a converter fills it, so a field the converter
 never writes stays flagged. HYSPLIT’s reader (<code class="docutils literal notranslate"><span class="pre">metinp.f</span></code>) skips such a record
-with a warning, and stops when a time step has more than 20.</p>
+with a warning, and stops when a time step has more than 20. This is the only
+use HYSPLIT makes of a data record’s forecast hour: the forecast hour it carries
+is the index record’s, which is why <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a> keeps only that
+one, as the <code class="docutils literal notranslate"><span class="pre">forecast_hour</span></code> coordinate.</p>
 <p>arl-met reads a missing record as NaN, through <a class="reference internal" href="_autosummary/arlmet.DataRecord.read.html#arlmet.DataRecord.read" title="arlmet.DataRecord.read"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.DataRecord.read()</span></code></a>,
 <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a> and <a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a>; a missing
 <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> record adds nothing to its parent, as in HYSPLIT.
 <a class="reference internal" href="_autosummary/arlmet.File.check.html#arlmet.File.check" title="arlmet.File.check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.File.check()</span></code></a> lists missing records. A field that is NaN
 everywhere is written as a missing record, as <code class="docutils literal notranslate"><span class="pre">pakini.f</span></code> leaves one, so
 <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a> keeps a missing record missing.
-<a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> writes no record for an all-NaN slice, a missing
-one included.</p>
+<a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> writes an all-NaN slice as a missing record when
+that variable and level hold data at another time step, so it keeps a missing
+record missing too; a variable and level that are NaN at every time step get no
+record.</p>
 </section>
 <section id="checksums">
 <h3>Checksums<a class="headerlink" href="#checksums" title="Link to this heading">#</a></h3>

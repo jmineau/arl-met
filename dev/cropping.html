@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=88e83e0f"></script>
+    <script src="_static/documentation_options.js?v=136b8e6f"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Downloading Archived Meteorology" href="downloading.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev1+g343d633be" />
+  <meta name="docsearch:version" content="0.1.0b5.dev3+g98c9578fd" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -548,7 +548,7 @@ raises <code class="docutils literal notranslate"><span class="pre">ValueError</
 <span class="gh">Out[12]: </span><span class="go">PosixPath(&#39;subset.arl&#39;)</span>
 
 <span class="gp">In [13]: </span><span class="nb">list</span><span class="p">(</span><span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;subset.arl&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
-<span class="gh">Out[13]: </span><span class="go">[&#39;forecast_hour&#39;, &#39;TEMP&#39;, &#39;UWND&#39;, &#39;VWND&#39;]</span>
+<span class="gh">Out[13]: </span><span class="go">[&#39;TEMP&#39;, &#39;UWND&#39;, &#39;VWND&#39;]</span>
 </pre></div>
 </div>
 <p>Without a <code class="docutils literal notranslate"><span class="pre">bbox</span></code>, selecting levels or variables does not unpack anything:
@@ -561,7 +561,8 @@ and the output values are exactly the input’s.</p>
 <p>When levels are selected, the output file is renumbered from zero upward while
 preserving the original level values in the vertical axis metadata.</p>
 <p>When variables are selected, only those variables are written into each output
-time step. Forecast hours from the source index records are preserved.</p>
+time step. Forecast hours are preserved, the index records’ and each data
+record’s own.</p>
 <p>A crop of a projected grid keeps the source’s sync point, the latitude and
 longitude the index record ties to one grid point, and moves only that grid
 point (<code class="docutils literal notranslate"><span class="pre">sync_x</span></code>, <code class="docutils literal notranslate"><span class="pre">sync_y</span></code>) by where the crop starts, so each cell of the crop

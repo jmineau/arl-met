@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../../_static/documentation_options.js?v=88e83e0f"></script>
+    <script src="../../../_static/documentation_options.js?v=136b8e6f"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev1+g343d633be" />
+  <meta name="docsearch:version" content="0.1.0b5.dev3+g98c9578fd" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -517,18 +517,20 @@
                 <span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;standard_name&quot;</span><span class="p">:</span> <span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;axis&quot;</span><span class="p">:</span> <span class="s2">&quot;T&quot;</span><span class="p">}</span>
             <span class="p">)</span>
         <span class="p">)</span>
-        <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;forecast_hour&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
-            <span class="s2">&quot;time&quot;</span><span class="p">,</span>
-            <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">index_forecasts</span><span class="p">],</span>
-            <span class="n">attrs</span><span class="o">=</span><span class="p">{</span>
-                <span class="s2">&quot;long_name&quot;</span><span class="p">:</span> <span class="s2">&quot;ARL index record forecast hour&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="p">(</span>
-                    <span class="s2">&quot;Forecast hour stored in the INDX record for each time step. &quot;</span>
-                    <span class="s2">&quot;Individual variable record forecasts may differ and are not represented &quot;</span>
-                    <span class="s2">&quot;in this Dataset API.&quot;</span>
-                <span class="p">),</span>
-                <span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;hours&quot;</span><span class="p">,</span>
-            <span class="p">},</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">(</span>
+            <span class="n">forecast_hour</span><span class="o">=</span><span class="n">xr</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                <span class="s2">&quot;time&quot;</span><span class="p">,</span>
+                <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">index_forecasts</span><span class="p">],</span>
+                <span class="n">attrs</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">&quot;long_name&quot;</span><span class="p">:</span> <span class="s2">&quot;ARL index record forecast hour&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="p">(</span>
+                        <span class="s2">&quot;Forecast hour stored in the INDX record for each time step. &quot;</span>
+                        <span class="s2">&quot;Individual variable record forecasts may differ and are not &quot;</span>
+                        <span class="s2">&quot;represented in this Dataset; arlmet.File reads them.&quot;</span>
+                    <span class="p">),</span>
+                    <span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;hours&quot;</span><span class="p">,</span>
+                <span class="p">},</span>
+            <span class="p">)</span>
         <span class="p">)</span>
 
     <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected_levels</span><span class="p">),</span> <span class="n">selected_grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">selected_grid</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span>
@@ -577,6 +579,18 @@
     <span class="k">return</span> <span class="n">ds</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_read_slice</span><span class="p">(</span>
+    <span class="n">transposed</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">,</span> <span class="n">time_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">slot</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read one 2D slice of a variable as float32 (``slot`` on ``level``).&quot;&quot;&quot;</span>
+    <span class="n">selected</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">transposed</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">time_index</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">slot</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="k">else</span> <span class="n">transposed</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">time_index</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">slot</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">selected</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="open_dataset">
 <a class="viewcode-back" href="../../../_autosummary/arlmet.open_dataset.html#arlmet.open_dataset">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">open_dataset</span><span class="p">(</span>
@@ -593,12 +607,20 @@
 <span class="sd">    ``(time, lat, lon)`` with no ``level`` dimension. Upper-air variables</span>
 <span class="sd">    (e.g. ``UWND``, ``VWND``, ``TEMP``) have dimensions</span>
 <span class="sd">    ``(time, level, lat, lon)``. An upper-air variable stored on only some</span>
-<span class="sd">    levels (or times) is NaN where the file has no record for it;</span>
-<span class="sd">    :func:`write_dataset` writes no record for such all-NaN slices.</span>
+<span class="sd">    levels (or times) is NaN where the file has no record for it, and so is a</span>
+<span class="sd">    record flagged missing.</span>
 
 <span class="sd">    The ``level`` coordinate holds the file&#39;s ARL level indices (surface is 0,</span>
 <span class="sd">    so upper-air levels start at 1). With ``levels=`` the kept levels keep their</span>
 <span class="sd">    original indices, which may therefore have gaps.</span>
+
+<span class="sd">    The ``forecast_hour(time)`` coordinate holds each time step&#39;s forecast</span>
+<span class="sd">    hour, the one its index record stores. A data record&#39;s own forecast hour</span>
+<span class="sd">    can differ (an accumulated field taken from a 6-hour forecast may say 6</span>
+<span class="sd">    where the index record says 0), but it is not represented here: HYSPLIT</span>
+<span class="sd">    reads a data record&#39;s forecast hour only as the missing flag, and the hour</span>
+<span class="sd">    it uses is the index record&#39;s. :attr:`arlmet.DataRecord.forecast` reads a</span>
+<span class="sd">    record&#39;s own hour.</span>
 
 <span class="sd">    ARL metadata is accessible via the ``.arl`` accessor::</span>
 
@@ -658,17 +680,26 @@
 <span class="sd">    Upper-air levels are written in ``level`` coordinate order and renumbered</span>
 <span class="sd">    ``1..N`` (surface is 0), so a Dataset holding a subset of a file&#39;s levels</span>
 <span class="sd">    (e.g. from ``open_dataset(levels=...)`` or ``ds.sel(level=...)``) is</span>
-<span class="sd">    written as a compact file, like :func:`arlmet.extract_subset` does. A</span>
-<span class="sd">    slice that is entirely NaN is taken to be absent from the file (as</span>
-<span class="sd">    :func:`open_dataset` represents it) and no record is written for it. A</span>
-<span class="sd">    record flagged missing in the source file also reads as an all-NaN slice,</span>
-<span class="sd">    so it is left out too, and that time step then has fewer records than the</span>
-<span class="sd">    others (:meth:`arlmet.File.check` reports it); :func:`arlmet.extract_subset`</span>
-<span class="sd">    keeps such a record, flagged missing.</span>
+<span class="sd">    written as a compact file, like :func:`arlmet.extract_subset` does.</span>
 
-<span class="sd">    Per-variable forecast heterogeneity is intentionally not represented in the</span>
-<span class="sd">    flat Dataset API. ``forecast_hour(time)`` supplies only the ARL index-record</span>
-<span class="sd">    forecast written for each time step.</span>
+<span class="sd">    Every (variable, level) that holds data at some time step is written at</span>
+<span class="sd">    every time step, so each time step has the same records. Where its slice</span>
+<span class="sd">    at a time step is entirely NaN (as a record flagged missing in the source</span>
+<span class="sd">    file reads), the record is written flagged missing, as HYSPLIT&#39;s writer</span>
+<span class="sd">    leaves a record it never fills (``pakini.f``: forecast hour -1, no values),</span>
+<span class="sd">    and HYSPLIT skips it. A (variable, level) that is NaN at every time step</span>
+<span class="sd">    gets no record: that is how :func:`open_dataset` represents a variable</span>
+<span class="sd">    stored on only some levels. Finding which slices hold data takes one pass</span>
+<span class="sd">    over the values before anything is written, so a lazy Dataset (as</span>
+<span class="sd">    :func:`open_dataset` returns) reads each slice twice.</span>
+
+<span class="sd">    The ``forecast_hour(time)`` coordinate gives each time step&#39;s index-record</span>
+<span class="sd">    forecast hour, and every record of that time step is written with it (0</span>
+<span class="sd">    when the coordinate is absent). A file whose records carry their own</span>
+<span class="sd">    forecast hours is rewritten with the time step&#39;s hour in each; HYSPLIT</span>
+<span class="sd">    reads a data record&#39;s forecast hour only as the missing flag, so this does</span>
+<span class="sd">    not change what it reads. To write per-record hours, use</span>
+<span class="sd">    :meth:`arlmet.RecordSet.create_datarecord`.</span>
 
 <span class="sd">    A variable whose ``attrs[&quot;diff&quot;]`` names a ``DIF*`` record is written with</span>
 <span class="sd">    that DIF record after it on each level (see</span>
@@ -737,7 +768,7 @@
         <span class="p">)</span>
     <span class="n">forecast_hours</span> <span class="o">=</span> <span class="n">_extract_dataset_forecast_hours</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span>
 
-    <span class="n">data_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span> <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="s2">&quot;forecast_hour&quot;</span><span class="p">]</span>
+    <span class="n">data_vars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">data_vars</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Dataset contains no data variables to write.&quot;</span><span class="p">)</span>
 
@@ -757,6 +788,87 @@
             <span class="p">)</span>
         <span class="n">diff_names</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)]</span> <span class="o">=</span> <span class="n">diff_name</span>
 
+    <span class="c1"># Check each variable and list its slots: (position on the ``level``</span>
+    <span class="c1"># dimension, ARL level index), or (None, 0) for a surface variable.</span>
+    <span class="n">variables</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">data_vars</span><span class="p">:</span>
+        <span class="n">var_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Variable names must be 4 characters or fewer, got &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">var_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;DIF&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Dataset DIF generation is parent-led; set attrs[&#39;diff&#39;] on the parent variable instead of writing a DIF* data variable.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">da</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">dim</span><span class="p">,</span> <span class="n">size</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">h_dims</span><span class="p">,</span> <span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">),</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">dim</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; is missing horizontal dimension &#39;</span><span class="si">{</span><span class="n">dim</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">da</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span> <span class="o">!=</span> <span class="n">size</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; dimension &#39;</span><span class="si">{</span><span class="n">dim</span><span class="si">}</span><span class="s2">&#39; has size </span><span class="si">{</span><span class="n">da</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;time&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; data must include the &#39;time&#39; dimension.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">data_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">da</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">data_times</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; time coordinate must align exactly with the dataset time coordinate.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;level&quot;</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;level&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; uses a &#39;level&#39; dimension but the dataset has no shared level coordinate.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">transposed</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;level&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">h_dims</span><span class="p">,</span> <span class="n">missing_dims</span><span class="o">=</span><span class="s2">&quot;raise&quot;</span><span class="p">)</span>
+            <span class="c1"># Renumber upper-air levels 1..N in coordinate order.</span>
+            <span class="n">slots</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="n">slot</span><span class="p">,</span> <span class="n">slot</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">slot</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="s2">&quot;level&quot;</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">transposed</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">h_dims</span><span class="p">,</span> <span class="n">missing_dims</span><span class="o">=</span><span class="s2">&quot;raise&quot;</span><span class="p">)</span>
+            <span class="n">slots</span> <span class="o">=</span> <span class="p">[(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span>
+        <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">var_name</span><span class="p">,</span> <span class="n">transposed</span><span class="p">,</span> <span class="n">slots</span><span class="p">))</span>
+
+    <span class="c1"># First pass: a (variable, level) that holds data at any time step is a</span>
+    <span class="c1"># slot at every time step. Each slice is read and checked here, so a</span>
+    <span class="c1"># partly-NaN slice raises before the output file is opened.</span>
+    <span class="n">occupied</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">var_name</span><span class="p">,</span> <span class="n">transposed</span><span class="p">,</span> <span class="n">slots</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">:</span>
+        <span class="n">has_data</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">slots</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">time_index</span><span class="p">,</span> <span class="n">time</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">slot</span><span class="p">,</span> <span class="n">level_index</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">slots</span><span class="p">):</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">_read_slice</span><span class="p">(</span><span class="n">transposed</span><span class="p">,</span> <span class="n">time_index</span><span class="p">,</span> <span class="n">slot</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; slice has shape </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span><span class="w"> </span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">nan_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">nan_mask</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="n">nan_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; contains missing values at time </span><span class="si">{</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">time</span><span class="p">)</span><span class="si">}</span><span class="s2"> &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;level </span><span class="si">{</span><span class="n">level_index</span><span class="si">}</span><span class="s2">; write_dataset() requires each slice to be &quot;</span>
+                        <span class="s2">&quot;complete or entirely NaN.&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; contains non-finite values that cannot be packed.&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">has_data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">occupied</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">slot</span> <span class="k">for</span> <span class="n">slot</span><span class="p">,</span> <span class="n">keep</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">slots</span><span class="p">,</span> <span class="n">has_data</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">keep</span>
+        <span class="p">]</span>
+
     <span class="k">with</span> <span class="p">(</span>
         <span class="n">atomic_output</span><span class="p">(</span><span class="n">filename_or_obj</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmp_path</span><span class="p">,</span>
         <span class="n">File</span><span class="p">(</span>
@@ -773,88 +885,15 @@
                 <span class="n">forecast</span><span class="o">=</span><span class="n">forecast_hours</span><span class="p">[</span><span class="n">time_index</span><span class="p">],</span>
             <span class="p">)</span>
 
-            <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">data_vars</span><span class="p">:</span>
-                <span class="n">var_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;Variable names must be 4 characters or fewer, got &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
-                    <span class="p">)</span>
-                <span class="k">if</span> <span class="n">var_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;DIF&quot;</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s2">&quot;Dataset DIF generation is parent-led; set attrs[&#39;diff&#39;] on the parent variable instead of writing a DIF* data variable.&quot;</span>
-                    <span class="p">)</span>
-
-                <span class="n">da</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
-                <span class="k">for</span> <span class="n">dim</span><span class="p">,</span> <span class="n">size</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">h_dims</span><span class="p">,</span> <span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">),</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-                    <span class="k">if</span> <span class="n">dim</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; is missing horizontal dimension &#39;</span><span class="si">{</span><span class="n">dim</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
-                        <span class="p">)</span>
-                    <span class="k">if</span> <span class="n">da</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span> <span class="o">!=</span> <span class="n">size</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; dimension &#39;</span><span class="si">{</span><span class="n">dim</span><span class="si">}</span><span class="s2">&#39; has size </span><span class="si">{</span><span class="n">da</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2">.&quot;</span>
-                        <span class="p">)</span>
-
-                <span class="k">if</span> <span class="s2">&quot;time&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; data must include the &#39;time&#39; dimension.&quot;</span>
-                    <span class="p">)</span>
-                <span class="n">data_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">da</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">data_times</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; time coordinate must align exactly with the dataset time coordinate.&quot;</span>
-                    <span class="p">)</span>
-
-                <span class="k">if</span> <span class="s2">&quot;level&quot;</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="s2">&quot;level&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; uses a &#39;level&#39; dimension but the dataset has no shared level coordinate.&quot;</span>
-                        <span class="p">)</span>
-                    <span class="n">transposed</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
-                        <span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;level&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">h_dims</span><span class="p">,</span> <span class="n">missing_dims</span><span class="o">=</span><span class="s2">&quot;raise&quot;</span>
-                    <span class="p">)</span>
-                    <span class="c1"># Renumber upper-air levels 1..N in coordinate order.</span>
-                    <span class="n">write_iter</span> <span class="o">=</span> <span class="p">[(</span><span class="n">slot</span><span class="p">,</span> <span class="n">slot</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">slot</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="s2">&quot;level&quot;</span><span class="p">])]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">transposed</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">h_dims</span><span class="p">,</span> <span class="n">missing_dims</span><span class="o">=</span><span class="s2">&quot;raise&quot;</span><span class="p">)</span>
-                    <span class="n">write_iter</span> <span class="o">=</span> <span class="p">[(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span>
-
-                <span class="k">for</span> <span class="n">slot</span><span class="p">,</span> <span class="n">level_index</span> <span class="ow">in</span> <span class="n">write_iter</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">slot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-                            <span class="n">transposed</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">time_index</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
-                            <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-                        <span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-                            <span class="n">transposed</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">time_index</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">slot</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
-                            <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-                        <span class="p">)</span>
-
-                    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">):</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; slice has shape </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span><span class="w"> </span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
-                        <span class="p">)</span>
-                    <span class="n">nan_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">nan_mask</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-                        <span class="c1"># open_dataset NaN-fills levels/times with no record.</span>
-                        <span class="k">continue</span>
-                    <span class="k">if</span> <span class="n">nan_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; contains missing values at time </span><span class="si">{</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">time</span><span class="p">)</span><span class="si">}</span><span class="s2"> &quot;</span>
-                            <span class="sa">f</span><span class="s2">&quot;level </span><span class="si">{</span><span class="n">level_index</span><span class="si">}</span><span class="s2">; write_dataset() requires each slice to be &quot;</span>
-                            <span class="s2">&quot;complete or entirely NaN (no record).&quot;</span>
-                        <span class="p">)</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s2">&#39; contains non-finite values that cannot be packed.&quot;</span>
-                        <span class="p">)</span>
-
+            <span class="k">for</span> <span class="n">var_name</span><span class="p">,</span> <span class="n">transposed</span><span class="p">,</span> <span class="n">_slots</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">slot</span><span class="p">,</span> <span class="n">level_index</span> <span class="ow">in</span> <span class="n">occupied</span><span class="p">[</span><span class="n">var_name</span><span class="p">]:</span>
+                    <span class="c1"># An all-NaN slice in an occupied slot is written as a</span>
+                    <span class="c1"># record flagged missing (forecast hour -1, as pakini.f).</span>
                     <span class="n">recordset</span><span class="o">.</span><span class="n">create_datarecord</span><span class="p">(</span>
                         <span class="n">variable</span><span class="o">=</span><span class="n">var_name</span><span class="p">,</span>
                         <span class="n">level</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">level_index</span><span class="p">),</span>
                         <span class="n">forecast</span><span class="o">=</span><span class="n">forecast_hours</span><span class="p">[</span><span class="n">time_index</span><span class="p">],</span>
-                        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+                        <span class="n">data</span><span class="o">=</span><span class="n">_read_slice</span><span class="p">(</span><span class="n">transposed</span><span class="p">,</span> <span class="n">time_index</span><span class="p">,</span> <span class="n">slot</span><span class="p">),</span>
                         <span class="n">diff</span><span class="o">=</span><span class="n">diff_names</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var_name</span><span class="p">),</span>
                     <span class="p">)</span>
 

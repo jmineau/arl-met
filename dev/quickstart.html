@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=88e83e0f"></script>
+    <script src="_static/documentation_options.js?v=136b8e6f"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="Installation" href="installation.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev1+g343d633be" />
+  <meta name="docsearch:version" content="0.1.0b5.dev3+g98c9578fd" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -470,9 +470,9 @@ variables unchanged.</p>
 <span class="go">  * level          (level) int64 32B 1 2 3 4</span>
 <span class="go">    pressure       (level) float64 32B 850.0 700.0 500.0 300.0</span>
 <span class="go">  * time           (time) datetime64[us] 32B 2024-07-18 ... 2024-07-18T18:00:00</span>
+<span class="go">    forecast_hour  (time) int64 32B 0 0 0 0</span>
 <span class="go">    arl_grid       int64 8B 0</span>
 <span class="go">Data variables:</span>
-<span class="go">    forecast_hour  (time) int64 32B 0 0 0 0</span>
 <span class="go">    HGTS           (time, level, lat, lon) float32 199kB ...</span>
 <span class="go">    PRSS           (time, lat, lon) float32 50kB ...</span>
 <span class="go">    SHGT           (time, lat, lon) float32 50kB ...</span>
@@ -499,11 +499,11 @@ variables unchanged.</p>
 <span class="go">  * lon            (lon) float64 488B -115.0 -114.9 -114.8 ... -109.1 -109.0</span>
 <span class="go">  * lat            (lat) float64 408B 38.0 38.1 38.2 38.3 ... 42.8 42.9 43.0</span>
 <span class="go">  * time           (time) datetime64[us] 32B 2024-07-18 ... 2024-07-18T18:00:00</span>
+<span class="go">    forecast_hour  (time) int64 32B 0 0 0 0</span>
 <span class="go">    level          int64 8B 1</span>
 <span class="go">    arl_grid       int64 8B 0</span>
 <span class="go">    pressure       float64 8B 850.0</span>
 <span class="go">Data variables:</span>
-<span class="go">    forecast_hour  (time) int64 32B 0 0 0 0</span>
 <span class="go">    HGTS           (time, lat, lon) float32 50kB ...</span>
 <span class="go">    PRSS           (time, lat, lon) float32 50kB ...</span>
 <span class="go">    SHGT           (time, lat, lon) float32 50kB ...</span>
@@ -531,12 +531,13 @@ adds xarray’s generic options, such as <code class="docutils literal notransla
 <span class="go">&lt;xarray.DataArray &#39;TEMP&#39; (time: 4, level: 4, lat: 51, lon: 61)&gt; Size: 199kB</span>
 <span class="go">dask.array&lt;open_dataset-TEMP, shape=(4, 4, 51, 61), dtype=float32, chunksize=(1, 4, 51, 61), chunktype=numpy.ndarray&gt;</span>
 <span class="go">Coordinates:</span>
-<span class="go">  * time      (time) datetime64[us] 32B 2024-07-18 ... 2024-07-18T18:00:00</span>
-<span class="go">  * level     (level) int64 32B 1 2 3 4</span>
-<span class="go">    pressure  (level) float64 32B dask.array&lt;chunksize=(4,), meta=np.ndarray&gt;</span>
-<span class="go">  * lat       (lat) float64 408B 38.0 38.1 38.2 38.3 ... 42.7 42.8 42.9 43.0</span>
-<span class="go">  * lon       (lon) float64 488B -115.0 -114.9 -114.8 ... -109.2 -109.1 -109.0</span>
-<span class="go">    arl_grid  int64 8B ...</span>
+<span class="go">  * time           (time) datetime64[us] 32B 2024-07-18 ... 2024-07-18T18:00:00</span>
+<span class="go">    forecast_hour  (time) int64 32B dask.array&lt;chunksize=(1,), meta=np.ndarray&gt;</span>
+<span class="go">  * level          (level) int64 32B 1 2 3 4</span>
+<span class="go">    pressure       (level) float64 32B dask.array&lt;chunksize=(4,), meta=np.ndarray&gt;</span>
+<span class="go">  * lat            (lat) float64 408B 38.0 38.1 38.2 38.3 ... 42.8 42.9 43.0</span>
+<span class="go">  * lon            (lon) float64 488B -115.0 -114.9 -114.8 ... -109.1 -109.0</span>
+<span class="go">    arl_grid       int64 8B ...</span>
 </pre></div>
 </div>
 <p>ARL files have no standard extension, so xarray recognizes them by their first
@@ -592,8 +593,10 @@ DataArray’s <code class="docutils literal notranslate"><span class="pre">diff<
 <span class="gp">In [18]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">&quot;edited-with-diff.arl&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>For irregular files, including per-variable forecast hours, see <a class="reference internal" href="writing.html"><span class="doc">Writing ARL Files</span></a>
-for the low-level <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a> workflow.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">forecast_hour</span></code> coordinate is each time step’s index-record forecast hour,
+and <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> writes it into every record. For irregular
+files, including per-record forecast hours, see <a class="reference internal" href="writing.html"><span class="doc">Writing ARL Files</span></a> for the
+low-level <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a> workflow.</p>
 </section>
 <section id="sample-variables-at-arbitrary-points">
 <h2>Sample variables at arbitrary points<a class="headerlink" href="#sample-variables-at-arbitrary-points" title="Link to this heading">#</a></h2>
