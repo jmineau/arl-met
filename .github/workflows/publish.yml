@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0  # setuptools-scm reads the version from tags
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v4.2.1
+        uses: pypa/cibuildwheel@v4.3.2
         env:
           CIBW_BUILD: "cp311-* cp312-* cp313-* cp314-*"
           CIBW_SKIP: "*-musllinux_*"
@@ -71,7 +71,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0  # setuptools-scm reads the version from tags
 
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.0
         with:
           version: "0.12.23"
           python-version: "3.14"
@@ -96,7 +96,7 @@ jobs:
           path: dist/
           merge-multiple: true
 
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.0
         with:
           version: "0.12.23"
 
