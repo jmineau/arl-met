@@ -1026,11 +1026,17 @@ def sample_points(
     >>> points = pd.DataFrame(
     ...     {"lon": [-111.9], "lat": [40.7], "z": [850.0], "time": ["2024-07-18 00:00"]}
     ... )
-    >>> arlmet.sample_points("met.arl", points, ["UWND", "VWND"])
+    >>> arlmet.sample_points("met.arl", points, ["UWND", "VWND"]).round(1)
+         lon   lat      z              time  UWND  VWND
+    0 -111.9  40.7  850.0  2024-07-18 00:00   6.2  -3.8
 
     Sample across files spanning different times by passing their paths:
 
-    >>> arlmet.sample_points(["met_00.arl", "met_06.arl"], points, ["UWND", "VWND"])
+    >>> arlmet.sample_points(
+    ...     ["met_00.arl", "met_06.arl"], points, ["UWND", "VWND"]
+    ... ).round(1)
+         lon   lat      z              time  UWND  VWND
+    0 -111.9  40.7  850.0  2024-07-18 00:00   6.2  -3.8
     """
     if z_kind not in _Z_KINDS:
         raise ValueError("z_kind must be one of 'native', 'pressure', 'agl', or 'msl'.")

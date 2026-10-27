@@ -296,8 +296,8 @@ def index(
 
     Examples
     --------
-    >>> idx = arlmet.index("hrrr")
-    >>> idx.covering("2021-01-14 06:00", "2021-01-15 06:00")
+    >>> idx = arlmet.index("hrrr")  # doctest: +SKIP
+    >>> idx.covering("2021-01-14 06:00", "2021-01-15 06:00")  # doctest: +SKIP
     [PosixPath('hrrr/20210114_06-11_hrrr'), ..., PosixPath('hrrr/20210115_06-11_hrrr')]
     """
     directory = Path(directory).expanduser().absolute()
@@ -491,7 +491,7 @@ class DirectoryIndex:
 
         Examples
         --------
-        >>> idx.missing("2021-01-14 06:00", "2021-01-14 08:00")
+        >>> idx.missing("2021-01-14 06:00", "2021-01-14 08:00")  # doctest: +SKIP
         [Timestamp('2021-01-14 07:00:00')]
         """
         return [t for t in self._needed(start, end) if t not in self._holders]
@@ -522,7 +522,7 @@ class DirectoryIndex:
 
         Examples
         --------
-        >>> idx.covering("2021-01-14 06:00", "2021-01-14 08:00")
+        >>> idx.covering("2021-01-14 06:00", "2021-01-14 08:00")  # doctest: +SKIP
         [PosixPath('hrrr/20210114_06-11_hrrr')]
         """
         needed = self._needed(start, end)

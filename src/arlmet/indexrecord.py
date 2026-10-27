@@ -166,6 +166,7 @@ class IndexRecord:
 
     Examples
     --------
+    >>> import pandas as pd
     >>> from arlmet.header import Header
     >>> from arlmet.indexrecord import IndexRecord
     >>> header = Header(

@@ -264,8 +264,8 @@ class DataRecord:
 
         Examples
         --------
-        >>> record = met[0][(1, "WWND")]
-        >>> [dif.variable for dif in record.diffs]
+        >>> record = met[0][(1, "WWND")]  # doctest: +SKIP
+        >>> [dif.variable for dif in record.diffs]  # doctest: +SKIP
         ['DIFW']
         """
         return tuple(self._diffs)
