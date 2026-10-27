@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../../_static/documentation_options.js?v=136b8e6f"></script>
+    <script src="../../../_static/documentation_options.js?v=fc3bdc42"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev3+g98c9578fd" />
+  <meta name="docsearch:version" content="0.1.0b5.dev6+g313230b2f" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -494,19 +494,18 @@
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
-<span class="sd">    Join three 6-hourly HRRR files into one daily file:</span>
+<span class="sd">    Join the files for 00 UTC and 06 UTC into one file:</span>
 
 <span class="sd">    &gt;&gt;&gt; import arlmet</span>
-<span class="sd">    &gt;&gt;&gt; arlmet.concat(</span>
-<span class="sd">    ...     [&quot;20240101_00_hrrr&quot;, &quot;20240101_06_hrrr&quot;, &quot;20240101_12_hrrr&quot;],</span>
-<span class="sd">    ...     &quot;20240101_hrrr&quot;,</span>
-<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; arlmet.concat([&quot;met_00.arl&quot;, &quot;met_06.arl&quot;], &quot;day.arl&quot;).name</span>
+<span class="sd">    &#39;day.arl&#39;</span>
 
-<span class="sd">    Combine every 6-hourly file for one day discovered by glob (the output is</span>
-<span class="sd">    in valid-time order, so glob order does not matter):</span>
+<span class="sd">    Combine every file discovered by glob (the output is in valid-time order,</span>
+<span class="sd">    so glob order does not matter):</span>
 
 <span class="sd">    &gt;&gt;&gt; import glob</span>
-<span class="sd">    &gt;&gt;&gt; arlmet.concat(glob.glob(&quot;20240101_*_hrrr&quot;), &quot;20240101_hrrr&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; arlmet.concat(glob.glob(&quot;met_*.arl&quot;), &quot;day_glob.arl&quot;).name</span>
+<span class="sd">    &#39;day_glob.arl&#39;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># A bare str/PathLike is iterable (over characters / not at all), which would</span>
     <span class="c1"># silently do the wrong thing — reject it explicitly.</span>
@@ -695,16 +694,19 @@
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
-<span class="sd">    Turn a directory of 6-hourly HRRR files into one file per day:</span>
+<span class="sd">    Turn the files of a directory (here ``met_00.arl`` and ``met_06.arl``, both</span>
+<span class="sd">    on 2024-07-18) into one file per day:</span>
 
 <span class="sd">    &gt;&gt;&gt; import arlmet</span>
-<span class="sd">    &gt;&gt;&gt; arlmet.concat_by_time(</span>
-<span class="sd">    ...     &quot;hrrr/&quot;,</span>
+<span class="sd">    &gt;&gt;&gt; days = arlmet.concat_by_time(</span>
+<span class="sd">    ...     &quot;.&quot;,</span>
 <span class="sd">    ...     &quot;daily/&quot;,</span>
 <span class="sd">    ...     freq=&quot;1D&quot;,</span>
-<span class="sd">    ...     pattern=&quot;*_hrrr&quot;,</span>
-<span class="sd">    ...     template=&quot;{time:%Y%m%d}_hrrr&quot;,</span>
+<span class="sd">    ...     pattern=&quot;met_*.arl&quot;,</span>
+<span class="sd">    ...     template=&quot;{time:%Y%m%d}_arl&quot;,</span>
 <span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; [path.name for path in days]</span>
+<span class="sd">    [&#39;20240718_arl&#39;]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">directory</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
     <span class="n">dest_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest_dir</span><span class="p">)</span>

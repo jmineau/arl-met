@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=136b8e6f"></script>
+    <script src="../_static/documentation_options.js?v=fc3bdc42"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.sample_points" href="arlmet.sample_points.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev3+g98c9578fd" />
+  <meta name="docsearch:version" content="0.1.0b5.dev6+g313230b2f" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -661,18 +661,17 @@ success. Must not be one of <code class="docutils literal notranslate"><span cla
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<p>Join three 6-hourly HRRR files into one daily file:</p>
+<p>Join the files for 00 UTC and 06 UTC into one file:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="p">[</span><span class="s2">&quot;20240101_00_hrrr&quot;</span><span class="p">,</span> <span class="s2">&quot;20240101_06_hrrr&quot;</span><span class="p">,</span> <span class="s2">&quot;20240101_12_hrrr&quot;</span><span class="p">],</span>
-<span class="gp">... </span>    <span class="s2">&quot;20240101_hrrr&quot;</span><span class="p">,</span>
-<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="s2">&quot;met_00.arl&quot;</span><span class="p">,</span> <span class="s2">&quot;met_06.arl&quot;</span><span class="p">],</span> <span class="s2">&quot;day.arl&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
+<span class="go">&#39;day.arl&#39;</span>
 </pre></div>
 </div>
-<p>Combine every 6-hourly file for one day discovered by glob (the output is
-in valid-time order, so glob order does not matter):</p>
+<p>Combine every file discovered by glob (the output is in valid-time order,
+so glob order does not matter):</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">glob</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;20240101_*_hrrr&quot;</span><span class="p">),</span> <span class="s2">&quot;20240101_hrrr&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">arlmet</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;met_*.arl&quot;</span><span class="p">),</span> <span class="s2">&quot;day_glob.arl&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
+<span class="go">&#39;day_glob.arl&#39;</span>
 </pre></div>
 </div>
 </dd></dl>

@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../_static/documentation_options.js?v=136b8e6f"></script>
+    <script src="../../_static/documentation_options.js?v=fc3bdc42"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -57,7 +57,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev3+g98c9578fd" />
+  <meta name="docsearch:version" content="0.1.0b5.dev6+g313230b2f" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1114,7 +1114,7 @@
 <span class="sd">        --------</span>
 <span class="sd">        A time step written partway:</span>
 
-<span class="sd">        &gt;&gt;&gt; with arlmet.File(&quot;20210226_18-23_hrrr&quot;) as met:</span>
+<span class="sd">        &gt;&gt;&gt; with arlmet.File(&quot;20210226_18-23_hrrr&quot;) as met:  # doctest: +SKIP</span>
 <span class="sd">        ...     met.check()</span>
 <span class="sd">        [&#39;2021-02-26 19:00 has 43 of the 298 data records the first time step has.&#39;]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -1211,7 +1211,7 @@
 
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
-<span class="sd">        &gt;&gt;&gt; with arlmet.File(</span>
+<span class="sd">        &gt;&gt;&gt; with arlmet.File(  # doctest: +SKIP</span>
 <span class="sd">        ...     &quot;out.arl&quot;, mode=&quot;w&quot;, source=&quot;TEST&quot;, grid=grid, vertical_axis=vaxis</span>
 <span class="sd">        ... ) as arl:</span>
 <span class="sd">        ...     for time, fields in steps:  # fields: {(name, level): array}</span>
@@ -1332,7 +1332,10 @@
 <span class="sd">        &gt;&gt;&gt; import arlmet</span>
 <span class="sd">        &gt;&gt;&gt; pts = pd.DataFrame({&quot;lon&quot;: [-111.9], &quot;lat&quot;: [40.7], &quot;z&quot;: [850.0]})</span>
 <span class="sd">        &gt;&gt;&gt; with arlmet.File(&quot;met.arl&quot;) as met:</span>
-<span class="sd">        ...     met.sample_points(pts, [&quot;UWND&quot;, &quot;VWND&quot;], time=&quot;2024-07-18 00:00&quot;)</span>
+<span class="sd">        ...     out = met.sample_points(pts, [&quot;UWND&quot;, &quot;VWND&quot;], time=&quot;2024-07-18 00:00&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; out.round(1)</span>
+<span class="sd">             lon   lat      z  UWND  VWND</span>
+<span class="sd">        0 -111.9  40.7  850.0   6.2  -3.8</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Delayed import: ops sit on top of file, so file&#39;s use of the sampling</span>
         <span class="c1"># op is lazy to avoid a file &lt;-&gt; ops import cycle (see File.extract_subset).</span>

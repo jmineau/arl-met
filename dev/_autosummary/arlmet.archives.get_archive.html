@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=136b8e6f"></script>
+    <script src="../_static/documentation_options.js?v=fc3bdc42"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.ARLFormatWarning" href="arlmet.ARLFormatWarning.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev3+g98c9578fd" />
+  <meta name="docsearch:version" content="0.1.0b5.dev6+g313230b2f" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -649,7 +649,9 @@
 </dl>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.archives</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_archive</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">files</span> <span class="o">=</span> <span class="n">get_archive</span><span class="p">(</span><span class="s2">&quot;hrrr&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s2">&quot;2024-07-18&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-07-19&quot;</span><span class="p">,</span> <span class="n">dest_dir</span><span class="o">=</span><span class="s2">&quot;./met/&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">files</span> <span class="o">=</span> <span class="n">get_archive</span><span class="p">(</span><span class="s2">&quot;hrrr&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="s2">&quot;2024-07-18&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-07-19&quot;</span><span class="p">,</span> <span class="n">dest_dir</span><span class="o">=</span><span class="s2">&quot;./met/&quot;</span>
+<span class="gp">... </span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>

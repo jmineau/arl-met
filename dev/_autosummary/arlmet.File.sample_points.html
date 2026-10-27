@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=136b8e6f"></script>
+    <script src="../_static/documentation_options.js?v=fc3bdc42"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
     <link rel="prev" title="arlmet.File.flush" href="arlmet.File.flush.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev3+g98c9578fd" />
+  <meta name="docsearch:version" content="0.1.0b5.dev6+g313230b2f" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -700,7 +700,10 @@ the vertical range are NaN.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pts</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">],</span> <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">],</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">]})</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
-<span class="gp">... </span>    <span class="n">met</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">],</span> <span class="n">time</span><span class="o">=</span><span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">out</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">],</span> <span class="n">time</span><span class="o">=</span><span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">out</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">     lon   lat      z  UWND  VWND</span>
+<span class="go">0 -111.9  40.7  850.0   6.2  -3.8</span>
 </pre></div>
 </div>
 </dd></dl>
