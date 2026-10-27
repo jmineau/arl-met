@@ -18,7 +18,7 @@ format used by HYSPLIT and related workflows. It supports:
 
 - low-level record-preserving reads and writes through `File`, `RecordSet`, and `DataRecord`
 - xarray Dataset reads and common-case writes through `open_dataset()` and `write_dataset()`, plus an xarray backend (`xr.open_dataset(path, engine="arl")`)
-- downloading from NOAA's ARL archives (HRRR, NAM, GDAS, GFS, ...) with optional crop-on-download
+- downloading from NOAA's ARL archives (HRRR, NAM, GDAS, GFS, ...) with optional crop-on-download, and keeping a local mirror complete and checked against NOAA's MD5 list with `Archive.sync()`
 - crop-before-unpack subset extraction with `extract_subset()`
 - vertical helper functions such as `pressure()`, `z_agl()`, and `z_msl()`
 - point sampling with `sample_points()`

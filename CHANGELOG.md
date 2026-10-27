@@ -7,6 +7,10 @@ file alone: the entries are written at release (`just changelog` drafts them).
 
 ## [Unreleased]
 
+### Added
+
+- `Archive.sync(dest_dir)` keeps a local folder complete and checked against NOAA's `listing.md5.txt` (on the S3, FTP and HTTP mirrors): it downloads each listed file that is missing to a hidden `.partial` file, hashes it as it streams and renames it into place only if its MD5 is NOAA's, downloads again a file NOAA has corrected, and records the MD5 of a file already in the folder (found by name anywhere under it, whatever its folder layout, so an existing mirror is not downloaded again) once in a manifest, `arlmet-manifest.md5`, which later runs trust and do not read. A local file with another MD5 is reported in `SyncResult.mismatched` and left alone; nothing is deleted and files NOAA does not list are not touched. A `mkdir` lock folder stops a second run, also from another host on NFS; `dry_run=True` says what would be done without reading or writing anything. It returns a `SyncResult` listing the files downloaded, adopted, unchanged, mismatched and failed (#103)
+
 ### Changed
 
 - **Breaking:** `forecast_hour` in the Dataset from `open_dataset` moved from `data_vars` to `coords`: it is a `forecast_hour(time)` coordinate, each time step's index-record forecast hour, so it no longer shows up among the variables and it survives arithmetic (`ds + 1`). `write_dataset` reads it from the coordinates and writes it into the index record and every data record of that time step; a Dataset that holds it as a data variable (saved by an earlier version) raises `ValueError` (`ds.set_coords("forecast_hour")` converts it). A data record's own forecast hour, which can differ from its index record's, is still not represented in the Dataset: HYSPLIT reads a data record's forecast hour only as the missing flag, and the hour it uses is the index record's. `DataRecord.forecast` reads it, and `File` writes it (#40)
