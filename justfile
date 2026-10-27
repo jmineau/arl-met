@@ -66,7 +66,7 @@ dist:
     uv build
     uv run twine check --strict dist/*
 
-# Draft CHANGELOG entries from the commits since the last release
+# At release, draft the CHANGELOG entries from the commits since the last release
 changelog:
     @uv run git-cliff --unreleased --strip all
 
