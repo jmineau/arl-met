@@ -5,6 +5,7 @@ The mirror is a local folder read through fsspec's ``file://``; no network acces
 """
 
 import hashlib
+import os
 import sys
 from pathlib import Path
 
@@ -86,6 +87,20 @@ def dest(tmp_path):
     return tmp_path / "local" / "hrrr"
 
 
+def manifest_of(dest: Path) -> dict[str, dict[str, str]]:
+    """Read the manifest as ``{path: {md5, noaa_md5, size, mtime_ns}}``."""
+    manifest = {}
+    for line in (dest / "arlmet-manifest.tsv").read_text().splitlines():
+        md5_, noaa_md5, size, mtime_ns, rel = line.split("\t")
+        manifest[rel] = {
+            "md5": md5_,
+            "noaa_md5": noaa_md5,
+            "size": size,
+            "mtime_ns": mtime_ns,
+        }
+    return manifest
+
+
 def no_files(*args, **kwargs):
     raise AssertionError("a file was downloaded or read")
 
@@ -112,11 +127,19 @@ def test_missing_files_are_fetched_into_the_archive_layout(hrrr, dest):
     assert hidden_files(dest) == []  # no .partial file, no lock
 
 
-def test_manifest_is_md5sum_format_and_matches_the_files(hrrr, dest):
+def test_manifest_has_one_tab_separated_line_per_file(hrrr, dest):
     hrrr.archive.sync(dest, **DAY)
 
-    lines = (dest / "arlmet-manifest.md5").read_text().splitlines()
-    assert lines == [f"{md5(content(name))}  2024/07/{name}" for name in HRRR_DAY]
+    manifest = manifest_of(dest)
+    assert list(manifest) == [f"2024/07/{name}" for name in HRRR_DAY]  # sorted by path
+    for name in HRRR_DAY:
+        stat = (dest / "2024" / "07" / name).stat()
+        assert manifest[f"2024/07/{name}"] == {
+            "md5": md5(content(name)),
+            "noaa_md5": md5(content(name)),
+            "size": str(stat.st_size),
+            "mtime_ns": str(stat.st_mtime_ns),
+        }
 
 
 def test_a_corrupt_download_is_rejected_and_leaves_nothing(hrrr, dest):
@@ -129,7 +152,7 @@ def test_a_corrupt_download_is_rejected_and_leaves_nothing(hrrr, dest):
     assert not (dest / "2024" / "07" / bad).exists()
     assert hidden_files(dest) == []
     assert len(result.downloaded) == 3  # the others went on
-    assert bad not in (dest / "arlmet-manifest.md5").read_text()
+    assert f"2024/07/{bad}" not in manifest_of(dest)
 
 
 def test_a_corrupt_download_does_not_replace_the_old_copy(hrrr, dest):
@@ -220,9 +243,8 @@ def test_a_file_noaa_corrected_is_replaced_where_it_is(hrrr, dest):
     assert result.downloaded == [path]
     assert len(result.unchanged) == 3
     assert path.read_bytes() == b"corrected by NOAA"
-    manifest = (dest / "arlmet-manifest.md5").read_text()
-    assert f"{md5(b'corrected by NOAA')}  2024/07/{name}" in manifest
-    assert manifest.count(name) == 1  # the old line is gone
+    entry = manifest_of(dest)[f"2024/07/{name}"]
+    assert entry["md5"] == entry["noaa_md5"] == md5(b"corrected by NOAA")
     assert hidden_files(dest) == []
 
 
@@ -265,8 +287,9 @@ def test_v1_files_in_one_flat_folder_are_adopted_not_downloaded_again(
     assert result.adopted == [dest / name for name in names]
     assert result.downloaded == []
     assert not (dest / "2019").exists()  # nothing was made in NOAA's layout
-    manifest = (dest / "arlmet-manifest.md5").read_text().splitlines()
-    assert manifest == [f"{md5(content(n))}  {n}" for n in names]
+    manifest = manifest_of(dest)
+    assert list(manifest) == names
+    assert manifest[names[0]]["md5"] == md5(content(names[0]))
 
 
 def test_a_second_run_over_a_flat_folder_reads_nothing(tmp_path, dest, monkeypatch):
@@ -330,7 +353,81 @@ def test_a_wrong_existing_file_is_reported_and_left_alone(hrrr, dest):
     assert path.read_bytes() == b"short file from a killed transfer"
     assert not (dest / "2024" / "07" / name).exists()  # not fetched elsewhere either
     assert len(result.downloaded) == 3
-    assert name not in (dest / "arlmet-manifest.md5").read_text()
+    entry = manifest_of(dest)[name]  # recorded, with its own MD5 apart from NOAA's
+    assert entry["md5"] == md5(b"short file from a killed transfer")
+    assert entry["noaa_md5"] == md5(content(name))
+
+
+def test_a_mismatched_file_is_reported_again_without_being_read(
+    hrrr, dest, monkeypatch
+):
+    name = HRRR_DAY[2]
+    dest.mkdir(parents=True)
+    (dest / name).write_bytes(b"short file from a killed transfer")
+    hrrr.archive.sync(dest, **DAY)
+    monkeypatch.setattr(archives, "_md5_of_file", no_files)
+    monkeypatch.setattr(hrrr.archive, "_download", no_files)
+
+    result = hrrr.archive.sync(dest, **DAY)
+
+    assert result.mismatched == [dest / name]
+    assert len(result.unchanged) == 3
+    assert result.downloaded == result.adopted == result.failed == []
+
+
+def test_a_mismatched_file_is_replaced_when_noaa_corrects_its_file(hrrr, dest):
+    name = HRRR_DAY[2]
+    dest.mkdir(parents=True)
+    (dest / name).write_bytes(b"short file from a killed transfer")
+    hrrr.archive.sync(dest, **DAY)
+    hrrr.put(name, b"corrected by NOAA")
+
+    result = hrrr.archive.sync(dest, **DAY)
+
+    assert result.downloaded == [dest / name]
+    assert result.mismatched == []
+    assert (dest / name).read_bytes() == b"corrected by NOAA"
+    entry = manifest_of(dest)[name]
+    assert entry["md5"] == entry["noaa_md5"] == md5(b"corrected by NOAA")
+
+
+def test_a_file_changed_in_place_is_read_again(hrrr, dest, monkeypatch):
+    hrrr.archive.sync(dest, **DAY)
+    path = dest / "2024" / "07" / HRRR_DAY[0]
+    path.write_bytes(b"edited")  # a new size
+
+    result = hrrr.archive.sync(dest, **DAY)
+
+    assert result.mismatched == [path]
+    assert len(result.unchanged) == 3
+    assert path.read_bytes() == b"edited"  # reported, not overwritten
+    assert manifest_of(dest)[f"2024/07/{HRRR_DAY[0]}"]["md5"] == md5(b"edited")
+    # Putting the right bytes back is noticed too (same size, new modification time).
+    path.write_bytes(content(HRRR_DAY[0]))
+    stat = path.stat()
+    os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 10**9))
+    monkeypatch.setattr(hrrr.archive, "_download", no_files)
+
+    result = hrrr.archive.sync(dest, **DAY)
+
+    assert result.adopted == [path]
+    assert result.mismatched == []
+
+
+def test_a_new_mtime_alone_makes_a_file_be_read_again(hrrr, dest, monkeypatch):
+    hrrr.archive.sync(dest, **DAY)
+    path = dest / "2024" / "07" / HRRR_DAY[0]
+    stat = path.stat()
+    os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 10**9))
+    reads = []
+    real = archives._md5_of_file
+    monkeypatch.setattr(archives, "_md5_of_file", lambda p: reads.append(p) or real(p))
+
+    result = hrrr.archive.sync(dest, **DAY)
+
+    assert reads == [path]
+    assert result.adopted == [path]
+    assert len(result.unchanged) == 3
 
 
 def test_the_copy_at_the_archive_path_wins_over_another(hrrr, dest):
@@ -374,15 +471,18 @@ def test_the_manifest_drops_a_file_that_is_gone_and_keeps_the_rest(hrrr, dest):
     hrrr.archive.sync(dest, **DAY)
     other = dest / "2024" / "07" / "some_other_file"
     other.write_bytes(b"x")
-    with open(dest / "arlmet-manifest.md5", "a") as f:
-        f.write(f"{md5(b'x')}  2024/07/some_other_file\n")
-        f.write(f"{md5(b'y')}  2024/07/deleted_file\n")
+    stat = other.stat()
+    with open(dest / "arlmet-manifest.tsv", "a") as f:
+        f.write(
+            f"{md5(b'x')}\t{md5(b'x')}\t1\t{stat.st_mtime_ns}\t2024/07/some_other_file\n"
+        )
+        f.write(f"{md5(b'y')}\t{md5(b'y')}\t1\t5\t2024/07/deleted_file\n")
 
     hrrr.archive.sync(dest, **DAY)
 
-    manifest = (dest / "arlmet-manifest.md5").read_text()
-    assert "some_other_file" in manifest
-    assert "deleted_file" not in manifest
+    manifest = manifest_of(dest)
+    assert "2024/07/some_other_file" in manifest
+    assert "2024/07/deleted_file" not in manifest
 
 
 # ---------------------------------------------------------------------------
@@ -479,8 +579,7 @@ def test_the_manifest_keeps_what_was_checked_before_an_error(hrrr, dest, monkeyp
     with pytest.raises(RuntimeError, match="killed"):
         hrrr.archive.sync(dest, **DAY)
 
-    manifest = (dest / "arlmet-manifest.md5").read_text().splitlines()
-    assert manifest == [f"{md5(content(HRRR_DAY[0]))}  2024/07/{HRRR_DAY[0]}"]
+    assert list(manifest_of(dest)) == [f"2024/07/{HRRR_DAY[0]}"]
 
 
 # ---------------------------------------------------------------------------
@@ -601,3 +700,30 @@ def test_the_default_end_is_now(dest, monkeypatch):
     assert abs(end - pd.Timestamp.now("UTC").tz_localize(None)) < pd.Timedelta(
         minutes=1
     )
+
+
+def test_dry_run_reports_a_recorded_mismatch_and_a_correction(hrrr, dest, monkeypatch):
+    wrong, corrected = HRRR_DAY[1], HRRR_DAY[2]
+    dest.mkdir(parents=True)
+    for name in (wrong, corrected):
+        (dest / name).write_bytes(b"not NOAA's")
+    hrrr.archive.sync(dest, **DAY)
+    hrrr.put(corrected, b"corrected by NOAA")
+    monkeypatch.setattr(archives, "_md5_of_file", no_files)
+    monkeypatch.setattr(hrrr.archive, "_download", no_files)
+
+    result = hrrr.archive.sync(dest, dry_run=True, **DAY)
+
+    assert result.mismatched == [dest / wrong]
+    assert result.downloaded == [dest / corrected]
+
+
+def test_read_manifest_skips_a_half_written_line_and_allows_spaces_in_paths(tmp_path):
+    (tmp_path / "arlmet-manifest.tsv").write_text(
+        f"{'a' * 32}\t{'b' * 32}\t10\t20\tfolder with space/file\n"
+        f"{'c' * 32}\t{'d' * 32}\t30\n"  # cut off
+    )
+
+    assert archives._read_manifest(tmp_path) == {
+        "folder with space/file": archives._Checked("a" * 32, 10, 20, "b" * 32)
+    }

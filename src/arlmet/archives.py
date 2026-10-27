@@ -57,7 +57,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, BinaryIO, ClassVar, Literal, cast
+from typing import Any, BinaryIO, ClassVar, Literal, NamedTuple, cast
 
 import pandas as pd
 from typing_extensions import override
@@ -128,8 +128,8 @@ def _level_ranges(levels: list[int]) -> str:
 
 #: NOAA's list of the files in a product, with their MD5 sums, at its top folder.
 _LISTING_NAME = "listing.md5.txt"
-#: The MD5 of every file ``sync`` has checked, in ``md5sum`` format, in the mirror's top folder.
-_MANIFEST_NAME = "arlmet-manifest.md5"
+#: What ``sync`` knows about each local file, in the mirror's top folder.
+_MANIFEST_NAME = "arlmet-manifest.tsv"
 #: The folder ``sync`` makes (``mkdir`` is atomic on NFS) while it runs.
 _LOCK_NAME = ".arlmet-sync.lock"
 
@@ -204,13 +204,48 @@ def _local_files(root: Path) -> dict[str, list[str]]:
     return found
 
 
-def _append_manifest(root: Path, rel: str, md5: str) -> None:
-    """Add one ``md5  path`` line to the manifest, so a killed run keeps its progress."""
+class _Checked(NamedTuple):
+    """What ``sync`` recorded about one local file when it last looked at it."""
+
+    md5: str  #: the file's own MD5
+    size: int  #: its size in bytes, as it was then
+    mtime_ns: int  #: its modification time in nanoseconds, as it was then
+    noaa_md5: str  #: the MD5 NOAA listed for it then
+
+    def line(self, rel: str) -> str:
+        """Return the manifest line: ``md5 TAB noaa_md5 TAB size TAB mtime_ns TAB path``."""
+        return f"{self.md5}\t{self.noaa_md5}\t{self.size}\t{self.mtime_ns}\t{rel}\n"
+
+
+def _read_manifest(root: Path) -> dict[str, _Checked]:
+    """
+    Return ``{relative path: what was recorded}`` from the manifest of *root*.
+
+    Lines that do not have the five tab-separated fields (such as a half-written
+    last line) are skipped. A path that appears twice keeps its last line.
+    """
+    path = root / _MANIFEST_NAME
+    entries: dict[str, _Checked] = {}
+    if not path.is_file():
+        return entries
+    for line in path.read_text(encoding="utf-8").splitlines():
+        fields = line.split("\t", 4)
+        if len(fields) != 5 or not fields[2].isdigit() or not fields[3].isdigit():
+            continue
+        md5, noaa_md5, size, mtime_ns, rel = fields
+        entries[rel] = _Checked(md5, int(size), int(mtime_ns), noaa_md5)
+    return entries
+
+
+def _append_manifest(root: Path, rel: str, checked: _Checked) -> None:
+    """Add one line to the manifest, so a killed run keeps its progress."""
     with open(root / _MANIFEST_NAME, "a", encoding="utf-8") as f:
-        f.write(f"{md5}  {rel}\n")
+        f.write(checked.line(rel))
 
 
-def _write_manifest(root: Path, manifest: Mapping[str, str], keep: set[str]) -> None:
+def _write_manifest(
+    root: Path, manifest: Mapping[str, _Checked], keep: set[str]
+) -> None:
     """Rewrite the manifest sorted by path, with only the files in *keep*."""
     path = root / _MANIFEST_NAME
     tmp = _partial_path(path)
@@ -218,7 +253,7 @@ def _write_manifest(root: Path, manifest: Mapping[str, str], keep: set[str]) -> 
         with open(tmp, "w", encoding="utf-8") as f:
             for rel in sorted(manifest):
                 if rel in keep:
-                    f.write(f"{manifest[rel]}  {rel}\n")
+                    f.write(manifest[rel].line(rel))
         os.replace(tmp, path)
     finally:
         tmp.unlink(missing_ok=True)
@@ -275,13 +310,15 @@ class SyncResult:
         missing locally and the ones NOAA has corrected since they were
         checked (replaced in place).
     adopted : list[pathlib.Path]
-        Files already in the folder, not yet in the manifest, whose MD5 is
-        NOAA's: now recorded in the manifest.
+        Files already in the folder that were read this run (new to the
+        manifest, or changed since it recorded them) and whose MD5 is NOAA's.
     unchanged : list[pathlib.Path]
-        Files the manifest lists with NOAA's MD5: not read.
+        Files the manifest records as NOAA's, with the size and modification
+        time it recorded: not read.
     mismatched : list[pathlib.Path]
-        Files already in the folder, not yet in the manifest, whose MD5 is
-        not NOAA's (or that cannot be read). Reported and left alone.
+        Files already in the folder whose MD5 is not NOAA's (or that cannot
+        be read). Reported on every run, from the manifest without reading
+        them, and left alone until NOAA's file changes.
     failed : list[pathlib.Path]
         Files that could not be fetched or whose download did not match
         NOAA's MD5. Nothing is left under these paths but what was there
@@ -648,14 +685,19 @@ class Archive(ABC):
         - **No local copy**: downloaded to a hidden ``.partial`` file, hashed
           as it streams, and renamed into place only if its MD5 is NOAA's;
           otherwise it is deleted and the file is in ``failed``.
-        - **A copy the manifest lists with NOAA's MD5**: nothing is done and
-          the file is not read.
-        - **A copy the manifest lists with another MD5** (NOAA corrected the
-          file): downloaded again the same way, replacing it where it is.
-        - **A copy the manifest does not list** (a mirror made another
-          way): its MD5 is computed once. If it is NOAA's it goes in the
-          manifest (``adopted``); if not it is in ``mismatched`` and left
-          alone, and is read again by the next run.
+        - **A copy the manifest records as NOAA's** (its size and
+          modification time are as recorded): nothing is done and the file is
+          not read.
+        - **A copy the manifest records as differing from NOAA's**, while
+          NOAA's MD5 is still the one recorded: it is in ``mismatched`` and
+          left alone, without being read.
+        - **A copy NOAA has corrected** (NOAA's MD5 is not the one recorded
+          when the copy was checked, and the copy is not NOAA's new file):
+          downloaded again the same way, replacing it where it is.
+        - **A copy the manifest does not list** (a mirror made another way)
+          **or whose size or modification time changed**: its MD5 is
+          computed and recorded. If it is NOAA's it is ``adopted``; if not it
+          is ``mismatched`` and left alone.
 
         A copy is found by its name wherever it sits under *dest_dir*, so a
         folder in another layout (all files in one folder, say) is not
@@ -663,11 +705,15 @@ class Archive(ABC):
         archive's own path is used, else the first by path. Folders whose
         names start with a dot are not searched.
 
-        The manifest, ``arlmet-manifest.md5`` in *dest_dir*, is in
-        ``md5sum`` format (``cd`` there and run ``md5sum -c`` to check it)
-        and is trusted: a file in it is not read again, so to have one
-        checked again, delete its line. It is written as the run goes, so a
-        killed run keeps what it checked.
+        The manifest, ``arlmet-manifest.tsv`` in *dest_dir*, keeps apart what
+        the local file is and what NOAA's copy was when it was checked. It has
+        one line per file with five tab-separated fields: the file's MD5,
+        NOAA's MD5 at the check, the file's size in bytes, its modification
+        time in nanoseconds, and its path relative to *dest_dir* (last, so it
+        may hold spaces). A file is read only when it is not in the manifest
+        or its size or modification time differ from the line; to have a file
+        checked again, delete its line. The manifest is written as the run
+        goes, so a killed run keeps what it checked.
 
         A folder ``.arlmet-sync.lock`` made with ``mkdir`` (atomic on NFS)
         stops a second sync and names the host and start time of the first.
@@ -741,11 +787,7 @@ class Archive(ABC):
         *listing* maps a file name to NOAA's MD5.
         """
         local = _local_files(dest_dir)
-        manifest = _parse_md5_lines(
-            (dest_dir / _MANIFEST_NAME).read_text(encoding="utf-8")
-            if (dest_dir / _MANIFEST_NAME).is_file()
-            else ""
-        )
+        manifest = _read_manifest(dest_dir)
         present = {rel for rels in local.values() for rel in rels}
         result = SyncResult(dry_run=dry_run)
         opts = self._storage_options(mirror)
@@ -757,36 +799,63 @@ class Archive(ABC):
             own = Path(archive_path).relative_to(product).as_posix()
             copies = local.get(name, [])
             rel = own if own in copies else (copies[0] if copies else None)
-            known = None if rel is None else manifest.get(rel)
 
-            if rel is not None and known == expected:
-                result.unchanged.append(dest_dir / rel)
-                continue
-
-            if rel is not None and known is None:
-                # A copy from a mirror made another way: check it once.
+            if rel is not None:
                 path = dest_dir / rel
-                if dry_run:
-                    result.adopted.append(path)
-                    continue
                 try:
-                    actual = _md5_of_file(path)
-                except OSError as err:
+                    stat = path.stat()
+                except OSError as err:  # a broken link
                     logger.warning("Cannot read %s: %s", path, err)
-                    actual = None
-                if actual == expected:
-                    manifest[rel] = expected
-                    _append_manifest(dest_dir, rel, expected)
-                    result.adopted.append(path)
-                else:
-                    logger.warning(
-                        "%s has MD5 %s, NOAA lists %s; left alone",
-                        path,
-                        actual,
-                        expected,
-                    )
                     result.mismatched.append(path)
-                continue
+                    continue
+                recorded = manifest.get(rel)
+                # The file is read only if it is new to the manifest or has changed
+                # (size or modification time) since the manifest recorded it.
+                if recorded is not None and (recorded.size, recorded.mtime_ns) == (
+                    stat.st_size,
+                    stat.st_mtime_ns,
+                ):
+                    must_read = False
+                    md5, noaa_before = recorded.md5, recorded.noaa_md5
+                elif dry_run:
+                    result.adopted.append(path)  # a real run would read and check it
+                    continue
+                else:
+                    must_read = True
+                    try:
+                        md5 = _md5_of_file(path)
+                    except OSError as err:
+                        logger.warning("Cannot read %s: %s", path, err)
+                        result.mismatched.append(path)
+                        continue
+                    noaa_before = expected if recorded is None else recorded.noaa_md5
+
+                if md5 == expected or noaa_before == expected:
+                    # NOAA's file is the one checked (or a better copy is in place);
+                    # the local file either is it or differs and stays as it is.
+                    checked = _Checked(md5, stat.st_size, stat.st_mtime_ns, expected)
+                    if checked != recorded and not dry_run:
+                        manifest[rel] = checked
+                        _append_manifest(dest_dir, rel, checked)
+                    if md5 != expected:
+                        logger.warning(
+                            "%s has MD5 %s, NOAA lists %s; left alone",
+                            path,
+                            md5,
+                            expected,
+                        )
+                        result.mismatched.append(path)
+                    elif must_read:
+                        result.adopted.append(path)
+                    else:
+                        result.unchanged.append(path)
+                    continue
+                # else: NOAA's MD5 is not the one recorded: NOAA corrected the file.
+                if must_read:  # keep what we learned about the local file
+                    manifest[rel] = _Checked(
+                        md5, stat.st_size, stat.st_mtime_ns, noaa_before
+                    )
+                    _append_manifest(dest_dir, rel, manifest[rel])
 
             # Missing, or NOAA has corrected it since the manifest recorded it.
             rel = own if rel is None else rel
@@ -803,9 +872,10 @@ class Archive(ABC):
                 logger.warning("Could not fetch %s: %s", url, err)
                 result.failed.append(target)
                 continue
-            manifest[rel] = expected
+            stat = target.stat()
+            manifest[rel] = _Checked(expected, stat.st_size, stat.st_mtime_ns, expected)
             present.add(rel)
-            _append_manifest(dest_dir, rel, expected)
+            _append_manifest(dest_dir, rel, manifest[rel])
             result.downloaded.append(target)
 
         if not dry_run:

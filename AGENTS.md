@@ -141,11 +141,13 @@ when it downloads, so it imports without the `archives` extra.
     accepts `rs[key]`'s `(level, variable)` keys and a bare variable name.
 14. **`Archive.sync` never deletes, and finds local copies by file name anywhere
     under the folder**, so a mirror in another layout (HRRR v1 files in one flat
-    folder) is adopted, not downloaded again; it overwrites a file only to replace
-    one NOAA corrected (listing MD5 differs from the manifest's). The manifest
-    (`arlmet-manifest.md5`) is trusted: a file in it is not read. NOAA's list is
-    mapped to paths through `paths_for_range`, so a new archive class whose
-    filenames `paths_for_range` can produce needs nothing more.
+    folder) is adopted, not downloaded again. It overwrites a file only to replace
+    one NOAA corrected (NOAA's listed MD5 differs from the one recorded at the
+    check). The manifest (`arlmet-manifest.tsv`: local MD5, NOAA's MD5, size,
+    mtime, path) keeps the file's own MD5 apart from NOAA's, so a mismatched file
+    is reported without being read; a file is read only when new to the manifest
+    or its size or mtime changed. NOAA's list is mapped to paths through
+    `paths_for_range`, so an archive class needs nothing more.
 
 ## Commands
 
