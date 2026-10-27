@@ -81,15 +81,15 @@ def concat(
     Join the files for 00 UTC and 06 UTC into one file:
 
     >>> import arlmet
-    >>> arlmet.concat(["met_00.arl", "met_06.arl"], "day.arl")
-    PosixPath('day.arl')
+    >>> arlmet.concat(["met_00.arl", "met_06.arl"], "day.arl").name
+    'day.arl'
 
     Combine every file discovered by glob (the output is in valid-time order,
     so glob order does not matter):
 
     >>> import glob
-    >>> arlmet.concat(glob.glob("met_*.arl"), "day_glob.arl")
-    PosixPath('day_glob.arl')
+    >>> arlmet.concat(glob.glob("met_*.arl"), "day_glob.arl").name
+    'day_glob.arl'
     """
     # A bare str/PathLike is iterable (over characters / not at all), which would
     # silently do the wrong thing — reject it explicitly.
@@ -279,14 +279,15 @@ def concat_by_time(
     on 2024-07-18) into one file per day:
 
     >>> import arlmet
-    >>> arlmet.concat_by_time(
+    >>> days = arlmet.concat_by_time(
     ...     ".",
     ...     "daily/",
     ...     freq="1D",
     ...     pattern="met_*.arl",
     ...     template="{time:%Y%m%d}_arl",
     ... )
-    [PosixPath('daily/20240718_arl')]
+    >>> [path.name for path in days]
+    ['20240718_arl']
     """
     directory = Path(directory)
     dest_dir = Path(dest_dir)
