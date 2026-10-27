@@ -215,13 +215,18 @@ the archive's range:
 - **No local copy:** downloads it to a hidden ``.partial`` file, computes its
   MD5 as it streams, and renames it into place only if it matches NOAA's.
   Otherwise it deletes it and lists the file in ``result.failed``.
-- **A copy the manifest lists with NOAA's MD5:** does nothing, and does not
-  read the file.
-- **A copy the manifest lists with another MD5** (NOAA corrected the file):
-  downloads it again the same way and replaces it where it is.
-- **A copy the manifest does not list** (a folder filled another way): computes
-  its MD5 once. If it is NOAA's it goes in the manifest (``result.adopted``);
-  if not, it is in ``result.mismatched`` and left alone.
+- **A copy the manifest records as NOAA's:** does nothing, and does not read the
+  file.
+- **A copy the manifest records as differing from NOAA's:** lists it in
+  ``result.mismatched``, without reading it, and leaves it alone. It stays
+  there on every run until NOAA's file changes.
+- **A copy NOAA has corrected** (NOAA's MD5 is not the one recorded when the
+  copy was checked): downloads it again the same way and replaces it where it
+  is, whether the old copy matched or not.
+- **A copy the manifest does not list** (a folder filled another way), **or
+  whose size or modification time changed since it was recorded:** computes its
+  MD5 and records it. If it is NOAA's it is in ``result.adopted``; if not, in
+  ``result.mismatched``, and left alone.
 
 Nothing is deleted. Files NOAA does not list, including the ``name~date~``
 backups ``lftp`` leaves, are not touched.
@@ -246,12 +251,24 @@ a folder you care about: it reads nothing and writes nothing, and
 The manifest
 ~~~~~~~~~~~~
 
-``arlmet-manifest.md5`` in the folder holds the MD5 each file had when it was
-checked, in ``md5sum`` format, so ``cd`` to the folder and ``md5sum -c
-arlmet-manifest.md5`` verifies it. It is written as the run goes, so a run
-that is killed keeps what it checked (the first run over a big mirror reads
-every file once, which takes a while). It is trusted: a file listed there is
-not read again. To have a file checked again, delete its line.
+``arlmet-manifest.tsv`` in the folder keeps apart what each local file is and
+what NOAA's copy was when it was checked, as ``rsync`` does with its file
+list. It is a plain text file with one line per file and five fields separated
+by tabs: the local file's MD5, NOAA's MD5 when it was checked, the file's size in
+bytes, its modification time in nanoseconds, and its path relative to the folder
+(last, so it may contain spaces). For example (tabs shown as spaces):
+
+.. code-block:: text
+
+   0f4c...e2a1   0f4c...e2a1   3377102848   1718150400000000000   2024/07/20240718_00-05_hrrr
+
+A run reads a file only if it is not in the manifest or its size or modification
+time differ from the line, and then updates the line. A file whose MD5 differs
+from NOAA's is recorded too, so it is reported on every run without being read;
+it is replaced only when NOAA's MD5 changes. To have a file checked again,
+delete its line. The manifest is written as the run goes, so a run that is
+killed keeps what it checked (the first run over a big mirror reads every file
+once, which takes a while).
 
 One run at a time
 ~~~~~~~~~~~~~~~~~
