@@ -25,28 +25,29 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../../_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
-<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+  <link href="../../../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=283e4333" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../../../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
-<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=850fa211"></script>
+    <script src="../../../_static/documentation_options.js?v=29b87abd"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/arlmet/ops/subset';</script>
     <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
+        DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
         DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
@@ -56,8 +57,9 @@
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev8+g99519562d" />
+  <meta name="docsearch:version" content="0.1.0b5.dev9+g7e2bdf003" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -412,7 +414,7 @@
                 <article class="bd-article">
                   
   <h1>Source code for arlmet.ops.subset</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Subset extraction helpers for ARL meteorology files.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Subset extraction helpers for ARL meteorology files."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -434,34 +436,34 @@
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.recordset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordSet</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;extract_subset&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"extract_subset"</span><span class="p">]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">normalize_levels</span><span class="p">(</span>
     <span class="n">vertical_axis</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">,</span> <span class="n">levels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Normalize a level selection to sorted unique ARL level indices.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">levels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vertical_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)))</span>
 
     <span class="n">normalized</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">({</span><span class="nb">int</span><span class="p">(</span><span class="n">level</span><span class="p">)</span> <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">}))</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">normalized</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;levels must include at least one level index.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"levels must include at least one level index."</span><span class="p">)</span>
 
     <span class="n">max_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vertical_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
     <span class="k">if</span> <span class="n">normalized</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">normalized</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">max_index</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;levels must be between 0 and </span><span class="si">{</span><span class="n">max_index</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">normalized</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"levels must be between 0 and </span><span class="si">{</span><span class="n">max_index</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">normalized</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">normalized</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">resolve_window</span><span class="p">(</span>
     <span class="n">file</span><span class="p">:</span> <span class="n">File</span><span class="p">,</span> <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GridWindow</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Resolve a bbox selection to a grid window.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">bbox</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">file</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">full_window</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">file</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">window_from_bbox</span><span class="p">(</span><span class="n">bbox</span><span class="p">)</span>
@@ -473,9 +475,9 @@
     <span class="n">levels</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">variables</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Filter records by ARL level index and variable name.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="p">[</span>
         <span class="n">record</span>
         <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">records</span>
@@ -487,13 +489,13 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_source_index_entries</span><span class="p">(</span>
     <span class="n">selected_records</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">],</span> <span class="n">level_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Index manifest entries ``(output level, name, info)`` for selected records.</span>
 
 <span class="sd">    Each record is followed by its DIF records, if any, as in the output file.</span>
 <span class="sd">    Checksums and reserved flags come from the source index; they size the</span>
 <span class="sd">    output index record for validation.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">entries</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">selected_records</span><span class="p">:</span>
         <span class="n">level</span> <span class="o">=</span> <span class="n">level_map</span><span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">level</span><span class="p">]</span>
@@ -502,7 +504,7 @@
                 <span class="p">(</span>
                     <span class="n">level</span><span class="p">,</span>
                     <span class="n">rec</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span>
-                    <span class="n">VarInfo</span><span class="p">(</span><span class="n">checksum</span><span class="o">=</span><span class="n">rec</span><span class="o">.</span><span class="n">checksum</span><span class="p">,</span> <span class="n">reserved</span><span class="o">=</span><span class="p">(</span><span class="n">rec</span><span class="o">.</span><span class="n">_reserved</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)[:</span><span class="mi">1</span><span class="p">]),</span>
+                    <span class="n">VarInfo</span><span class="p">(</span><span class="n">checksum</span><span class="o">=</span><span class="n">rec</span><span class="o">.</span><span class="n">checksum</span><span class="p">,</span> <span class="n">reserved</span><span class="o">=</span><span class="p">(</span><span class="n">rec</span><span class="o">.</span><span class="n">_reserved</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)[:</span><span class="mi">1</span><span class="p">]),</span>
                 <span class="p">)</span>
             <span class="p">)</span>
     <span class="k">return</span> <span class="n">entries</span>
@@ -516,11 +518,11 @@
     <span class="n">selected_records</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">],</span>
     <span class="n">entries</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IndexRecord</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Build the output index record for one subsetted time step.</span>
 
 <span class="sd">    ``entries`` lists ``(output level, variable name, VarInfo)`` in file order.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">forecast</span> <span class="o">=</span> <span class="n">_derive_index_forecast</span><span class="p">(</span>
         <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">forecast</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">selected_records</span><span class="p">),</span>
         <span class="n">recordset</span><span class="o">.</span><span class="n">forecast</span><span class="p">,</span>
@@ -553,7 +555,7 @@
             <span class="n">forecast</span><span class="o">=</span><span class="n">forecast</span><span class="p">,</span>
             <span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="n">grid</span><span class="o">=</span><span class="p">(</span><span class="n">grid_x</span><span class="p">,</span> <span class="n">grid_y</span><span class="p">),</span>
-            <span class="n">variable</span><span class="o">=</span><span class="s2">&quot;INDX&quot;</span><span class="p">,</span>
+            <span class="n">variable</span><span class="o">=</span><span class="s2">"INDX"</span><span class="p">,</span>
             <span class="n">exponent</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="n">precision</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
             <span class="n">initial_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
@@ -588,9 +590,9 @@
     <span class="n">subset_axis</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">,</span>
     <span class="n">level_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Fail early when a cropped ARL grid cannot fit its index record.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">record_len</span> <span class="o">=</span> <span class="n">record_length_from_grid</span><span class="p">(</span><span class="n">grid</span><span class="o">=</span><span class="n">subset_grid</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">recordset</span><span class="p">,</span> <span class="n">selected_records</span> <span class="ow">in</span> <span class="n">selected_recordsets</span><span class="p">:</span>
         <span class="n">index</span> <span class="o">=</span> <span class="n">_build_subset_index_record</span><span class="p">(</span>
@@ -604,11 +606,11 @@
         <span class="k">if</span> <span class="n">index_len</span> <span class="o">&gt;</span> <span class="n">record_len</span><span class="p">:</span>
             <span class="n">min_cells</span> <span class="o">=</span> <span class="n">index_len</span> <span class="o">-</span> <span class="n">Header</span><span class="o">.</span><span class="n">N_BYTES</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Subset grid is too small to encode an ARL index record: &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;time </span><span class="si">{</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2"> needs </span><span class="si">{</span><span class="n">index_len</span><span class="si">}</span><span class="s2"> bytes, but each record is &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;only </span><span class="si">{</span><span class="n">record_len</span><span class="si">}</span><span class="s2"> bytes for grid </span><span class="si">{</span><span class="n">subset_grid</span><span class="o">.</span><span class="n">nx</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="n">subset_grid</span><span class="o">.</span><span class="n">ny</span><span class="si">}</span><span class="s2">. &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;The bbox must yield at least </span><span class="si">{</span><span class="n">min_cells</span><span class="si">}</span><span class="s2"> grid cells (nx*ny). &quot;</span>
-                <span class="s2">&quot;Expand the bbox or reduce levels/variables.&quot;</span>
+                <span class="s2">"Subset grid is too small to encode an ARL index record: "</span>
+                <span class="sa">f</span><span class="s2">"time </span><span class="si">{</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2"> needs </span><span class="si">{</span><span class="n">index_len</span><span class="si">}</span><span class="s2"> bytes, but each record is "</span>
+                <span class="sa">f</span><span class="s2">"only </span><span class="si">{</span><span class="n">record_len</span><span class="si">}</span><span class="s2"> bytes for grid </span><span class="si">{</span><span class="n">subset_grid</span><span class="o">.</span><span class="n">nx</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="n">subset_grid</span><span class="o">.</span><span class="n">ny</span><span class="si">}</span><span class="s2">. "</span>
+                <span class="sa">f</span><span class="s2">"The bbox must yield at least </span><span class="si">{</span><span class="n">min_cells</span><span class="si">}</span><span class="s2"> grid cells (nx*ny). "</span>
+                <span class="s2">"Expand the bbox or reduce levels/variables."</span>
             <span class="p">)</span>
 
 
@@ -617,30 +619,30 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">level_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Fail early when renumbering levels would leave a DIF record unpaired.</span>
 
-<span class="sd">    Leaving out level 0 makes the lowest kept level the subset&#39;s surface,</span>
-<span class="sd">    where HYSPLIT&#39;s name table pairs a ``DIF*`` record only with ``TPP*`` or</span>
+<span class="sd">    Leaving out level 0 makes the lowest kept level the subset's surface,</span>
+<span class="sd">    where HYSPLIT's name table pairs a ``DIF*`` record only with ``TPP*`` or</span>
 <span class="sd">    ``PRT*``, so a ``DIFW`` there would correct nothing on read.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">selected_records</span> <span class="ow">in</span> <span class="n">selected_recordsets</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">selected_records</span><span class="p">:</span>
             <span class="n">level</span> <span class="o">=</span> <span class="n">level_map</span><span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">level</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">dif</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">diffs</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">_corrects</span><span class="p">(</span><span class="n">dif</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;The subset puts level </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2"> at level </span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s2">, &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;where a </span><span class="si">{</span><span class="n">dif</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2"> record corrects &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_dif_parents</span><span class="p">(</span><span class="n">dif</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span><span class="w"> </span><span class="n">level</span><span class="p">)</span><span class="si">}</span><span class="s2">, so the &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dif</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2"> record of </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2"> would &quot;</span>
-                        <span class="s2">&quot;correct nothing. Keep level 0, or leave out &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2"> with variables=.&quot;</span>
+                        <span class="sa">f</span><span class="s2">"The subset puts level </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2"> at level </span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s2">, "</span>
+                        <span class="sa">f</span><span class="s2">"where a </span><span class="si">{</span><span class="n">dif</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2"> record corrects "</span>
+                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_dif_parents</span><span class="p">(</span><span class="n">dif</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span><span class="w"> </span><span class="n">level</span><span class="p">)</span><span class="si">}</span><span class="s2">, so the "</span>
+                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">dif</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2"> record of </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2"> would "</span>
+                        <span class="s2">"correct nothing. Keep level 0, or leave out "</span>
+                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2"> with variables=."</span>
                     <span class="p">)</span>
 
 
 <span class="c1"># Byte offsets of the level field in a record header (see Header.FIELDS).</span>
-<span class="n">_LEVEL_START</span><span class="p">,</span> <span class="n">_LEVEL_STOP</span> <span class="o">=</span> <span class="n">Header</span><span class="o">.</span><span class="n">FIELDS</span><span class="p">[</span><span class="s2">&quot;level&quot;</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span>
+<span class="n">_LEVEL_START</span><span class="p">,</span> <span class="n">_LEVEL_STOP</span> <span class="o">=</span> <span class="n">Header</span><span class="o">.</span><span class="n">FIELDS</span><span class="p">[</span><span class="s2">"level"</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_copy_subset_records</span><span class="p">(</span>
@@ -652,23 +654,23 @@
     <span class="n">subset_axis</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">,</span>
     <span class="n">level_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Write an uncropped subset by copying record bytes instead of re-packing.</span>
 
-<span class="sd">    Without a horizontal crop a record&#39;s packed bytes do not depend on which</span>
+<span class="sd">    Without a horizontal crop a record's packed bytes do not depend on which</span>
 <span class="sd">    other records are kept, so each selected record, followed by its DIF</span>
-<span class="sd">    records, is copied verbatim with only the header&#39;s level field</span>
+<span class="sd">    records, is copied verbatim with only the header's level field</span>
 <span class="sd">    renumbered. Only the index records are rebuilt, with checksums recomputed</span>
 <span class="sd">    from the copied bytes and blank reserved flags, as a re-pack writes them.</span>
 
 <span class="sd">    The output decodes to exactly the source values. For records that</span>
 <span class="sd">    re-packing reproduces byte for byte (those written by arlmet without a</span>
-<span class="sd">    DIF record) it is identical to the re-pack path&#39;s output; otherwise the</span>
+<span class="sd">    DIF record) it is identical to the re-pack path's output; otherwise the</span>
 <span class="sd">    re-pack path re-quantizes the values and this path is the more faithful.</span>
 
-<span class="sd">    Each time step&#39;s index record is written last, over a placeholder, once</span>
+<span class="sd">    Each time step's index record is written last, over a placeholder, once</span>
 <span class="sd">    the checksums of its records are known, so memory stays at a few records.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">record_length</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">record_length</span>
     <span class="n">src_fh</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">handle</span>
     <span class="n">placeholder</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">record_length</span><span class="p">)</span>
@@ -680,21 +682,21 @@
         <span class="n">entries</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">selected_records</span><span class="p">:</span>
             <span class="n">level</span> <span class="o">=</span> <span class="n">level_map</span><span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">level</span><span class="p">]</span>
-            <span class="n">level_field</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">level</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+            <span class="n">level_field</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">level</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">"</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"ascii"</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="o">*</span><span class="n">record</span><span class="o">.</span><span class="n">diffs</span><span class="p">):</span>
                 <span class="n">src_fh</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">rec</span><span class="o">.</span><span class="n">position</span><span class="p">)</span>
                 <span class="n">raw</span> <span class="o">=</span> <span class="n">src_fh</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">record_length</span><span class="p">)</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span> <span class="o">!=</span> <span class="n">record_length</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">src</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: record </span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">variable</span><span class="si">!r}</span><span class="s2"> at byte &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">position</span><span class="si">}</span><span class="s2"> is truncated.&quot;</span>
+                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">src</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: record </span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">variable</span><span class="si">!r}</span><span class="s2"> at byte "</span>
+                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">position</span><span class="si">}</span><span class="s2"> is truncated."</span>
                     <span class="p">)</span>
                 <span class="n">header</span> <span class="o">=</span> <span class="n">Header</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">raw</span><span class="p">[:</span> <span class="n">Header</span><span class="o">.</span><span class="n">N_BYTES</span><span class="p">])</span>
                 <span class="k">if</span> <span class="n">header</span><span class="o">.</span><span class="n">variable</span> <span class="o">!=</span> <span class="n">rec</span><span class="o">.</span><span class="n">variable</span> <span class="ow">or</span> <span class="n">header</span><span class="o">.</span><span class="n">level</span> <span class="o">!=</span> <span class="n">rec</span><span class="o">.</span><span class="n">level</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;DataRecord header mismatch at position </span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">position</span><span class="si">}</span><span class="s2">: &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;expected variable &#39;</span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39; level </span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">, &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;got variable &#39;</span><span class="si">{</span><span class="n">header</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39; level &#39;</span><span class="si">{</span><span class="n">header</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                        <span class="sa">f</span><span class="s2">"DataRecord header mismatch at position </span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">position</span><span class="si">}</span><span class="s2">: "</span>
+                        <span class="sa">f</span><span class="s2">"expected variable '</span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">' level </span><span class="si">{</span><span class="n">rec</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">, "</span>
+                        <span class="sa">f</span><span class="s2">"got variable '</span><span class="si">{</span><span class="n">header</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">' level '</span><span class="si">{</span><span class="n">header</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2">'"</span>
                     <span class="p">)</span>
                 <span class="c1"># Write the record with its level renumbered, without copying it.</span>
                 <span class="n">view</span> <span class="o">=</span> <span class="nb">memoryview</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
@@ -702,7 +704,7 @@
                 <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">level_field</span><span class="p">)</span>
                 <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">view</span><span class="p">[</span><span class="n">_LEVEL_STOP</span><span class="p">:])</span>
                 <span class="n">checksum</span> <span class="o">=</span> <span class="n">calculate_checksum</span><span class="p">(</span><span class="n">view</span><span class="p">[</span><span class="n">Header</span><span class="o">.</span><span class="n">N_BYTES</span> <span class="p">:])</span>
-                <span class="n">entries</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">level</span><span class="p">,</span> <span class="n">rec</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">(</span><span class="n">checksum</span><span class="p">,</span> <span class="n">reserved</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)))</span>
+                <span class="n">entries</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">level</span><span class="p">,</span> <span class="n">rec</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">(</span><span class="n">checksum</span><span class="p">,</span> <span class="n">reserved</span><span class="o">=</span><span class="s2">""</span><span class="p">)))</span>
 
         <span class="n">index</span> <span class="o">=</span> <span class="n">_build_subset_index_record</span><span class="p">(</span>
             <span class="n">recordset</span><span class="p">,</span>
@@ -726,12 +728,12 @@
     <span class="n">subset_axis</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">,</span>
     <span class="n">level_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Write a cropped subset by unpacking each record&#39;s window and re-packing it.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Write a cropped subset by unpacking each record's window and re-packing it.</span>
+<span class="sd">    """</span>
     <span class="k">with</span> <span class="n">File</span><span class="p">(</span>
         <span class="n">dest</span><span class="p">,</span>
-        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">"w"</span><span class="p">,</span>
         <span class="n">source</span><span class="o">=</span><span class="n">src</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
         <span class="n">grid</span><span class="o">=</span><span class="n">subset_grid</span><span class="p">,</span>
         <span class="n">vertical_axis</span><span class="o">=</span><span class="n">subset_axis</span><span class="p">,</span>
@@ -760,7 +762,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_is_full_window</span><span class="p">(</span><span class="n">grid</span><span class="p">:</span> <span class="n">Grid</span><span class="p">,</span> <span class="n">window</span><span class="p">:</span> <span class="n">GridWindow</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return True when ``window`` covers all of ``grid`` (no horizontal crop).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Return True when ``window`` covers all of ``grid`` (no horizontal crop)."""</span>
     <span class="k">return</span> <span class="n">window</span> <span class="o">==</span> <span class="n">grid</span><span class="o">.</span><span class="n">full_window</span><span class="p">()</span>
 
 
@@ -774,7 +776,7 @@
     <span class="n">levels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">variables</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Extract a spatial/vertical subset from an ARL file into a new ARL file.</span>
 
 <span class="sd">    Parameters</span>
@@ -803,7 +805,7 @@
 <span class="sd">        If ``dest`` is the same file as ``path``, the cropped grid is too</span>
 <span class="sd">        small to hold the ARL index record, or ``levels`` leaves out level 0</span>
 <span class="sd">        and so moves a record with ``DIF*`` records to the surface, where</span>
-<span class="sd">        HYSPLIT&#39;s name table would not pair them with it.</span>
+<span class="sd">        HYSPLIT's name table would not pair them with it.</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
@@ -814,7 +816,7 @@
 <span class="sd">    Without a horizontal crop (``bbox`` is None or covers the whole grid),</span>
 <span class="sd">    the selected records are copied byte for byte, with only their level</span>
 <span class="sd">    numbers and the index records rewritten, which is much faster than</span>
-<span class="sd">    unpacking and re-packing them. A crop re-packs each record&#39;s window.</span>
+<span class="sd">    unpacking and re-packing them. A crop re-packs each record's window.</span>
 <span class="sd">    Either way each ``DIF*`` record is written right after the record it</span>
 <span class="sd">    corrects, and the index record lists the records in that order.</span>
 
@@ -822,13 +824,13 @@
 <span class="sd">    --------</span>
 <span class="sd">    &gt;&gt;&gt; import arlmet</span>
 <span class="sd">    &gt;&gt;&gt; out = arlmet.extract_subset(</span>
-<span class="sd">    ...     &quot;met.arl&quot;,</span>
-<span class="sd">    ...     &quot;subset.arl&quot;,</span>
+<span class="sd">    ...     "met.arl",</span>
+<span class="sd">    ...     "subset.arl",</span>
 <span class="sd">    ...     bbox=(-114.0, 39.0, -110.0, 42.0),</span>
 <span class="sd">    ...     levels=[0, 1, 2],</span>
 <span class="sd">    ... )</span>
 <span class="sd">    &gt;&gt;&gt; ds = arlmet.open_dataset(out)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">reject_same_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
     <span class="n">variable_names</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">variables</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">set</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
 
@@ -869,7 +871,7 @@
         <span class="c1"># complete, so an interrupted run never leaves a truncated output.</span>
         <span class="k">with</span> <span class="n">atomic_output</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmp_path</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">_is_full_window</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">window</span><span class="p">):</span>
-                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="s2">"wb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
                     <span class="n">_copy_subset_records</span><span class="p">(</span>
                         <span class="n">src</span><span class="p">,</span>
                         <span class="n">out</span><span class="p">,</span>
@@ -920,8 +922,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
-<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -941,7 +943,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
   </p>
 </div>
       
@@ -954,7 +956,7 @@
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
 </p></div>
       
     </div>

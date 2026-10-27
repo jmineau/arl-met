@@ -25,28 +25,29 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../../_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
-<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+  <link href="../../../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=283e4333" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../../../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
-<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=850fa211"></script>
+    <script src="../../../_static/documentation_options.js?v=29b87abd"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/arlmet/ops/sample';</script>
     <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
+        DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
         DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
@@ -56,8 +57,9 @@
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev8+g99519562d" />
+  <meta name="docsearch:version" content="0.1.0b5.dev9+g7e2bdf003" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -412,7 +414,7 @@
                 <article class="bd-article">
                   
   <h1>Source code for arlmet.ops.sample</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Point-sampling helpers for ARL meteorology files.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Point-sampling helpers for ARL meteorology files."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -443,55 +445,55 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.recordset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordSet</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sample_points&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"sample_points"</span><span class="p">]</span>
 
-<span class="n">SURFACE_VARIABLES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;PRSS&quot;</span><span class="p">,</span> <span class="s2">&quot;SHGT&quot;</span><span class="p">}</span>
+<span class="n">SURFACE_VARIABLES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"PRSS"</span><span class="p">,</span> <span class="s2">"SHGT"</span><span class="p">}</span>
 
 <span class="c1">#: On sigma, pressure-level, hybrid and WRF files, the surface field that gives</span>
-<span class="c1">#: an upper-level variable its value at the ground, as HYSPLIT&#39;s ``prfsig``,</span>
-<span class="c1">#: ``prfprs`` and ``prfecm`` start their columns. ``TEMP`` takes the column&#39;s</span>
-<span class="c1">#: ground temperature (``T02M``, ``TMPS``, else the first level&#39;s brought down</span>
+<span class="c1">#: an upper-level variable its value at the ground, as HYSPLIT's ``prfsig``,</span>
+<span class="c1">#: ``prfprs`` and ``prfecm`` start their columns. ``TEMP`` takes the column's</span>
+<span class="c1">#: ground temperature (``T02M``, ``TMPS``, else the first level's brought down</span>
 <span class="c1">#: adiabatically), vertical motion is zero, and any other variable keeps its</span>
-<span class="c1">#: first level&#39;s value.</span>
+<span class="c1">#: first level's value.</span>
 <span class="n">_GROUND_FIELDS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;PRES&quot;</span><span class="p">:</span> <span class="s2">&quot;PRSS&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;HGTS&quot;</span><span class="p">:</span> <span class="s2">&quot;SHGT&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;UWND&quot;</span><span class="p">:</span> <span class="s2">&quot;U10M&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;VWND&quot;</span><span class="p">:</span> <span class="s2">&quot;V10M&quot;</span><span class="p">,</span>
+    <span class="s2">"PRES"</span><span class="p">:</span> <span class="s2">"PRSS"</span><span class="p">,</span>
+    <span class="s2">"HGTS"</span><span class="p">:</span> <span class="s2">"SHGT"</span><span class="p">,</span>
+    <span class="s2">"UWND"</span><span class="p">:</span> <span class="s2">"U10M"</span><span class="p">,</span>
+    <span class="s2">"VWND"</span><span class="p">:</span> <span class="s2">"V10M"</span><span class="p">,</span>
 <span class="p">}</span>
-<span class="n">_ZERO_AT_GROUND</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">&quot;WWND&quot;</span><span class="p">,</span> <span class="s2">&quot;DZDT&quot;</span><span class="p">})</span>
+<span class="n">_ZERO_AT_GROUND</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"WWND"</span><span class="p">,</span> <span class="s2">"DZDT"</span><span class="p">})</span>
 <span class="c1">#: Variables holding pressure, interpolated as ln p along a :class:`_Column`, as</span>
-<span class="c1">#: HYSPLIT&#39;s ``prfsig``, ``prfprs`` and ``prfecm`` do (``prfter`` is linear).</span>
-<span class="n">_PRESSURE_VARIABLES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">&quot;PRES&quot;</span><span class="p">,</span> <span class="s2">&quot;pressure&quot;</span><span class="p">})</span>
+<span class="c1">#: HYSPLIT's ``prfsig``, ``prfprs`` and ``prfecm`` do (``prfter`` is linear).</span>
+<span class="n">_PRESSURE_VARIABLES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"PRES"</span><span class="p">,</span> <span class="s2">"pressure"</span><span class="p">})</span>
 
 <span class="c1">#: Wind component pairs that are stored grid-relative on projected grids.</span>
-<span class="n">WIND_PAIRS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;U10M&quot;</span><span class="p">,</span> <span class="s2">&quot;V10M&quot;</span><span class="p">))</span>
+<span class="n">WIND_PAIRS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"U10M"</span><span class="p">,</span> <span class="s2">"V10M"</span><span class="p">))</span>
 
 <span class="c1"># One sampling input: an open File or a path to an ARL file.</span>
-<span class="n">FileLike</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="s2">&quot;File&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">&quot;os.PathLike[str]&quot;</span><span class="p">]</span>
+<span class="n">FileLike</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="s2">"File"</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">"os.PathLike[str]"</span><span class="p">]</span>
 
 <span class="c1">#: Vertical coordinate systems accepted for the ``z`` of sample points.</span>
-<span class="n">ZKind</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;native&quot;</span><span class="p">,</span> <span class="s2">&quot;pressure&quot;</span><span class="p">,</span> <span class="s2">&quot;agl&quot;</span><span class="p">,</span> <span class="s2">&quot;msl&quot;</span><span class="p">]</span>
+<span class="n">ZKind</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"native"</span><span class="p">,</span> <span class="s2">"pressure"</span><span class="p">,</span> <span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">]</span>
 <span class="c1">#: Horizontal interpolation methods for point sampling.</span>
-<span class="n">SampleMethod</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="s2">&quot;nearest&quot;</span><span class="p">]</span>
+<span class="n">SampleMethod</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"nearest"</span><span class="p">]</span>
 
-<span class="n">_Z_KINDS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">&quot;native&quot;</span><span class="p">,</span> <span class="s2">&quot;pressure&quot;</span><span class="p">,</span> <span class="s2">&quot;agl&quot;</span><span class="p">,</span> <span class="s2">&quot;msl&quot;</span><span class="p">})</span>
-<span class="n">_METHODS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="s2">&quot;nearest&quot;</span><span class="p">})</span>
+<span class="n">_Z_KINDS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"native"</span><span class="p">,</span> <span class="s2">"pressure"</span><span class="p">,</span> <span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">})</span>
+<span class="n">_METHODS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"nearest"</span><span class="p">})</span>
 
 
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">HorizontalSamplePlan</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Pre-computed bilinear interpolation weights for a set of (lon, lat) points.</span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
-<span class="sd">    method : &#39;linear&#39; or &#39;nearest&#39;</span>
+<span class="sd">    method : 'linear' or 'nearest'</span>
 <span class="sd">    window : minimal GridWindow bounding all valid points, or None if all outside</span>
 <span class="sd">    inside : boolean mask — True where the point falls within the grid</span>
 <span class="sd">    x0, x1, y0, y1 : integer grid-cell corners for each point</span>
 <span class="sd">    wx, wy : fractional weights toward x1/y1 (zero for nearest-neighbor)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">method</span><span class="p">:</span> <span class="n">SampleMethod</span>
     <span class="n">window</span><span class="p">:</span> <span class="n">GridWindow</span> <span class="o">|</span> <span class="kc">None</span>
@@ -511,7 +513,7 @@
     <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">implied_time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Validate *points* and split it into the result frame and sampling coordinates.</span>
 
 <span class="sd">    Returns ``(result, coords)``. *result* is a copy of *points* as a DataFrame,</span>
@@ -523,68 +525,68 @@
 <span class="sd">    The point time comes from the ``time`` column, else from *time*, else from</span>
 <span class="sd">    *implied_time* (the single valid time of the inputs). Giving both a</span>
 <span class="sd">    ``time`` column and *time* is ambiguous and raises ``ValueError``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">points</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
 
-    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;lon&quot;</span><span class="p">,</span> <span class="s2">&quot;lat&quot;</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"lon"</span><span class="p">,</span> <span class="s2">"lat"</span><span class="p">,</span> <span class="s2">"z"</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;Point sampling requires &#39;lon&#39;, &#39;lat&#39;, and &#39;z&#39; columns, &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;missing </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">missing</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="s2">"Point sampling requires 'lon', 'lat', and 'z' columns, "</span>
+            <span class="sa">f</span><span class="s2">"missing </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">missing</span><span class="p">)</span><span class="si">}</span><span class="s2">."</span>
         <span class="p">)</span>
 
     <span class="n">clashes</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">variable_names</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">clashes</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;Requested variables collide with existing columns of points: &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">clashes</span><span class="p">)</span><span class="si">}</span><span class="s2">. Rename or drop those &quot;</span>
-            <span class="s2">&quot;columns before sampling.&quot;</span>
+            <span class="s2">"Requested variables collide with existing columns of points: "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">clashes</span><span class="p">)</span><span class="si">}</span><span class="s2">. Rename or drop those "</span>
+            <span class="s2">"columns before sampling."</span>
         <span class="p">)</span>
 
-    <span class="n">has_time_column</span> <span class="o">=</span> <span class="s2">&quot;time&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
+    <span class="n">has_time_column</span> <span class="o">=</span> <span class="s2">"time"</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
     <span class="k">if</span> <span class="n">has_time_column</span> <span class="ow">and</span> <span class="n">time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;points has a &#39;time&#39; column and time= was also given; pass only one.&quot;</span>
+            <span class="s2">"points has a 'time' column and time= was also given; pass only one."</span>
         <span class="p">)</span>
 
     <span class="n">coords</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
         <span class="p">{</span>
-            <span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
-            <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
-            <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+            <span class="s2">"lon"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"lon"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+            <span class="s2">"lat"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"lat"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+            <span class="s2">"z"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"z"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
         <span class="p">}</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">has_time_column</span><span class="p">:</span>
-        <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+        <span class="n">coords</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"time"</span><span class="p">])</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
     <span class="k">elif</span> <span class="n">time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+        <span class="n">coords</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">implied_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">implied_time</span>
+        <span class="n">coords</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span> <span class="o">=</span> <span class="n">implied_time</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;Point sampling needs a time: add a &#39;time&#39; column to points or pass &quot;</span>
-            <span class="s2">&quot;time=, unless the input file(s) contain exactly one valid time.&quot;</span>
+            <span class="s2">"Point sampling needs a time: add a 'time' column to points or pass "</span>
+            <span class="s2">"time=, unless the input file(s) contain exactly one valid time."</span>
         <span class="p">)</span>
-    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;points has missing (NaT) values in its &#39;time&#39; column.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="s2">"time"</span><span class="p">])):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"points has missing (NaT) values in its 'time' column."</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">coords</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_variables</span><span class="p">(</span><span class="n">variables</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coerce *variables* to a non-empty tuple of strings.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Coerce *variables* to a non-empty tuple of strings."""</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">names</span> <span class="o">=</span> <span class="p">(</span><span class="n">variables</span><span class="p">,)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">names</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;variables must include at least one variable name.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"variables must include at least one variable name."</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">names</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_check_wind_pairs</span><span class="p">(</span><span class="n">variable_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the wind pairs present in *variable_names*; raise if a component lacks its partner.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Return the wind pairs present in *variable_names*; raise if a component lacks its partner."""</span>
     <span class="n">requested</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">variable_names</span><span class="p">)</span>
     <span class="n">pairs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">u_name</span><span class="p">,</span> <span class="n">v_name</span> <span class="ow">in</span> <span class="n">WIND_PAIRS</span><span class="p">:</span>
@@ -594,8 +596,8 @@
             <span class="n">missing</span> <span class="o">=</span> <span class="n">v_name</span> <span class="k">if</span> <span class="n">has_u</span> <span class="k">else</span> <span class="n">u_name</span>
             <span class="n">present</span> <span class="o">=</span> <span class="n">u_name</span> <span class="k">if</span> <span class="n">has_u</span> <span class="k">else</span> <span class="n">v_name</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;earth_relative=True needs both wind components: &#39;</span><span class="si">{</span><span class="n">present</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;was requested without &#39;</span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+                <span class="sa">f</span><span class="s2">"earth_relative=True needs both wind components: '</span><span class="si">{</span><span class="n">present</span><span class="si">}</span><span class="s2">' "</span>
+                <span class="sa">f</span><span class="s2">"was requested without '</span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">'."</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">has_u</span><span class="p">:</span>
             <span class="n">pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">u_name</span><span class="p">,</span> <span class="n">v_name</span><span class="p">))</span>
@@ -609,7 +611,7 @@
     <span class="n">lat</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">pairs</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Rotate each sampled wind pair in *sampled* from grid- to earth-relative, in place.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Rotate each sampled wind pair in *sampled* from grid- to earth-relative, in place."""</span>
     <span class="k">if</span> <span class="n">grid</span><span class="o">.</span><span class="n">is_latlon</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">pairs</span><span class="p">:</span>
         <span class="k">return</span>
     <span class="k">for</span> <span class="n">u_name</span><span class="p">,</span> <span class="n">v_name</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">:</span>
@@ -621,7 +623,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_record_levels</span><span class="p">(</span><span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span> <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">DataRecord</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return {level_index: DataRecord} for *variable*, sorted by level index.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Return {level_index: DataRecord} for *variable*, sorted by level index."""</span>
     <span class="n">records</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
         <span class="nb">sorted</span><span class="p">(</span>
             <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">level</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
@@ -629,15 +631,15 @@
             <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">variable</span> <span class="o">==</span> <span class="n">variable</span>
         <span class="p">)</span>
     <span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">records</span> <span class="ow">and</span> <span class="n">variable</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;pressure&quot;</span><span class="p">}:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">records</span> <span class="ow">and</span> <span class="n">variable</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"pressure"</span><span class="p">}:</span>
         <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Variable &#39;</span><span class="si">{</span><span class="n">variable</span><span class="si">}</span><span class="s2">&#39; is not available at time </span><span class="si">{</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="sa">f</span><span class="s2">"Variable '</span><span class="si">{</span><span class="n">variable</span><span class="si">}</span><span class="s2">' is not available at time </span><span class="si">{</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">."</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="n">records</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_surface_record</span><span class="p">(</span><span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span> <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataRecord</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the level-0 record for *variable*, or None if absent.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Return the level-0 record for *variable*, or None if absent."""</span>
     <span class="n">levels</span> <span class="o">=</span> <span class="n">_record_levels</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">levels</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
@@ -651,14 +653,14 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">method</span><span class="p">:</span> <span class="n">SampleMethod</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HorizontalSamplePlan</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Compute grid-space fractional indices and bilinear weights for (lon, lat) points.</span>
 
 <span class="sd">    The returned GridWindow is the tightest bounding box over all valid points so</span>
 <span class="sd">    callers can read only the necessary subset of a record.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="s2">&quot;nearest&quot;</span><span class="p">}:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;method must be &#39;linear&#39; or &#39;nearest&#39;.&quot;</span><span class="p">)</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"nearest"</span><span class="p">}:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"method must be 'linear' or 'nearest'."</span><span class="p">)</span>
 
     <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">fractional_indices</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">)</span>
     <span class="c1"># On a global lat/lon grid, x in [nx - 1, nx) lies between the last and</span>
@@ -681,7 +683,7 @@
     <span class="n">x1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span> <span class="k">if</span> <span class="n">wraps</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">x0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">y1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">y0</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">ny</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;nearest&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"nearest"</span><span class="p">:</span>
         <span class="n">x_near</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">x_safe</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
         <span class="n">x0</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_near</span> <span class="o">%</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span> <span class="k">if</span> <span class="n">wraps</span> <span class="k">else</span> <span class="n">x_near</span>
         <span class="n">y0</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">y_safe</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
@@ -717,7 +719,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_sample_field</span><span class="p">(</span>
     <span class="n">field</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Bilinearly interpolate a pre-read windowed field to each point in *plan*.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Bilinearly interpolate a pre-read windowed field to each point in *plan*."""</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">window</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
         <span class="k">return</span> <span class="n">result</span>
@@ -729,7 +731,7 @@
     <span class="n">y1</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">y1</span> <span class="o">-</span> <span class="n">plan</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">y_start</span>
 
     <span class="n">valid</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">inside</span>
-    <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;nearest&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">"nearest"</span><span class="p">:</span>
         <span class="n">result</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">[</span><span class="n">y0</span><span class="p">[</span><span class="n">valid</span><span class="p">],</span> <span class="n">x0</span><span class="p">[</span><span class="n">valid</span><span class="p">]]</span>
         <span class="k">return</span> <span class="n">result</span>
 
@@ -750,7 +752,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_sample_record</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">DataRecord</span><span class="p">,</span> <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read *record* from disk (windowed) and interpolate to each point in *plan*.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Read *record* from disk (windowed) and interpolate to each point in *plan*."""</span>
     <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">window</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">field</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">plan</span><span class="o">.</span><span class="n">window</span><span class="p">)</span>
@@ -760,7 +762,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_interp_profile</span><span class="p">(</span>
     <span class="n">values</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">target</span><span class="p">:</span> <span class="nb">float</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;1-D linear interpolation of *values* at *target* along *coords*. Returns NaN outside range.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""1-D linear interpolation of *values* at *target* along *coords*. Returns NaN outside range."""</span>
     <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
@@ -788,7 +790,7 @@
     <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">targets</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Vectorised _interp_profile over n_points rows.</span>
 
 <span class="sd">    Parameters</span>
@@ -796,7 +798,7 @@
 <span class="sd">    values : (n_points, n_levels)</span>
 <span class="sd">    coords : (n_levels,) shared across all points, or (n_points, n_levels) per-point</span>
 <span class="sd">    targets : (n_points,)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">shared_coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
@@ -811,11 +813,11 @@
     <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">,</span>
     <span class="n">levels</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Sample *variable* at *levels*: ``(n_points, n_levels)``, NaN where a level lacks it.</span>
 
 <span class="sd">    Returns None when the time step has no *variable* record at all.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">by_level</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">level</span><span class="p">:</span> <span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">recordset</span><span class="o">.</span><span class="n">records</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">variable</span> <span class="o">==</span> <span class="n">variable</span><span class="p">}</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">by_level</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
@@ -832,7 +834,7 @@
     <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sample *variable* at all its levels. Returns ((n_points, n_levels), level_indices).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Sample *variable* at all its levels. Returns ((n_points, n_levels), level_indices)."""</span>
     <span class="n">records</span> <span class="o">=</span> <span class="n">_record_levels</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">)</span>
     <span class="n">levels</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">records</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
     <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
@@ -850,7 +852,7 @@
     <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">column</span><span class="p">:</span> <span class="n">_Column</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Per-point vertical coordinate at each *level*, expressed in the *z_kind* system.</span>
 
 <span class="sd">    Returns an ``(n_points, n_levels)`` array giving the coordinate that a target</span>
@@ -861,22 +863,22 @@
 <span class="sd">    - flag=2 (pressure): stored levels for pressure; for heights the *column*</span>
 <span class="sd">      (the ground at level 0, then HGTS, levels at or below the ground left out).</span>
 <span class="sd">    - flag=1/4/5 (sigma/hybrid/WRF): the *column* (PRSS at level 0, the ground;</span>
-<span class="sd">      PRES on sigma files that have it and on WRF files, else the axis&#39;s</span>
-<span class="sd">      pressure; HYSPLIT&#39;s heights).</span>
+<span class="sd">      PRES on sigma files that have it and on WRF files, else the axis's</span>
+<span class="sd">      pressure; HYSPLIT's heights).</span>
 <span class="sd">    - flag=3 (terrain): stored level heights are AGL; no pressure coordinate.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">axis</span> <span class="o">=</span> <span class="n">recordset</span><span class="o">.</span><span class="n">vertical_axis</span>
     <span class="n">level_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span>
     <span class="n">n_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_broadcast</span><span class="p">(</span><span class="n">values_1d</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Repeat per-level values for every point: ``(n_points, n_levels)``.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Repeat per-level values for every point: ``(n_points, n_levels)``."""</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">values_1d</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="p">(</span><span class="n">n_points</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">level_list</span><span class="p">)))</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">&quot;native&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"native"</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_broadcast</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">level_list</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span>
 
-    <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">&quot;pressure&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"pressure"</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># sampling at heights: PRSS at the ground</span>
                 <span class="k">return</span> <span class="n">column</span><span class="o">.</span><span class="n">pressure</span><span class="p">[:,</span> <span class="n">level_list</span><span class="p">]</span>
@@ -886,18 +888,18 @@
             <span class="k">return</span> <span class="n">column</span><span class="o">.</span><span class="n">pressure</span><span class="p">[:,</span> <span class="n">level_list</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;z_kind=&#39;pressure&#39; is not supported for terrain-following (flag=3) vertical axes.&quot;</span>
+                <span class="s2">"z_kind='pressure' is not supported for terrain-following (flag=3) vertical axes."</span>
             <span class="p">)</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;z_kind=&#39;pressure&#39; not implemented for </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="sa">f</span><span class="s2">"z_kind='pressure' not implemented for </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">."</span>
         <span class="p">)</span>
 
-    <span class="c1"># z_kind in {&quot;agl&quot;, &quot;msl&quot;}</span>
+    <span class="c1"># z_kind in {"agl", "msl"}</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
         <span class="n">coords</span> <span class="o">=</span> <span class="n">_broadcast</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">()[</span><span class="n">level_list</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">&quot;msl&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"msl"</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">terrain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;terrain (SHGT) is required to sample z_kind=&#39;msl&#39;.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"terrain (SHGT) is required to sample z_kind='msl'."</span><span class="p">)</span>
             <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span> <span class="o">+</span> <span class="n">terrain</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">coords</span>
 
@@ -907,12 +909,12 @@
         <span class="c1"># coefficients goes to PRFSIG too.</span>
         <span class="k">assert</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">agl</span> <span class="o">=</span> <span class="n">column</span><span class="o">.</span><span class="n">z_agl</span><span class="p">[:,</span> <span class="n">level_list</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">&quot;agl&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"agl"</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">agl</span>
         <span class="k">return</span> <span class="n">agl</span> <span class="o">+</span> <span class="n">_resolve_terrain</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">plan</span><span class="p">,</span> <span class="n">terrain</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
 
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;z_kind=&#39;</span><span class="si">{</span><span class="n">z_kind</span><span class="si">}</span><span class="s2">&#39; not implemented for </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="sa">f</span><span class="s2">"z_kind='</span><span class="si">{</span><span class="n">z_kind</span><span class="si">}</span><span class="s2">' not implemented for </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">."</span>
     <span class="p">)</span>
 
 
@@ -921,30 +923,30 @@
     <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">,</span>
     <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return per-point terrain height (SHGT, m); sample it if not precomputed.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Return per-point terrain height (SHGT, m); sample it if not precomputed."""</span>
     <span class="k">if</span> <span class="n">terrain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">terrain</span>
-    <span class="n">shgt_records</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">recordset</span><span class="o">.</span><span class="n">records</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">variable</span> <span class="o">==</span> <span class="s2">&quot;SHGT&quot;</span><span class="p">]</span>
+    <span class="n">shgt_records</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">recordset</span><span class="o">.</span><span class="n">records</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">variable</span> <span class="o">==</span> <span class="s2">"SHGT"</span><span class="p">]</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">shgt_records</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;terrain (SHGT) is required to compute AGL/MSL heights.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"terrain (SHGT) is required to compute AGL/MSL heights."</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_sample_record</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">shgt_records</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">level</span><span class="p">),</span> <span class="n">plan</span><span class="p">)</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_Column</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    The vertical column of one sigma, pressure-level, hybrid or WRF time step.</span>
 
-<span class="sd">    Built at the sample points as HYSPLIT&#39;s ``prfsig`` (sigma, flag 1, and WRF,</span>
-<span class="sd">    flag 5, without WRF&#39;s hybrid coefficients), ``prfprs`` (pressure, flag 2)</span>
+<span class="sd">    Built at the sample points as HYSPLIT's ``prfsig`` (sigma, flag 1, and WRF,</span>
+<span class="sd">    flag 5, without WRF's hybrid coefficients), ``prfprs`` (pressure, flag 2)</span>
 <span class="sd">    and ``prfecm`` (hybrid, flag 4) build theirs, and shared by every variable</span>
 <span class="sd">    sampled at that time. Level 0 is the ground:</span>
 <span class="sd">    0 m above it, at the surface pressure ``PRSS``. On a pressure-level file a</span>
 <span class="sd">    level at or below the ground has no height (NaN), so a profile runs from</span>
 <span class="sd">    the ground to the first level above it, as ``prfprs`` skips such levels.</span>
 <span class="sd">    Each field is read only when first needed, and every array is</span>
-<span class="sd">    ``(n_points, n_levels)`` over all the axis&#39;s levels, or ``(n_points,)`` for</span>
+<span class="sd">    ``(n_points, n_levels)`` over all the axis's levels, or ``(n_points,)`` for</span>
 <span class="sd">    the ground.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -960,51 +962,51 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">terrain</span> <span class="o">=</span> <span class="n">terrain</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_surface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sample the surface field *variable*, or None if the time step lacks it.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Sample the surface field *variable*, or None if the time step lacks it."""</span>
         <span class="n">profile</span> <span class="o">=</span> <span class="n">_level_profiles</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">profile</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">profile</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_upper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sample *variable* at every level above ground, or None if absent.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Sample *variable* at every level above ground, or None if absent."""</span>
         <span class="k">return</span> <span class="n">_level_profiles</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">upper</span><span class="p">)</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">surface_pressure</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;``PRSS`` [hPa] at each point.&quot;&quot;&quot;</span>
-        <span class="n">prss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_surface</span><span class="p">(</span><span class="s2">&quot;PRSS&quot;</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""``PRSS`` [hPa] at each point."""</span>
+        <span class="n">prss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_surface</span><span class="p">(</span><span class="s2">"PRSS"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">prss</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Surface pressure field PRSS is required but not available at &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;time </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="s2">"Surface pressure field PRSS is required but not available at "</span>
+                <span class="sa">f</span><span class="s2">"time </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">."</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">prss</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">pressure</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Pressure [hPa] of each level.</span>
 
 <span class="sd">        ``PRSS`` at the ground, then the ``PRES`` field when a sigma time step</span>
-<span class="sd">        has one (HYSPLIT&#39;s ``ZFLG``), else the nominal pressure of the axis. A</span>
+<span class="sd">        has one (HYSPLIT's ``ZFLG``), else the nominal pressure of the axis. A</span>
 <span class="sd">        WRF time step needs ``PRES``: its eta levels give pressure only with</span>
-<span class="sd">        WRF&#39;s hybrid coefficients, which the file does not hold.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        WRF's hybrid coefficients, which the file does not hold.</span>
+<span class="sd">        """</span>
         <span class="n">sp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">surface_pressure</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">):</span>
             <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">to_pressure</span><span class="p">(),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sp</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
             <span class="n">p</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sp</span>
             <span class="k">return</span> <span class="n">p</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">):</span>
-            <span class="n">pres</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">&quot;PRES&quot;</span><span class="p">)</span>
+            <span class="n">pres</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">"PRES"</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">pres</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;WRF (flag=5) files require PRES records for pressure and &quot;</span>
-                    <span class="s2">&quot;AGL/MSL sampling.&quot;</span>
+                    <span class="s2">"WRF (flag=5) files require PRES records for pressure and "</span>
+                    <span class="s2">"AGL/MSL sampling."</span>
                 <span class="p">)</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">sp</span><span class="p">,</span> <span class="n">pres</span><span class="p">])</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">))</span>
         <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">to_pressure</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">sp</span><span class="p">)</span>
-        <span class="n">pres</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">&quot;PRES&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">SigmaAxis</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">pres</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">"PRES"</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">SigmaAxis</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">pres</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">p</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">pres</span>
         <span class="n">p</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sp</span>
@@ -1012,7 +1014,7 @@
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">z_agl</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Height above ground [m] of each level, 0 at the ground (HYSPLIT&#39;s heights).&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Height above ground [m] of each level, 0 at the ground (HYSPLIT's heights)."""</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hgts_agl</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pressure</span><span class="p">)</span>
@@ -1026,23 +1028,23 @@
             <span class="n">temp</span><span class="p">,</span>
             <span class="n">first_sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_first_sigma</span><span class="p">,</span>
             <span class="n">surface_temperature</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_surface_temperature</span><span class="p">,</span>
-            <span class="n">specific_humidity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">&quot;SPHU&quot;</span><span class="p">),</span>
-            <span class="n">relative_humidity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">&quot;RELH&quot;</span><span class="p">),</span>
+            <span class="n">specific_humidity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">"SPHU"</span><span class="p">),</span>
+            <span class="n">relative_humidity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">"RELH"</span><span class="p">),</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">z</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_hgts_agl</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        ``HGTS - SHGT`` [m] of each level of a pressure-level file, 0 at the ground.</span>
 
-<span class="sd">        A level at or below the ground is NaN: HYSPLIT&#39;s ``prfprs`` puts no</span>
+<span class="sd">        A level at or below the ground is NaN: HYSPLIT's ``prfprs`` puts no</span>
 <span class="sd">        output level there and keeps the ground as the bottom of the profile.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">hgts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">&quot;HGTS&quot;</span><span class="p">)</span>
+<span class="sd">        """</span>
+        <span class="n">hgts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">"HGTS"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">hgts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Pressure-level (flag=2) files require HGTS records for AGL/MSL sampling.&quot;</span>
+                <span class="s2">"Pressure-level (flag=2) files require HGTS records for AGL/MSL sampling."</span>
             <span class="p">)</span>
         <span class="n">terrain</span> <span class="o">=</span> <span class="n">_resolve_terrain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">terrain</span><span class="p">)</span>
         <span class="n">agl</span> <span class="o">=</span> <span class="n">hgts</span> <span class="o">-</span> <span class="n">terrain</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
@@ -1052,39 +1054,39 @@
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">ground_temperature</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Temperature [K] at the ground, as HYSPLIT&#39;s ``PRFSFCT`` finds it.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Temperature [K] at the ground, as HYSPLIT's ``PRFSFCT`` finds it."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_surface_temperature</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_surface_temperature</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_temperature</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_first_sigma</span><span class="o">**-</span><span class="mf">0.286</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_temperature</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;``TEMP`` [K] at every level above ground.&quot;&quot;&quot;</span>
-        <span class="n">temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">&quot;TEMP&quot;</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""``TEMP`` [K] at every level above ground."""</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">"TEMP"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">temp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">coord_system</span><span class="si">}</span><span class="s2"> (flag=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">flag</span><span class="si">}</span><span class="s2">) files require &quot;</span>
-                <span class="s2">&quot;TEMP for AGL/MSL sampling.&quot;</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">coord_system</span><span class="si">}</span><span class="s2"> (flag=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">flag</span><span class="si">}</span><span class="s2">) files require "</span>
+                <span class="s2">"TEMP for AGL/MSL sampling."</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">temp</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_surface_temperature</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;``T02M``, else ``TMPS``, else None, as HYSPLIT&#39;s ``metini`` sets ``TFLG``.&quot;&quot;&quot;</span>
-        <span class="n">t02m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_surface</span><span class="p">(</span><span class="s2">&quot;T02M&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">t02m</span> <span class="k">if</span> <span class="n">t02m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_surface</span><span class="p">(</span><span class="s2">&quot;TMPS&quot;</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""``T02M``, else ``TMPS``, else None, as HYSPLIT's ``metini`` sets ``TFLG``."""</span>
+        <span class="n">t02m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_surface</span><span class="p">(</span><span class="s2">"T02M"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">t02m</span> <span class="k">if</span> <span class="n">t02m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_surface</span><span class="p">(</span><span class="s2">"TMPS"</span><span class="p">)</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_first_sigma</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Sigma of the first level above ground.</span>
 
-<span class="sd">        It brings that level&#39;s temperature down to the ground: the stored sigma</span>
+<span class="sd">        It brings that level's temperature down to the ground: the stored sigma</span>
 <span class="sd">        (``PSG(1)``) on sigma files and the stored eta on WRF files, its nominal pressure over ``PRSS``</span>
-<span class="sd">        (``ESG(1)``) on hybrid files, and level 1&#39;s pressure over ``PRSS``</span>
+<span class="sd">        (``ESG(1)``) on hybrid files, and level 1's pressure over ``PRSS``</span>
 <span class="sd">        (``PSG(1)/P0``) on pressure-level files, where that level can be below</span>
 <span class="sd">        the ground.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">)):</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">):</span>
@@ -1095,8 +1097,8 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">ground_values</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">first_level</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Value of upper-level *variable* at the ground, given its first level&#39;s value.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">variable</span> <span class="o">==</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Value of upper-level *variable* at the ground, given its first level's value."""</span>
+        <span class="k">if</span> <span class="n">variable</span> <span class="o">==</span> <span class="s2">"TEMP"</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ground_temperature</span>
         <span class="k">if</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">_ZERO_AT_GROUND</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">first_level</span><span class="p">)</span>
@@ -1115,20 +1117,20 @@
     <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">column</span><span class="p">:</span> <span class="n">_Column</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Interpolate *variable* to each point&#39;s target height.</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Interpolate *variable* to each point's target height.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    variable :</span>
-<span class="sd">        ARL field name, or ``&#39;pressure&#39;`` for the virtual pressure variable.</span>
+<span class="sd">        ARL field name, or ``'pressure'`` for the virtual pressure variable.</span>
 <span class="sd">    targets :</span>
 <span class="sd">        Target z values in the coordinate system specified by *z_kind*.</span>
 <span class="sd">    z_kind :</span>
-<span class="sd">        ``&#39;native&#39;`` — target is a level index (fractional);</span>
-<span class="sd">        ``&#39;pressure&#39;`` — target is pressure in hPa;</span>
-<span class="sd">        ``&#39;agl&#39;`` — target is meters above ground level;</span>
-<span class="sd">        ``&#39;msl&#39;`` — target is meters above mean sea level.</span>
+<span class="sd">        ``'native'`` — target is a level index (fractional);</span>
+<span class="sd">        ``'pressure'`` — target is pressure in hPa;</span>
+<span class="sd">        ``'agl'`` — target is meters above ground level;</span>
+<span class="sd">        ``'msl'`` — target is meters above mean sea level.</span>
 <span class="sd">    terrain :</span>
 <span class="sd">        (n_points,) SHGT in meters. Required for AGL sampling with non-terrain</span>
 <span class="sd">        vertical axes, and for MSL sampling with terrain-following (flag=3) axes.</span>
@@ -1143,25 +1145,25 @@
 <span class="sd">    -------</span>
 <span class="sd">    np.ndarray of shape (n_points,) float32, NaN for out-of-range or off-grid points.</span>
 <span class="sd">    Along a *column* pressure (``PRES`` or the virtual pressure) is</span>
-<span class="sd">    interpolated as ln p, as HYSPLIT&#39;s ``prfsig``, ``prfprs`` and ``prfecm``</span>
+<span class="sd">    interpolated as ln p, as HYSPLIT's ``prfsig``, ``prfprs`` and ``prfecm``</span>
 <span class="sd">    do; otherwise (terrain-following files, whose ``prfter`` is linear, and</span>
 <span class="sd">    the native levels of pressure-level files, whose level 0 holds no</span>
 <span class="sd">    pressure) linearly.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">axis</span> <span class="o">=</span> <span class="n">recordset</span><span class="o">.</span><span class="n">vertical_axis</span>
     <span class="n">log_p</span> <span class="o">=</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">_PRESSURE_VARIABLES</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_interp</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Interpolate *values* to the targets, as ln p for pressure.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Interpolate *values* to the targets, as ln p for pressure."""</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">log_p</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">_interp_profiles</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
-        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
             <span class="n">log_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">_interp_profiles</span><span class="p">(</span><span class="n">log_values</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">targets</span><span class="p">))</span>
 
-    <span class="c1"># --- virtual &quot;pressure&quot; variable ---</span>
-    <span class="k">if</span> <span class="n">variable</span> <span class="o">==</span> <span class="s2">&quot;pressure&quot;</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">&quot;pressure&quot;</span><span class="p">:</span>
+    <span class="c1"># --- virtual "pressure" variable ---</span>
+    <span class="k">if</span> <span class="n">variable</span> <span class="o">==</span> <span class="s2">"pressure"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"pressure"</span><span class="p">:</span>
             <span class="c1"># Pressure sampled in pressure space is the requested target itself.</span>
             <span class="k">return</span> <span class="n">targets</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
@@ -1174,7 +1176,7 @@
         <span class="n">values</span> <span class="o">=</span> <span class="n">_vertical_coords</span><span class="p">(</span>
             <span class="n">recordset</span><span class="p">,</span>
             <span class="n">all_levels</span><span class="p">,</span>
-            <span class="n">z_kind</span><span class="o">=</span><span class="s2">&quot;pressure&quot;</span><span class="p">,</span>
+            <span class="n">z_kind</span><span class="o">=</span><span class="s2">"pressure"</span><span class="p">,</span>
             <span class="n">plan</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span>
             <span class="n">terrain</span><span class="o">=</span><span class="n">terrain</span><span class="p">,</span>
             <span class="n">column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span>
@@ -1222,7 +1224,7 @@
     <span class="n">method</span><span class="p">:</span> <span class="n">SampleMethod</span><span class="p">,</span>
     <span class="n">wind_pairs</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Sample variables at points that all share one valid time in one file.</span>
 
 <span class="sd">    Parameters</span>
@@ -1235,29 +1237,29 @@
 <span class="sd">        Normalized points (see :func:`_normalize_points`): float ``lon``,</span>
 <span class="sd">        ``lat``, and ``z`` columns.</span>
 <span class="sd">    variable_names :</span>
-<span class="sd">        ARL field names, or ``&#39;pressure&#39;`` for the virtual pressure variable.</span>
+<span class="sd">        ARL field names, or ``'pressure'`` for the virtual pressure variable.</span>
 <span class="sd">    z_kind :</span>
-<span class="sd">        Vertical coordinate system of *z*. The method is fixed by the file&#39;s</span>
+<span class="sd">        Vertical coordinate system of *z*. The method is fixed by the file's</span>
 <span class="sd">        vertical axis, matching HYSPLIT, with no fallback between methods:</span>
 
-<span class="sd">        - ``&#39;native&#39;``: fractional level index, for every axis.</span>
-<span class="sd">        - ``&#39;pressure&#39;``: hPa. Sigma (flag 1) uses PRES when the file has it,</span>
+<span class="sd">        - ``'native'``: fractional level index, for every axis.</span>
+<span class="sd">        - ``'pressure'``: hPa. Sigma (flag 1) uses PRES when the file has it,</span>
 <span class="sd">          else converts from PRSS, as hybrid (flag 4) does; pressure (flag 2)</span>
 <span class="sd">          uses the stored levels; terrain-following (flag 3) raises</span>
 <span class="sd">          ``ValueError``; WRF (flag 5) uses PRES.</span>
-<span class="sd">        - ``&#39;agl&#39;``: meters above ground. Sigma/hybrid/WRF integrate</span>
+<span class="sd">        - ``'agl'``: meters above ground. Sigma/hybrid/WRF integrate</span>
 <span class="sd">          hypsometrically from the ground (PRSS, T02M) through those</span>
 <span class="sd">          pressures with the virtual temperature (TEMP and SPHU or RELH), as</span>
-<span class="sd">          HYSPLIT&#39;s ``prfsig``/``prfecm`` do (WRF through PRES); pressure uses</span>
+<span class="sd">          HYSPLIT's ``prfsig``/``prfecm`` do (WRF through PRES); pressure uses</span>
 <span class="sd">          HGTS - SHGT (both required) from the ground</span>
-<span class="sd">          up, leaving out the levels at or below the ground, as HYSPLIT&#39;s</span>
+<span class="sd">          up, leaving out the levels at or below the ground, as HYSPLIT's</span>
 <span class="sd">          ``prfprs`` does; terrain-following uses the stored levels.</span>
-<span class="sd">        - ``&#39;msl&#39;``: meters above mean sea level. Sigma/hybrid/WRF add SHGT to</span>
+<span class="sd">        - ``'msl'``: meters above mean sea level. Sigma/hybrid/WRF add SHGT to</span>
 <span class="sd">          the hypsometric AGL height; pressure uses HGTS, from the ground</span>
 <span class="sd">          (SHGT) up (both required); terrain-following adds SHGT to the stored</span>
 <span class="sd">          levels.</span>
 <span class="sd">    method :</span>
-<span class="sd">        Horizontal interpolation: ``&#39;linear&#39;`` (bilinear) or ``&#39;nearest&#39;``.</span>
+<span class="sd">        Horizontal interpolation: ``'linear'`` (bilinear) or ``'nearest'``.</span>
 <span class="sd">    wind_pairs :</span>
 <span class="sd">        Wind component pairs to rotate from grid- to earth-relative (see</span>
 <span class="sd">        :func:`_check_wind_pairs`); empty to leave winds grid-relative.</span>
@@ -1266,27 +1268,27 @@
 <span class="sd">    -------</span>
 <span class="sd">    dict[str, np.ndarray]</span>
 <span class="sd">        One array per variable, aligned with the rows of *coords*.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">recordset</span> <span class="o">=</span> <span class="n">file</span><span class="p">[</span><span class="n">time</span><span class="p">]</span>
     <span class="n">axis</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">vertical_axis</span>
-    <span class="n">heights</span> <span class="o">=</span> <span class="n">z_kind</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;agl&quot;</span><span class="p">,</span> <span class="s2">&quot;msl&quot;</span><span class="p">)</span>
+    <span class="n">heights</span> <span class="o">=</span> <span class="n">z_kind</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">)</span>
     <span class="c1"># flag=2 heights need terrain for the ground and HGTS - SHGT; flag=3 MSL</span>
     <span class="c1"># needs terrain; flag=1/4/5 MSL needs terrain for hypsometric AGL + SHGT.</span>
     <span class="n">need_terrain</span> <span class="o">=</span> <span class="p">(</span><span class="n">heights</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
-        <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">&quot;msl&quot;</span>
+        <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"msl"</span>
         <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">TerrainAxis</span><span class="p">,</span> <span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">))</span>
     <span class="p">)</span>
 
-    <span class="n">lon</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;lon&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">lat</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">lon</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">"lon"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">lat</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">"lat"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="n">plan</span> <span class="o">=</span> <span class="n">_build_horizontal_plan</span><span class="p">(</span><span class="n">recordset</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
 
     <span class="n">terrain</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">need_terrain</span><span class="p">:</span>
-        <span class="n">terrain_record</span> <span class="o">=</span> <span class="n">_surface_record</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="s2">&quot;SHGT&quot;</span><span class="p">)</span>
+        <span class="n">terrain_record</span> <span class="o">=</span> <span class="n">_surface_record</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="s2">"SHGT"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">terrain_record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Terrain field SHGT is required at time </span><span class="si">{</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="sa">f</span><span class="s2">"Terrain field SHGT is required at time </span><span class="si">{</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">."</span>
             <span class="p">)</span>
         <span class="n">terrain</span> <span class="o">=</span> <span class="n">_sample_record</span><span class="p">(</span><span class="n">terrain_record</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
 
@@ -1299,7 +1301,7 @@
         <span class="ow">or</span> <span class="p">(</span><span class="n">heights</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">))</span>
         <span class="k">else</span> <span class="kc">None</span>
     <span class="p">)</span>
-    <span class="n">targets</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="n">sampled</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">variable</span><span class="p">:</span> <span class="n">_sample_variable</span><span class="p">(</span>
             <span class="n">recordset</span><span class="p">,</span>
@@ -1319,14 +1321,14 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_open_files</span><span class="p">(</span>
     <span class="n">files</span><span class="p">:</span> <span class="n">FileLike</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">FileLike</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">File</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="n">File</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Normalize *files* to a tuple of open read-mode Files.</span>
 
 <span class="sd">    Accepts a single open :class:`~arlmet.file.File` or path, or a sequence of</span>
 <span class="sd">    them. Paths are opened here; already-open Files are passed through. Returns</span>
 <span class="sd">    ``(files, opened)`` where *opened* lists only the Files this function</span>
 <span class="sd">    created and is therefore responsible for closing.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="p">(</span><span class="n">File</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">)):</span>
@@ -1334,7 +1336,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">items</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;sample_points requires at least one input file.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"sample_points requires at least one input file."</span><span class="p">)</span>
 
     <span class="n">handles</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">File</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">opened</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">File</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1355,14 +1357,14 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_map_times</span><span class="p">(</span><span class="n">files</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">File</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="n">File</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Map each valid time to the one input File that contains it.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Map each valid time to the one input File that contains it."""</span>
     <span class="n">time_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="n">File</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">file_time</span> <span class="ow">in</span> <span class="n">file</span><span class="o">.</span><span class="n">times</span><span class="p">:</span>
             <span class="n">file_time</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">file_time</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">file_time</span> <span class="ow">in</span> <span class="n">time_map</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Multiple input files contain meteorology for time </span><span class="si">{</span><span class="n">file_time</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="sa">f</span><span class="s2">"Multiple input files contain meteorology for time </span><span class="si">{</span><span class="n">file_time</span><span class="si">}</span><span class="s2">."</span>
                 <span class="p">)</span>
             <span class="n">time_map</span><span class="p">[</span><span class="n">file_time</span><span class="p">]</span> <span class="o">=</span> <span class="n">file</span>
     <span class="k">return</span> <span class="n">time_map</span>
@@ -1376,11 +1378,11 @@
     <span class="n">variables</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">z_kind</span><span class="p">:</span> <span class="n">ZKind</span> <span class="o">=</span> <span class="s2">&quot;pressure&quot;</span><span class="p">,</span>
-    <span class="n">method</span><span class="p">:</span> <span class="n">SampleMethod</span> <span class="o">=</span> <span class="s2">&quot;linear&quot;</span><span class="p">,</span>
+    <span class="n">z_kind</span><span class="p">:</span> <span class="n">ZKind</span> <span class="o">=</span> <span class="s2">"pressure"</span><span class="p">,</span>
+    <span class="n">method</span><span class="p">:</span> <span class="n">SampleMethod</span> <span class="o">=</span> <span class="s2">"linear"</span><span class="p">,</span>
     <span class="n">earth_relative</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Sample meteorological variables at arbitrary (lon, lat, z, time) points.</span>
 
 <span class="sd">    Accepts a single ARL file or a sequence of files spanning different time</span>
@@ -1399,23 +1401,23 @@
 <span class="sd">        and optionally a ``time`` column. Any other columns are carried</span>
 <span class="sd">        through to the result unchanged.</span>
 <span class="sd">    variables : str or iterable of str</span>
-<span class="sd">        One or more ARL field names (e.g. ``&quot;TEMP&quot;``, ``&quot;UWND&quot;``), or</span>
-<span class="sd">        ``&quot;pressure&quot;`` for the virtual pressure variable. A name must not</span>
+<span class="sd">        One or more ARL field names (e.g. ``"TEMP"``, ``"UWND"``), or</span>
+<span class="sd">        ``"pressure"`` for the virtual pressure variable. A name must not</span>
 <span class="sd">        collide with an existing column of ``points``.</span>
 <span class="sd">    time : pandas.Timestamp or str, optional</span>
 <span class="sd">        One valid time for every point, used when ``points`` has no ``time``</span>
 <span class="sd">        column. Passing both raises ``ValueError``. When neither is given, the</span>
 <span class="sd">        input file(s) must contain exactly one valid time, which is used.</span>
-<span class="sd">    z_kind : {&quot;pressure&quot;, &quot;native&quot;, &quot;agl&quot;, &quot;msl&quot;}, default &quot;pressure&quot;</span>
+<span class="sd">    z_kind : {"pressure", "native", "agl", "msl"}, default "pressure"</span>
 <span class="sd">        Vertical coordinate system of the ``z`` values. See</span>
 <span class="sd">        :meth:`arlmet.File.sample_points` for the method each vertical</span>
 <span class="sd">        coordinate system uses and the fields it requires.</span>
-<span class="sd">    method : {&quot;linear&quot;, &quot;nearest&quot;}, default &quot;linear&quot;</span>
+<span class="sd">    method : {"linear", "nearest"}, default "linear"</span>
 <span class="sd">        Horizontal interpolation: bilinear or nearest grid point.</span>
 <span class="sd">    earth_relative : bool, default False</span>
 <span class="sd">        Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``) from</span>
 <span class="sd">        the grid axes to east/north, using the meridian convergence of each</span>
-<span class="sd">        file&#39;s grid. Both components of a pair must be requested. No effect on</span>
+<span class="sd">        file's grid. Both components of a pair must be requested. No effect on</span>
 <span class="sd">        lat/lon grids.</span>
 
 <span class="sd">    Returns</span>
@@ -1440,24 +1442,24 @@
 <span class="sd">    &gt;&gt;&gt; import pandas as pd</span>
 <span class="sd">    &gt;&gt;&gt; import arlmet</span>
 <span class="sd">    &gt;&gt;&gt; points = pd.DataFrame(</span>
-<span class="sd">    ...     {&quot;lon&quot;: [-111.9], &quot;lat&quot;: [40.7], &quot;z&quot;: [850.0], &quot;time&quot;: [&quot;2024-07-18 00:00&quot;]}</span>
+<span class="sd">    ...     {"lon": [-111.9], "lat": [40.7], "z": [850.0], "time": ["2024-07-18 00:00"]}</span>
 <span class="sd">    ... )</span>
-<span class="sd">    &gt;&gt;&gt; arlmet.sample_points(&quot;met.arl&quot;, points, [&quot;UWND&quot;, &quot;VWND&quot;]).round(1)</span>
+<span class="sd">    &gt;&gt;&gt; arlmet.sample_points("met.arl", points, ["UWND", "VWND"]).round(1)</span>
 <span class="sd">         lon   lat      z              time  UWND  VWND</span>
 <span class="sd">    0 -111.9  40.7  850.0  2024-07-18 00:00   6.2  -3.8</span>
 
 <span class="sd">    Sample across files spanning different times by passing their paths:</span>
 
 <span class="sd">    &gt;&gt;&gt; arlmet.sample_points(</span>
-<span class="sd">    ...     [&quot;met_00.arl&quot;, &quot;met_06.arl&quot;], points, [&quot;UWND&quot;, &quot;VWND&quot;]</span>
+<span class="sd">    ...     ["met_00.arl", "met_06.arl"], points, ["UWND", "VWND"]</span>
 <span class="sd">    ... ).round(1)</span>
 <span class="sd">         lon   lat      z              time  UWND  VWND</span>
 <span class="sd">    0 -111.9  40.7  850.0  2024-07-18 00:00   6.2  -3.8</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">z_kind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_Z_KINDS</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;z_kind must be one of &#39;native&#39;, &#39;pressure&#39;, &#39;agl&#39;, or &#39;msl&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"z_kind must be one of 'native', 'pressure', 'agl', or 'msl'."</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_METHODS</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;method must be &#39;linear&#39; or &#39;nearest&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"method must be 'linear' or 'nearest'."</span><span class="p">)</span>
     <span class="n">variable_names</span> <span class="o">=</span> <span class="n">_normalize_variables</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
     <span class="n">wind_pairs</span> <span class="o">=</span> <span class="n">_check_wind_pairs</span><span class="p">(</span><span class="n">variable_names</span><span class="p">)</span> <span class="k">if</span> <span class="n">earth_relative</span> <span class="k">else</span> <span class="p">[]</span>
 
@@ -1469,15 +1471,15 @@
             <span class="n">points</span><span class="p">,</span> <span class="n">variable_names</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">,</span> <span class="n">implied_time</span><span class="o">=</span><span class="n">implied_time</span>
         <span class="p">)</span>
 
-        <span class="n">codes</span><span class="p">,</span> <span class="n">point_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">factorize</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span>
+        <span class="n">codes</span><span class="p">,</span> <span class="n">point_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">factorize</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="s2">"time"</span><span class="p">])</span>
         <span class="n">missing_times</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">point_times</span> <span class="k">if</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">time_map</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">missing_times</span><span class="p">:</span>
             <span class="n">available</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">time_map</span><span class="p">)</span>
-            <span class="n">coverage</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">available</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">available</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">available</span> <span class="k">else</span> <span class="s2">&quot;no times&quot;</span>
+            <span class="n">coverage</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">available</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">available</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">available</span> <span class="k">else</span> <span class="s2">"no times"</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;No input file contains the requested point times: &quot;</span>
-                <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">missing_times</span><span class="p">)</span>
-                <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;. The input file(s) cover </span><span class="si">{</span><span class="n">coverage</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="s2">"No input file contains the requested point times: "</span>
+                <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">missing_times</span><span class="p">)</span>
+                <span class="o">+</span> <span class="sa">f</span><span class="s2">". The input file(s) cover </span><span class="si">{</span><span class="n">coverage</span><span class="si">}</span><span class="s2">."</span>
             <span class="p">)</span>
 
         <span class="n">columns</span> <span class="o">=</span> <span class="p">{</span>
@@ -1534,8 +1536,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
-<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -1555,7 +1557,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
   </p>
 </div>
       
@@ -1568,7 +1570,7 @@
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
 </p></div>
       
     </div>

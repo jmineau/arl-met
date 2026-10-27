@@ -26,28 +26,29 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
-<link href="../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+  <link href="../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=283e4333" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
-<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=850fa211"></script>
+    <script src="../_static/documentation_options.js?v=29b87abd"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../_static/copybutton.js?v=f281be69"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_autosummary/arlmet.concat_by_time';</script>
     <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
+        DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
         DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
@@ -59,8 +60,9 @@
     <link rel="next" title="arlmet.index" href="arlmet.index.html" />
     <link rel="prev" title="arlmet.concat" href="arlmet.concat.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev8+g99519562d" />
+  <meta name="docsearch:version" content="0.1.0b5.dev9+g7e2bdf003" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -644,9 +646,9 @@ Each input must fit entirely within one bin: a file whose first and
 last valid times floor to different bins raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
 <li><p><strong>pattern</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Glob (relative to <code class="docutils literal notranslate"><span class="pre">directory</span></code>) selecting input files. Scope it to ARL
 files; every match must be a readable ARL file.</p></li>
-<li><p><strong>start</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v3.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Timestamp</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Inclusive bounds on each file’s first valid time; files outside them
+<li><p><strong>start</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v3.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Timestamp</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Inclusive bounds on each file’s first valid time; files outside them
 are skipped. Either may be omitted to leave that side open.</p></li>
-<li><p><strong>end</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v3.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Timestamp</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Inclusive bounds on each file’s first valid time; files outside them
+<li><p><strong>end</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v3.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Timestamp</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Inclusive bounds on each file’s first valid time; files outside them
 are skipped. Either may be omitted to leave that side open.</p></li>
 <li><p><strong>template</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – <code class="docutils literal notranslate"><span class="pre">str.format</span></code> template for output filenames, given the bin start time
 as <code class="docutils literal notranslate"><span class="pre">time</span></code> (a <code class="docutils literal notranslate"><span class="pre">pandas.Timestamp</span></code>), e.g. <code class="docutils literal notranslate"><span class="pre">&quot;{time:%Y%m%d}_hrrr&quot;</span></code>. It
@@ -673,14 +675,14 @@ bins that format to the same filename raise <code class="docutils literal notran
 on 2024-07-18) into one file per day:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">days</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">concat_by_time</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="s2">&quot;.&quot;</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="s2">&quot;daily/&quot;</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;1D&quot;</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;met_*.arl&quot;</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">template</span><span class="o">=</span><span class="s2">&quot;{time:%Y%m</span><span class="si">%d</span><span class="s2">}_arl&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">"."</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">"daily/"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">freq</span><span class="o">=</span><span class="s2">"1D"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">pattern</span><span class="o">=</span><span class="s2">"met_*.arl"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">template</span><span class="o">=</span><span class="s2">"{time:%Y%m</span><span class="si">%d</span><span class="s2">}_arl"</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">path</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">days</span><span class="p">]</span>
-<span class="go">[&#39;20240718_arl&#39;]</span>
+<span class="go">['20240718_arl']</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -760,8 +762,8 @@ on 2024-07-18) into one file per day:</p>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
-<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -781,7 +783,7 @@ on 2024-07-18) into one file per day:</p>
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
   </p>
 </div>
       
@@ -794,7 +796,7 @@ on 2024-07-18) into one file per day:</p>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
 </p></div>
       
     </div>

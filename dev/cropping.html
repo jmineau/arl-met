@@ -26,28 +26,29 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
-<link href="_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+  <link href="_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css?v=283e4333" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
-<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=850fa211"></script>
+    <script src="_static/documentation_options.js?v=29b87abd"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="_static/copybutton.js?v=f281be69"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'cropping';</script>
     <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
+        DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
         DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
@@ -59,8 +60,9 @@
     <link rel="next" title="Writing ARL Files" href="writing.html" />
     <link rel="prev" title="Downloading Archived Meteorology" href="downloading.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev8+g99519562d" />
+  <meta name="docsearch:version" content="0.1.0b5.dev9+g7e2bdf003" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -461,13 +463,13 @@ for analysis.</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 
 <span class="gp">In [2]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
-<span class="gp">   ...: </span>    <span class="s2">&quot;met.arl&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="s2">"met.arl"</span><span class="p">,</span>
 <span class="gp">   ...: </span>    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span>
 <span class="gp">   ...: </span><span class="p">)</span>
 <span class="gp">   ...: </span>
 
 <span class="gp">In [3]: </span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span>
-<span class="gh">Out[3]: </span><span class="go">Frozen({&#39;lon&#39;: 41, &#39;lat&#39;: 31, &#39;level&#39;: 4, &#39;time&#39;: 4})</span>
+<span class="gh">Out[3]: </span><span class="go">Frozen({'lon': 41, 'lat': 31, 'level': 4, 'time': 4})</span>
 </pre></div>
 </div>
 <p>This path crops before unpacking, so it avoids reading the full grid when you
@@ -477,14 +479,14 @@ only need a smaller region.</p>
 <h2>Select levels while reading<a class="headerlink" href="#select-levels-while-reading" title="Link to this heading">#</a></h2>
 <p>ARL levels are selected by integer level index.</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
-<span class="gp">   ...: </span>    <span class="s2">&quot;met.arl&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="s2">"met.arl"</span><span class="p">,</span>
 <span class="gp">   ...: </span>    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span>
 <span class="gp">   ...: </span>    <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
 <span class="gp">   ...: </span><span class="p">)</span>
 <span class="gp">   ...: </span>
 
 <span class="gp">In [5]: </span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span>
-<span class="gh">Out[5]: </span><span class="go">Frozen({&#39;lon&#39;: 41, &#39;lat&#39;: 31, &#39;level&#39;: 2, &#39;time&#39;: 4})</span>
+<span class="gh">Out[5]: </span><span class="go">Frozen({'lon': 41, 'lat': 31, 'level': 2, 'time': 4})</span>
 </pre></div>
 </div>
 </section>
@@ -492,12 +494,12 @@ only need a smaller region.</p>
 <h2>Write a smaller ARL file<a class="headerlink" href="#write-a-smaller-arl-file" title="Link to this heading">#</a></h2>
 <p>Use <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a> when you want a new ARL file on disk.</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
-<span class="gp">   ...: </span>    <span class="s2">&quot;met.arl&quot;</span><span class="p">,</span>
-<span class="gp">   ...: </span>    <span class="s2">&quot;cropped.arl&quot;</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="s2">"met.arl"</span><span class="p">,</span>
+<span class="gp">   ...: </span>    <span class="s2">"cropped.arl"</span><span class="p">,</span>
 <span class="gp">   ...: </span>    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span>
 <span class="gp">   ...: </span><span class="p">)</span>
 <span class="gp">   ...: </span>
-<span class="gh">Out[6]: </span><span class="go">PosixPath(&#39;cropped.arl&#39;)</span>
+<span class="gh">Out[6]: </span><span class="go">PosixPath('cropped.arl')</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">extract_subset()</span></code> returns the output path as a <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a>, so you
@@ -505,20 +507,20 @@ can pass it straight to <a class="reference internal" href="_autosummary/arlmet.
 <p>The subset is written one time step at a time, so memory use is bounded by a
 single cropped time step rather than the whole output file.</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">out</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
-<span class="gp">   ...: </span>    <span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="s2">&quot;cropped.arl&quot;</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">)</span>
+<span class="gp">   ...: </span>    <span class="s2">"met.arl"</span><span class="p">,</span> <span class="s2">"cropped.arl"</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">)</span>
 <span class="gp">   ...: </span><span class="p">)</span>
 <span class="gp">   ...: </span>
 
 <span class="gp">In [8]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 
 <span class="gp">In [9]: </span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span>
-<span class="gh">Out[9]: </span><span class="go">Frozen({&#39;lon&#39;: 41, &#39;lat&#39;: 31, &#39;level&#39;: 4, &#39;time&#39;: 4})</span>
+<span class="gh">Out[9]: </span><span class="go">Frozen({'lon': 41, 'lat': 31, 'level': 4, 'time': 4})</span>
 </pre></div>
 </div>
 <p>When you already hold an open <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a>, the same operation is
 available as a method:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
-<span class="gp">   ....: </span>    <span class="n">out</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span><span class="s2">&quot;cropped.arl&quot;</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">))</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ....: </span>    <span class="n">out</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span><span class="s2">"cropped.arl"</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">))</span>
 <span class="gp">   ....: </span>
 
 <span class="gp">In [11]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
@@ -538,17 +540,17 @@ raises <code class="docutils literal notranslate"><span class="pre">ValueError</
 <h2>Keep only the levels and variables you need<a class="headerlink" href="#keep-only-the-levels-and-variables-you-need" title="Link to this heading">#</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">extract_subset()</span></code> can keep only the levels and variables you need.</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
-<span class="gp">   ....: </span>    <span class="s2">&quot;met.arl&quot;</span><span class="p">,</span>
-<span class="gp">   ....: </span>    <span class="s2">&quot;subset.arl&quot;</span><span class="p">,</span>
+<span class="gp">   ....: </span>    <span class="s2">"met.arl"</span><span class="p">,</span>
+<span class="gp">   ....: </span>    <span class="s2">"subset.arl"</span><span class="p">,</span>
 <span class="gp">   ....: </span>    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span>
 <span class="gp">   ....: </span>    <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
-<span class="gp">   ....: </span>    <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">],</span>
+<span class="gp">   ....: </span>    <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">,</span> <span class="s2">"TEMP"</span><span class="p">],</span>
 <span class="gp">   ....: </span><span class="p">)</span>
 <span class="gp">   ....: </span>
-<span class="gh">Out[12]: </span><span class="go">PosixPath(&#39;subset.arl&#39;)</span>
+<span class="gh">Out[12]: </span><span class="go">PosixPath('subset.arl')</span>
 
-<span class="gp">In [13]: </span><span class="nb">list</span><span class="p">(</span><span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;subset.arl&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
-<span class="gh">Out[13]: </span><span class="go">[&#39;TEMP&#39;, &#39;UWND&#39;, &#39;VWND&#39;]</span>
+<span class="gp">In [13]: </span><span class="nb">list</span><span class="p">(</span><span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">"subset.arl"</span><span class="p">)</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
+<span class="gh">Out[13]: </span><span class="go">['TEMP', 'UWND', 'VWND']</span>
 </pre></div>
 </div>
 <p>Without a <code class="docutils literal notranslate"><span class="pre">bbox</span></code>, selecting levels or variables does not unpack anything:
@@ -670,8 +672,8 @@ required.</p>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
-<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -691,7 +693,7 @@ required.</p>
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
   </p>
 </div>
       
@@ -704,7 +706,7 @@ required.</p>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
 </p></div>
       
     </div>
