@@ -24,10 +24,12 @@ Example
 -------
 >>> from arlmet.archives import HRRRArchive
 >>> archive = HRRRArchive()
->>> files = archive.fetch("2024-07-18", "2024-07-19", dest_dir="./met/")
+>>> files = archive.fetch(
+...     "2024-07-18", "2024-07-19", dest_dir="./met/"
+... )  # doctest: +SKIP
 
 >>> # Crop to domain on download (recommended due to large file sizes)
->>> files = archive.fetch(
+>>> files = archive.fetch(  # doctest: +SKIP
 ...     "2024-07-18",
 ...     "2024-07-19",
 ...     dest_dir="./met/",
@@ -153,7 +155,9 @@ def get_archive(name: str, **options: Any) -> Archive:
     Examples
     --------
     >>> from arlmet.archives import get_archive
-    >>> files = get_archive("hrrr").fetch("2024-07-18", "2024-07-19", dest_dir="./met/")
+    >>> files = get_archive("hrrr").fetch(  # doctest: +SKIP
+    ...     "2024-07-18", "2024-07-19", dest_dir="./met/"
+    ... )
     """
     try:
         cls = ARCHIVES[name]
@@ -353,7 +357,9 @@ class Archive(ABC):
         --------
         >>> from arlmet.archives import HRRRArchive
         >>> archive = HRRRArchive()
-        >>> archive.fetch("2024-07-18", "2024-07-19", dest_dir="./met")
+        >>> archive.fetch(
+        ...     "2024-07-18", "2024-07-19", dest_dir="./met"
+        ... )  # doctest: +SKIP
         """
         try:
             import fsspec  # noqa: F401

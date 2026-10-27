@@ -687,7 +687,7 @@ class File:
         --------
         A time step written partway:
 
-        >>> with arlmet.File("20210226_18-23_hrrr") as met:
+        >>> with arlmet.File("20210226_18-23_hrrr") as met:  # doctest: +SKIP
         ...     met.check()
         ['2021-02-26 19:00 has 43 of the 298 data records the first time step has.']
         """
@@ -781,7 +781,7 @@ class File:
 
         Examples
         --------
-        >>> with arlmet.File(
+        >>> with arlmet.File(  # doctest: +SKIP
         ...     "out.arl", mode="w", source="TEST", grid=grid, vertical_axis=vaxis
         ... ) as arl:
         ...     for time, fields in steps:  # fields: {(name, level): array}
@@ -896,7 +896,10 @@ class File:
         >>> import arlmet
         >>> pts = pd.DataFrame({"lon": [-111.9], "lat": [40.7], "z": [850.0]})
         >>> with arlmet.File("met.arl") as met:
-        ...     met.sample_points(pts, ["UWND", "VWND"], time="2024-07-18 00:00")
+        ...     out = met.sample_points(pts, ["UWND", "VWND"], time="2024-07-18 00:00")
+        >>> out.round(1)
+             lon   lat      z  UWND  VWND
+        0 -111.9  40.7  850.0   6.2  -3.8
         """
         # Delayed import: ops sit on top of file, so file's use of the sampling
         # op is lazy to avoid a file <-> ops import cycle (see File.extract_subset).

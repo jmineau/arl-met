@@ -78,19 +78,18 @@ def concat(
 
     Examples
     --------
-    Join three 6-hourly HRRR files into one daily file:
+    Join the files for 00 UTC and 06 UTC into one file:
 
     >>> import arlmet
-    >>> arlmet.concat(
-    ...     ["20240101_00_hrrr", "20240101_06_hrrr", "20240101_12_hrrr"],
-    ...     "20240101_hrrr",
-    ... )
+    >>> arlmet.concat(["met_00.arl", "met_06.arl"], "day.arl")
+    PosixPath('day.arl')
 
-    Combine every 6-hourly file for one day discovered by glob (the output is
-    in valid-time order, so glob order does not matter):
+    Combine every file discovered by glob (the output is in valid-time order,
+    so glob order does not matter):
 
     >>> import glob
-    >>> arlmet.concat(glob.glob("20240101_*_hrrr"), "20240101_hrrr")
+    >>> arlmet.concat(glob.glob("met_*.arl"), "day_glob.arl")
+    PosixPath('day_glob.arl')
     """
     # A bare str/PathLike is iterable (over characters / not at all), which would
     # silently do the wrong thing — reject it explicitly.
@@ -276,16 +275,18 @@ def concat_by_time(
 
     Examples
     --------
-    Turn a directory of 6-hourly HRRR files into one file per day:
+    Turn the files of a directory (here ``met_00.arl`` and ``met_06.arl``, both
+    on 2024-07-18) into one file per day:
 
     >>> import arlmet
     >>> arlmet.concat_by_time(
-    ...     "hrrr/",
+    ...     ".",
     ...     "daily/",
     ...     freq="1D",
-    ...     pattern="*_hrrr",
-    ...     template="{time:%Y%m%d}_hrrr",
+    ...     pattern="met_*.arl",
+    ...     template="{time:%Y%m%d}_arl",
     ... )
+    [PosixPath('daily/20240718_arl')]
     """
     directory = Path(directory)
     dest_dir = Path(dest_dir)
