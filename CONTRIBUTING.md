@@ -53,7 +53,8 @@ the orientation file it should read.
    ```
 
 4. Run the test suite. `just test` skips the tests that download from
-   NOAA S3; `just test-network` runs them:
+   NOAA S3 (`just test-network` runs them) and also runs the `>>>` examples in
+   the docstrings under `src/`:
    ```bash
    just test
    ```
@@ -81,7 +82,9 @@ the orientation file it should read.
 
 - Keep pull requests focused on a single feature or bugfix
 - Write clear, descriptive commit messages
-- Add user-visible changes to `CHANGELOG.md` under `## [Unreleased]`
+- Leave `CHANGELOG.md` alone: the release notes are drafted from the commit
+  messages when the maintainer releases, so write each message as the line a
+  user would read
 - Ensure all tests pass
 - Maintain or improve test coverage
 - Update documentation as needed
@@ -93,9 +96,20 @@ no version string to bump.
 
 ## Dependency updates
 
-Dependabot opens one pull request a month per kind of pin: GitHub Actions,
-pre-commit hooks, and `uv.lock` (the dev tools; it never raises the minimum
-versions in `pyproject.toml`). Merge it when CI passes.
+Dependabot opens one pull request a month for each of GitHub Actions and
+pre-commit hooks. Merge it when CI passes.
+
+`uv.lock` (the dev tools and every dependency) is updated by the Upgrade lock
+workflow alone, not by Dependabot, which would leave a package at its old
+version when the newest release needs a newer Python than the oldest one this
+project supports. On the 1st of each month the workflow runs `uv lock --upgrade`
+(`uv.lock` then holds the newest release for each Python; it never raises the
+minimum versions in `pyproject.toml`) and, when the lock changes, opens the pull
+request `chore/lock-upgrade` (or updates it). GitHub does not start workflows on
+a pull request that its own token opened, so the workflow starts Tests, Code
+Quality and Documentation on the branch itself; their results show on the pull
+request. Merge it when they pass. You can also run it by hand: Actions > Upgrade
+lock > Run workflow.
 
 ## Template
 

@@ -172,7 +172,9 @@ a broken one fails the build:
 - A `.. ipython:: python` block in an `.rst` page runs and shows each line's
   output; `@savefig name.png` above a plotting call saves the figure. A block that
   raises or warns fails the build unless marked `:okexcept:` / `:okwarning:`. All
-  pages share one session, so each page imports what it uses. Notebooks are off.
+  pages share one session, so each page imports what it uses. Split a long block so
+  that no multi-line statement is its 10th (or 100th) statement: the directive runs
+  only the first line of that one. Notebooks are off.
 - Examples run on GitHub Actions on made-up data, never a machine-specific path. A page
   that reads an ARL file starts with a `:suppress:` block that calls
   `docs_examples.temp_workdir()` and `docs_examples.sample_file("met.arl")`
@@ -188,14 +190,22 @@ a broken one fails the build:
   also downloads from NOAA S3. CI runs the slow network tests (`test_subset_slow.py`,
   parity with HYSPLIT's `xtrct_grid`) only when started by hand.
 - Markers are strict and warnings are errors (assert expected ones with `pytest.warns`).
+- Docstring examples (`>>>` lines under `src/`) run as tests too (`--doctest-modules`),
+  so `just test` runs them and one that stops matching the code fails. An example that
+  needs data CI lacks (a real ARL file, the network) gets `# doctest: +SKIP` on its `>>>` line.
 - `test_memory.py` fails with the temp dir on a large-`st_blksize` filesystem.
 
 ## Commits, changelog, releases
 
 - Conventional Commits (`fix(record): ...`, `docs: ...`, `!` if breaking).
-  User-visible changes go under `## [Unreleased]` in `CHANGELOG.md`.
+  A pull request leaves `CHANGELOG.md` alone: at release `just changelog` drafts the
+  entries from the commit messages (`cliff.toml`) and the maintainer edits them under
+  `## [Unreleased]`, so write each commit message as the line a user would read.
 - The version comes from git tags (setuptools-scm): no version string to bump,
   and `uv.lock` does not change. The maintainer cuts releases ([RELEASING.md](RELEASING.md)).
+- `uv.lock` is upgraded by the Upgrade lock workflow (`.github/workflows/lock-upgrade.yml`,
+  monthly, one pull request on `chore/lock-upgrade`); Dependabot updates only the Actions
+  and the pre-commit hooks.
 - The versioned docs live on the gh-pages branch, maintained by
   `.github/scripts/docs_versions.py`; never edit it by hand.
 - Tooling comes from [jmineau/python-template](https://github.com/jmineau/python-template)
