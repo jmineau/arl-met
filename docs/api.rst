@@ -129,6 +129,7 @@ Remote Archive Sources
 
    get_archive
    Archive
+   SyncResult
    HRRRArchive
    HRRRv1Archive
    NAMArchive

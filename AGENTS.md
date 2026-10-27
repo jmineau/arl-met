@@ -35,7 +35,7 @@ src/arlmet/
   packing.py, _pack.c               pack, unpack, checksum; the C extension for the encoder
   collection.py                     RecordCollection protocol, VariableView, VariableAccessor
   exceptions.py, _io.py, _time.py   ARLFormatError/Warning; atomic outputs; timestamps
-  archives.py; directoryindex.py    NOAA archive downloads (Archive, ARCHIVES, get_archive); index, DirectoryIndex
+  archives.py; directoryindex.py    NOAA archive downloads and sync (Archive, ARCHIVES, get_archive); index, DirectoryIndex
   ops/                              extract_subset, sample_points, concat, concat_by_time
   xarray/                           open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl
 ```
@@ -139,6 +139,13 @@ when it downloads, so it imports without the `archives` extra.
 13. **Containers follow `File.times`.** `File[int]`, `iter(File)` and
     `File.records` use sorted valid-time order, not on-disk order. `key in rs`
     accepts `rs[key]`'s `(level, variable)` keys and a bare variable name.
+14. **`Archive.sync` never deletes, and finds local copies by file name anywhere
+    under the folder**, so a mirror in another layout (HRRR v1 files in one flat
+    folder) is adopted, not downloaded again; it overwrites a file only to replace
+    one NOAA corrected (listing MD5 differs from the manifest's). The manifest
+    (`arlmet-manifest.md5`) is trusted: a file in it is not read. NOAA's list is
+    mapped to paths through `paths_for_range`, so a new archive class whose
+    filenames `paths_for_range` can produce needs nothing more.
 
 ## Commands
 
