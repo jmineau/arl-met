@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>arlmet.write_dataset &#8212; arl-met 0.1.0b4</title>
+    <title>arlmet.write_dataset &#8212; arl-met 0.1.0b5</title>
   
   
   
@@ -26,30 +26,31 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
-<link href="../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+  <link href="../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=283e4333" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
-<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=bcec09ca"></script>
+    <script src="../_static/documentation_options.js?v=18948dd3"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../_static/copybutton.js?v=f281be69"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_autosummary/arlmet.write_dataset';</script>
     <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
+        DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b5';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -59,8 +60,9 @@
     <link rel="next" title="arlmet.extract_subset" href="arlmet.extract_subset.html" />
     <link rel="prev" title="arlmet.open_dataset" href="arlmet.open_dataset.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4" />
+  <meta name="docsearch:version" content="0.1.0b5" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -128,7 +130,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b4</p>
+    <p class="title logo__title">arl-met 0.1.0b5</p>
   
 </a></div>
     
@@ -546,8 +548,10 @@
 <li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.start_date.html">arlmet.archives.Archive.start_date</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.fetch.html">arlmet.archives.Archive.fetch</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.paths_for_range.html">arlmet.archives.Archive.paths_for_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.sync.html">arlmet.archives.Archive.sync</a></li>
 </ul>
 </details></li>
+<li class="toctree-l1"><a class="reference internal" href="arlmet.archives.SyncResult.html">arlmet.archives.SyncResult</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.HRRRArchive.html">arlmet.archives.HRRRArchive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.HRRRv1Archive.html">arlmet.archives.HRRRv1Archive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.archives.NAMArchive.html">arlmet.archives.NAMArchive</a></li>
@@ -636,16 +640,24 @@
 <p>Upper-air levels are written in <code class="docutils literal notranslate"><span class="pre">level</span></code> coordinate order and renumbered
 <code class="docutils literal notranslate"><span class="pre">1..N</span></code> (surface is 0), so a Dataset holding a subset of a file’s levels
 (e.g. from <code class="docutils literal notranslate"><span class="pre">open_dataset(levels=...)</span></code> or <code class="docutils literal notranslate"><span class="pre">ds.sel(level=...)</span></code>) is
-written as a compact file, like <a class="reference internal" href="arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a> does. A
-slice that is entirely NaN is taken to be absent from the file (as
-<a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">open_dataset()</span></code></a> represents it) and no record is written for it. A
-record flagged missing in the source file also reads as an all-NaN slice,
-so it is left out too, and that time step then has fewer records than the
-others (<a class="reference internal" href="arlmet.File.check.html#arlmet.File.check" title="arlmet.File.check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.File.check()</span></code></a> reports it); <a class="reference internal" href="arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a>
-keeps such a record, flagged missing.</p>
-<p>Per-variable forecast heterogeneity is intentionally not represented in the
-flat Dataset API. <code class="docutils literal notranslate"><span class="pre">forecast_hour(time)</span></code> supplies only the ARL index-record
-forecast written for each time step.</p>
+written as a compact file, like <a class="reference internal" href="arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a> does.</p>
+<p>Every (variable, level) that holds data at some time step is written at
+every time step, so each time step has the same records. Where its slice
+at a time step is entirely NaN (as a record flagged missing in the source
+file reads), the record is written flagged missing, as HYSPLIT’s writer
+leaves a record it never fills (<code class="docutils literal notranslate"><span class="pre">pakini.f</span></code>: forecast hour -1, no values),
+and HYSPLIT skips it. A (variable, level) that is NaN at every time step
+gets no record: that is how <a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">open_dataset()</span></code></a> represents a variable
+stored on only some levels. Finding which slices hold data takes one pass
+over the values before anything is written, so a lazy Dataset (as
+<a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">open_dataset()</span></code></a> returns) reads each slice twice.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">forecast_hour(time)</span></code> coordinate gives each time step’s index-record
+forecast hour, and every record of that time step is written with it (0
+when the coordinate is absent). A file whose records carry their own
+forecast hours is rewritten with the time step’s hour in each; HYSPLIT
+reads a data record’s forecast hour only as the missing flag, so this does
+not change what it reads. To write per-record hours, use
+<a class="reference internal" href="arlmet.RecordSet.create_datarecord.html#arlmet.RecordSet.create_datarecord" title="arlmet.RecordSet.create_datarecord"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.RecordSet.create_datarecord()</span></code></a>.</p>
 <p>A variable whose <code class="docutils literal notranslate"><span class="pre">attrs[&quot;diff&quot;]</span></code> names a <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> record is written with
 that DIF record after it on each level (see
 <a class="reference internal" href="arlmet.RecordSet.create_datarecord.html#arlmet.RecordSet.create_datarecord" title="arlmet.RecordSet.create_datarecord"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.RecordSet.create_datarecord()</span></code></a>). The name must be one
@@ -658,13 +670,13 @@ HYSPLIT’s name table pairs with the variable: <code class="docutils literal no
 <li><p><strong>ds</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html#xarray.Dataset" title="(in xarray v2026.9.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a></span>) – Dataset in the layout returned by <a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">open_dataset()</span></code></a>.</p></li>
 <li><p><strong>filename_or_obj</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">PathLike</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Output ARL file path. Overwrites any existing file, but must not be the
 file <code class="docutils literal notranslate"><span class="pre">ds</span></code> was opened from.</p></li>
-<li><p><strong>vertical_axis</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="arlmet.VerticalAxis.html#arlmet.VerticalAxis" title="arlmet.vertical.VerticalAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">VerticalAxis</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – Vertical axis to write. By default it is rebuilt from the Dataset’s
+<li><p><strong>vertical_axis</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="arlmet.VerticalAxis.html#arlmet.VerticalAxis" title="arlmet.vertical.VerticalAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">VerticalAxis</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Vertical axis to write. By default it is rebuilt from the Dataset’s
 <code class="docutils literal notranslate"><span class="pre">level</span></code> coordinates. Required for surface-only Datasets; otherwise it
 must have one level per <code class="docutils literal notranslate"><span class="pre">level</span></code> coordinate value plus the surface.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If the Dataset does not match the layout above, a slice is partly NaN
@@ -754,8 +766,8 @@ truncated file under the final name.</p>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
-<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -775,7 +787,7 @@ truncated file under the final name.</p>
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
   </p>
 </div>
       
@@ -788,7 +800,7 @@ truncated file under the final name.</p>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
 </p></div>
       
     </div>

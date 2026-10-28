@@ -1,0 +1,23 @@
+﻿arlmet.archives.NAMArchive
+==========================
+
+.. currentmodule:: arlmet.archives
+
+.. autoclass:: NAMArchive
+   :no-members:
+   :show-inheritance:
+
+
+
+
+
+
+
+
+
+.. rubric:: Inherited
+
+
+From :class:`~.Archive`: :py:obj:`~.Archive.fetch`, :py:obj:`~.Archive.paths_for_range`, :py:obj:`~.Archive.source`, :py:obj:`~.Archive.start_date`, :py:obj:`~.Archive.sync`
+
+

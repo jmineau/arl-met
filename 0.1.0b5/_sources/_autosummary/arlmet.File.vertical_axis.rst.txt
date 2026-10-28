@@ -1,0 +1,6 @@
+arlmet.File.vertical\_axis
+==========================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: File.vertical_axis

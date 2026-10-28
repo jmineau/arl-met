@@ -110,8 +110,10 @@ DataArray's ``diff`` attr before writing:
    ds["WWND"].attrs["diff"] = "DIFW"
    arlmet.write_dataset(ds, "edited-with-diff.arl")
 
-For irregular files, including per-variable forecast hours, see :doc:`writing`
-for the low-level :class:`arlmet.File` workflow.
+The ``forecast_hour`` coordinate is each time step's index-record forecast hour,
+and :func:`arlmet.write_dataset` writes it into every record. For irregular
+files, including per-record forecast hours, see :doc:`writing` for the
+low-level :class:`arlmet.File` workflow.
 
 Sample variables at arbitrary points
 ------------------------------------

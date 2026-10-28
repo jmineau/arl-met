@@ -1,0 +1,30 @@
+﻿arlmet.archives.GDAS0p5Archive
+==============================
+
+.. currentmodule:: arlmet.archives
+
+.. autoclass:: GDAS0p5Archive
+   :no-members:
+   :show-inheritance:
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+
+   ~GDAS0p5Archive.source
+
+
+
+
+
+
+.. rubric:: Inherited
+
+
+From :class:`~.Archive`: :py:obj:`~.Archive.fetch`, :py:obj:`~.Archive.paths_for_range`, :py:obj:`~.Archive.start_date`, :py:obj:`~.Archive.sync`
+
+

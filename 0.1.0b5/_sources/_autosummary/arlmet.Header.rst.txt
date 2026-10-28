@@ -1,0 +1,30 @@
+﻿arlmet.Header
+=============
+
+.. currentmodule:: arlmet
+
+.. autoclass:: Header
+   :no-members:
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+
+   ~Header.time
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~Header.from_bytes
+   ~Header.tobytes
+
+
+

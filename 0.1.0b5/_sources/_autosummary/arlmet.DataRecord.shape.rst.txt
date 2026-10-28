@@ -1,0 +1,6 @@
+arlmet.DataRecord.shape
+=======================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: DataRecord.shape

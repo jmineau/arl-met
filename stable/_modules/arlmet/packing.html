@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.packing &#8212; arl-met 0.1.0b4</title>
+    <title>arlmet.packing &#8212; arl-met 0.1.0b5</title>
   
   
   
@@ -25,30 +25,31 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=283e4333" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=bcec09ca"></script>
+    <script src="../../_static/documentation_options.js?v=18948dd3"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/arlmet/packing';</script>
     <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
+        DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b5';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -56,8 +57,9 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4" />
+  <meta name="docsearch:version" content="0.1.0b5" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -125,7 +127,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b4</p>
+    <p class="title logo__title">arl-met 0.1.0b5</p>
   
 </a></div>
     
@@ -412,7 +414,7 @@
                 <article class="bd-article">
                   
   <h1>Source code for arlmet.packing</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Differential packing and unpacking routines for ARL data records.&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""Differential packing and unpacking routines for ARL data records."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
@@ -422,13 +424,13 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_core</span> <span class="k">as</span> <span class="n">_pack_core</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridWindow</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;pack&quot;</span><span class="p">,</span> <span class="s2">&quot;unpack&quot;</span><span class="p">,</span> <span class="s2">&quot;calculate_checksum&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"pack"</span><span class="p">,</span> <span class="s2">"unpack"</span><span class="p">,</span> <span class="s2">"calculate_checksum"</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="calculate_checksum">
 <a class="viewcode-back" href="../../_autosummary/arlmet.calculate_checksum.html#arlmet.calculate_checksum">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">calculate_checksum</span><span class="p">(</span><span class="n">packed</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span> <span class="o">|</span> <span class="nb">memoryview</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Compute the ARL checksum for a packed payload.</span>
 
 <span class="sd">    Parameters</span>
@@ -440,7 +442,7 @@
 <span class="sd">    -------</span>
 <span class="sd">    int</span>
 <span class="sd">        Rolling checksum used in ARL index records.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">total</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">packed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">total</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="mi">0</span>
@@ -453,7 +455,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">pack</span><span class="p">(</span>
     <span class="n">unpacked</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">],</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Pack a 2D field using the ARL differential byte encoding.</span>
 
 <span class="sd">    This is the inverse of :func:`unpack` and a translation of the HYSPLIT</span>
@@ -478,10 +480,10 @@
 <span class="sd">    ------</span>
 <span class="sd">    ValueError</span>
 <span class="sd">        If the field is not 2D, is empty, or holds NaN or infinite values.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">unpacked_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">unpacked</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">unpacked_arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot pack NaN or infinite values.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Cannot pack NaN or infinite values."</span><span class="p">)</span>
     <span class="c1"># The C extension (_pack.c) is PAKOUT line by line, for speed.</span>
     <span class="n">packed</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">exponent</span><span class="p">,</span> <span class="n">initial_value</span> <span class="o">=</span> <span class="n">_pack_core</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">packed</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">exponent</span><span class="p">,</span> <span class="n">initial_value</span></div>
@@ -500,12 +502,12 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">window</span><span class="p">:</span> <span class="n">GridWindow</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Unpack an ARL differential byte stream into a 2D field.</span>
 
 <span class="sd">    This is a vectorized translation of the HYSPLIT ``PAKINP`` routine and</span>
 <span class="sd">    gives the same ``float32`` values, bit for bit: the arithmetic is in</span>
-<span class="sd">    single precision, in ``PAKINP``&#39;s order, and like ``PAKINP`` it sets a</span>
+<span class="sd">    single precision, in ``PAKINP``'s order, and like ``PAKINP`` it sets a</span>
 <span class="sd">    value smaller than ``precision`` to zero in every column but the first.</span>
 
 <span class="sd">    Parameters</span>
@@ -533,16 +535,16 @@
 <span class="sd">    numpy.ndarray</span>
 <span class="sd">        Unpacked ``float32`` 2D array with shape ``(ny, nx)`` or the requested windowed</span>
 <span class="sd">        shape when ``window`` is provided.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">window</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">window</span> <span class="o">=</span> <span class="n">GridWindow</span><span class="p">(</span><span class="n">x_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_stop</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">y_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y_stop</span><span class="o">=</span><span class="n">ny</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">window</span><span class="o">.</span><span class="n">x_stop</span> <span class="o">&gt;</span> <span class="n">nx</span> <span class="ow">or</span> <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">&gt;</span> <span class="n">ny</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;GridWindow extends beyond the packed grid bounds.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"GridWindow extends beyond the packed grid bounds."</span><span class="p">)</span>
 
     <span class="n">packed_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">packed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">packed_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">ny</span> <span class="o">*</span> <span class="n">nx</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Packed data length </span><span class="si">{</span><span class="n">packed_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> does not match expected length </span><span class="si">{</span><span class="n">ny</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">nx</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="sa">f</span><span class="s2">"Packed data length </span><span class="si">{</span><span class="n">packed_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> does not match expected length </span><span class="si">{</span><span class="n">ny</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">nx</span><span class="si">}</span><span class="s2">."</span>
         <span class="p">)</span>
     <span class="c1"># Keep the source buffer byte-typed and cast only the rows and columns</span>
     <span class="c1"># that feed the window, so a crop does not promote the full grid.</span>
@@ -553,7 +555,7 @@
     <span class="n">scexp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">**</span> <span class="p">(</span><span class="n">exponent</span> <span class="o">-</span> <span class="mi">7</span><span class="p">))</span>
 
     <span class="c1"># The first column is coded down the rows from the initial value. PAKINP</span>
-    <span class="c1"># adds one row&#39;s difference at a time in single precision, so start the</span>
+    <span class="c1"># adds one row's difference at a time in single precision, so start the</span>
     <span class="c1"># running sum at the float32 initial value instead of adding it at the end.</span>
     <span class="n">column0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">column0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">initial_value</span>
@@ -563,14 +565,14 @@
     <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">column0</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">column0</span><span class="p">)</span>
 
     <span class="c1"># Each row is then coded across x from its first-column value; cumsum along</span>
-    <span class="c1"># a row adds one difference at a time, as PAKINP&#39;s loop over I does.</span>
+    <span class="c1"># a row adds one difference at a time, as PAKINP's loop over I does.</span>
     <span class="n">rows</span> <span class="o">=</span> <span class="n">packed_arr</span><span class="p">[</span><span class="n">window</span><span class="o">.</span><span class="n">y_slice</span><span class="p">,</span> <span class="p">:</span> <span class="n">window</span><span class="o">.</span><span class="n">x_stop</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">rows</span> <span class="o">-=</span> <span class="mf">127.0</span>
     <span class="n">rows</span> <span class="o">*=</span> <span class="n">scexp</span>
     <span class="n">rows</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">column0</span><span class="p">[</span><span class="n">window</span><span class="o">.</span><span class="n">y_start</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
     <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">rows</span><span class="p">)</span>
 
-    <span class="c1"># PAKINP&#39;s precision test, which it applies to every column but the first.</span>
+    <span class="c1"># PAKINP's precision test, which it applies to every column but the first.</span>
     <span class="n">rest</span> <span class="o">=</span> <span class="n">rows</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
     <span class="n">rest</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">precision</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
 
@@ -605,8 +607,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
-<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -626,7 +628,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
   </p>
 </div>
       
@@ -639,7 +641,7 @@
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
 </p></div>
       
     </div>

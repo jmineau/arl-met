@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.ops.concat &#8212; arl-met 0.1.0b4</title>
+    <title>arlmet.ops.concat &#8212; arl-met 0.1.0b5</title>
   
   
   
@@ -25,30 +25,31 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../../_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
-<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+  <link href="../../../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=283e4333" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../../../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
-<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=bcec09ca"></script>
+    <script src="../../../_static/documentation_options.js?v=18948dd3"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/arlmet/ops/concat';</script>
     <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
+        DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b5';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -56,8 +57,9 @@
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4" />
+  <meta name="docsearch:version" content="0.1.0b5" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -125,7 +127,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b4</p>
+    <p class="title logo__title">arl-met 0.1.0b5</p>
   
 </a></div>
     
@@ -412,7 +414,7 @@
                 <article class="bd-article">
                   
   <h1>Source code for arlmet.ops.concat</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""</span>
 <span class="sd">Concatenate ARL meteorology files into a single ARL file.</span>
 
 <span class="sd">ARL files are flat streams of fixed-size records, so joining several files is a</span>
@@ -420,16 +422,16 @@
 <span class="sd">records) is copied unchanged, in valid-time order. HYSPLIT finds a time step by</span>
 <span class="sd">its position in the file, so the order matters; for inputs already in order</span>
 <span class="sd">this is the same as ``cat a.arl b.arl &gt; out.arl``. This is the standard way to combine short (e.g. 6-hourly) met files into longer (e.g.</span>
-<span class="sd">daily) files: HYSPLIT&#39;s ``CONTROL`` file takes at most 12 meteorological files</span>
+<span class="sd">daily) files: HYSPLIT's ``CONTROL`` file takes at most 12 meteorological files</span>
 <span class="sd">when its number of input data grids is one number (each file its own grid) and</span>
 <span class="sd">at most 128 per grid when it is two numbers, ``1 N`` (one grid with ``N`` files),</span>
 <span class="sd">so longer per-file coverage keeps a long run under either limit. See the HYSPLIT</span>
-<span class="sd">user guide, &quot;Compilation Limits&quot;:</span>
+<span class="sd">user guide, "Compilation Limits":</span>
 <span class="sd">https://www.ready.noaa.gov/hysplitusersguide/S441.htm</span>
 
-<span class="sd">The original idea and the HRRR use case come from Derek Mallia&#39;s</span>
+<span class="sd">The original idea and the HRRR use case come from Derek Mallia's</span>
 <span class="sd">``concat_hrrr_daily.py`` script.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -446,7 +448,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARLFormatError</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;concat&quot;</span><span class="p">,</span> <span class="s2">&quot;concat_by_time&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"concat"</span><span class="p">,</span> <span class="s2">"concat_by_time"</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="concat">
@@ -455,7 +457,7 @@
     <span class="n">paths</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
     <span class="n">dest</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Concatenate multiple ARL files into a single ARL file.</span>
 
 <span class="sd">    Every time step of the inputs is copied to the output byte for byte, in</span>
@@ -494,38 +496,37 @@
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
-<span class="sd">    Join three 6-hourly HRRR files into one daily file:</span>
+<span class="sd">    Join the files for 00 UTC and 06 UTC into one file:</span>
 
 <span class="sd">    &gt;&gt;&gt; import arlmet</span>
-<span class="sd">    &gt;&gt;&gt; arlmet.concat(</span>
-<span class="sd">    ...     [&quot;20240101_00_hrrr&quot;, &quot;20240101_06_hrrr&quot;, &quot;20240101_12_hrrr&quot;],</span>
-<span class="sd">    ...     &quot;20240101_hrrr&quot;,</span>
-<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; arlmet.concat(["met_00.arl", "met_06.arl"], "day.arl").name</span>
+<span class="sd">    'day.arl'</span>
 
-<span class="sd">    Combine every 6-hourly file for one day discovered by glob (the output is</span>
-<span class="sd">    in valid-time order, so glob order does not matter):</span>
+<span class="sd">    Combine every file discovered by glob (the output is in valid-time order,</span>
+<span class="sd">    so glob order does not matter):</span>
 
 <span class="sd">    &gt;&gt;&gt; import glob</span>
-<span class="sd">    &gt;&gt;&gt; arlmet.concat(glob.glob(&quot;20240101_*_hrrr&quot;), &quot;20240101_hrrr&quot;)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    &gt;&gt;&gt; arlmet.concat(glob.glob("met_*.arl"), "day_glob.arl").name</span>
+<span class="sd">    'day_glob.arl'</span>
+<span class="sd">    """</span>
     <span class="c1"># A bare str/PathLike is iterable (over characters / not at all), which would</span>
     <span class="c1"># silently do the wrong thing — reject it explicitly.</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">)):</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-            <span class="s2">&quot;paths must be an iterable of paths, not a single path. &quot;</span>
-            <span class="s2">&quot;Wrap a single file in a list: concat([path], dest).&quot;</span>
+            <span class="s2">"paths must be an iterable of paths, not a single path. "</span>
+            <span class="s2">"Wrap a single file in a list: concat([path], dest)."</span>
         <span class="p">)</span>
 
     <span class="n">input_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">Path</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">]</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">input_paths</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;concat requires at least one input file.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"concat requires at least one input file."</span><span class="p">)</span>
 
     <span class="n">dest</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
     <span class="n">dest_resolved</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
     <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span> <span class="o">==</span> <span class="n">dest_resolved</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">input_paths</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;dest </span><span class="si">{</span><span class="n">dest</span><span class="si">}</span><span class="s2"> is also one of the input paths; &quot;</span>
-            <span class="s2">&quot;concatenating a file onto itself is not allowed.&quot;</span>
+            <span class="sa">f</span><span class="s2">"dest </span><span class="si">{</span><span class="n">dest</span><span class="si">}</span><span class="s2"> is also one of the input paths; "</span>
+            <span class="s2">"concatenating a file onto itself is not allowed."</span>
         <span class="p">)</span>
 
     <span class="n">steps</span> <span class="o">=</span> <span class="n">_scan_inputs</span><span class="p">(</span><span class="n">input_paths</span><span class="p">)</span>
@@ -534,11 +535,11 @@
     <span class="c1"># an interrupted run never leaves a short file under the final name.</span>
     <span class="k">with</span> <span class="p">(</span>
         <span class="n">atomic_output</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmp_path</span><span class="p">,</span>
-        <span class="nb">open</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">,</span>
+        <span class="nb">open</span><span class="p">(</span><span class="n">tmp_path</span><span class="p">,</span> <span class="s2">"wb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">,</span>
         <span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="n">sources</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">path</span><span class="p">:</span> <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">))</span>
+            <span class="n">path</span><span class="p">:</span> <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">))</span>
             <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">path</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">)</span>
         <span class="p">}</span>
         <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">n_bytes</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">:</span>
@@ -553,33 +554,33 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_copy_step</span><span class="p">(</span><span class="n">src</span><span class="p">:</span> <span class="n">BinaryIO</span><span class="p">,</span> <span class="n">out</span><span class="p">:</span> <span class="n">BinaryIO</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_bytes</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Copy the ``n_bytes`` of one time step, starting at ``position``, to ``out``.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Copy the ``n_bytes`` of one time step, starting at ``position``, to ``out``."""</span>
     <span class="n">src</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
     <span class="n">remaining</span> <span class="o">=</span> <span class="n">n_bytes</span>
     <span class="k">while</span> <span class="n">remaining</span><span class="p">:</span>
         <span class="n">block</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">remaining</span><span class="p">,</span> <span class="n">_CHUNK</span><span class="p">))</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">block</span><span class="p">:</span>
             <span class="c1"># File() checked the size when it scanned the input.</span>
-            <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">src</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> ended inside a time step.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">src</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> ended inside a time step."</span><span class="p">)</span>
         <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
         <span class="n">remaining</span> <span class="o">-=</span> <span class="nb">len</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_scan_inputs</span><span class="p">(</span><span class="n">paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="n">Path</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Read each input&#39;s index records to validate compatibility and order by time.</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Read each input's index records to validate compatibility and order by time.</span>
 
 <span class="sd">    Returns every time step to write as ``(time, path, position, n_bytes)``,</span>
 <span class="sd">    in valid-time order, each once. Raises if any input is empty, the grids or</span>
 <span class="sd">    vertical axes disagree, or a valid time is shared across inputs.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">scanned</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
             <span class="n">times</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">times</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">times</span><span class="p">:</span>
                 <span class="c1"># An empty file never set a grid/axis, so check before reading them.</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input file </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> contains no records.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Input file </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> contains no records."</span><span class="p">)</span>
             <span class="n">grid</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">grid</span>
             <span class="n">axis</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">vertical_axis</span>
             <span class="c1"># File raised if a repeated time step differs, so a repeat is a</span>
@@ -595,18 +596,18 @@
     <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">_times</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">scanned</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
         <span class="k">if</span> <span class="n">grid</span> <span class="o">!=</span> <span class="n">reference_grid</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Grid mismatch: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> has grid </span><span class="si">{</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="si">}</span><span class="s2">, &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;incompatible with </span><span class="si">{</span><span class="n">reference_path</span><span class="si">}</span><span class="s2"> &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">reference_grid</span><span class="o">.</span><span class="n">nx</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="n">reference_grid</span><span class="o">.</span><span class="n">ny</span><span class="si">}</span><span class="s2">). &quot;</span>
-                <span class="s2">&quot;Concatenated ARL files must share a single grid.&quot;</span>
+                <span class="sa">f</span><span class="s2">"Grid mismatch: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> has grid </span><span class="si">{</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="si">}</span><span class="s2">, "</span>
+                <span class="sa">f</span><span class="s2">"incompatible with </span><span class="si">{</span><span class="n">reference_path</span><span class="si">}</span><span class="s2"> "</span>
+                <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">reference_grid</span><span class="o">.</span><span class="n">nx</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="n">reference_grid</span><span class="o">.</span><span class="n">ny</span><span class="si">}</span><span class="s2">). "</span>
+                <span class="s2">"Concatenated ARL files must share a single grid."</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">axis</span> <span class="o">!=</span> <span class="n">reference_axis</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Vertical axis mismatch: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> (flag </span><span class="si">{</span><span class="n">axis</span><span class="o">.</span><span class="n">flag</span><span class="si">}</span><span class="s2">, &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span><span class="si">}</span><span class="s2"> levels) is incompatible with &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">reference_path</span><span class="si">}</span><span class="s2"> (flag </span><span class="si">{</span><span class="n">reference_axis</span><span class="o">.</span><span class="n">flag</span><span class="si">}</span><span class="s2">, &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">reference_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span><span class="si">}</span><span class="s2"> levels). Concatenated ARL &quot;</span>
-                <span class="s2">&quot;files must share a single vertical axis.&quot;</span>
+                <span class="sa">f</span><span class="s2">"Vertical axis mismatch: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> (flag </span><span class="si">{</span><span class="n">axis</span><span class="o">.</span><span class="n">flag</span><span class="si">}</span><span class="s2">, "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span><span class="si">}</span><span class="s2"> levels) is incompatible with "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">reference_path</span><span class="si">}</span><span class="s2"> (flag </span><span class="si">{</span><span class="n">reference_axis</span><span class="o">.</span><span class="n">flag</span><span class="si">}</span><span class="s2">, "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">reference_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span><span class="si">}</span><span class="s2"> levels). Concatenated ARL "</span>
+                <span class="s2">"files must share a single vertical axis."</span>
             <span class="p">)</span>
 
     <span class="n">_reject_duplicate_times</span><span class="p">([(</span><span class="n">path</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">scanned</span><span class="p">])</span>
@@ -619,16 +620,16 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_reject_duplicate_times</span><span class="p">(</span><span class="n">scanned</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">]]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raise if any valid time appears in more than one input.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Raise if any valid time appears in more than one input."""</span>
     <span class="n">owner</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">times</span> <span class="ow">in</span> <span class="n">scanned</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">times</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">owner</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Valid time </span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s2"> appears in both </span><span class="si">{</span><span class="n">owner</span><span class="p">[</span><span class="n">time</span><span class="p">]</span><span class="si">}</span><span class="s2"> and &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">. Concatenated ARL files must not repeat valid times: &quot;</span>
-                    <span class="s2">&quot;arlmet rejects a time step repeated with different content &quot;</span>
-                    <span class="s2">&quot;and HYSPLIT behavior on repeated times is undefined.&quot;</span>
+                    <span class="sa">f</span><span class="s2">"Valid time </span><span class="si">{</span><span class="n">time</span><span class="si">}</span><span class="s2"> appears in both </span><span class="si">{</span><span class="n">owner</span><span class="p">[</span><span class="n">time</span><span class="p">]</span><span class="si">}</span><span class="s2"> and "</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">. Concatenated ARL files must not repeat valid times: "</span>
+                    <span class="s2">"arlmet rejects a time step repeated with different content "</span>
+                    <span class="s2">"and HYSPLIT behavior on repeated times is undefined."</span>
                 <span class="p">)</span>
             <span class="n">owner</span><span class="p">[</span><span class="n">time</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
 
@@ -639,17 +640,17 @@
     <span class="n">directory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">dest_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">freq</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;1D&quot;</span><span class="p">,</span>
-    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span>
+    <span class="n">freq</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"1D"</span><span class="p">,</span>
+    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"*"</span><span class="p">,</span>
     <span class="n">start</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">end</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;{time:%Y%m</span><span class="si">%d</span><span class="s2">}_arl&quot;</span><span class="p">,</span>
+    <span class="n">template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"{time:%Y%m</span><span class="si">%d</span><span class="s2">}_arl"</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Group every ARL file in a directory by valid time and concatenate each group.</span>
 
 <span class="sd">    Each input is assigned to a time bin from its valid times — read from the</span>
-<span class="sd">    file&#39;s index records, not parsed from its name — floored to ``freq``. All</span>
+<span class="sd">    file's index records, not parsed from its name — floored to ``freq``. All</span>
 <span class="sd">    files in a bin are concatenated into one output file. This is the batch form</span>
 <span class="sd">    of :func:`concat`: e.g. turning a directory of 6-hourly HRRR files into one</span>
 <span class="sd">    file per day. Files are never split, so every input must fall entirely</span>
@@ -662,20 +663,20 @@
 <span class="sd">    dest_dir : path-like</span>
 <span class="sd">        Directory to write the concatenated files into. Created if missing.</span>
 <span class="sd">        Should differ from ``directory``.</span>
-<span class="sd">    freq : str, default &quot;1D&quot;</span>
+<span class="sd">    freq : str, default "1D"</span>
 <span class="sd">        Fixed-frequency pandas offset alias giving the size of each output</span>
-<span class="sd">        chunk: ``&quot;1D&quot;`` = one file per day, ``&quot;6h&quot;`` = one per six hours, etc.</span>
+<span class="sd">        chunk: ``"1D"`` = one file per day, ``"6h"`` = one per six hours, etc.</span>
 <span class="sd">        Each input must fit entirely within one bin: a file whose first and</span>
 <span class="sd">        last valid times floor to different bins raises ``ValueError``.</span>
-<span class="sd">    pattern : str, default &quot;*&quot;</span>
+<span class="sd">    pattern : str, default "*"</span>
 <span class="sd">        Glob (relative to ``directory``) selecting input files. Scope it to ARL</span>
 <span class="sd">        files; every match must be a readable ARL file.</span>
 <span class="sd">    start, end : str or pandas.Timestamp, optional</span>
-<span class="sd">        Inclusive bounds on each file&#39;s first valid time; files outside them</span>
+<span class="sd">        Inclusive bounds on each file's first valid time; files outside them</span>
 <span class="sd">        are skipped. Either may be omitted to leave that side open.</span>
-<span class="sd">    template : str, default &quot;{time:%Y%m%d}_arl&quot;</span>
+<span class="sd">    template : str, default "{time:%Y%m%d}_arl"</span>
 <span class="sd">        ``str.format`` template for output filenames, given the bin start time</span>
-<span class="sd">        as ``time`` (a ``pandas.Timestamp``), e.g. ``&quot;{time:%Y%m%d}_hrrr&quot;``. It</span>
+<span class="sd">        as ``time`` (a ``pandas.Timestamp``), e.g. ``"{time:%Y%m%d}_hrrr"``. It</span>
 <span class="sd">        must encode enough resolution to keep bins distinct at ``freq``; two</span>
 <span class="sd">        bins that format to the same filename raise ``ValueError``.</span>
 
@@ -688,30 +689,33 @@
 <span class="sd">    ------</span>
 <span class="sd">    ValueError</span>
 <span class="sd">        If ``pattern`` matches no files, a matched file cannot be read as ARL,</span>
-<span class="sd">        a file&#39;s valid times straddle a ``freq`` bin boundary, or ``template``</span>
-<span class="sd">        formats two bins to the same filename. :func:`concat`&#39;s grid/axis and</span>
+<span class="sd">        a file's valid times straddle a ``freq`` bin boundary, or ``template``</span>
+<span class="sd">        formats two bins to the same filename. :func:`concat`'s grid/axis and</span>
 <span class="sd">        duplicate-time checks also apply within each group. All checks run</span>
 <span class="sd">        before any output is written.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
-<span class="sd">    Turn a directory of 6-hourly HRRR files into one file per day:</span>
+<span class="sd">    Turn the files of a directory (here ``met_00.arl`` and ``met_06.arl``, both</span>
+<span class="sd">    on 2024-07-18) into one file per day:</span>
 
 <span class="sd">    &gt;&gt;&gt; import arlmet</span>
-<span class="sd">    &gt;&gt;&gt; arlmet.concat_by_time(</span>
-<span class="sd">    ...     &quot;hrrr/&quot;,</span>
-<span class="sd">    ...     &quot;daily/&quot;,</span>
-<span class="sd">    ...     freq=&quot;1D&quot;,</span>
-<span class="sd">    ...     pattern=&quot;*_hrrr&quot;,</span>
-<span class="sd">    ...     template=&quot;{time:%Y%m%d}_hrrr&quot;,</span>
+<span class="sd">    &gt;&gt;&gt; days = arlmet.concat_by_time(</span>
+<span class="sd">    ...     ".",</span>
+<span class="sd">    ...     "daily/",</span>
+<span class="sd">    ...     freq="1D",</span>
+<span class="sd">    ...     pattern="met_*.arl",</span>
+<span class="sd">    ...     template="{time:%Y%m%d}_arl",</span>
 <span class="sd">    ... )</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    &gt;&gt;&gt; [path.name for path in days]</span>
+<span class="sd">    ['20240718_arl']</span>
+<span class="sd">    """</span>
     <span class="n">directory</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
     <span class="n">dest_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest_dir</span><span class="p">)</span>
 
     <span class="n">candidates</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">directory</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">())</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">candidates</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No files matched pattern </span><span class="si">{</span><span class="n">pattern</span><span class="si">!r}</span><span class="s2"> in </span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No files matched pattern </span><span class="si">{</span><span class="n">pattern</span><span class="si">!r}</span><span class="s2"> in </span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
 
     <span class="n">start_time</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
     <span class="n">end_time</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">end</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
@@ -726,10 +730,10 @@
         <span class="n">bin_start</span> <span class="o">=</span> <span class="n">first_time</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">freq</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">last_time</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">freq</span><span class="p">)</span> <span class="o">!=</span> <span class="n">bin_start</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> spans </span><span class="si">{</span><span class="n">first_time</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">last_time</span><span class="si">}</span><span class="s2">, which straddles a &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">freq</span><span class="si">!r}</span><span class="s2"> bin boundary. concat_by_time does not split files; &quot;</span>
-                <span class="s2">&quot;use a freq at least as long as each input file&#39;s span, aligned &quot;</span>
-                <span class="s2">&quot;so no file crosses a bin edge.&quot;</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> spans </span><span class="si">{</span><span class="n">first_time</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">last_time</span><span class="si">}</span><span class="s2">, which straddles a "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">freq</span><span class="si">!r}</span><span class="s2"> bin boundary. concat_by_time does not split files; "</span>
+                <span class="s2">"use a freq at least as long as each input file's span, aligned "</span>
+                <span class="s2">"so no file crosses a bin edge."</span>
             <span class="p">)</span>
         <span class="n">groups</span><span class="p">[</span><span class="n">bin_start</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
@@ -741,10 +745,10 @@
     <span class="k">for</span> <span class="n">bin_start</span><span class="p">,</span> <span class="n">out_path</span> <span class="ow">in</span> <span class="n">out_paths</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">out_path</span> <span class="ow">in</span> <span class="n">owner</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;template </span><span class="si">{</span><span class="n">template</span><span class="si">!r}</span><span class="s2"> gives the same filename </span><span class="si">{</span><span class="n">out_path</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;for the bins starting </span><span class="si">{</span><span class="n">owner</span><span class="p">[</span><span class="n">out_path</span><span class="p">]</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">bin_start</span><span class="si">}</span><span class="s2">. Add &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;enough time resolution to the template to keep </span><span class="si">{</span><span class="n">freq</span><span class="si">!r}</span><span class="s2"> bins &quot;</span>
-                <span class="s2">&quot;distinct, e.g. &#39;{time:%Y%m</span><span class="si">%d</span><span class="s2">_%H}&#39;.&quot;</span>
+                <span class="sa">f</span><span class="s2">"template </span><span class="si">{</span><span class="n">template</span><span class="si">!r}</span><span class="s2"> gives the same filename </span><span class="si">{</span><span class="n">out_path</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> "</span>
+                <span class="sa">f</span><span class="s2">"for the bins starting </span><span class="si">{</span><span class="n">owner</span><span class="p">[</span><span class="n">out_path</span><span class="p">]</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">bin_start</span><span class="si">}</span><span class="s2">. Add "</span>
+                <span class="sa">f</span><span class="s2">"enough time resolution to the template to keep </span><span class="si">{</span><span class="n">freq</span><span class="si">!r}</span><span class="s2"> bins "</span>
+                <span class="s2">"distinct, e.g. '{time:%Y%m</span><span class="si">%d</span><span class="s2">_%H}'."</span>
             <span class="p">)</span>
         <span class="n">owner</span><span class="p">[</span><span class="n">out_path</span><span class="p">]</span> <span class="o">=</span> <span class="n">bin_start</span>
 
@@ -758,17 +762,17 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_read_time_span</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a file&#39;s first and last valid times, read from its index records.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Return a file's first and last valid times, read from its index records."""</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
             <span class="n">times</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">times</span>
     <span class="k">except</span> <span class="p">(</span><span class="ne">EOFError</span><span class="p">,</span> <span class="n">ARLFormatError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Could not read an ARL index record from </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">. &quot;</span>
-            <span class="s2">&quot;Scope `pattern` so it only matches ARL files.&quot;</span>
+            <span class="sa">f</span><span class="s2">"Could not read an ARL index record from </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">. "</span>
+            <span class="s2">"Scope `pattern` so it only matches ARL files."</span>
         <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">times</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input file </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> contains no records.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Input file </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> contains no records."</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">times</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 </pre></div>
 
@@ -799,8 +803,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
-<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -820,7 +824,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
   </p>
 </div>
       
@@ -833,7 +837,7 @@
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
 </p></div>
       
     </div>

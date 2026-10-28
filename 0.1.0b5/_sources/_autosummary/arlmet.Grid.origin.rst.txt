@@ -1,0 +1,6 @@
+arlmet.Grid.origin
+==================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: Grid.origin

@@ -1,0 +1,6 @@
+arlmet.File.grid
+================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: File.grid

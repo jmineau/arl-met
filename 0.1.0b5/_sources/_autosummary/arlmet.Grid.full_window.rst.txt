@@ -1,0 +1,6 @@
+arlmet.Grid.full\_window
+========================
+
+.. currentmodule:: arlmet
+
+.. automethod:: Grid.full_window

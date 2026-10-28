@@ -1,0 +1,6 @@
+arlmet.Grid.meridian\_convergence
+=================================
+
+.. currentmodule:: arlmet
+
+.. automethod:: Grid.meridian_convergence

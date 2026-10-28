@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Sampling Points &#8212; arl-met 0.1.0b4</title>
+    <title>Sampling Points &#8212; arl-met 0.1.0b5</title>
   
   
   
@@ -26,30 +26,31 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
-<link href="_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+  <link href="_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/custom.css?v=283e4333" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
-<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=bcec09ca"></script>
+    <script src="_static/documentation_options.js?v=18948dd3"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="_static/copybutton.js?v=f281be69"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'sampling';</script>
     <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.22.0';
+        DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b4';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b5';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -59,8 +60,9 @@
     <link rel="next" title="Vertical Coordinates" href="vertical.html" />
     <link rel="prev" title="Indexing a Directory" href="indexing.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b4" />
+  <meta name="docsearch:version" content="0.1.0b5" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -128,7 +130,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b4</p>
+    <p class="title logo__title">arl-met 0.1.0b5</p>
   
 </a></div>
     
@@ -466,15 +468,15 @@ closes it for you.</p>
 
 <span class="gp">In [3]: </span><span class="n">points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
 <span class="gp">   ...: </span>    <span class="p">{</span>
-<span class="gp">   ...: </span>        <span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">112.0</span><span class="p">],</span>
-<span class="gp">   ...: </span>        <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">,</span> <span class="mf">40.8</span><span class="p">],</span>
-<span class="gp">   ...: </span>        <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">,</span> <span class="mf">700.0</span><span class="p">],</span>
-<span class="gp">   ...: </span>        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">],</span>
+<span class="gp">   ...: </span>        <span class="s2">"lon"</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">112.0</span><span class="p">],</span>
+<span class="gp">   ...: </span>        <span class="s2">"lat"</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">,</span> <span class="mf">40.8</span><span class="p">],</span>
+<span class="gp">   ...: </span>        <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">,</span> <span class="mf">700.0</span><span class="p">],</span>
+<span class="gp">   ...: </span>        <span class="s2">"time"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"2024-07-18 00:00"</span><span class="p">,</span> <span class="s2">"2024-07-18 00:00"</span><span class="p">],</span>
 <span class="gp">   ...: </span>    <span class="p">}</span>
 <span class="gp">   ...: </span><span class="p">)</span>
 <span class="gp">   ...: </span>
 
-<span class="gp">In [4]: </span><span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
+<span class="gp">In [4]: </span><span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">,</span> <span class="s2">"TEMP"</span><span class="p">])</span>
 
 <span class="gp">In [5]: </span><span class="n">result</span>
 <span class="gh">Out[5]: </span>
@@ -490,8 +492,8 @@ observations row by row. A requested variable whose name matches an existing
 column raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> rather than overwriting it.</p>
 <p>If you already have an open file, pass it instead of a path. The
 <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a> object also exposes the same operation as a method:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
-<span class="gp">   ...: </span>    <span class="n">result</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ...: </span>    <span class="n">result</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">,</span> <span class="s2">"TEMP"</span><span class="p">])</span>
 <span class="gp">   ...: </span>
 
 <span class="gp">In [7]: </span><span class="n">result</span>
@@ -555,9 +557,9 @@ lowest level at a low site gets them too, instead of NaN. At heights pressure
 is interpolated as <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code> here too.</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [8]: </span><span class="n">above_ground</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">z</span><span class="o">=</span><span class="p">[</span><span class="mf">500.0</span><span class="p">,</span> <span class="mf">1500.0</span><span class="p">])</span>  <span class="c1"># meters above ground level</span>
 
-<span class="gp">In [9]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">In [9]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
 <span class="gp">   ...: </span>    <span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span>
-<span class="gp">   ...: </span>        <span class="n">met</span><span class="p">,</span> <span class="n">above_ground</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">z_kind</span><span class="o">=</span><span class="s2">&quot;agl&quot;</span>
+<span class="gp">   ...: </span>        <span class="n">met</span><span class="p">,</span> <span class="n">above_ground</span><span class="p">,</span> <span class="p">[</span><span class="s2">"TEMP"</span><span class="p">],</span> <span class="n">z_kind</span><span class="o">=</span><span class="s2">"agl"</span>
 <span class="gp">   ...: </span>    <span class="p">)</span>
 <span class="gp">   ...: </span>
 
@@ -571,7 +573,7 @@ is interpolated as <code class="docutils literal notranslate"><span class="pre">
 <p>The virtual <code class="docutils literal notranslate"><span class="pre">&quot;pressure&quot;</span></code> variable, the pressure of the levels interpolated to
 each point, can also be requested as a sampled column. On sigma files with
 <code class="docutils literal notranslate"><span class="pre">PRES</span></code> it is the same as sampling <code class="docutils literal notranslate"><span class="pre">PRES</span></code>:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;pressure&quot;</span><span class="p">,</span> <span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">"pressure"</span><span class="p">,</span> <span class="s2">"TEMP"</span><span class="p">])</span>
 
 <span class="gp">In [12]: </span><span class="n">result</span>
 <span class="gh">Out[12]: </span>
@@ -588,7 +590,7 @@ each point, can also be requested as a sampled column. On sigma files with
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;linear&quot;</span></code> (default) — bilinear interpolation</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;nearest&quot;</span></code> — nearest grid cell</p></li>
 </ul>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">"TEMP"</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s2">"nearest"</span><span class="p">)</span>
 
 <span class="gp">In [14]: </span><span class="n">result</span>
 <span class="gh">Out[14]: </span>
@@ -609,13 +611,13 @@ convergence of the file’s grid at each point. Both components of a pair must
 be requested. Lat/lon grids are unaffected.</p>
 <p>Here <code class="docutils literal notranslate"><span class="pre">lambert.arl</span></code> is a made-up file on a Lambert conformal grid, and the
 same points are sampled both ways:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;lambert.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">])</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">"lambert.arl"</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">])</span>
 <span class="gh">Out[15]: </span>
 <span class="go">     lon   lat      z              time      UWND      VWND</span>
 <span class="go">0 -111.9  40.7  850.0  2024-07-18 00:00  6.191374 -3.834104</span>
 <span class="go">1 -112.0  40.8  700.0  2024-07-18 00:00  9.181660 -3.826986</span>
 
-<span class="gp">In [16]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;lambert.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">],</span> <span class="n">earth_relative</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">In [16]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">"lambert.arl"</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">],</span> <span class="n">earth_relative</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="gh">Out[16]: </span>
 <span class="go">     lon   lat      z              time      UWND      VWND</span>
 <span class="go">0 -111.9  40.7  850.0  2024-07-18 00:00  6.713172 -2.822549</span>
@@ -624,7 +626,7 @@ same points are sampled both ways:</p>
 </div>
 <p>The same rotation is available on the grid for winds you obtained another way,
 for example from <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a>:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">&quot;lambert.arl&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"lambert.arl"</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
 <span class="gp">   ....: </span>    <span class="n">u_earth</span><span class="p">,</span> <span class="n">v_earth</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">rotate_winds</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">v</span><span class="o">=-</span><span class="mf">3.0</span><span class="p">,</span> <span class="n">lon</span><span class="o">=-</span><span class="mf">111.9</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="mf">40.7</span><span class="p">)</span>
 <span class="gp">   ....: </span>
 
@@ -647,14 +649,14 @@ A point time that no input file contains raises <code class="docutils literal no
 missing times.</p>
 <p>Here <code class="docutils literal notranslate"><span class="pre">single_time.arl</span></code> is a made-up file like <code class="docutils literal notranslate"><span class="pre">met.arl</span></code> with one time step,
 and <code class="docutils literal notranslate"><span class="pre">met.arl</span></code> holds four:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="n">points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">],</span> <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">],</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">]})</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="n">points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"lon"</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">],</span> <span class="s2">"lat"</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">],</span> <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">]})</span>
 
-<span class="gp">In [20]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;single_time.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">])</span>
+<span class="gp">In [20]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">"single_time.arl"</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">"TEMP"</span><span class="p">])</span>
 <span class="gh">Out[20]: </span>
 <span class="go">     lon   lat      z        TEMP</span>
 <span class="go">0 -111.9  40.7  850.0  286.884491</span>
 
-<span class="gp">In [21]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">&quot;met.arl&quot;</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">time</span><span class="o">=</span><span class="s2">&quot;2024-07-18 06:00&quot;</span><span class="p">)</span>
+<span class="gp">In [21]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">"TEMP"</span><span class="p">],</span> <span class="n">time</span><span class="o">=</span><span class="s2">"2024-07-18 06:00"</span><span class="p">)</span>
 <span class="gh">Out[21]: </span>
 <span class="go">     lon   lat      z        TEMP</span>
 <span class="go">0 -111.9  40.7  850.0  285.275391</span>
@@ -667,19 +669,19 @@ and <code class="docutils literal notranslate"><span class="pre">met.arl</span><
 stored in different files. Each timestamp must appear in at most one file;
 arl-met routes each point to the file that contains its time and closes any
 paths it opened.</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [22]: </span><span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;met_00.arl&quot;</span><span class="p">,</span> <span class="s2">&quot;met_06.arl&quot;</span><span class="p">,</span> <span class="s2">&quot;met_12.arl&quot;</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [22]: </span><span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"met_00.arl"</span><span class="p">,</span> <span class="s2">"met_06.arl"</span><span class="p">,</span> <span class="s2">"met_12.arl"</span><span class="p">]</span>
 
 <span class="gp">In [23]: </span><span class="n">points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
 <span class="gp">   ....: </span>    <span class="p">{</span>
-<span class="gp">   ....: </span>        <span class="s2">&quot;lon&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">111.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">111.9</span><span class="p">],</span>
-<span class="gp">   ....: </span>        <span class="s2">&quot;lat&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">,</span> <span class="mf">40.7</span><span class="p">,</span> <span class="mf">40.7</span><span class="p">],</span>
-<span class="gp">   ....: </span>        <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">,</span> <span class="mf">850.0</span><span class="p">,</span> <span class="mf">850.0</span><span class="p">],</span>
-<span class="gp">   ....: </span>        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;2024-07-18 00:00&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-07-18 06:00&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-07-18 12:00&quot;</span><span class="p">],</span>
+<span class="gp">   ....: </span>        <span class="s2">"lon"</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">111.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">111.9</span><span class="p">],</span>
+<span class="gp">   ....: </span>        <span class="s2">"lat"</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">,</span> <span class="mf">40.7</span><span class="p">,</span> <span class="mf">40.7</span><span class="p">],</span>
+<span class="gp">   ....: </span>        <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">850.0</span><span class="p">,</span> <span class="mf">850.0</span><span class="p">,</span> <span class="mf">850.0</span><span class="p">],</span>
+<span class="gp">   ....: </span>        <span class="s2">"time"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"2024-07-18 00:00"</span><span class="p">,</span> <span class="s2">"2024-07-18 06:00"</span><span class="p">,</span> <span class="s2">"2024-07-18 12:00"</span><span class="p">],</span>
 <span class="gp">   ....: </span>    <span class="p">}</span>
 <span class="gp">   ....: </span><span class="p">)</span>
 <span class="gp">   ....: </span>
 
-<span class="gp">In [24]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;UWND&quot;</span><span class="p">,</span> <span class="s2">&quot;VWND&quot;</span><span class="p">])</span>
+<span class="gp">In [24]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">])</span>
 <span class="gh">Out[24]: </span>
 <span class="go">     lon   lat      z              time      UWND      VWND</span>
 <span class="go">0 -111.9  40.7  850.0  2024-07-18 00:00  6.191424 -3.834117</span>
@@ -788,8 +790,8 @@ the lowest level with data is NaN.</p></li>
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
-<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -809,7 +811,7 @@ the lowest level with data is NaN.</p></li>
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
   </p>
 </div>
       
@@ -822,7 +824,7 @@ the lowest level with data is NaN.</p></li>
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
 </p></div>
       
     </div>

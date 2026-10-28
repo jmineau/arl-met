@@ -1,0 +1,6 @@
+arlmet.File.sample\_points
+==========================
+
+.. currentmodule:: arlmet
+
+.. automethod:: File.sample_points
