@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=29b87abd"></script>
+    <script src="_static/documentation_options.js?v=62b91018"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5.dev9+g7e2bdf003" />
+  <meta name="docsearch:version" content="0.1.0b5.dev12+g28322b479" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -548,8 +548,10 @@
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.archives.Archive.start_date.html">arlmet.archives.Archive.start_date</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.archives.Archive.fetch.html">arlmet.archives.Archive.fetch</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.archives.Archive.paths_for_range.html">arlmet.archives.Archive.paths_for_range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.archives.Archive.sync.html">arlmet.archives.Archive.sync</a></li>
 </ul>
 </details></li>
+<li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.archives.SyncResult.html">arlmet.archives.SyncResult</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.archives.HRRRArchive.html">arlmet.archives.HRRRArchive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.archives.HRRRv1Archive.html">arlmet.archives.HRRRv1Archive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.archives.NAMArchive.html">arlmet.archives.NAMArchive</a></li>
@@ -800,31 +802,34 @@ subclasses <code class="docutils literal notranslate"><span class="pre">ValueErr
 <tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.Archive.html#arlmet.archives.Archive" title="arlmet.archives.Archive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Archive</span></code></a></p></td>
 <td><p>Abstract base class for NOAA ARL meteorology archives.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.HRRRArchive.html#arlmet.archives.HRRRArchive" title="arlmet.archives.HRRRArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HRRRArchive</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.SyncResult.html#arlmet.archives.SyncResult" title="arlmet.archives.SyncResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SyncResult</span></code></a></p></td>
+<td><p>What <a class="reference internal" href="_autosummary/arlmet.archives.Archive.sync.html#arlmet.archives.Archive.sync" title="arlmet.archives.Archive.sync"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Archive.sync()</span></code></a> did, as lists of local file paths.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.HRRRArchive.html#arlmet.archives.HRRRArchive" title="arlmet.archives.HRRRArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HRRRArchive</span></code></a></p></td>
 <td><p>HRRR 3 km analysis (CONUS, June 2019–present).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.HRRRv1Archive.html#arlmet.archives.HRRRv1Archive" title="arlmet.archives.HRRRv1Archive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HRRRv1Archive</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.HRRRv1Archive.html#arlmet.archives.HRRRv1Archive" title="arlmet.archives.HRRRv1Archive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HRRRv1Archive</span></code></a></p></td>
 <td><p>HRRR 3 km analysis, version 1 (CONUS, June 15, 2015–2019).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.NAMArchive.html#arlmet.archives.NAMArchive" title="arlmet.archives.NAMArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NAMArchive</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.NAMArchive.html#arlmet.archives.NAMArchive" title="arlmet.archives.NAMArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NAMArchive</span></code></a></p></td>
 <td><p>NAM 12 km analysis (North America, May 26, 2007–present).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.NAMSArchive.html#arlmet.archives.NAMSArchive" title="arlmet.archives.NAMSArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NAMSArchive</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.NAMSArchive.html#arlmet.archives.NAMSArchive" title="arlmet.archives.NAMSArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NAMSArchive</span></code></a></p></td>
 <td><p>NAMS hybrid sigma-pressure analysis (CONUS/Alaska/Hawaii, March 2009–present).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.GDASArchive.html#arlmet.archives.GDASArchive" title="arlmet.archives.GDASArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GDASArchive</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.GDASArchive.html#arlmet.archives.GDASArchive" title="arlmet.archives.GDASArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GDASArchive</span></code></a></p></td>
 <td><p>GDAS 1-degree global analysis (December 2004–present).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.GDAS0p5Archive.html#arlmet.archives.GDAS0p5Archive" title="arlmet.archives.GDAS0p5Archive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GDAS0p5Archive</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.GDAS0p5Archive.html#arlmet.archives.GDAS0p5Archive" title="arlmet.archives.GDAS0p5Archive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GDAS0p5Archive</span></code></a></p></td>
 <td><p>GDAS 0.5-degree global analysis (September 2007–mid 2019).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.GFSArchive.html#arlmet.archives.GFSArchive" title="arlmet.archives.GFSArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GFSArchive</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.GFSArchive.html#arlmet.archives.GFSArchive" title="arlmet.archives.GFSArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GFSArchive</span></code></a></p></td>
 <td><p>GFS 0.25-degree global analysis (June 13, 2019–present).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.NARRArchive.html#arlmet.archives.NARRArchive" title="arlmet.archives.NARRArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NARRArchive</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.NARRArchive.html#arlmet.archives.NARRArchive" title="arlmet.archives.NARRArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NARRArchive</span></code></a></p></td>
 <td><p>NCEP North American Regional Reanalysis (January 1979–2019).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.ReanalysisArchive.html#arlmet.archives.ReanalysisArchive" title="arlmet.archives.ReanalysisArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReanalysisArchive</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.archives.ReanalysisArchive.html#arlmet.archives.ReanalysisArchive" title="arlmet.archives.ReanalysisArchive"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReanalysisArchive</span></code></a></p></td>
 <td><p>NCEP/NCAR Reanalysis 2.5-degree global (1948–present).</p></td>
 </tr>
 </tbody>

@@ -27,6 +27,7 @@
 
    ~Archive.fetch
    ~Archive.paths_for_range
+   ~Archive.sync
 
 
 
