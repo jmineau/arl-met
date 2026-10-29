@@ -84,7 +84,9 @@ when it downloads, so it imports without the `archives` extra.
 - **Rotated grids** (`orientation != 0`) raise `NotImplementedError` in `Projection`.
 - **WRF winds are staggered.** In an `AWRF` file column `i` of `UWND` is the west face of cell `i` and row
   `j` of `VWND` its south face; `sample_points` reads each, with its whole column, at `x + 0.5` / `y + 0.5`
-  (`metini`'s `SUX`/`SVY`, `_WRF_STAGGER`). `File` and `open_dataset` return the fields as stored.
+  (`metini`'s `SUX`/`SVY`, `_WRF_STAGGER`). With `MUU0`/`MUV0` (mass-coupled) it also decouples the winds
+  (`UWND * MSFU / MUU0`, `_DECOUPLE`, before interpolating), and `TEMP` is `THET * (PRES/1000)**0.286` where a
+  file has no `TEMP` (`metinp.f`). `File` and `open_dataset` return the fields as stored, so a crop keeps them coupled.
 
 ## Design invariants
 

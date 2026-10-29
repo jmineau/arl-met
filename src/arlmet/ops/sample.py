@@ -64,6 +64,17 @@ _WRF_STAGGER: dict[str, tuple[float, float]] = {
     "VWND": (0.0, 0.5),
 }
 
+#: On a mass-coupled WRF file (``AWRF`` with ``MUU0`` and ``MUV0``: ``arw2arl``'s
+#: time-averaged fluxes, HYSPLIT's ``WRF = 3``), each upper-level wind is stored
+#: coupled to the column mass. HYSPLIT's ``metinp.f`` decouples it at each grid
+#: point: the field times the surface map factor named here, divided by the
+#: surface column mass named here (or by 100), ``UWND * MSFU / MUU0``.
+_DECOUPLE: dict[str, tuple[str, str | float]] = {
+    "UWND": ("MSFU", "MUU0"),
+    "VWND": ("MSFV", "MUV0"),
+    "WWND": ("MSFT", 100.0),
+}
+
 # One sampling input: an open File or a path to an ARL file.
 FileLike = Union["File", str, "os.PathLike[str]"]
 
@@ -376,6 +387,82 @@ def _sample_record(record: DataRecord, plan: HorizontalSamplePlan) -> npt.NDArra
     return _sample_field(np.asarray(field, dtype=np.float32), plan)
 
 
+def _mass_coupled(recordset: RecordSet) -> bool:
+    """
+    Whether the time step's winds are WRF's mass-coupled fluxes (HYSPLIT's ``WRF = 3``).
+
+    As HYSPLIT's ``metini.f`` decides: an ``AWRF`` file with ``MUU0`` and
+    ``MUV0`` at the surface.
+    """
+    return recordset.source == "AWRF" and all(
+        (0, name) in recordset for name in ("MUU0", "MUV0")
+    )
+
+
+def _levels(recordset: RecordSet, variable: str) -> tuple[int, ...]:
+    """
+    Levels at which the time step holds *variable* as HYSPLIT reads it, in order.
+
+    ``TEMP`` on a file without it but with potential temperature (``THET``) is
+    at the levels that hold both ``THET`` and ``PRES`` (:func:`_read_field`).
+    """
+    levels = sorted(r.level for r in recordset.records if r.variable == variable)
+    if not levels and variable == "TEMP":
+        theta = {r.level for r in recordset.records if r.variable == "THET"}
+        pres = {r.level for r in recordset.records if r.variable == "PRES"}
+        levels = sorted(theta & pres)
+    return tuple(levels)
+
+
+def _read_field(
+    recordset: RecordSet, variable: str, level: int, window: GridWindow
+) -> npt.NDArray[Any]:
+    """
+    Read *variable* at *level* in *window* as HYSPLIT's ``metinp.f`` uses it.
+
+    That is the stored field, except for two conversions HYSPLIT makes at
+    each grid point before any interpolation:
+
+    - ``TEMP`` on a file that stores ``THET`` instead (lines 579 to 584):
+      ``THET * (PRES / 1000) ** 0.286``.
+    - The upper-level winds of a mass-coupled WRF file (:func:`_mass_coupled`;
+      lines 360 to 386): ``UWND * MSFU / MUU0``, ``VWND * MSFV / MUV0`` and
+      ``WWND * MSFT / 100``, its ``DIFW`` included (HYSPLIT scales the two
+      before adding them; arlmet adds, then scales).
+    """
+
+    def read(name: str, at: int) -> npt.NDArray[Any]:
+        """Read the stored field *name* at level *at* in the window."""
+        record = recordset[(at, name)]
+        return np.asarray(record.read(window=window), dtype=np.float32)
+
+    if variable == "TEMP" and (level, "TEMP") not in recordset:
+        pres = read("PRES", level)
+        return read("THET", level) * (pres / np.float32(1000.0)) ** np.float32(0.286)
+    field = read(variable, level)
+    if level > 0 and variable in _DECOUPLE and _mass_coupled(recordset):
+        missing = [n for n in ("MSFU", "MSFV", "MSFT") if (0, n) not in recordset]
+        if missing:  # HYSPLIT stops too
+            raise ValueError(
+                "A mass-coupled WRF file (MUU0 and MUV0 at the surface) needs the "
+                "map factors MSFU, MSFV and MSFT to decouple its winds; missing "
+                f"{', '.join(missing)} at time {recordset.time}."
+            )
+        factor, mass = _DECOUPLE[variable]
+        divisor = read(mass, 0) if isinstance(mass, str) else np.float32(mass)
+        field = field * read(factor, 0) / divisor
+    return field
+
+
+def _sample_level(
+    recordset: RecordSet, variable: str, level: int, plan: HorizontalSamplePlan
+) -> npt.NDArray[Any]:
+    """Sample *variable* at *level*, as HYSPLIT reads it (:func:`_read_field`), at each point."""
+    if plan.window is None:
+        return np.full(plan.inside.shape, np.nan, dtype=np.float32)
+    return _sample_field(_read_field(recordset, variable, level, plan.window), plan)
+
+
 def _interp_profile(
     values: npt.NDArray[Any], coords: npt.NDArray[Any], target: float
 ) -> np.float32:
@@ -433,16 +520,16 @@ def _level_profiles(
     """
     Sample *variable* at *levels*: ``(n_points, n_levels)``, NaN where a level lacks it.
 
-    Returns None when the time step has no *variable* record at all.
+    Returns None when the time step does not hold *variable* at all.
     """
-    by_level = {r.level: r for r in recordset.records if r.variable == variable}
-    if not by_level:
+    available = set(_levels(recordset, variable))
+    if not available:
         return None
     n_points = len(plan.inside)
     out = np.full((n_points, len(levels)), np.nan, dtype=np.float32)
     for pos, level in enumerate(levels):
-        if level in by_level:
-            out[:, pos] = _sample_record(by_level[level], plan)
+        if level in available:
+            out[:, pos] = _sample_level(recordset, variable, level, plan)
     return out
 
 
@@ -452,11 +539,14 @@ def _variable_profiles(
     plan: HorizontalSamplePlan,
 ) -> tuple[npt.NDArray[Any], tuple[int, ...]]:
     """Sample *variable* at all its levels. Returns ((n_points, n_levels), level_indices)."""
-    records = _record_levels(recordset, variable)
-    levels = tuple(records.keys())
+    levels = _levels(recordset, variable)
+    if not levels:
+        raise KeyError(
+            f"Variable '{variable}' is not available at time {recordset.time}."
+        )
     samples = np.full((len(plan.inside), len(levels)), np.nan, dtype=np.float32)
     for pos, level in enumerate(levels):
-        samples[:, pos] = _sample_record(records[level], plan)
+        samples[:, pos] = _sample_level(recordset, variable, level, plan)
     return samples, levels
 
 
@@ -683,7 +773,7 @@ class _Column:
         if temp is None:
             raise ValueError(
                 f"{self.axis.coord_system} (flag={self.axis.flag}) files require "
-                "TEMP for AGL/MSL sampling."
+                "TEMP (or THET and PRES) for AGL/MSL sampling."
             )
         return temp
 
@@ -1028,7 +1118,11 @@ def sample_points(
     variables : str or iterable of str
         One or more ARL field names (e.g. ``"TEMP"``, ``"UWND"``), or
         ``"pressure"`` for the virtual pressure variable. A name must not
-        collide with an existing column of ``points``.
+        collide with an existing column of ``points``. On a WRF file with
+        mass-coupled winds (``MUU0``, ``MUV0``) ``UWND``, ``VWND`` and ``WWND``
+        are decoupled as HYSPLIT does (``UWND * MSFU / MUU0``, ...), and on a
+        file with ``THET`` but no ``TEMP``, ``TEMP`` is ``THET * (PRES / 1000)
+        ** 0.286``.
     time : pandas.Timestamp or str, optional
         One valid time for every point, used when ``points`` has no ``time``
         column. Passing both raises ``ValueError``. When neither is given, the

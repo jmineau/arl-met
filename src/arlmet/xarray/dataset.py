@@ -15,6 +15,7 @@ from xarray.core import indexing
 
 from arlmet._io import atomic_output, reject_same_file
 from arlmet._time import ensure_timestamp
+from arlmet.ops.sample import _mass_coupled
 from arlmet.ops.subset import normalize_levels, resolve_window, select_records
 from arlmet.vertical import VerticalAxis
 
@@ -33,6 +34,24 @@ if TYPE_CHECKING:
     from arlmet.record import DataRecord
 
 __all__ = ["open_dataset", "write_dataset"]
+
+#: What each wind of a mass-coupled WRF file holds (``AWRF`` with ``MUU0`` and
+#: ``MUV0``), as its ``description`` attribute. The Dataset keeps the stored
+#: values; HYSPLIT (``metinp.f``) and :func:`arlmet.sample_points` decouple them.
+_MASS_COUPLED_WINDS = {
+    "UWND": (
+        "WRF's time-averaged x-wind coupled to the column mass, as stored. HYSPLIT "
+        "uses UWND * MSFU / MUU0 (m s-1)."
+    ),
+    "VWND": (
+        "WRF's time-averaged y-wind coupled to the column mass, as stored. HYSPLIT "
+        "uses VWND * MSFV / MUV0 (m s-1)."
+    ),
+    "WWND": (
+        "WRF's time-averaged vertical motion coupled to the column mass, as stored "
+        "(DIFW added). HYSPLIT uses WWND * MSFT / 100."
+    ),
+}
 
 
 def _build_dataset_from_file(
@@ -128,6 +147,10 @@ def _build_dataset_from_file(
             window=read_window,
         )
         ds[name] = xr.Variable(dims, indexing.LazilyIndexedArray(backend))
+    if met.times and _mass_coupled(met[met.times[0]]):
+        for name, description in _MASS_COUPLED_WINDS.items():
+            if name in ds:
+                ds[name].attrs["description"] = description
 
     sfc_pos = level_pos.get(0)
     if sfc_pos is not None:
@@ -205,6 +228,13 @@ def open_dataset(
     reads a data record's forecast hour only as the missing flag, and the hour
     it uses is the index record's. :attr:`arlmet.DataRecord.forecast` reads a
     record's own hour.
+
+    Values are as the file stores them. On a mass-coupled WRF file (source
+    ``AWRF`` with ``MUU0`` and ``MUV0``, the time-averaged winds of
+    ``arw2arl``) ``UWND``, ``VWND`` and ``WWND`` are coupled to the column
+    mass, and their ``description`` attribute gives the conversion HYSPLIT
+    makes (``UWND * MSFU / MUU0``, ...); :func:`arlmet.sample_points` returns
+    the converted winds.
 
     ARL metadata is accessible via the ``.arl`` accessor::
 
