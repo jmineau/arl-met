@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=04b79aab"></script>
+    <script src="../../../_static/documentation_options.js?v=a14c1c2d"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev1+g911ee3af4" />
+  <meta name="docsearch:version" content="0.1.0b6.dev2+g5780b9009" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -639,11 +639,9 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_surface_record</span><span class="p">(</span><span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span> <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataRecord</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Return the level-0 record for *variable*, or None if absent."""</span>
-    <span class="n">levels</span> <span class="o">=</span> <span class="n">_record_levels</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">levels</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">levels</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+<span class="w">    </span><span class="sd">"""Return the lowest-level record of *variable*, or None if the time step has none."""</span>
+    <span class="n">records</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">recordset</span><span class="o">.</span><span class="n">records</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">variable</span> <span class="o">==</span> <span class="n">variable</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">level</span><span class="p">)</span> <span class="k">if</span> <span class="n">records</span> <span class="k">else</span> <span class="kc">None</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_horizontal_plan</span><span class="p">(</span>
