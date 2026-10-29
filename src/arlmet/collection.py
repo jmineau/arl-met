@@ -166,7 +166,9 @@ class VariableView:
         self, dtype: np.dtype[Any] | None = None, copy: bool | None = None
     ) -> npt.NDArray[Any]:
         """Compute the array and return a numpy array."""
-        return np.asarray(self.data, dtype=dtype, copy=copy)
+        # np.asarray(copy=) is NumPy 2 only; this works on 1.x as well.
+        array = np.asarray(self.data, dtype=dtype)
+        return array.copy() if copy else array
 
     def __getitem__(self, key: Any) -> npt.ArrayLike:
         """Slice the lazy array."""
