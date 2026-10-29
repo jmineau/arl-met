@@ -141,6 +141,14 @@ the virtual ``"pressure"``, the ground temperature above for ``TEMP``,
 ``WWND`` and ``DZDT``, and the first level's value for any other variable.
 Pressure is interpolated as ``ln p``, linear in height, as HYSPLIT does.
 
+The column is walked in level order, as HYSPLIT's profile routines walk it: a
+height falls in the first layer whose top is at or above it. This matters where
+the first level lies below the ground, as on a sigma file whose first ``PRES``
+is a little above ``PRSS`` (on HRRR, from 1 % to a third of the cells at a time,
+by up to about 1 hPa): the ground values are then passed over, and a point
+between the ground and the second level is interpolated between the first and
+second levels.
+
 Pressure-level heights
 ----------------------
 

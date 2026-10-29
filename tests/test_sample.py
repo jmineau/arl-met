@@ -767,6 +767,46 @@ class TestFlag2RequiresHgts:
             arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
 
 
+class TestTerrainRequired:
+    """A file without SHGT raises the documented ValueError where terrain is needed (#107)."""
+
+    def test_pressure_levels_at_heights(self, tmp_path):
+        path = tmp_path / "no_shgt.arl"
+        time = pd.Timestamp("2024-07-18")
+        grid = make_test_grid()
+        vaxis = PressureAxis(levels=[0.0, 1000.0, 900.0])
+        field = np.full((grid.ny, grid.nx), 280.0, dtype=np.float32)
+
+        with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
+            rs = arl.create_recordset(time)
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=field + 700.0)
+            for i in (1, 2):
+                rs.create_datarecord("HGTS", level=i, forecast=0, data=field * i)
+                rs.create_datarecord("TEMP", level=i, forecast=0, data=field)
+
+        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
+        for z_kind in ("agl", "msl"):
+            with File(path) as arl, pytest.raises(ValueError, match="SHGT"):
+                arl.sample_points(points, ["TEMP"], time=time, z_kind=z_kind)
+
+    def test_sigma_at_msl(self, tmp_path):
+        path = tmp_path / "no_shgt.arl"
+        time = pd.Timestamp("2024-07-18")
+        grid = make_test_grid()
+        vaxis = SigmaAxis(levels=[1.0, 0.99, 0.95])
+        field = np.full((grid.ny, grid.nx), 280.0, dtype=np.float32)
+
+        with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
+            rs = arl.create_recordset(time)
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=field + 570.0)
+            for i in (1, 2):
+                rs.create_datarecord("TEMP", level=i, forecast=0, data=field)
+
+        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [1500.0]})
+        with File(path) as arl, pytest.raises(ValueError, match="SHGT"):
+            arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
+
+
 class TestSigmaHypsometricSampling:
     """Sigma/hybrid files use hypsometric integration for AGL/MSL (no HGTS)."""
 
@@ -822,6 +862,7 @@ def write_column_file(
     pres=True,
     humidity: str | None = "SPHU",
     t02m=True,
+    pres_values=_PRES,
 ):
     """A sigma file shaped like HRRR's: surface fields at level 0, PRES/TEMP/... on 1-3."""
     grid = make_test_grid()
@@ -842,7 +883,7 @@ def write_column_file(
             rs.create_datarecord("TEMP", level=level, forecast=0, data=field(_TEMP[k]))
             if pres:
                 rs.create_datarecord(
-                    "PRES", level=level, forecast=0, data=field(_PRES[k])
+                    "PRES", level=level, forecast=0, data=field(pres_values[k])
                 )
             if humidity == "SPHU":
                 rs.create_datarecord(
@@ -866,6 +907,58 @@ def _sample_column(path, variables, z, z_kind="agl"):
 def _esat(t):
     """HYSPLIT's CALCESAT, hPa."""
     return np.exp(21.4 - 5351.0 / t)
+
+
+class TestFirstLevelBelowGround:
+    """
+    A sigma column whose first level is below the ground (#106).
+
+    Level 1's PRES (851 hPa) is above PRSS (850 hPa), so HYSPLIT's prfsig puts it
+    a few meters below the ground; it walks the layers in level order, so the
+    first layer (ground to level 1) holds no height and a point between the
+    ground and level 2 is interpolated between levels 1 and 2. HRRR files have
+    such cells (PRSS is packed to about 1 hPa).
+    """
+
+    PRES = [851.0, 800.0, 760.0]
+    TV = [_T02M * (1 + 0.61 * _SPHU[0])] + [
+        t * (1 + 0.61 * q) for t, q in zip(_TEMP, _SPHU, strict=True)
+    ]
+    Z = _ground_up_agl([_PRSS, *PRES], TV)
+
+    def _between_levels_1_and_2(self, z, values):
+        frac = (z - self.Z[1]) / (self.Z[2] - self.Z[1])
+        return values[0] + frac * (values[1] - values[0])
+
+    def test_level_one_is_below_the_ground(self):
+        assert self.Z[1] < 0.0 < self.Z[2]
+
+    def test_values_come_from_levels_one_and_two(self, tmp_path):
+        path = tmp_path / "column.arl"
+        write_column_file(path, pres_values=self.PRES)
+        z = [0.25 * self.Z[2], 0.75 * self.Z[2], self.Z[2]]
+        result = _sample_column(path, ["TEMP", "UWND", "WWND"], z)
+        for name, values in (("TEMP", _TEMP), ("UWND", _UWND), ("WWND", _WWND)):
+            expected = [self._between_levels_1_and_2(h, values) for h in z]
+            np.testing.assert_allclose(result[name], expected, atol=2e-3)
+
+    def test_pressure_is_ln_p_between_levels_one_and_two(self, tmp_path):
+        path = tmp_path / "column.arl"
+        write_column_file(path, pres_values=self.PRES)
+        z = 0.5 * self.Z[2]
+        result = _sample_column(path, ["PRES", "pressure"], [z])
+        ln_p = self._between_levels_1_and_2(z, np.log(self.PRES))
+        np.testing.assert_allclose(result["PRES"], [np.exp(ln_p)], atol=2e-3)
+        np.testing.assert_allclose(result["pressure"], [np.exp(ln_p)], atol=2e-3)
+
+    def test_above_level_two_is_unchanged(self, tmp_path):
+        path = tmp_path / "column.arl"
+        write_column_file(path, pres_values=self.PRES)
+        z = 0.5 * (self.Z[2] + self.Z[3])
+        result = _sample_column(path, ["TEMP"], [z])
+        frac = (z - self.Z[2]) / (self.Z[3] - self.Z[2])
+        expected = _TEMP[1] + frac * (_TEMP[2] - _TEMP[1])
+        np.testing.assert_allclose(result["TEMP"], [expected], atol=2e-3)
 
 
 class TestSigmaColumnAsHysplit:

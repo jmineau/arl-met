@@ -245,11 +245,9 @@ def _record_levels(recordset: RecordSet, variable: str) -> OrderedDict[int, Data
 
 
 def _surface_record(recordset: RecordSet, variable: str) -> DataRecord | None:
-    """Return the level-0 record for *variable*, or None if absent."""
-    levels = _record_levels(recordset, variable)
-    if not levels:
-        return None
-    return next(iter(levels.values()))
+    """Return the lowest-level record of *variable*, or None if the time step has none."""
+    records = [r for r in recordset.records if r.variable == variable]
+    return min(records, key=lambda r: r.level) if records else None
 
 
 def _build_horizontal_plan(
@@ -489,10 +487,45 @@ def _interp_profile(
     )
 
 
+def _interp_column(
+    values: npt.NDArray[Any], coords: npt.NDArray[Any], target: float
+) -> np.float32:
+    """
+    Interpolate *values* at the height *target* along a column, in level order.
+
+    *coords* are the column's heights from the ground (index 0) up. As
+    HYSPLIT's ``prfsig``/``prfprs``/``prfecm`` walk it, *target* falls in the
+    first layer, in level order, whose top is at or above it, and is
+    interpolated between that layer's bottom and top. Where heights increase
+    this is plain linear interpolation; where a level lies below the ground (a
+    sigma file whose first ``PRES`` exceeds ``PRSS``) the ground's value is
+    passed over and the column runs from that level up. NaN below the ground
+    or above the top.
+    """
+    mask = np.isfinite(values) & np.isfinite(coords)
+    if mask.sum() < 2:
+        return np.float32(np.nan)
+    v = np.asarray(values[mask], dtype=float)
+    c = np.asarray(coords[mask], dtype=float)
+    target = float(target)
+    if not target >= c[0]:
+        return np.float32(np.nan)
+    above = np.flatnonzero(c[1:] >= target)
+    if above.size == 0:
+        return np.float32(np.nan)
+    k = int(above[0]) + 1
+    lo, hi = c[k - 1], c[k]
+    if hi == lo:
+        return np.float32(v[k])
+    return np.float32(v[k - 1] + (target - lo) / (hi - lo) * (v[k] - v[k - 1]))
+
+
 def _interp_profiles(
     values: npt.NDArray[Any],
     coords: npt.NDArray[Any],
     targets: npt.NDArray[Any],
+    *,
+    column: bool = False,
 ) -> npt.NDArray[Any]:
     """
     Vectorised _interp_profile over n_points rows.
@@ -502,12 +535,15 @@ def _interp_profiles(
     values : (n_points, n_levels)
     coords : (n_levels,) shared across all points, or (n_points, n_levels) per-point
     targets : (n_points,)
+    column : heights along a column from the ground up, walked in level order
+        (:func:`_interp_column`) instead of sorted
     """
     out = np.full(values.shape[0], np.nan, dtype=np.float32)
     shared_coords = coords.ndim == 1
+    interp = _interp_column if column else _interp_profile
     for i in range(values.shape[0]):
         profile_coords = coords if shared_coords else coords[i]
-        out[i] = _interp_profile(values[i], profile_coords, targets[i])
+        out[i] = interp(values[i], profile_coords, targets[i])
     return out
 
 
@@ -859,14 +895,16 @@ def _sample_variable(
     """
     axis = recordset.vertical_axis
     log_p = column is not None and variable in _PRESSURE_VARIABLES
+    # At heights a column is walked in level order, as HYSPLIT does (#106).
+    walk = column is not None and z_kind in ("agl", "msl")
 
     def _interp(values: npt.NDArray[Any], coords: npt.NDArray[Any]) -> npt.NDArray[Any]:
         """Interpolate *values* to the targets, as ln p for pressure."""
         if not log_p:
-            return _interp_profiles(values, coords, targets)
+            return _interp_profiles(values, coords, targets, column=walk)
         with np.errstate(divide="ignore", invalid="ignore"):
             log_values = np.log(values)
-        return np.exp(_interp_profiles(log_values, coords, targets))
+        return np.exp(_interp_profiles(log_values, coords, targets, column=walk))
 
     # --- virtual "pressure" variable ---
     if variable == "pressure":

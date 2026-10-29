@@ -313,10 +313,10 @@ requires-dist = [
     { name = "fsspec", marker = "extra == 'archives'", specifier = ">=2024.2" },
     { name = "numpy", specifier = ">=1.24" },
     { name = "pandas", specifier = ">=2.0" },
-    { name = "pyproj", specifier = ">=3.5" },
+    { name = "pyproj", specifier = ">=3.6.0" },
     { name = "s3fs", marker = "extra == 'archives'", specifier = ">=2024.2" },
-    { name = "typing-extensions", specifier = ">=4.0" },
-    { name = "xarray", specifier = ">=2023.6" },
+    { name = "typing-extensions", specifier = ">=4.4.0" },
+    { name = "xarray", specifier = ">=2023.10.0" },
 ]
 provides-extras = ["archives"]
 

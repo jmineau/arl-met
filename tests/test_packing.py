@@ -82,7 +82,7 @@ def _pakinp_python(
     f32 = np.float32
     cvar = np.frombuffer(packed, dtype=np.uint8)
     prec = f32(precision)
-    scexp = f32(1.0) / f32(2.0) ** (7 - exponent)
+    scexp = f32(1.0) / f32(2.0) ** f32(7 - exponent)
     lx = window.x_stop - window.x_start
     ly = window.y_stop - window.y_start
     rvar = np.zeros((ly, lx), dtype=np.float32)
