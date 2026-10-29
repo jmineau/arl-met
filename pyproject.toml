@@ -28,7 +28,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.24",
-    "pandas>=2.0.2",  # 2.0.0 and 2.0.1 fail the directory-index tests
+    "pandas>=2.0",
     "pyproj>=3.6.0",  # 3.5.0 computes a different Lambert grid than HYSPLIT
     "typing_extensions>=4.4.0",  # `override` (arlmet.collection and others)
     "xarray>=2023.10.0",  # 2023.6.0 to 2023.9.0 fail test_write_dataset_skips_all_nan_slices
