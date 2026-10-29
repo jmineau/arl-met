@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=48d2cf12"></script>
+    <script src="_static/documentation_options.js?v=0f68595e"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev3+g703439cfe" />
+  <meta name="docsearch:version" content="0.1.0b6.dev4+gb0d9f5525" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -635,6 +635,24 @@ for example from <a class="reference internal" href="_autosummary/arlmet.open_da
 </pre></div>
 </div>
 </section>
+<section id="wrf-winds">
+<h2>WRF winds<a class="headerlink" href="#wrf-winds" title="Link to this heading">#</a></h2>
+<p>In a WRF file (source <code class="docutils literal notranslate"><span class="pre">AWRF</span></code>, written by HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code>) <code class="docutils literal notranslate"><span class="pre">UWND</span></code> and
+<code class="docutils literal notranslate"><span class="pre">VWND</span></code> are on WRF’s staggered grid, not at the cell centers where the other
+fields are: column <code class="docutils literal notranslate"><span class="pre">i</span></code> of <code class="docutils literal notranslate"><span class="pre">UWND</span></code> is the west face of cell <code class="docutils literal notranslate"><span class="pre">i</span></code>, and row
+<code class="docutils literal notranslate"><span class="pre">j</span></code> of <code class="docutils literal notranslate"><span class="pre">VWND</span></code> its south face. HYSPLIT reads <code class="docutils literal notranslate"><span class="pre">UWND</span></code> half a cell east of a
+position and <code class="docutils literal notranslate"><span class="pre">VWND</span></code> half a cell north, and so does <code class="docutils literal notranslate"><span class="pre">sample_points</span></code>: at the
+center of a cell, <code class="docutils literal notranslate"><span class="pre">UWND</span></code> is the mean of that cell’s west and east faces.</p>
+<p>Each wind’s whole column is taken there, its ground value (<code class="docutils literal notranslate"><span class="pre">U10M</span></code> or
+<code class="docutils literal notranslate"><span class="pre">V10M</span></code>) and its levels’ heights included, as HYSPLIT builds a profile at each
+grid point before interpolating; an <code class="docutils literal notranslate"><span class="pre">msl</span></code> height is still measured from the
+terrain at the point itself. With <code class="docutils literal notranslate"><span class="pre">method=&quot;nearest&quot;</span></code> the winds are those at
+the nearest cell’s center. The file holds no east face for the last column of
+cells and no north face for the last row, so <code class="docutils literal notranslate"><span class="pre">UWND</span></code> (<code class="docutils literal notranslate"><span class="pre">VWND</span></code>) is NaN there.
+Other sources are not affected, nor are the readers (<a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a>,
+<a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a>), which return each field on the grid it is stored
+on.</p>
+</section>
 <section id="point-times">
 <h2>Point times<a class="headerlink" href="#point-times" title="Link to this heading">#</a></h2>
 <p>Each point’s valid time comes from exactly one place:</p>
@@ -762,6 +780,7 @@ the lowest level with data is NaN.</p></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#choosing-the-vertical-coordinate">Choosing the vertical coordinate</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#horizontal-interpolation">Horizontal interpolation</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#earth-relative-winds">Earth-relative winds</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wrf-winds">WRF winds</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#point-times">Point times</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sampling-across-multiple-files">Sampling across multiple files</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#limitations">Limitations</a></li>

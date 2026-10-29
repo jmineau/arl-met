@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=48d2cf12"></script>
+    <script src="../../../_static/documentation_options.js?v=0f68595e"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev3+g703439cfe" />
+  <meta name="docsearch:version" content="0.1.0b6.dev4+gb0d9f5525" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -469,6 +469,17 @@
 <span class="c1">#: Wind component pairs that are stored grid-relative on projected grids.</span>
 <span class="n">WIND_PAIRS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"U10M"</span><span class="p">,</span> <span class="s2">"V10M"</span><span class="p">))</span>
 
+<span class="c1">#: On WRF files (source ``AWRF``), where ``UWND`` and ``VWND`` are stored, in</span>
+<span class="c1">#: grid cells from the mass points (cell centers): WRF's staggered grid, whose</span>
+<span class="c1">#: first ``nx`` U points and ``ny`` V points ``arw2arl`` writes. Column ``i`` of</span>
+<span class="c1">#: ``UWND`` is the west face of cell ``i`` and row ``j`` of ``VWND`` its south</span>
+<span class="c1">#: face, so HYSPLIT reads them at array positions ``x + 0.5`` and ``y + 0.5``</span>
+<span class="c1">#: (``metini.f``'s ``SUX``, ``SVY``; ``adviec.f``, ``advmet.f``).</span>
+<span class="n">_WRF_STAGGER</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"UWND"</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+    <span class="s2">"VWND"</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
+<span class="p">}</span>
+
 <span class="c1"># One sampling input: an open File or a path to an ARL file.</span>
 <span class="n">FileLike</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="s2">"File"</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">"os.PathLike[str]"</span><span class="p">]</span>
 
@@ -650,12 +661,20 @@
     <span class="n">lat</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">method</span><span class="p">:</span> <span class="n">SampleMethod</span><span class="p">,</span>
+    <span class="n">stagger</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HorizontalSamplePlan</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Compute grid-space fractional indices and bilinear weights for (lon, lat) points.</span>
 
 <span class="sd">    The returned GridWindow is the tightest bounding box over all valid points so</span>
 <span class="sd">    callers can read only the necessary subset of a record.</span>
+
+<span class="sd">    *stagger* is ``(dx, dy)`` in grid cells for a field stored on a staggered</span>
+<span class="sd">    grid (``_WRF_STAGGER``): it is read at array position ``(x + dx, y + dy)``,</span>
+<span class="sd">    as HYSPLIT's ``adv3nt`` reads it. A point is inside only where both its own</span>
+<span class="sd">    position and that one are on the grid. With ``"nearest"`` the point moves</span>
+<span class="sd">    to the nearest cell center first and the field is interpolated there, as</span>
+<span class="sd">    HYSPLIT would at that center: the mean of the cell's two faces.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"nearest"</span><span class="p">}:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"method must be 'linear' or 'nearest'."</span><span class="p">)</span>
@@ -665,14 +684,28 @@
     <span class="c1"># first columns and interpolates across the seam.</span>
     <span class="n">wraps</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">wraps_lon</span>
     <span class="n">x_max</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span> <span class="k">if</span> <span class="n">wraps</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">inside</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-        <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">)</span>
-        <span class="o">&amp;</span> <span class="p">((</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">x_max</span><span class="p">)</span> <span class="k">if</span> <span class="n">wraps</span> <span class="k">else</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="n">x_max</span><span class="p">))</span>
-        <span class="o">&amp;</span> <span class="p">(</span><span class="n">y</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">)</span>
-        <span class="o">&amp;</span> <span class="p">(</span><span class="n">y</span> <span class="o">&lt;=</span> <span class="n">grid</span><span class="o">.</span><span class="n">ny</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_on_grid</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">y</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return True where array position ``(x, y)`` can be interpolated."""</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">)</span>
+            <span class="o">&amp;</span> <span class="p">((</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">x_max</span><span class="p">)</span> <span class="k">if</span> <span class="n">wraps</span> <span class="k">else</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="n">x_max</span><span class="p">))</span>
+            <span class="o">&amp;</span> <span class="p">(</span><span class="n">y</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">)</span>
+            <span class="o">&amp;</span> <span class="p">(</span><span class="n">y</span> <span class="o">&lt;=</span> <span class="n">grid</span><span class="o">.</span><span class="n">ny</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">inside</span> <span class="o">=</span> <span class="n">_on_grid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">stagger</span> <span class="o">!=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"nearest"</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">method</span> <span class="o">=</span> <span class="s2">"linear"</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">stagger</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">stagger</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">wraps</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span>
+        <span class="n">inside</span> <span class="o">&amp;=</span> <span class="n">_on_grid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
 
     <span class="n">x_safe</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">x_max</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
     <span class="n">y_safe</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
@@ -1333,25 +1366,35 @@
     <span class="c1"># Sigma, hybrid and WRF files always start their column at the ground;</span>
     <span class="c1"># pressure files do when sampled at heights (at pressures the stored levels</span>
     <span class="c1"># are used).</span>
-    <span class="n">column</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">_Column</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">plan</span><span class="p">,</span> <span class="n">terrain</span><span class="o">=</span><span class="n">terrain</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">))</span>
-        <span class="ow">or</span> <span class="p">(</span><span class="n">heights</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">))</span>
-        <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">has_column</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
+        <span class="n">heights</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">)</span>
     <span class="p">)</span>
+    <span class="n">column</span> <span class="o">=</span> <span class="n">_Column</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">plan</span><span class="p">,</span> <span class="n">terrain</span><span class="o">=</span><span class="n">terrain</span><span class="p">)</span> <span class="k">if</span> <span class="n">has_column</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="n">targets</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">sampled</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="n">variable</span><span class="p">:</span> <span class="n">_sample_variable</span><span class="p">(</span>
+    <span class="c1"># On a WRF file UWND and VWND are on their own staggered grids: each is</span>
+    <span class="c1"># sampled, with its whole column (the ground's U10M/V10M, the levels'</span>
+    <span class="c1"># heights), at its own array position, as HYSPLIT builds each node's</span>
+    <span class="c1"># profile and then reads U and V half a cell away (#109). An MSL target</span>
+    <span class="c1"># stays relative to the terrain at the point itself.</span>
+    <span class="n">stagger</span> <span class="o">=</span> <span class="n">_WRF_STAGGER</span> <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">source</span> <span class="o">==</span> <span class="s2">"AWRF"</span> <span class="k">else</span> <span class="p">{}</span>
+    <span class="n">sampled</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">variable_names</span><span class="p">:</span>
+        <span class="n">var_plan</span><span class="p">,</span> <span class="n">var_column</span> <span class="o">=</span> <span class="n">plan</span><span class="p">,</span> <span class="n">column</span>
+        <span class="k">if</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">stagger</span><span class="p">:</span>
+            <span class="n">var_plan</span> <span class="o">=</span> <span class="n">_build_horizontal_plan</span><span class="p">(</span>
+                <span class="n">recordset</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">stagger</span><span class="o">=</span><span class="n">stagger</span><span class="p">[</span><span class="n">variable</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">has_column</span><span class="p">:</span>
+                <span class="n">var_column</span> <span class="o">=</span> <span class="n">_Column</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">var_plan</span><span class="p">,</span> <span class="n">terrain</span><span class="o">=</span><span class="n">terrain</span><span class="p">)</span>
+        <span class="n">sampled</span><span class="p">[</span><span class="n">variable</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sample_variable</span><span class="p">(</span>
             <span class="n">recordset</span><span class="p">,</span>
             <span class="n">variable</span><span class="p">,</span>
             <span class="n">targets</span><span class="p">,</span>
             <span class="n">z_kind</span><span class="o">=</span><span class="n">z_kind</span><span class="p">,</span>
-            <span class="n">plan</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span>
+            <span class="n">plan</span><span class="o">=</span><span class="n">var_plan</span><span class="p">,</span>
             <span class="n">terrain</span><span class="o">=</span><span class="n">terrain</span><span class="p">,</span>
-            <span class="n">column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span>
+            <span class="n">column</span><span class="o">=</span><span class="n">var_column</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">for</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">variable_names</span>
-    <span class="p">}</span>
     <span class="n">_rotate_winds</span><span class="p">(</span><span class="n">sampled</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">wind_pairs</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">sampled</span>
 
@@ -1451,7 +1494,11 @@
 <span class="sd">        :meth:`arlmet.File.sample_points` for the method each vertical</span>
 <span class="sd">        coordinate system uses and the fields it requires.</span>
 <span class="sd">    method : {"linear", "nearest"}, default "linear"</span>
-<span class="sd">        Horizontal interpolation: bilinear or nearest grid point.</span>
+<span class="sd">        Horizontal interpolation: bilinear or nearest grid point. On a WRF</span>
+<span class="sd">        file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's</span>
+<span class="sd">        staggered grid holds them, half a cell east and north of each point,</span>
+<span class="sd">        as HYSPLIT reads them; "nearest" gives the winds at the nearest</span>
+<span class="sd">        cell's center. The *Sampling* guide has the details.</span>
 <span class="sd">    earth_relative : bool, default False</span>
 <span class="sd">        Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``) from</span>
 <span class="sd">        the grid axes to east/north, using the meridian convergence of each</span>

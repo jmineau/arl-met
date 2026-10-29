@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=48d2cf12"></script>
+    <script src="../../_static/documentation_options.js?v=0f68595e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev3+g703439cfe" />
+  <meta name="docsearch:version" content="0.1.0b6.dev4+gb0d9f5525" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1307,7 +1307,11 @@
 <span class="sd">            are passed over, as in HYSPLIT. The *Vertical Coordinates* guide</span>
 <span class="sd">            has the details.</span>
 <span class="sd">        method : {"linear", "nearest"}, default "linear"</span>
-<span class="sd">            Horizontal interpolation: bilinear or nearest grid point.</span>
+<span class="sd">            Horizontal interpolation: bilinear or nearest grid point. On a WRF</span>
+<span class="sd">            file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's</span>
+<span class="sd">            staggered grid holds them, half a cell east and north of each point,</span>
+<span class="sd">            as HYSPLIT reads them; "nearest" gives the winds at the nearest</span>
+<span class="sd">            cell's center. The *Sampling* guide has the details.</span>
 <span class="sd">        earth_relative : bool, default False</span>
 <span class="sd">            Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``)</span>
 <span class="sd">            from the grid axes to east/north. Winds in ARL files on projected</span>

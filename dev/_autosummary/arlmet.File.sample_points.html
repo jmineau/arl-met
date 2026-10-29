@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=48d2cf12"></script>
+    <script src="../_static/documentation_options.js?v=0f68595e"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev3+g703439cfe" />
+  <meta name="docsearch:version" content="0.1.0b6.dev4+gb0d9f5525" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -678,7 +678,11 @@ is below the ground (its <code class="docutils literal notranslate"><span class=
 are passed over, as in HYSPLIT. The <em>Vertical Coordinates</em> guide
 has the details.</p>
 </p></li>
-<li><p><strong>method</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'linear'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'nearest'</span></span></code></span>]</span>) – Horizontal interpolation: bilinear or nearest grid point.</p></li>
+<li><p><strong>method</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'linear'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'nearest'</span></span></code></span>]</span>) – Horizontal interpolation: bilinear or nearest grid point. On a WRF
+file (source <code class="docutils literal notranslate"><span class="pre">AWRF</span></code>) <code class="docutils literal notranslate"><span class="pre">UWND</span></code> and <code class="docutils literal notranslate"><span class="pre">VWND</span></code> are read where WRF’s
+staggered grid holds them, half a cell east and north of each point,
+as HYSPLIT reads them; “nearest” gives the winds at the nearest
+cell’s center. The <em>Sampling</em> guide has the details.</p></li>
 <li><p><strong>earth_relative</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Rotate sampled wind pairs (<code class="docutils literal notranslate"><span class="pre">UWND</span></code>/<code class="docutils literal notranslate"><span class="pre">VWND</span></code>, <code class="docutils literal notranslate"><span class="pre">U10M</span></code>/<code class="docutils literal notranslate"><span class="pre">V10M</span></code>)
 from the grid axes to east/north. Winds in ARL files on projected
 grids are stored grid-relative, as HYSPLIT expects. Both components
