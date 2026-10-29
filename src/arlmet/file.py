@@ -867,7 +867,11 @@ class File:
             interpolated as ``ln p``, as HYSPLIT does. The *Vertical
             Coordinates* guide has the details.
         method : {"linear", "nearest"}, default "linear"
-            Horizontal interpolation: bilinear or nearest grid point.
+            Horizontal interpolation: bilinear or nearest grid point. On a WRF
+            file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's
+            staggered grid holds them, half a cell east and north of each point,
+            as HYSPLIT reads them; "nearest" gives the winds at the nearest
+            cell's center. The *Sampling* guide has the details.
         earth_relative : bool, default False
             Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``)
             from the grid axes to east/north. Winds in ARL files on projected
