@@ -864,8 +864,10 @@ class File:
             ground: a point between it and the first level is interpolated
             from the ground values (``PRSS`` for ``PRES``, ``T02M`` for
             ``TEMP``, ``U10M``/``V10M`` for winds), and pressure is
-            interpolated as ``ln p``, as HYSPLIT does. The *Vertical
-            Coordinates* guide has the details.
+            interpolated as ``ln p``, as HYSPLIT does. Where the first level
+            is below the ground (its ``PRES`` above ``PRSS``) the ground values
+            are passed over, as in HYSPLIT. The *Vertical Coordinates* guide
+            has the details.
         method : {"linear", "nearest"}, default "linear"
             Horizontal interpolation: bilinear or nearest grid point.
         earth_relative : bool, default False
