@@ -82,6 +82,9 @@ when it downloads, so it imports without the `archives` extra.
   (eta needs coefficients the file lacks); pressure files use `HGTS`. No fallback across
   flags; each subclass takes only the keyword-only inputs it needs, else `ValueError`.
 - **Rotated grids** (`orientation != 0`) raise `NotImplementedError` in `Projection`.
+- **WRF winds are staggered.** In an `AWRF` file column `i` of `UWND` is the west face of cell `i` and row
+  `j` of `VWND` its south face; `sample_points` reads each, with its whole column, at `x + 0.5` / `y + 0.5`
+  (`metini`'s `SUX`/`SVY`, `_WRF_STAGGER`). `File` and `open_dataset` return the fields as stored.
 
 ## Design invariants
 

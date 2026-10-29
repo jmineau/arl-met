@@ -1206,6 +1206,183 @@ class TestWrfColumnAsHysplit:
         np.testing.assert_allclose(z, TestSigmaColumnAsHysplit.Z[1:], atol=1e-3)
 
 
+# --- WRF files: UWND and VWND on WRF's staggered grid, as HYSPLIT reads them (#109) ---
+
+
+def write_varying_wrf_file(path, *, source="AWRF", axis=None):
+    """
+    A WRF-shaped sigma file whose fields vary across the grid.
+
+    Every field is linear in the cell indices, so bilinear interpolation is exact:
+    ``UWND`` at level ``k`` is ``_UWND[k - 1] + 0.5 x + 0.1 y`` and ``VWND`` is
+    ``-2 + k + 0.2 x + 0.4 y`` at array position ``(x, y)``.
+    """
+    grid = make_test_grid()
+    axis = axis if axis is not None else SigmaAxis(levels=[1.0, 0.99, 0.95, 0.9])
+    yy, xx = np.meshgrid(np.arange(grid.ny), np.arange(grid.nx), indexing="ij")
+
+    def field(base, ax=0.0, ay=0.0):
+        return (base + ax * xx + ay * yy).astype(np.float32)
+
+    with File(path, mode="w", source=source, grid=grid, vertical_axis=axis) as arl:
+        rs = arl.create_recordset(_COLUMN_TIME)
+        rs.create_datarecord("SHGT", level=0, forecast=0, data=field(1300.0, 20.0))
+        rs.create_datarecord("PRSS", level=0, forecast=0, data=field(850.0, -2.0, 1.0))
+        rs.create_datarecord("T02M", level=0, forecast=0, data=field(285.0, 0.3))
+        rs.create_datarecord("U10M", level=0, forecast=0, data=field(2.0, 0.2, 0.05))
+        rs.create_datarecord("V10M", level=0, forecast=0, data=field(-1.0, 0.1, 0.3))
+        for k in range(3):
+            level = k + 1
+            pres = field(_PRES[k], -2.0, 1.0)
+            temp = field(_TEMP[k], 0.3, -0.1)
+            rs.create_datarecord("PRES", level=level, forecast=0, data=pres)
+            rs.create_datarecord("TEMP", level=level, forecast=0, data=temp)
+            rs.create_datarecord("SPHU", level=level, forecast=0, data=field(_SPHU[k]))
+            uwnd = field(_UWND[k], 0.5, 0.1)
+            vwnd = field(-2.0 + level, 0.2, 0.4)
+            rs.create_datarecord("UWND", level=level, forecast=0, data=uwnd)
+            rs.create_datarecord("VWND", level=level, forecast=0, data=vwnd)
+
+
+def _cell_points(xy, z):
+    """Points at array positions *xy* of the fixture grid (1 degree, from 20 E, 10 S)."""
+    x, y = np.asarray(xy, dtype=float).T
+    return pd.DataFrame({"lon": 20.0 + x, "lat": -10.0 + y, "z": z})
+
+
+class TestWrfStaggeredWinds:
+    """
+    On an AWRF file UWND is read half a cell east and VWND half a cell north.
+
+    ``arw2arl`` writes WRF's U and V on their staggered grids (column ``i`` of
+    UWND is the west face of cell ``i``, row ``j`` of VWND its south face), and
+    HYSPLIT's ``metini`` sets ``SUX = SVY = 0.5`` for them.
+    """
+
+    XY = [(5.3, 7.6), (0.0, 0.0), (12.0, 3.0), (18.4, 17.9)]
+
+    def test_native_levels_are_read_at_the_staggered_points(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        write_varying_wrf_file(path)
+        result = sample_points(
+            path, _cell_points(self.XY, 1.0), ["UWND", "VWND", "TEMP"], z_kind="native"
+        )
+        x, y = np.asarray(self.XY).T
+        np.testing.assert_allclose(
+            result["UWND"], _UWND[0] + 0.5 * (x + 0.5) + 0.1 * y, atol=0.01
+        )
+        np.testing.assert_allclose(
+            result["VWND"], -1.0 + 0.2 * x + 0.4 * (y + 0.5), atol=0.01
+        )
+        np.testing.assert_allclose(
+            result["TEMP"], _TEMP[0] + 0.3 * x - 0.1 * y, atol=0.01
+        )
+
+    def test_other_sources_are_read_at_the_mass_points(self, tmp_path):
+        path = tmp_path / "test.arl"
+        write_varying_wrf_file(path, source="TEST")
+        result = sample_points(
+            path, _cell_points(self.XY, 1.0), ["UWND", "VWND"], z_kind="native"
+        )
+        x, y = np.asarray(self.XY).T
+        np.testing.assert_allclose(
+            result["UWND"], _UWND[0] + 0.5 * x + 0.1 * y, atol=0.01
+        )
+        np.testing.assert_allclose(result["VWND"], -1.0 + 0.2 * x + 0.4 * y, atol=0.01)
+
+    @pytest.mark.parametrize("axis", [None, _WRF_AXIS], ids=["sigma", "wrf"])
+    @pytest.mark.parametrize(
+        ("z_kind", "z"), [("native", 1.7), ("pressure", 820.0), ("agl", 40.0)]
+    )
+    def test_whole_column_is_taken_at_the_staggered_point(
+        self, tmp_path, axis, z_kind, z
+    ):
+        # Heights, pressures and the ground's U10M/V10M come from the U (V) point
+        # too, as HYSPLIT builds each node's profile and then reads U half a cell
+        # east: the same file labelled TEST, sampled there, gives the same.
+        wrf, test = tmp_path / "wrf.arl", tmp_path / "test.arl"
+        write_varying_wrf_file(wrf, axis=axis)
+        write_varying_wrf_file(test, source="TEST", axis=axis)
+        heights = [z, 0.3 * z] if z_kind == "agl" else [z, z]
+        points = _cell_points(self.XY[:2], heights)
+        result = sample_points(wrf, points, ["UWND", "VWND"], z_kind=z_kind)
+        for name, (dx, dy) in (("UWND", (0.5, 0.0)), ("VWND", (0.0, 0.5))):
+            moved = [(x + dx, y + dy) for x, y in self.XY[:2]]
+            expected = sample_points(
+                test, _cell_points(moved, heights), [name], z_kind=z_kind
+            )
+            np.testing.assert_allclose(result[name], expected[name], rtol=1e-6)
+            assert np.isfinite(result[name]).all()
+
+    def test_msl_targets_stay_relative_to_the_ground_at_the_point(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        write_varying_wrf_file(path)
+        xy = self.XY[:3]
+        shgt = 1300.0 + 20.0 * np.asarray(xy)[:, 0]
+        agl = sample_points(
+            path, _cell_points(xy, 40.0), ["UWND", "VWND"], z_kind="agl"
+        )
+        msl = sample_points(
+            path, _cell_points(xy, 40.0 + shgt), ["UWND", "VWND"], z_kind="msl"
+        )
+        np.testing.assert_allclose(msl["UWND"], agl["UWND"], rtol=1e-5)
+        np.testing.assert_allclose(msl["VWND"], agl["VWND"], rtol=1e-5)
+
+    def test_nearest_takes_the_mean_of_the_cells_faces(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        write_varying_wrf_file(path)
+        result = sample_points(
+            path,
+            _cell_points([(5.3, 7.6)], 1.0),
+            ["UWND", "VWND", "TEMP"],
+            z_kind="native",
+            method="nearest",
+        )
+        # The nearest cell is (5, 8); its faces are U columns 5 and 6, V rows 8 and 9.
+        np.testing.assert_allclose(
+            result["UWND"], [_UWND[0] + 0.5 * 5.5 + 0.1 * 8], atol=0.01
+        )
+        np.testing.assert_allclose(
+            result["VWND"], [-1.0 + 0.2 * 5 + 0.4 * 8.5], atol=0.01
+        )
+        np.testing.assert_allclose(
+            result["TEMP"], [_TEMP[0] + 0.3 * 5 - 0.1 * 8], atol=0.01
+        )
+
+    def test_last_column_and_row_have_no_staggered_wind(self, tmp_path):
+        # The file holds no U point east of the last column, nor V north of the last row.
+        path = tmp_path / "wrf.arl"
+        write_varying_wrf_file(path)
+        xy = [(19.0, 5.0), (5.0, 19.0), (18.5, 18.5)]
+        for method in ("linear", "nearest"):
+            result = sample_points(
+                path,
+                _cell_points(xy, 1.0),
+                ["UWND", "VWND", "TEMP"],
+                z_kind="native",
+                method=method,
+            )
+            np.testing.assert_array_equal(
+                np.isnan(result["UWND"]), [True, False, False]
+            )
+            np.testing.assert_array_equal(
+                np.isnan(result["VWND"]), [False, True, False]
+            )
+            assert np.isfinite(result["TEMP"]).all()
+
+    def test_points_off_the_mass_grid_are_nan(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        write_varying_wrf_file(path)
+        result = sample_points(
+            path,
+            _cell_points([(-0.4, 5.0), (5.0, -0.4)], 1.0),
+            ["UWND", "VWND"],
+            z_kind="native",
+        )
+        assert np.isnan(result["UWND"]).all()
+        assert np.isnan(result["VWND"]).all()
+
+
 # --- pressure-level files over high ground, as NAM12's over the mountain West (prfprs) ---
 
 # Levels 1 to 5 (hPa) and their HGTS (m MSL). With the ground at _SHGT = 1300 m and

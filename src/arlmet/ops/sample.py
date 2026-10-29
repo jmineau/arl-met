@@ -53,6 +53,17 @@ _PRESSURE_VARIABLES = frozenset({"PRES", "pressure"})
 #: Wind component pairs that are stored grid-relative on projected grids.
 WIND_PAIRS: tuple[tuple[str, str], ...] = (("UWND", "VWND"), ("U10M", "V10M"))
 
+#: On WRF files (source ``AWRF``), where ``UWND`` and ``VWND`` are stored, in
+#: grid cells from the mass points (cell centers): WRF's staggered grid, whose
+#: first ``nx`` U points and ``ny`` V points ``arw2arl`` writes. Column ``i`` of
+#: ``UWND`` is the west face of cell ``i`` and row ``j`` of ``VWND`` its south
+#: face, so HYSPLIT reads them at array positions ``x + 0.5`` and ``y + 0.5``
+#: (``metini.f``'s ``SUX``, ``SVY``; ``adviec.f``, ``advmet.f``).
+_WRF_STAGGER: dict[str, tuple[float, float]] = {
+    "UWND": (0.5, 0.0),
+    "VWND": (0.0, 0.5),
+}
+
 # One sampling input: an open File or a path to an ARL file.
 FileLike = Union["File", str, "os.PathLike[str]"]
 
@@ -234,12 +245,20 @@ def _build_horizontal_plan(
     lat: npt.NDArray[Any],
     *,
     method: SampleMethod,
+    stagger: tuple[float, float] = (0.0, 0.0),
 ) -> HorizontalSamplePlan:
     """
     Compute grid-space fractional indices and bilinear weights for (lon, lat) points.
 
     The returned GridWindow is the tightest bounding box over all valid points so
     callers can read only the necessary subset of a record.
+
+    *stagger* is ``(dx, dy)`` in grid cells for a field stored on a staggered
+    grid (``_WRF_STAGGER``): it is read at array position ``(x + dx, y + dy)``,
+    as HYSPLIT's ``adv3nt`` reads it. A point is inside only where both its own
+    position and that one are on the grid. With ``"nearest"`` the point moves
+    to the nearest cell center first and the field is interpolated there, as
+    HYSPLIT would at that center: the mean of the cell's two faces.
     """
     if method not in {"linear", "nearest"}:
         raise ValueError("method must be 'linear' or 'nearest'.")
@@ -249,14 +268,28 @@ def _build_horizontal_plan(
     # first columns and interpolates across the seam.
     wraps = grid.wraps_lon
     x_max = float(grid.nx) if wraps else float(grid.nx - 1)
-    inside = (
-        np.isfinite(x)
-        & np.isfinite(y)
-        & (x >= 0.0)
-        & ((x < x_max) if wraps else (x <= x_max))
-        & (y >= 0.0)
-        & (y <= grid.ny - 1)
-    )
+
+    def _on_grid(x: npt.NDArray[Any], y: npt.NDArray[Any]) -> npt.NDArray[Any]:
+        """Return True where array position ``(x, y)`` can be interpolated."""
+        return (
+            np.isfinite(x)
+            & np.isfinite(y)
+            & (x >= 0.0)
+            & ((x < x_max) if wraps else (x <= x_max))
+            & (y >= 0.0)
+            & (y <= grid.ny - 1)
+        )
+
+    inside = _on_grid(x, y)
+    if stagger != (0.0, 0.0):
+        if method == "nearest":
+            x, y = np.rint(x), np.rint(y)
+            method = "linear"
+        x = x + stagger[0]
+        y = y + stagger[1]
+        if wraps:
+            x = np.mod(x, grid.nx)
+        inside &= _on_grid(x, y)
 
     x_safe = np.clip(np.nan_to_num(x), 0.0, max(x_max, 0.0))
     y_safe = np.clip(np.nan_to_num(y), 0.0, max(grid.ny - 1, 0))
@@ -917,25 +950,35 @@ def _sample_points_from_file(
     # Sigma, hybrid and WRF files always start their column at the ground;
     # pressure files do when sampled at heights (at pressures the stored levels
     # are used).
-    column = (
-        _Column(recordset, plan, terrain=terrain)
-        if isinstance(axis, (SigmaAxis, HybridAxis, WrfAxis))
-        or (heights and isinstance(axis, PressureAxis))
-        else None
+    has_column = isinstance(axis, (SigmaAxis, HybridAxis, WrfAxis)) or (
+        heights and isinstance(axis, PressureAxis)
     )
+    column = _Column(recordset, plan, terrain=terrain) if has_column else None
     targets = coords["z"].to_numpy(dtype=float)
-    sampled = {
-        variable: _sample_variable(
+    # On a WRF file UWND and VWND are on their own staggered grids: each is
+    # sampled, with its whole column (the ground's U10M/V10M, the levels'
+    # heights), at its own array position, as HYSPLIT builds each node's
+    # profile and then reads U and V half a cell away (#109). An MSL target
+    # stays relative to the terrain at the point itself.
+    stagger = _WRF_STAGGER if file.source == "AWRF" else {}
+    sampled: dict[str, npt.NDArray[Any]] = {}
+    for variable in variable_names:
+        var_plan, var_column = plan, column
+        if variable in stagger:
+            var_plan = _build_horizontal_plan(
+                recordset.grid, lon, lat, method=method, stagger=stagger[variable]
+            )
+            if has_column:
+                var_column = _Column(recordset, var_plan, terrain=terrain)
+        sampled[variable] = _sample_variable(
             recordset,
             variable,
             targets,
             z_kind=z_kind,
-            plan=plan,
+            plan=var_plan,
             terrain=terrain,
-            column=column,
+            column=var_column,
         )
-        for variable in variable_names
-    }
     _rotate_winds(sampled, file.grid, lon, lat, wind_pairs)
     return sampled
 
@@ -1033,7 +1076,11 @@ def sample_points(
         :meth:`arlmet.File.sample_points` for the method each vertical
         coordinate system uses and the fields it requires.
     method : {"linear", "nearest"}, default "linear"
-        Horizontal interpolation: bilinear or nearest grid point.
+        Horizontal interpolation: bilinear or nearest grid point. On a WRF
+        file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's
+        staggered grid holds them, half a cell east and north of each point,
+        as HYSPLIT reads them; "nearest" gives the winds at the nearest
+        cell's center. The *Sampling* guide has the details.
     earth_relative : bool, default False
         Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``) from
         the grid axes to east/north, using the meridian convergence of each

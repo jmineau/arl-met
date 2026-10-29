@@ -174,6 +174,26 @@ for example from :func:`arlmet.open_dataset`:
        u_earth, v_earth = met.grid.rotate_winds(u=5.0, v=-3.0, lon=-111.9, lat=40.7)
    print(u_earth, v_earth)
 
+WRF winds
+---------
+
+In a WRF file (source ``AWRF``, written by HYSPLIT's ``arw2arl``) ``UWND`` and
+``VWND`` are on WRF's staggered grid, not at the cell centers where the other
+fields are: column ``i`` of ``UWND`` is the west face of cell ``i``, and row
+``j`` of ``VWND`` its south face. HYSPLIT reads ``UWND`` half a cell east of a
+position and ``VWND`` half a cell north, and so does ``sample_points``: at the
+center of a cell, ``UWND`` is the mean of that cell's west and east faces.
+
+Each wind's whole column is taken there, its ground value (``U10M`` or
+``V10M``) and its levels' heights included, as HYSPLIT builds a profile at each
+grid point before interpolating; an ``msl`` height is still measured from the
+terrain at the point itself. With ``method="nearest"`` the winds are those at
+the nearest cell's center. The file holds no east face for the last column of
+cells and no north face for the last row, so ``UWND`` (``VWND``) is NaN there.
+Other sources are not affected, nor are the readers (:class:`arlmet.File`,
+:func:`arlmet.open_dataset`), which return each field on the grid it is stored
+on.
+
 Point times
 -----------
 
