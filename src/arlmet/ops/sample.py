@@ -223,11 +223,9 @@ def _record_levels(recordset: RecordSet, variable: str) -> OrderedDict[int, Data
 
 
 def _surface_record(recordset: RecordSet, variable: str) -> DataRecord | None:
-    """Return the level-0 record for *variable*, or None if absent."""
-    levels = _record_levels(recordset, variable)
-    if not levels:
-        return None
-    return next(iter(levels.values()))
+    """Return the lowest-level record of *variable*, or None if the time step has none."""
+    records = [r for r in recordset.records if r.variable == variable]
+    return min(records, key=lambda r: r.level) if records else None
 
 
 def _build_horizontal_plan(

@@ -767,6 +767,46 @@ class TestFlag2RequiresHgts:
             arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
 
 
+class TestTerrainRequired:
+    """A file without SHGT raises the documented ValueError where terrain is needed (#107)."""
+
+    def test_pressure_levels_at_heights(self, tmp_path):
+        path = tmp_path / "no_shgt.arl"
+        time = pd.Timestamp("2024-07-18")
+        grid = make_test_grid()
+        vaxis = PressureAxis(levels=[0.0, 1000.0, 900.0])
+        field = np.full((grid.ny, grid.nx), 280.0, dtype=np.float32)
+
+        with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
+            rs = arl.create_recordset(time)
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=field + 700.0)
+            for i in (1, 2):
+                rs.create_datarecord("HGTS", level=i, forecast=0, data=field * i)
+                rs.create_datarecord("TEMP", level=i, forecast=0, data=field)
+
+        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
+        for z_kind in ("agl", "msl"):
+            with File(path) as arl, pytest.raises(ValueError, match="SHGT"):
+                arl.sample_points(points, ["TEMP"], time=time, z_kind=z_kind)
+
+    def test_sigma_at_msl(self, tmp_path):
+        path = tmp_path / "no_shgt.arl"
+        time = pd.Timestamp("2024-07-18")
+        grid = make_test_grid()
+        vaxis = SigmaAxis(levels=[1.0, 0.99, 0.95])
+        field = np.full((grid.ny, grid.nx), 280.0, dtype=np.float32)
+
+        with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
+            rs = arl.create_recordset(time)
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=field + 570.0)
+            for i in (1, 2):
+                rs.create_datarecord("TEMP", level=i, forecast=0, data=field)
+
+        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [1500.0]})
+        with File(path) as arl, pytest.raises(ValueError, match="SHGT"):
+            arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
+
+
 class TestSigmaHypsometricSampling:
     """Sigma/hybrid files use hypsometric integration for AGL/MSL (no HGTS)."""
 
