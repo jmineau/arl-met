@@ -598,15 +598,172 @@ def test_extract_subset_byte_copy_with_diff_records(tmp_path, monkeypatch, kwarg
                 np.testing.assert_allclose(record.read(), other.read(), atol=atol)
 
 
-def test_extract_subset_byte_copy_empty_selection(tmp_path):
+@pytest.mark.parametrize("bbox", [None, (21.0, -9.0, 30.0, 0.0)], ids=["copy", "crop"])
+def test_extract_subset_rejects_only_unknown_variable(tmp_path, bbox):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+
+    with pytest.raises(ValueError, match="not in the file: FOO") as excinfo:
+        extract_subset(source, destination, bbox=bbox, variables=["FOO"])
+
+    assert "PRSS, TEMP, UWND" in str(excinfo.value)
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize("bbox", [None, (21.0, -9.0, 30.0, 0.0)], ids=["copy", "crop"])
+def test_extract_subset_rejects_some_unknown_variables(tmp_path, bbox):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+
+    with pytest.raises(ValueError, match="not in the file: TMEP, uwnd"):
+        extract_subset(
+            source, destination, bbox=bbox, variables=["TEMP", "TMEP", "uwnd"]
+        )
+
+    assert not destination.exists()
+
+
+def test_file_extract_subset_rejects_unknown_variable(tmp_path):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+
+    with File(source) as met, pytest.raises(ValueError, match="not in the file: FOO"):
+        met.extract_subset(destination, variables=["FOO"])
+
+
+def test_extract_subset_rejects_empty_variables(tmp_path):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+
+    with pytest.raises(ValueError, match="at least one variable"):
+        extract_subset(source, destination, variables=[])
+
+    assert not destination.exists()
+
+
+def test_extract_subset_rejects_selection_with_no_records(tmp_path):
+    """Known variables that sit only on levels the crop leaves out."""
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)  # PRSS is on level 0 only
+
+    with pytest.raises(ValueError, match="nothing to write"):
+        extract_subset(source, destination, levels=[1, 2], variables=["PRSS"])
+
+    assert not destination.exists()
+
+
+def test_extract_subset_keeps_known_variables(tmp_path):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+
+    extract_subset(source, destination, variables=["PRSS", "TEMP"])
+
+    with File(destination) as out:
+        assert {r.variable for r in out[0].records} == {"PRSS", "TEMP"}
+
+
+DIF_BBOX = (19.5, -10.5, 39.5, 9.5)
+
+
+def written_names(path):
+    """Return the parent and DIF record names in a file, with the DIF count."""
+    with File(path) as out:
+        records = [r for time in out.times for r in out[time].records]
+        names = {r.variable for r in records}
+        difs = [d.variable for r in records for d in r.diffs]
+    return names, difs
+
+
+@pytest.mark.parametrize("bbox", [None, DIF_BBOX], ids=["copy", "crop"])
+def test_extract_subset_accepts_a_dif_name_the_file_holds(tmp_path, bbox):
+    """`variables=["WWND", "DIFW"]` wrote both on main; it must not raise (#128)."""
+    source = tmp_path / "source.arl"
+    write_byte_copy_source(source)
+
+    both = extract_subset(
+        source, tmp_path / "both.arl", bbox=bbox, variables=["WWND", "DIFW"]
+    )
+    parent = extract_subset(
+        source, tmp_path / "wwnd.arl", bbox=bbox, variables=["WWND"]
+    )
+
+    names, difs = written_names(both)
+    assert names == {"WWND"}
+    assert difs and set(difs) == {"DIFW"}
+    assert written_names(parent) == (names, difs)
+    assert both.read_bytes() == parent.read_bytes()
+
+
+def test_extract_subset_accepts_a_dif_name_with_other_variables(tmp_path):
+    """A DIF name next to a parent that has none (TEMP) selects nothing more."""
+    source = tmp_path / "source.arl"
+    write_byte_copy_source(source)
+
+    out = extract_subset(source, tmp_path / "out.arl", variables=["TEMP", "DIFW"])
+
+    assert written_names(out) == ({"TEMP"}, [])
+
+
+@pytest.mark.parametrize("bbox", [None, DIF_BBOX], ids=["copy", "crop"])
+def test_extract_subset_rejects_a_dif_name_the_file_does_not_hold(tmp_path, bbox):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_byte_copy_source(source, diff=False)
+
+    with pytest.raises(ValueError, match="not in the file: DIFW") as excinfo:
+        extract_subset(source, destination, bbox=bbox, variables=["WWND", "DIFW"])
+
+    assert "DIFW" not in str(excinfo.value).split("The file holds:")[1]
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize("bbox", [None, DIF_BBOX], ids=["copy", "crop"])
+def test_extract_subset_lists_dif_names_among_the_file_holds(tmp_path, bbox):
+    """A mixed list names only the unknown one, and the file's list has DIFW."""
+    source = tmp_path / "source.arl"
+    write_byte_copy_source(source)
+
+    with pytest.raises(ValueError, match="not in the file: DIFX, TMEP") as excinfo:
+        extract_subset(
+            source,
+            tmp_path / "subset.arl",
+            bbox=bbox,
+            variables=["WWND", "DIFW", "TMEP", "DIFX"],
+        )
+
+    message = str(excinfo.value)
+    assert "not in the file: DIFX, TMEP." in message
+    assert "DIFW" in message.split("The file holds:")[1]
+
+
+def test_extract_subset_dif_name_alone_writes_nothing(tmp_path):
+    """The name is valid but selects no parent, so there is nothing to write."""
     source = tmp_path / "source.arl"
     destination = tmp_path / "subset.arl"
     write_byte_copy_source(source)
 
-    extract_subset(source, destination, variables=["NONE"])
+    with pytest.raises(ValueError, match="nothing to write"):
+        extract_subset(source, destination, variables=["DIFW"])
 
-    assert destination.exists()
-    assert destination.stat().st_size == 0
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize("bbox", [None, DIF_BBOX], ids=["copy", "crop"])
+def test_extract_subset_a_string_is_one_variable_name(tmp_path, bbox):
+    source = tmp_path / "source.arl"
+    write_subset_source(source)
+
+    out = extract_subset(source, tmp_path / "one.arl", bbox=bbox, variables="TEMP")
+
+    assert written_names(out) == ({"TEMP"}, [])
+    with pytest.raises(ValueError, match=r"not in the file: TMEP\. "):
+        extract_subset(source, tmp_path / "bad.arl", bbox=bbox, variables="TMEP")
 
 
 def test_extract_subset_byte_copy_rejects_mismatched_record_header(tmp_path):

@@ -120,6 +120,17 @@ the selected records are copied byte for byte and only their level numbers
 and the index records are rewritten, so it runs at close to file-copy speed
 and the output values are exactly the input's.
 
+Variable names must be spelled as the file spells them (``"TEMP"``, not
+``"temp"``); a single string such as ``variables="TEMP"`` is one name. A
+``DIF*`` name the file holds (``"DIFW"``) is accepted but selects nothing: that
+record is written with its parent (``"WWND"``) whenever the parent is selected.
+A name the file does not hold raises a ``ValueError`` that lists
+every unknown name and the variables the file has, also when the other names are
+fine, so a typo never gives a file that is missing a field. A selection that
+leaves no record in the file, such as ``variables=[]``, or a variable that is
+only on levels you left out, raises too: ``extract_subset()`` never writes an
+empty file.
+
 .. ipython:: python
    :suppress:
 

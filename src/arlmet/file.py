@@ -964,7 +964,7 @@ class File:
         *,
         bbox: tuple[float, float, float, float] | None = None,
         levels: Iterable[int] | None = None,
-        variables: Iterable[str] | None = None,
+        variables: str | Iterable[str] | None = None,
     ) -> Path:
         """
         Write a spatial/vertical subset of this file to a new ARL file.
@@ -982,8 +982,9 @@ class File:
         levels : iterable of int, optional
             ARL level indices to keep. Output levels are compacted and
             renumbered from zero while preserving the selected level heights.
-        variables : iterable of str, optional
-            Variable names to keep. All variables are included by default.
+        variables : str or iterable of str, optional
+            Variable names to keep, as the file spells them; a single string
+            is one name. All variables are included by default.
 
         Returns
         -------
