@@ -7,7 +7,6 @@ and counts how often it is opened.
 
 import io
 import os
-import signal
 import subprocess
 import sys
 import textwrap
@@ -333,7 +332,7 @@ def test_a_killed_downloader_does_not_block_others(tmp_path, monkeypatch):
     while not lock.exists():
         assert time.monotonic() < deadline
         time.sleep(0.05)
-    victim.send_signal(signal.SIGKILL)  # no chance to clean up
+    victim.kill()  # SIGKILL: no chance to clean up
     victim.wait()
     victim.stderr.close()
     assert lock.exists()
