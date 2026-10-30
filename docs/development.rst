@@ -49,6 +49,13 @@ for choice. The Fortran routines it matches:
    * - ``prfcom``
      - choose the vertical conversion from the vertical flag
      - :meth:`arlmet.VerticalAxis.from_flag` and its subclasses
+   * - ``prfcom`` / ``adv3nt``
+     - build the profile at every grid point, then read a value at a position
+       bilinearly from the four grid points around it
+     - :func:`arlmet.sample_points` interpolates each of the four grid points'
+       columns to the point's height, then blends them (``ops/sample.py``,
+       ``_node_plan``); on HRRR, WRF, GFS, GDAS and NAM files it agrees with the
+       compiled ``prfsig``/``prfprs``/``prfecm`` and ``adv3nt`` to float precision
    * - ``prfsig`` / ``prfecm``
      - the sigma (flag 1, and flag 5 without WRF's hybrid coefficients) and
        hybrid (flag 4) profiles: heights from the ground

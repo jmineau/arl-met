@@ -80,6 +80,9 @@ FileLike = Union["File", str, "os.PathLike[str]"]
 
 #: Vertical coordinate systems accepted for the ``z`` of sample points.
 ZKind = Literal["native", "pressure", "agl", "msl"]
+#: The vertical coordinates a column is interpolated in: ``"msl"`` targets are
+#: turned into heights above the ground at the point first.
+_ColumnZKind = Literal["native", "pressure", "agl"]
 #: Horizontal interpolation methods for point sampling.
 SampleMethod = Literal["linear", "nearest"]
 
@@ -110,6 +113,22 @@ class HorizontalSamplePlan:
     y1: npt.NDArray[Any]
     wx: npt.NDArray[Any]
     wy: npt.NDArray[Any]
+
+    @cached_property
+    def _nearest(self) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[Any]]:
+        """
+        For ``"nearest"``: the inside points' rows and their row and column in the window.
+
+        Computed once and reused for every level read with this plan
+        (:func:`_sample_field`).
+        """
+        assert self.window is not None
+        rows = np.flatnonzero(self.inside)
+        return (
+            rows,
+            self.y0[rows] - self.window.y_start,
+            self.x0[rows] - self.window.x_start,
+        )
 
 
 def _normalize_points(
@@ -350,16 +369,17 @@ def _sample_field(
     if plan.window is None or not plan.inside.any():
         return result
 
+    if plan.method == "nearest":
+        rows, iy, ix = plan._nearest
+        result[rows] = field[iy, ix]
+        return result
+
     # Indices are relative to the full grid; subtract window origin before indexing.
     x0 = plan.x0 - plan.window.x_start
     x1 = plan.x1 - plan.window.x_start
     y0 = plan.y0 - plan.window.y_start
     y1 = plan.y1 - plan.window.y_start
-
     valid = plan.inside
-    if plan.method == "nearest":
-        result[valid] = field[y0[valid], x0[valid]]
-        return result
 
     v00 = field[y0[valid], x0[valid]]
     v10 = field[y0[valid], x1[valid]]
@@ -383,6 +403,67 @@ def _sample_record(record: DataRecord, plan: HorizontalSamplePlan) -> npt.NDArra
         return np.full(plan.inside.shape, np.nan, dtype=np.float32)
     field = record.read(window=plan.window)
     return _sample_field(np.asarray(field, dtype=np.float32), plan)
+
+
+def _node_plan(
+    plan: HorizontalSamplePlan, *, each_level_first: bool = False
+) -> tuple[HorizontalSamplePlan, npt.NDArray[Any]]:
+    """
+    Return the grid points that each point of *plan* is blended from, and their weights.
+
+    Returns ``(nodes, weights)``: *nodes* samples, without interpolating, the
+    four grid points around each point (``(x0, y0)``, ``(x1, y0)``, ``(x0,
+    y1)``, ``(x1, y1)``, in that order, each a block of ``n_points`` rows), and
+    *weights* ``(4, n_points)`` are their bilinear weights. With ``"nearest"``,
+    or with *each_level_first*, *plan* is its own one grid point, weight 1:
+    each level is then blended first and the blended column interpolated. Each grid point's profile is
+    built and interpolated to the point's height first, then the values are
+    blended (:func:`_blend`), as HYSPLIT's ``prfcom`` builds a profile at each
+    grid point and ``adv3nt`` blends them.
+    """
+    n_points = len(plan.inside)
+    if plan.method == "nearest" or each_level_first:
+        return plan, np.ones((1, n_points))
+    x = np.concatenate([plan.x0, plan.x1, plan.x0, plan.x1])
+    y = np.concatenate([plan.y0, plan.y0, plan.y1, plan.y1])
+    wx, wy = plan.wx, plan.wy
+    weights = np.stack([(1 - wx) * (1 - wy), wx * (1 - wy), (1 - wx) * wy, wx * wy])
+    zeros = np.zeros(len(x))
+    nodes = HorizontalSamplePlan(
+        method="nearest",
+        window=plan.window,
+        inside=np.tile(plan.inside, 4),
+        x0=x,
+        x1=x,
+        y0=y,
+        y1=y,
+        wx=zeros,
+        wy=zeros,
+    )
+    return nodes, weights
+
+
+#: A grid point whose weight is below this does not count: a point given by a
+#: grid point's own longitude and latitude comes back from the projection with
+#: weights of about 1e-12 toward its neighbors, not 0.
+_NO_WEIGHT = 1e-6
+
+
+def _blend(values: npt.NDArray[Any], weights: npt.NDArray[Any]) -> npt.NDArray[Any]:
+    """
+    Blend the values at each point's grid points (:func:`_node_plan`) with their weights.
+
+    Only the grid points that have a value at the target count, and their
+    weights are rescaled to sum to 1: a neighbor whose top is below a height
+    does not make the point NaN. The point is NaN only where none of its grid points (with a weight of
+    at least :data:`_NO_WEIGHT`) has a value.
+    """
+    v = np.asarray(values, dtype=float).reshape(weights.shape)
+    w = np.where(np.isfinite(v) & (weights >= _NO_WEIGHT), weights, 0.0)
+    total = w.sum(axis=0)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        blended = np.where(w > 0, w * v, 0.0).sum(axis=0) / total
+    return np.where(total > 0, blended, np.nan).astype(np.float32)
 
 
 def _mass_coupled(recordset: RecordSet) -> bool:
@@ -461,63 +542,89 @@ def _sample_level(
     return _sample_field(_read_field(recordset, variable, level, plan.window), plan)
 
 
-def _interp_profile(
-    values: npt.NDArray[Any], coords: npt.NDArray[Any], target: float
-) -> np.float32:
-    """1-D linear interpolation of *values* at *target* along *coords*. Returns NaN outside range."""
-    mask = np.isfinite(values) & np.isfinite(coords)
-    if mask.sum() < 2:
-        return np.float32(np.nan)
+#: Rows interpolated at once by :func:`_interp_profiles`, to bound its memory.
+_INTERP_CHUNK = 65536
 
-    profile_values = np.asarray(values[mask], dtype=float)
-    profile_coords = np.asarray(coords[mask], dtype=float)
-    order = np.argsort(profile_coords)
-    profile_coords = profile_coords[order]
-    profile_values = profile_values[order]
-    unique_coords, unique_index = np.unique(profile_coords, return_index=True)
-    unique_values = profile_values[unique_index]
-    return np.float32(
-        np.interp(
-            float(target),
-            unique_coords,
-            unique_values,
-            left=np.nan,
-            right=np.nan,
+
+def _interp_profile(
+    values: npt.NDArray[Any], coords: npt.NDArray[Any], targets: npt.NDArray[Any]
+) -> npt.NDArray[Any]:
+    """
+    Interpolate each row of *values* linearly at its target, along that row's sorted *coords*.
+
+    Per row, the levels with a finite value and coordinate are taken in
+    increasing coordinate (of levels at one coordinate, the first in level
+    order), as :func:`numpy.interp` takes them. NaN outside their range or
+    where fewer than two levels have a value. *values* and *coords* are ``(rows,
+    levels)``, *targets* ``(rows,)``.
+    """
+    v = np.asarray(values, dtype=float)
+    t = np.asarray(targets, dtype=float)
+    valid = np.isfinite(v) & np.isfinite(coords)
+    c = np.where(valid, coords, np.nan).astype(float)
+    order = np.argsort(c, axis=1, kind="stable")  # NaN last
+    c, v = np.take_along_axis(c, order, axis=1), np.take_along_axis(v, order, axis=1)
+    repeat = np.zeros(c.shape, dtype=bool)
+    repeat[:, 1:] = c[:, 1:] == c[:, :-1]
+    if repeat.any():  # keep the first of levels at one coordinate
+        c = np.where(repeat, np.nan, c)
+        order = np.argsort(c, axis=1, kind="stable")
+        c, v = (
+            np.take_along_axis(c, order, axis=1),
+            np.take_along_axis(v, order, axis=1),
         )
-    )
+    rows = np.arange(len(t))
+    n = np.isfinite(c).sum(axis=1)  # distinct coordinates
+    k = (c <= t[:, None]).sum(axis=1) - 1  # the last level at or below the target
+    k1 = np.minimum(k + 1, c.shape[1] - 1)
+    lo, hi = c[rows, k], c[rows, k1]
+    v_lo, v_hi = v[rows, k], v[rows, k1]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        slope = (v_hi - v_lo) / (hi - lo)
+        out = slope * (t - lo) + v_lo  # numpy.interp's formula
+    at_top = (k == n - 1) & (lo == t)
+    out = np.where(at_top, v_lo, out)
+    out[(valid.sum(axis=1) < 2) | (k < 0) | ((k >= n - 1) & ~at_top)] = np.nan
+    return out
 
 
 def _interp_column(
-    values: npt.NDArray[Any], coords: npt.NDArray[Any], target: float
-) -> np.float32:
+    values: npt.NDArray[Any], coords: npt.NDArray[Any], targets: npt.NDArray[Any]
+) -> npt.NDArray[Any]:
     """
-    Interpolate *values* at the height *target* along a column, in level order.
+    Interpolate each row of *values* at its target height, walking the row's column in level order.
 
-    *coords* are the column's heights from the ground (index 0) up. As
-    HYSPLIT's ``prfsig``/``prfprs``/``prfecm`` walk it, *target* falls in the
-    first layer, in level order, whose top is at or above it, and is
-    interpolated between that layer's bottom and top. Where heights increase
-    this is plain linear interpolation; where a level lies below the ground (a
-    sigma file whose first ``PRES`` exceeds ``PRSS``) the ground's value is
-    passed over and the column runs from that level up. NaN below the ground
-    or above the top.
+    *coords* are each column's heights from the ground (level 0) up. As
+    HYSPLIT's ``prfsig``/``prfprs``/``prfecm`` walk it, a target falls in the
+    first layer, in level order and between levels with a finite value and
+    height, whose top is at or above it, and is interpolated between that
+    layer's bottom and top. Where heights increase this is plain linear
+    interpolation; where a level lies below the ground (a sigma file whose
+    first ``PRES`` exceeds ``PRSS``) the ground's value is passed over and the
+    column runs from that level up. NaN below the first such level or above
+    the top. *values* and *coords* are ``(rows, levels)``, *targets* ``(rows,)``.
     """
-    mask = np.isfinite(values) & np.isfinite(coords)
-    if mask.sum() < 2:
-        return np.float32(np.nan)
-    v = np.asarray(values[mask], dtype=float)
-    c = np.asarray(coords[mask], dtype=float)
-    target = float(target)
-    if not target >= c[0]:
-        return np.float32(np.nan)
-    above = np.flatnonzero(c[1:] >= target)
-    if above.size == 0:
-        return np.float32(np.nan)
-    k = int(above[0]) + 1
-    lo, hi = c[k - 1], c[k]
-    if hi == lo:
-        return np.float32(v[k])
-    return np.float32(v[k - 1] + (target - lo) / (hi - lo) * (v[k] - v[k - 1]))
+    v = np.asarray(values, dtype=float)
+    c = np.asarray(coords, dtype=float)
+    t = np.asarray(targets, dtype=float)
+    valid = np.isfinite(v) & np.isfinite(c)
+    rows = np.arange(len(t))
+    level = np.arange(c.shape[1])
+    first = np.argmax(valid, axis=1)
+    # the level below each level, among those with a value
+    below = np.maximum.accumulate(np.where(valid, level, -1), axis=1)
+    below = np.concatenate([np.full((len(t), 1), -1), below[:, :-1]], axis=1)
+    with np.errstate(invalid="ignore"):
+        top = valid & (level > first[:, None]) & (c >= t[:, None])
+        found = top.any(axis=1) & (t >= c[rows, first])
+    k = np.argmax(top, axis=1)
+    k0 = np.maximum(below[rows, k], 0)
+    lo, hi = c[rows, k0], c[rows, k]
+    v_lo, v_hi = v[rows, k0], v[rows, k]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        out = np.where(hi == lo, v_hi, v_lo + (t - lo) / (hi - lo) * (v_hi - v_lo))
+    out[~found] = np.nan
+    return out
 
 
 def _interp_profiles(
@@ -528,7 +635,7 @@ def _interp_profiles(
     column: bool = False,
 ) -> npt.NDArray[Any]:
     """
-    Vectorised _interp_profile over n_points rows.
+    Interpolate each row of *values* at its target: ``(n_points,)`` float32.
 
     Parameters
     ----------
@@ -536,14 +643,14 @@ def _interp_profiles(
     coords : (n_levels,) shared across all points, or (n_points, n_levels) per-point
     targets : (n_points,)
     column : heights along a column from the ground up, walked in level order
-        (:func:`_interp_column`) instead of sorted
+        (:func:`_interp_column`) instead of sorted (:func:`_interp_profile`)
     """
-    out = np.full(values.shape[0], np.nan, dtype=np.float32)
-    shared_coords = coords.ndim == 1
     interp = _interp_column if column else _interp_profile
-    for i in range(values.shape[0]):
-        profile_coords = coords if shared_coords else coords[i]
-        out[i] = interp(values[i], profile_coords, targets[i])
+    coords = np.broadcast_to(coords, values.shape)
+    out = np.empty(values.shape[0], dtype=np.float32)
+    for start in range(0, values.shape[0], _INTERP_CHUNK):
+        rows = slice(start, start + _INTERP_CHUNK)
+        out[rows] = interp(values[rows], coords[rows], targets[rows])
     return out
 
 
@@ -561,12 +668,12 @@ def _level_profiles(
     available = set(_levels(recordset, variable))
     if not available:
         return None
-    n_points = len(plan.inside)
-    out = np.full((n_points, len(levels)), np.nan, dtype=np.float32)
+    # Filled one level at a time, so held as (n_levels, n_points) and returned transposed.
+    out = np.full((len(levels), len(plan.inside)), np.nan, dtype=np.float32)
     for pos, level in enumerate(levels):
         if level in available:
-            out[:, pos] = _sample_level(recordset, variable, level, plan)
-    return out
+            out[pos] = _sample_level(recordset, variable, level, plan)
+    return out.T
 
 
 def _variable_profiles(
@@ -580,26 +687,27 @@ def _variable_profiles(
         raise KeyError(
             f"Variable '{variable}' is not available at time {recordset.time}."
         )
-    samples = np.full((len(plan.inside), len(levels)), np.nan, dtype=np.float32)
+    samples = np.full((len(levels), len(plan.inside)), np.nan, dtype=np.float32)
     for pos, level in enumerate(levels):
-        samples[:, pos] = _sample_level(recordset, variable, level, plan)
-    return samples, levels
+        samples[pos] = _sample_level(recordset, variable, level, plan)
+    return samples.T, levels
 
 
 def _vertical_coords(
     recordset: RecordSet,
     levels: Sequence[int],
     *,
-    z_kind: ZKind,
+    z_kind: _ColumnZKind,
     plan: HorizontalSamplePlan,
-    terrain: npt.NDArray[Any] | None,
     column: _Column | None,
 ) -> npt.NDArray[Any]:
     """
     Per-point vertical coordinate at each *level*, expressed in the *z_kind* system.
 
     Returns an ``(n_points, n_levels)`` array giving the coordinate that a target
-    *z* (in the same *z_kind* units) is interpolated against.
+    *z* (in the same *z_kind* units) is interpolated against. A height above
+    sea level is turned into one above the ground before this
+    (:func:`_sample_points_from_file`).
 
     Dispatches to the vertical axis subclass methods, matching HYSPLIT:
 
@@ -637,52 +745,39 @@ def _vertical_coords(
             f"z_kind='pressure' not implemented for {type(axis).__name__}."
         )
 
-    # z_kind in {"agl", "msl"}
+    # z_kind == "agl"
     if isinstance(axis, TerrainAxis):
-        coords = _broadcast(axis.to_height_agl()[level_list])
-        if z_kind == "msl":
-            if terrain is None:
-                raise ValueError("terrain (SHGT) is required to sample z_kind='msl'.")
-            coords = coords + terrain[:, None]
-        return coords
+        return _broadcast(axis.to_height_agl()[level_list])
 
     if isinstance(axis, (PressureAxis, SigmaAxis, HybridAxis, WrfAxis)):
         # HYSPLIT PRFPRS: HGTS above the ground. PRFSIG/PRFECM: hypsometric from
         # the ground with virtual temperature; a WRF file without hybrid
         # coefficients goes to PRFSIG too.
         assert column is not None
-        agl = column.z_agl[:, level_list]
-        if z_kind == "agl":
-            return agl
-        return agl + _resolve_terrain(recordset, plan, terrain)[:, None]
+        return column.z_agl[:, level_list]
 
     raise NotImplementedError(
         f"z_kind='{z_kind}' not implemented for {type(axis).__name__}."
     )
 
 
-def _resolve_terrain(
-    recordset: RecordSet,
-    plan: HorizontalSamplePlan,
-    terrain: npt.NDArray[Any] | None,
-) -> npt.NDArray[Any]:
-    """Return per-point terrain height (SHGT, m); sample it if not precomputed."""
-    if terrain is not None:
-        return terrain
-    shgt_records = [r for r in recordset.records if r.variable == "SHGT"]
-    if not shgt_records:
-        raise ValueError("terrain (SHGT) is required to compute AGL/MSL heights.")
-    return _sample_record(min(shgt_records, key=lambda r: r.level), plan)
+def _terrain(recordset: RecordSet, plan: HorizontalSamplePlan) -> npt.NDArray[Any]:
+    """Sample the terrain height ``SHGT`` [m] at each point of *plan*."""
+    record = _surface_record(recordset, "SHGT")
+    if record is None:
+        raise ValueError(f"Terrain field SHGT is required at time {recordset.time}.")
+    return _sample_record(record, plan)
 
 
 class _Column:
     """
     The vertical column of one sigma, pressure-level, hybrid or WRF time step.
 
-    Built at the sample points as HYSPLIT's ``prfsig`` (sigma, flag 1, and WRF,
-    flag 5, without WRF's hybrid coefficients), ``prfprs`` (pressure, flag 2)
-    and ``prfecm`` (hybrid, flag 4) build theirs, and shared by every variable
-    sampled at that time. Level 0 is the ground:
+    Built at the grid points of *plan* (:func:`_node_plan`) as HYSPLIT's
+    ``prfsig`` (sigma, flag 1, and WRF, flag 5, without WRF's hybrid
+    coefficients), ``prfprs`` (pressure, flag 2) and ``prfecm`` (hybrid, flag
+    4) build theirs at each grid point, and shared by every variable sampled
+    there at that time. Level 0 is the ground:
     0 m above it, at the surface pressure ``PRSS``. On a pressure-level file a
     level at or below the ground has no height (NaN), so a profile runs from
     the ground to the first level above it, as ``prfprs`` skips such levels.
@@ -695,14 +790,11 @@ class _Column:
         self,
         recordset: RecordSet,
         plan: HorizontalSamplePlan,
-        *,
-        terrain: npt.NDArray[Any] | None = None,
     ) -> None:
         self.recordset = recordset
         self.plan = plan
         self.axis = recordset.vertical_axis
         self.upper = list(range(1, len(self.axis.levels)))
-        self.terrain = terrain
 
     def _surface(self, variable: str) -> npt.NDArray[Any] | None:
         """Sample the surface field *variable*, or None if the time step lacks it."""
@@ -789,7 +881,7 @@ class _Column:
             raise ValueError(
                 "Pressure-level (flag=2) files require HGTS records for AGL/MSL sampling."
             )
-        terrain = _resolve_terrain(self.recordset, self.plan, self.terrain)
+        terrain = _terrain(self.recordset, self.plan)
         agl = hgts - terrain[:, None]
         z = np.zeros((len(terrain), len(self.axis.levels)), dtype=np.float32)
         z[:, 1:] = np.where(agl > 0.0, agl, np.nan)
@@ -855,13 +947,12 @@ def _sample_variable(
     variable: str,
     targets: npt.NDArray[Any],
     *,
-    z_kind: ZKind,
+    z_kind: _ColumnZKind,
     plan: HorizontalSamplePlan,
-    terrain: npt.NDArray[Any] | None,
     column: _Column | None,
 ) -> npt.NDArray[Any]:
     """
-    Interpolate *variable* to each point's target height.
+    Interpolate *variable* to each target height along the column of each row of *plan*.
 
     Parameters
     ----------
@@ -872,11 +963,11 @@ def _sample_variable(
     z_kind :
         ``'native'`` — target is a level index (fractional);
         ``'pressure'`` — target is pressure in hPa;
-        ``'agl'`` — target is meters above ground level;
-        ``'msl'`` — target is meters above mean sea level.
-    terrain :
-        (n_points,) SHGT in meters. Required for AGL sampling with non-terrain
-        vertical axes, and for MSL sampling with terrain-following (flag=3) axes.
+        ``'agl'`` — target is meters above ground level.
+    plan :
+        Where the columns are: in :func:`_sample_points_from_file`, the grid
+        points around each sample point (:func:`_node_plan`), whose values
+        are then blended.
     column :
         The column of this time step on sigma, hybrid and WRF files (flag
         1/4/5), and on pressure-level files (flag 2) sampled at heights; else
@@ -896,7 +987,7 @@ def _sample_variable(
     axis = recordset.vertical_axis
     log_p = column is not None and variable in _PRESSURE_VARIABLES
     # At heights a column is walked in level order, as HYSPLIT does (#106).
-    walk = column is not None and z_kind in ("agl", "msl")
+    walk = column is not None and z_kind == "agl"
 
     def _interp(values: npt.NDArray[Any], coords: npt.NDArray[Any]) -> npt.NDArray[Any]:
         """Interpolate *values* to the targets, as ln p for pressure."""
@@ -923,7 +1014,6 @@ def _sample_variable(
             all_levels,
             z_kind="pressure",
             plan=plan,
-            terrain=terrain,
             column=column,
         )
         coords = _vertical_coords(
@@ -931,7 +1021,6 @@ def _sample_variable(
             all_levels,
             z_kind=z_kind,
             plan=plan,
-            terrain=terrain,
             column=column,
         )
         return _interp(values, coords)
@@ -953,7 +1042,6 @@ def _sample_variable(
         levels,
         z_kind=z_kind,
         plan=plan,
-        terrain=terrain,
         column=column,
     )
     return _interp(samples, coords)
@@ -999,10 +1087,15 @@ def _sample_points_from_file(
           HGTS - SHGT (both required) from the ground
           up, leaving out the levels at or below the ground, as HYSPLIT's
           ``prfprs`` does; terrain-following uses the stored levels.
-        - ``'msl'``: meters above mean sea level. Sigma/hybrid/WRF add SHGT to
-          the hypsometric AGL height; pressure uses HGTS, from the ground
-          (SHGT) up (both required); terrain-following adds SHGT to the stored
-          levels.
+        - ``'msl'``: meters above mean sea level, turned into meters above
+          the ground at the point (less SHGT there), then as ``'agl'``.
+
+        Between grid points at heights the order is HYSPLIT's: the column at
+        each of the four grid points around a point (each with its own
+        ground, heights and pressures) is interpolated to the point's *z*,
+        then the four values are blended bilinearly over those that have a
+        value (:func:`_blend`). At pressures (HYSPLIT has none) and native
+        levels each level is blended first.
     method :
         Horizontal interpolation: ``'linear'`` (bilinear) or ``'nearest'``.
     wind_pairs :
@@ -1017,8 +1110,8 @@ def _sample_points_from_file(
     recordset = file[time]
     axis = file.vertical_axis
     heights = z_kind in ("agl", "msl")
-    # flag=2 heights need terrain for the ground and HGTS - SHGT; flag=3 MSL
-    # needs terrain; flag=1/4/5 MSL needs terrain for hypsometric AGL + SHGT.
+    # flag=2 heights need terrain for the ground and HGTS - SHGT; MSL needs the
+    # terrain at the point on every axis.
     need_terrain = (heights and isinstance(axis, PressureAxis)) or (
         z_kind == "msl"
         and isinstance(axis, (TerrainAxis, SigmaAxis, HybridAxis, WrfAxis))
@@ -1028,14 +1121,19 @@ def _sample_points_from_file(
     lat = coords["lat"].to_numpy(dtype=float)
     plan = _build_horizontal_plan(recordset.grid, lon, lat, method=method)
 
-    terrain = None
-    if need_terrain:
-        terrain_record = _surface_record(recordset, "SHGT")
-        if terrain_record is None:
-            raise ValueError(
-                f"Terrain field SHGT is required at time {recordset.time}."
-            )
-        terrain = _sample_record(terrain_record, plan)
+    if need_terrain and _surface_record(recordset, "SHGT") is None:
+        raise ValueError(f"Terrain field SHGT is required at time {recordset.time}.")
+    targets = coords["z"].to_numpy(dtype=float)
+    column_z_kind: _ColumnZKind
+    if z_kind == "msl":
+        # A height above sea level is the height above the ground at the
+        # point itself, as HYSPLIT places a particle above the terrain there;
+        # each grid point's column is then read at that height above its own
+        # ground.
+        targets = targets - _terrain(recordset, plan)
+        column_z_kind = "agl"
+    else:
+        column_z_kind = z_kind
 
     # Sigma, hybrid and WRF files always start their column at the ground;
     # pressure files do when sampled at heights (at pressures the stored levels
@@ -1043,32 +1141,39 @@ def _sample_points_from_file(
     has_column = isinstance(axis, (SigmaAxis, HybridAxis, WrfAxis)) or (
         heights and isinstance(axis, PressureAxis)
     )
-    column = _Column(recordset, plan, terrain=terrain) if has_column else None
-    targets = coords["z"].to_numpy(dtype=float)
+    # HYSPLIT's order (#116): the column at each grid point around a point is
+    # interpolated to the point's height, then the grid points are blended.
+    # HYSPLIT has no pressure targets; for them each level is blended first, so
+    # a target near the ground is near the ground of the point's own column.
+    level_first = column_z_kind == "pressure"
+    nodes, weights = _node_plan(plan, each_level_first=level_first)
+    column = _Column(recordset, nodes) if has_column else None
     # On a WRF file UWND and VWND are on their own staggered grids: each is
-    # sampled, with its whole column (the ground's U10M/V10M, the levels'
-    # heights), at its own array position, as HYSPLIT builds each node's
-    # profile and then reads U and V half a cell away (#109). An MSL target
-    # stays relative to the terrain at the point itself.
+    # sampled at its own array position, from the columns of the grid points
+    # around it (the ground's U10M/V10M, the levels' heights), as HYSPLIT
+    # builds each node's profile and then reads U and V half a cell away (#109).
     stagger = _WRF_STAGGER if file.source == "AWRF" else {}
     sampled: dict[str, npt.NDArray[Any]] = {}
     for variable in variable_names:
-        var_plan, var_column = plan, column
+        var_nodes, var_weights, var_column = nodes, weights, column
         if variable in stagger:
-            var_plan = _build_horizontal_plan(
-                recordset.grid, lon, lat, method=method, stagger=stagger[variable]
+            var_nodes, var_weights = _node_plan(
+                _build_horizontal_plan(
+                    recordset.grid, lon, lat, method=method, stagger=stagger[variable]
+                ),
+                each_level_first=level_first,
             )
             if has_column:
-                var_column = _Column(recordset, var_plan, terrain=terrain)
-        sampled[variable] = _sample_variable(
+                var_column = _Column(recordset, var_nodes)
+        at_nodes = _sample_variable(
             recordset,
             variable,
-            targets,
-            z_kind=z_kind,
-            plan=var_plan,
-            terrain=terrain,
+            np.tile(targets, len(var_weights)),
+            z_kind=column_z_kind,
+            plan=var_nodes,
             column=var_column,
         )
+        sampled[variable] = _blend(at_nodes, var_weights)
     _rotate_winds(sampled, file.grid, lon, lat, wind_pairs)
     return sampled
 
@@ -1170,8 +1275,14 @@ def sample_points(
         :meth:`arlmet.File.sample_points` for the method each vertical
         coordinate system uses and the fields it requires.
     method : {"linear", "nearest"}, default "linear"
-        Horizontal interpolation: bilinear or nearest grid point. On a WRF
-        file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's
+        Horizontal interpolation: bilinear or nearest grid point. At heights
+        (``"agl"``, ``"msl"``), as in HYSPLIT, the column at each of the four
+        grid points around a point is interpolated to the point's ``z`` first,
+        with that grid point's own ground and level heights, and the four
+        values are then blended; a grid point whose column ends below ``z``
+        does not count, and the others are reweighted. At pressures and native
+        levels each level is blended first, as before.
+        On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's
         staggered grid holds them, half a cell east and north of each point,
         as HYSPLIT reads them; "nearest" gives the winds at the nearest
         cell's center. The *Sampling* guide has the details.
