@@ -558,7 +558,7 @@ class Archive(ABC):
             ``(west, south, east, north)`` in degrees. When provided, each
             file is cropped with :func:`arlmet.extract_subset` before
             caching (on a projected grid, to the smallest rectangle of cells
-            that holds the whole box). Strongly recommended for global
+            that holds the box's part on the grid). Strongly recommended for global
             products (GFS, GDAS).
         levels :
             ARL level indices to keep, counted from 0 at the surface. When

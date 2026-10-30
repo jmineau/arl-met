@@ -105,11 +105,12 @@ when it downloads, so it imports without the `archives` extra.
 4. **Windowing.** On lat/lon grids a cell is kept when its center is inside the
    bbox, edges included, as HYSPLIT's `xtrct_grid`; `west > east` crosses the dateline,
    and a window across a global grid's seam has `x_stop > nx`. On projected grids the
-   box's whole outline (corners, and edge points at most half a cell apart) is mapped
-   to grid indices and each axis's extremes are rounded like Fortran `NINT`, so every
-   point of the box lies in a cell of the crop; `xtrct_grid` uses only the SW and NE
-   corners, so its crop is inside arl-met's (reference: `test_grid.py`). A bbox is
-   `(west, south, east, north)` in degrees.
+   window holds every point of the box that is on the grid: the outline (sampled at a
+   fixed, capped spacing of at most half a cell on the grid, never refined) is kept
+   where it is inside the cells or crosses their border, plus the grid corners in the
+   box, and each axis's extremes are rounded like Fortran `NINT`; a step over two cells
+   is a jump across the projection's cut. `xtrct_grid` uses only the SW and NE corners
+   (reference: `test_grid.py`). A bbox is `(west, south, east, north)` in degrees.
 5. **`write_dataset` handles the common case only:** the flat Dataset that
    `open_dataset` returns, with DIF records written from `attrs["diff"] =
    "DIF..."` on the parent. The `forecast_hour(time)` coordinate is the index
