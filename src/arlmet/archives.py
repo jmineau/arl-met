@@ -492,7 +492,9 @@ class Archive(ABC):
         Parameters
         ----------
         start, end : pandas.Timestamp or str
-            Inclusive time range to cover.
+            Inclusive time range to cover. A time without a time zone is UTC;
+            a time-zone-aware one is converted to UTC, so ``2024-07-31 20:00``
+            in Denver names the files of August 1, 02 UTC.
 
         Returns
         -------
@@ -504,19 +506,17 @@ class Archive(ABC):
         ValueError
             If the range begins before the archive's ``start_date``.
         """
-        t0 = ensure_timestamp(start, floor="h")
-        t1 = ensure_timestamp(end, floor="h")
+        # Convert to UTC before flooring: a zone offset by half an hour
+        # (India, Newfoundland) has its hours at :30 UTC.
+        t0 = _utc_naive(start).floor("h")
+        t1 = _utc_naive(end).floor("h")
         if t0 > t1:
             t0, t1 = t1, t0
 
-        start_date = self.start_date
-        if t0.tzinfo is not None:
-            # start_date is naive UTC; match it to a tz-aware request.
-            start_date = start_date.tz_localize("UTC")
-        if t0 < start_date:
+        if t0 < self.start_date:
             raise ValueError(
-                f"{type(self).__name__} archive begins {start_date:%Y-%m-%d}, "
-                f"but the requested range starts at {t0}."
+                f"{type(self).__name__} archive begins {self.start_date:%Y-%m-%d}, "
+                f"but the requested range starts at {t0} UTC."
             )
 
         seen: set[str] = set()
@@ -548,7 +548,8 @@ class Archive(ABC):
         ----------
         start, end :
             Time range (inclusive). Backward trajectories (start > end)
-            are handled automatically.
+            are handled automatically. A time without a time zone is UTC;
+            a time-zone-aware one is converted to UTC.
         dest_dir :
             Directory to save downloaded files. Created if absent.
         mirror :
