@@ -64,6 +64,12 @@ _WRF_STAGGER: dict[str, tuple[float, float]] = {
     "VWND": (0.0, 0.5),
 }
 
+#: How far outside the grid, in cells, a point is still on its edge. Mapping a
+#: projected grid's own node lon/lat back to grid indices leaves about 1e-12
+#: cells of rounding error, which puts half the edge nodes just off the grid
+#: (#134); 1e-6 cells is a few millimeters on a 3 km grid.
+_EDGE_TOLERANCE = 1e-6
+
 #: On a mass-coupled WRF file (``AWRF`` with ``MUU0`` and ``MUV0``: ``arw2arl``'s
 #: time-averaged fluxes, HYSPLIT's ``WRF = 3``), each upper-level wind is stored
 #: coupled to the column mass. HYSPLIT's ``metinp.f`` decouples it at each grid
@@ -280,6 +286,30 @@ def _build_horizontal_plan(
     wraps = grid.wraps_lon
     x_max = float(grid.nx) if wraps else float(grid.nx - 1)
 
+    def _onto_edges(
+        x: npt.NDArray[Any], y: npt.NDArray[Any]
+    ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+        """Move positions within ``_EDGE_TOLERANCE`` outside the grid onto its edge."""
+
+        def snap(v: npt.NDArray[Any], hi: float) -> npt.NDArray[Any]:
+            """Clip values within the tolerance of ``[0, hi]`` onto it."""
+            v = np.where((v < 0.0) & (v >= -_EDGE_TOLERANCE), 0.0, v)
+            return np.where((v > hi) & (v <= hi + _EDGE_TOLERANCE), hi, v)
+
+        if wraps:
+            # x = nx on a global grid (a longitude a rounding error west of
+            # the first column; np.mod can return nx too) is column 0.
+            x = np.mod(x, grid.nx)
+            x = np.where(x >= grid.nx, 0.0, x)
+        else:
+            if grid.is_latlon:
+                # Longitude is measured east of the first column modulo 360, so
+                # one a rounding error west of it is a full turn east (#141).
+                turn = 360.0 / abs(grid.projection.tangent_lon)
+                x = np.where(np.abs(x - turn) <= _EDGE_TOLERANCE, x - turn, x)
+            x = snap(x, x_max)
+        return x, snap(y, float(grid.ny - 1))
+
     def _on_grid(x: npt.NDArray[Any], y: npt.NDArray[Any]) -> npt.NDArray[Any]:
         """Return True where array position ``(x, y)`` can be interpolated."""
         return (
@@ -291,15 +321,13 @@ def _build_horizontal_plan(
             & (y <= grid.ny - 1)
         )
 
+    x, y = _onto_edges(x, y)
     inside = _on_grid(x, y)
     if stagger != (0.0, 0.0):
         if method == "nearest":
             x, y = np.rint(x), np.rint(y)
             method = "linear"
-        x = x + stagger[0]
-        y = y + stagger[1]
-        if wraps:
-            x = np.mod(x, grid.nx)
+        x, y = _onto_edges(x + stagger[0], y + stagger[1])
         inside &= _on_grid(x, y)
 
     x_safe = np.clip(np.nan_to_num(x), 0.0, max(x_max, 0.0))
@@ -1186,7 +1214,9 @@ def sample_points(
     pandas.DataFrame
         Copy of ``points`` (all columns and the index preserved) with one
         added column per requested variable. Points outside the grid or the
-        vertical range are NaN.
+        vertical range are NaN. A point within 1e-6 cells of the grid's edge
+        is on it, so a projected grid's edge nodes, given by the longitude and
+        latitude :meth:`arlmet.Grid.calculate_coords` reports, have values.
 
     Raises
     ------

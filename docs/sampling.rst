@@ -289,6 +289,10 @@ Limitations
   terrain-following files (flag=3) use the stored level heights directly; WRF
   files (flag=5) integrate as sigma files do, through the ``PRES`` field. See
   the :doc:`vertical` guide.
+- A point outside the grid is NaN. A point within 1e-6 cells of the grid's edge
+  counts as on it, so the edge nodes of a projected grid, sampled at the
+  longitude and latitude arl-met reports for them, have values even though
+  mapping them back to the grid lands about 1e-12 cells outside.
 - Only sigma, pressure-level, hybrid and WRF files take the ground as a level
   (pressure-level files only at heights); on terrain-following files a point below
   the lowest level with data is NaN.
