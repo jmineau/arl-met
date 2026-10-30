@@ -331,6 +331,25 @@ def _raise_unless_taken(error: OSError) -> None:
         raise error
 
 
+def _remove(path: Path) -> None:
+    """
+    Remove *path* if it exists.
+
+    Windows refuses to delete a file another process has open, and the other
+    callers do look at these files (a ``stat`` is enough), so there the delete
+    is tried again for a second; what stays is dealt with as a stale lock.
+    """
+    for _ in range(20):
+        try:
+            path.unlink(missing_ok=True)
+        except PermissionError:
+            if os.name != "nt":
+                raise
+            time.sleep(0.05)
+        else:
+            return
+
+
 def _break_stale_lock(lock: Path) -> None:
     """
     Remove *lock* if it is still stale, letting one caller at a time decide.
@@ -349,7 +368,7 @@ def _break_stale_lock(lock: Path) -> None:
     except (FileExistsError, PermissionError) as exc:
         _raise_unless_taken(exc)
         if _lock_age(breaker) > _FETCH_LOCK_STALE:
-            breaker.unlink(missing_ok=True)
+            _remove(breaker)
         else:
             time.sleep(_FETCH_LOCK_POLL)
         return
@@ -358,37 +377,18 @@ def _break_stale_lock(lock: Path) -> None:
         # replaced by a fresh one at any moment, which must not be removed.
         if _FETCH_LOCK_STALE < _lock_age(lock) < math.inf:
             logger.warning("Taking over the stale lock %s", lock.name)
-            try:
-                lock.unlink(missing_ok=True)
-            except PermissionError:
-                # Windows refuses to delete a file another process has open,
-                # so someone is using it after all: leave it.
-                if os.name != "nt":
-                    raise
+            _remove(lock)
     finally:
-        breaker.unlink(missing_ok=True)
+        _remove(breaker)
 
 
 def _release(lock: Path, owner: str) -> None:
-    """
-    Remove *lock* unless it was taken over, so it no longer holds *owner*.
-
-    Windows refuses to delete a file that another process is looking at (a
-    waiter's ``stat``), so there the delete is tried again for a second; a lock
-    that still stays goes stale and is taken over.
-    """
-    for _ in range(20):
-        try:
-            if lock.read_text(encoding="utf-8") == owner:
-                lock.unlink()
-        except FileNotFoundError:
-            pass
-        except PermissionError:
-            if os.name != "nt":
-                raise
-            time.sleep(0.05)
-            continue
-        return
+    """Remove *lock* unless it was taken over, so it no longer holds *owner*."""
+    try:
+        if lock.read_text(encoding="utf-8") == owner:
+            _remove(lock)
+    except FileNotFoundError:
+        pass
 
 
 @contextmanager
