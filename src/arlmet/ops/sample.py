@@ -668,12 +668,12 @@ def _level_profiles(
     available = set(_levels(recordset, variable))
     if not available:
         return None
-    n_points = len(plan.inside)
-    out = np.full((n_points, len(levels)), np.nan, dtype=np.float32)
+    # Filled one level at a time, so held as (n_levels, n_points) and returned transposed.
+    out = np.full((len(levels), len(plan.inside)), np.nan, dtype=np.float32)
     for pos, level in enumerate(levels):
         if level in available:
-            out[:, pos] = _sample_level(recordset, variable, level, plan)
-    return out
+            out[pos] = _sample_level(recordset, variable, level, plan)
+    return out.T
 
 
 def _variable_profiles(
@@ -687,10 +687,10 @@ def _variable_profiles(
         raise KeyError(
             f"Variable '{variable}' is not available at time {recordset.time}."
         )
-    samples = np.full((len(plan.inside), len(levels)), np.nan, dtype=np.float32)
+    samples = np.full((len(levels), len(plan.inside)), np.nan, dtype=np.float32)
     for pos, level in enumerate(levels):
-        samples[:, pos] = _sample_level(recordset, variable, level, plan)
-    return samples, levels
+        samples[pos] = _sample_level(recordset, variable, level, plan)
+    return samples.T, levels
 
 
 def _vertical_coords(
