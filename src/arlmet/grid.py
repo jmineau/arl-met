@@ -665,7 +665,10 @@ class Grid:
         ----------
         bbox : tuple[float, float, float, float]
             Bounding box as ``(west, south, east, north)`` in degrees.
-            If ``west > east``, the box is assumed to cross the dateline.
+            Longitudes count modulo 360, so 180 and -180 are the same meridian
+            and a box may reach past 180 (``(170, 190)`` is ``(170, -170)``).
+            On a lat/lon grid, ``west > east`` crosses the dateline; on a
+            projected grid it raises.
         """
         west, south, east, north = bbox
         if south > north:
@@ -721,14 +724,13 @@ class Grid:
         lons = coords["lon"][1]
         lats = coords["lat"][1]
 
-        # Normalize to [-180, 180] for comparison with bbox (which is always in
-        # EPSG:4326 degrees). Grid lons may be in [0, 360] for global files.
-        lons_norm = wrap_lons(lons)
-
-        if west <= east:
-            lon_mask = (lons_norm >= west) & (lons_norm <= east)
-        else:
-            lon_mask = (lons_norm >= west) | (lons_norm <= east)
+        # A column is inside when it lies between the box's west and east edges,
+        # measured east of the west edge. Longitudes count modulo 360, so 180 and
+        # -180 are one meridian (an edge there keeps the column, whichever way the
+        # grid writes it) and a box may reach past 180, as HYSPLIT's xtrct_grid
+        # allows. ``west > east`` crosses the dateline.
+        width = east - west if west <= east else (east - west) % 360.0
+        lon_mask = (lons - west) % 360.0 <= width
         lat_mask = (lats >= south) & (lats <= north)
 
         x_idx = np.flatnonzero(lon_mask)
