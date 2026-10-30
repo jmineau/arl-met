@@ -661,14 +661,6 @@ class Grid:
         """
         Resolve a geographic bounding box to grid indices.
 
-        Parameters
-        ----------
-        bbox : tuple[float, float, float, float]
-            Bounding box as ``(west, south, east, north)`` in degrees.
-            If ``west > east``, the box is assumed to cross the dateline.
-
-        Notes
-        -----
         On a lat/lon grid the window holds the cells whose centers lie inside
         the box, edges included, as HYSPLIT's ``xtrct_grid`` crops.
 
@@ -682,6 +674,12 @@ class Grid:
         partway along an edge. ``xtrct_grid`` uses only the south-west and
         north-east corners, so its crop can leave out part of the box; this
         window holds that crop and can be a few cells larger.
+
+        Parameters
+        ----------
+        bbox : tuple[float, float, float, float]
+            Bounding box as ``(west, south, east, north)`` in degrees.
+            If ``west > east``, the box is assumed to cross the dateline.
         """
         west, south, east, north = bbox
         if south > north:

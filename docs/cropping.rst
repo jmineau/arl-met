@@ -99,29 +99,6 @@ crop, but its values east of the seam come from the column after the right one.
 A box with columns at both ends of a lat-lon grid that does not span 360 degrees
 raises ``ValueError``, since no single grid holds them.
 
-Which cells a crop keeps
-------------------------
-
-On a lat-lon grid a crop keeps the cells whose centers lie inside the box, edges
-included, as HYSPLIT's ``xtrct_grid`` does.
-
-On a projected grid (Lambert conformal, polar stereographic, Mercator) a crop is
-the smallest rectangle of the grid's cells that holds the whole box: every point
-inside the box lies in one of the crop's cells. Parallels and meridians curve on
-these grids, so the box is not a rectangle in grid cells. arl-met maps the box's
-outline, its four corners and points along its edges at most half a cell apart,
-to grid indices, and rounds the lowest and highest index on each axis to the
-nearest cell, as Fortran's ``NINT`` rounds.
-
-This departs from ``xtrct_grid``, which maps all four corners but keeps only the
-rectangle between the south-west and north-east ones. Its crop can leave out the
-box's south-east and north-west corners, so a point there, such as a receptor
-inside the box, can be off the cropped grid. arl-met's crop holds ``xtrct_grid``'s
-and is often a few cells larger: for ``bbox=(-113.5, 39.5, -110.5, 42.0)`` on HRRR
-it is 99 x 106 cells where ``xtrct_grid``'s is 99 x 79, with 14 more rows to the
-south and 13 to the north. Crops of lat-lon grids (GFS, GDAS) are the same as
-``xtrct_grid``'s.
-
 Keep only the levels and variables you need
 -------------------------------------------
 
@@ -147,6 +124,29 @@ and the output values are exactly the input's.
    :suppress:
 
    os.chdir(docs_cwd)
+
+Which cells a crop keeps
+------------------------
+
+On a lat-lon grid a crop keeps the cells whose centers lie inside the box, edges
+included, as HYSPLIT's ``xtrct_grid`` does.
+
+On a projected grid (Lambert conformal, polar stereographic, Mercator) a crop is
+the smallest rectangle of the grid's cells that holds the whole box: every point
+inside the box lies in one of the crop's cells. Parallels and meridians curve on
+these grids, so the box is not a rectangle in grid cells. arl-met maps the box's
+outline, its four corners and points along its edges at most half a cell apart,
+to grid indices, and rounds the lowest and highest index on each axis to the
+nearest cell, as Fortran's ``NINT`` rounds.
+
+This departs from ``xtrct_grid``, which maps all four corners but keeps only the
+rectangle between the south-west and north-east ones. Its crop can leave out the
+box's south-east and north-west corners, so a point there, such as a receptor
+inside the box, can be off the cropped grid. arl-met's crop holds ``xtrct_grid``'s
+and is often a few cells larger: for ``bbox=(-113.5, 39.5, -110.5, 42.0)`` on HRRR
+it is 99 x 106 cells where ``xtrct_grid``'s is 99 x 79, with 14 more rows to the
+south and 13 to the north. Crops of lat-lon grids (GFS, GDAS) are the same as
+``xtrct_grid``'s.
 
 What changes in the output file
 -------------------------------
