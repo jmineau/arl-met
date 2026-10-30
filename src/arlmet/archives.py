@@ -354,7 +354,9 @@ def _break_stale_lock(lock: Path) -> None:
             time.sleep(_FETCH_LOCK_POLL)
         return
     try:
-        if _lock_age(lock) > _FETCH_LOCK_STALE:
+        # Only a lock that is there and stale: one that went meanwhile may be
+        # replaced by a fresh one at any moment, which must not be removed.
+        if _FETCH_LOCK_STALE < _lock_age(lock) < math.inf:
             logger.warning("Taking over the stale lock %s", lock.name)
             try:
                 lock.unlink(missing_ok=True)
