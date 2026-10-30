@@ -872,13 +872,14 @@ class File:
             are passed over, as in HYSPLIT. The *Vertical Coordinates* guide
             has the details.
         method : {"linear", "nearest"}, default "linear"
-            Horizontal interpolation: bilinear or nearest grid point. As in
-            HYSPLIT, the column at each of the four grid points around a point
-            is interpolated to the point's ``z`` first, with that grid point's
-            own ground, heights and pressures, and the four values are then
-            blended; a grid point with no value there (a pressure below its
-            ground, a height above its top) does not count, and the others
-            are reweighted. On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are
+            Horizontal interpolation: bilinear or nearest grid point. At
+            heights (``"agl"``, ``"msl"``), as in HYSPLIT, the column at each
+            of the four grid points around a point is interpolated to the
+            point's ``z`` first, with that grid point's own ground and level
+            heights, and the four values are then blended; a grid point whose
+            column ends below ``z`` does not count, and the others are
+            reweighted. At pressures and native levels each level is blended
+            first, as before. On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are
             read where WRF's staggered grid holds them, half a cell east and
             north of each point, as HYSPLIT reads them; "nearest" gives the
             winds at the nearest cell's center. The *Sampling* guide has the

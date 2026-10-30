@@ -1916,14 +1916,54 @@ class TestBetweenGridPointsAsHysplit:
         write_hilly_file(path)
         self._check(path, self.VARIABLES, self.HEIGHTS, "agl")
 
-    def test_sigma_pressures(self, tmp_path):
+    @staticmethod
+    def _each_level_first(path, variables, target, xy):
+        """
+        Blend each level first by hand, then read the blended column at *target*.
+
+        Native levels are at one coordinate at every grid point, so sampling them
+        blends each level; the column is read linear in p (ln p for PRES).
+        """
+        levels = [
+            sample_points(
+                path,
+                _cell_points(xy, float(k)),
+                [*variables, "pressure"],
+                z_kind="native",
+            )
+            for k in range(5)
+        ]
+        p = np.stack([lv["pressure"] for lv in levels], axis=1)[:, ::-1]
+        out = {}
+        for name in variables:
+            v = np.stack([lv[name] for lv in levels], axis=1)[:, ::-1]
+            out[name] = [
+                np.exp(np.interp(target, pp, np.log(vv), left=np.nan, right=np.nan))
+                if name == "PRES"
+                else np.interp(target, pp, vv, left=np.nan, right=np.nan)
+                for pp, vv in zip(p, v, strict=True)
+            ]
+        return pd.DataFrame(out)
+
+    def test_sigma_pressures_blend_each_level_first(self, tmp_path):
+        # HYSPLIT has no pressure targets: there each level is blended first, as before.
         path = tmp_path / "hilly.arl"
         write_hilly_file(path)
-        self._check(path, self.VARIABLES, [850.0, 820.0, 780.0, 720.0], "pressure")
+        variables = ["TEMP", "UWND", "PRES"]
+        for target in [850.0, 820.0, 780.0, 720.0]:
+            result = sample_points(
+                path, _cell_points(self.XY, target), variables, z_kind="pressure"
+            )
+            expected = self._each_level_first(path, variables, target, self.XY)
+            for name in variables:
+                np.testing.assert_allclose(
+                    result[name], expected[name], rtol=1e-6, atol=1e-4, err_msg=name
+                )
 
     def test_pressure_above_the_ground_at_the_point_has_a_value(self, tmp_path):
         # A target just above the ground at the point, though one of the grid
-        # points around it has its ground above the target.
+        # points around it has its ground above the target: read near the ground
+        # of the point's own (blended) column.
         path = tmp_path / "hilly.arl"
         write_hilly_file(path)
         with File(path) as met:
@@ -1937,11 +1977,11 @@ class TestBetweenGridPointsAsHysplit:
         result = sample_points(
             path, _cell_points(xy, target), variables, z_kind="pressure"
         )
-        expected = self._by_hand(path, variables, target, "pressure", xy=xy)
+        expected = self._each_level_first(path, variables, target, xy)
         assert np.isfinite(result[variables].to_numpy()).all()
         for name in variables:
             np.testing.assert_allclose(
-                result[name], expected[name], rtol=1e-6, atol=1e-5, err_msg=name
+                result[name], expected[name], rtol=1e-6, atol=1e-4, err_msg=name
             )
 
     def test_height_below_the_top_at_some_grid_points_has_a_value(self, tmp_path):
@@ -1967,29 +2007,33 @@ class TestBetweenGridPointsAsHysplit:
             )
 
     def test_a_grid_point_given_by_its_lon_lat_is_its_own_column(self, tmp_path):
-        # On a projected grid the round trip leaves weights of about 1e-12 toward the
-        # neighbors: those do not count, at pressures near and below the ground either.
+        # On a projected grid the round trip leaves weights of about 1e-12 toward
+        # the neighbors: those do not count, even just above the grid point's own
+        # top, where a neighbor's column still has a value.
         path = tmp_path / "hilly.arl"
-        write_hilly_file(path, grid=make_lambert_grid(20, 20))
+        write_hilly_file(path, flag=2, grid=make_lambert_grid(20, 20))
         with File(path) as met:
             coords = met.grid.calculate_coords()
-            prss = met[_COLUMN_TIME][(0, "PRSS")].read().astype(float)
+            rs = met[_COLUMN_TIME]
+            top = (rs[(5, "HGTS")].read() - rs[(0, "SHGT")].read()).astype(float)
         lon, lat = coords["lon"][1], coords["lat"][1]
-        cells = [(4, 7), (11, 2), (15, 15), (8, 12)]
+        higher_east = top[1:-1, 2:] - top[1:-1, 1:-1] > 60.0
+        cells = [(i + 1, j + 1) for j, i in np.argwhere(higher_east)[:4]]
         variables = ["TEMP", "UWND"]
-        for dp in (-3.0, 1.0, 3.0, 40.0):  # below the ground, then above it
+        for dz in (-30.0, 20.0):  # below, then above the grid point's own top
             points = pd.DataFrame(
                 {
                     "lon": [lon[j, i] for i, j in cells],
                     "lat": [lat[j, i] for i, j in cells],
-                    "z": [prss[j, i] - dp for i, j in cells],
+                    "z": [top[j, i] + dz for i, j in cells],
                 }
             )
-            linear = sample_points(path, points, variables, z_kind="pressure")
+            linear = sample_points(path, points, variables, z_kind="agl")
             nearest = sample_points(
-                path, points, variables, z_kind="pressure", method="nearest"
+                path, points, variables, z_kind="agl", method="nearest"
             )
             np.testing.assert_allclose(linear[variables], nearest[variables], rtol=1e-5)
+        assert np.isnan(linear[variables].to_numpy()).all()
 
     def test_pressure_levels_at_heights(self, tmp_path):
         path = tmp_path / "hilly.arl"

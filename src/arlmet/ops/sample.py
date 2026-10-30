@@ -406,7 +406,7 @@ def _sample_record(record: DataRecord, plan: HorizontalSamplePlan) -> npt.NDArra
 
 
 def _node_plan(
-    plan: HorizontalSamplePlan,
+    plan: HorizontalSamplePlan, *, each_level_first: bool = False
 ) -> tuple[HorizontalSamplePlan, npt.NDArray[Any]]:
     """
     Return the grid points that each point of *plan* is blended from, and their weights.
@@ -414,14 +414,15 @@ def _node_plan(
     Returns ``(nodes, weights)``: *nodes* samples, without interpolating, the
     four grid points around each point (``(x0, y0)``, ``(x1, y0)``, ``(x0,
     y1)``, ``(x1, y1)``, in that order, each a block of ``n_points`` rows), and
-    *weights* ``(4, n_points)`` are their bilinear weights. With ``"nearest"``
-    *plan* is its own one grid point, weight 1. Each grid point's profile is
+    *weights* ``(4, n_points)`` are their bilinear weights. With ``"nearest"``,
+    or with *each_level_first*, *plan* is its own one grid point, weight 1:
+    each level is then blended first and the blended column interpolated. Each grid point's profile is
     built and interpolated to the point's height first, then the values are
     blended (:func:`_blend`), as HYSPLIT's ``prfcom`` builds a profile at each
     grid point and ``adv3nt`` blends them.
     """
     n_points = len(plan.inside)
-    if plan.method == "nearest":
+    if plan.method == "nearest" or each_level_first:
         return plan, np.ones((1, n_points))
     x = np.concatenate([plan.x0, plan.x1, plan.x0, plan.x1])
     y = np.concatenate([plan.y0, plan.y0, plan.y1, plan.y1])
@@ -453,9 +454,8 @@ def _blend(values: npt.NDArray[Any], weights: npt.NDArray[Any]) -> npt.NDArray[A
     Blend the values at each point's grid points (:func:`_node_plan`) with their weights.
 
     Only the grid points that have a value at the target count, and their
-    weights are rescaled to sum to 1: a neighbor whose ground is above a
-    pressure target, or whose top is below a height, does not make the point
-    NaN. The point is NaN only where none of its grid points (with a weight of
+    weights are rescaled to sum to 1: a neighbor whose top is below a height
+    does not make the point NaN. The point is NaN only where none of its grid points (with a weight of
     at least :data:`_NO_WEIGHT`) has a value.
     """
     v = np.asarray(values, dtype=float).reshape(weights.shape)
@@ -1090,11 +1090,12 @@ def _sample_points_from_file(
         - ``'msl'``: meters above mean sea level, turned into meters above
           the ground at the point (less SHGT there), then as ``'agl'``.
 
-        Between grid points the order is HYSPLIT's: the column at each of the
-        four grid points around a point (each with its own ground, heights
-        and pressures) is interpolated to the point's *z*, then the four
-        values are blended bilinearly over those that have a value
-        (:func:`_blend`).
+        Between grid points at heights the order is HYSPLIT's: the column at
+        each of the four grid points around a point (each with its own
+        ground, heights and pressures) is interpolated to the point's *z*,
+        then the four values are blended bilinearly over those that have a
+        value (:func:`_blend`). At pressures (HYSPLIT has none) and native
+        levels each level is blended first.
     method :
         Horizontal interpolation: ``'linear'`` (bilinear) or ``'nearest'``.
     wind_pairs :
@@ -1142,7 +1143,10 @@ def _sample_points_from_file(
     )
     # HYSPLIT's order (#116): the column at each grid point around a point is
     # interpolated to the point's height, then the grid points are blended.
-    nodes, weights = _node_plan(plan)
+    # HYSPLIT has no pressure targets; for them each level is blended first, so
+    # a target near the ground is near the ground of the point's own column.
+    level_first = column_z_kind == "pressure"
+    nodes, weights = _node_plan(plan, each_level_first=level_first)
     column = _Column(recordset, nodes) if has_column else None
     # On a WRF file UWND and VWND are on their own staggered grids: each is
     # sampled at its own array position, from the columns of the grid points
@@ -1156,7 +1160,8 @@ def _sample_points_from_file(
             var_nodes, var_weights = _node_plan(
                 _build_horizontal_plan(
                     recordset.grid, lon, lat, method=method, stagger=stagger[variable]
-                )
+                ),
+                each_level_first=level_first,
             )
             if has_column:
                 var_column = _Column(recordset, var_nodes)
@@ -1270,12 +1275,13 @@ def sample_points(
         :meth:`arlmet.File.sample_points` for the method each vertical
         coordinate system uses and the fields it requires.
     method : {"linear", "nearest"}, default "linear"
-        Horizontal interpolation: bilinear or nearest grid point. As in
-        HYSPLIT, the column at each of the four grid points around a point is
-        interpolated to the point's ``z`` first, with that grid point's own
-        ground, heights and pressures, and the four values are then blended;
-        a grid point with no value there (a pressure below its ground, a
-        height above its top) does not count, and the others are reweighted.
+        Horizontal interpolation: bilinear or nearest grid point. At heights
+        (``"agl"``, ``"msl"``), as in HYSPLIT, the column at each of the four
+        grid points around a point is interpolated to the point's ``z`` first,
+        with that grid point's own ground and level heights, and the four
+        values are then blended; a grid point whose column ends below ``z``
+        does not count, and the others are reweighted. At pressures and native
+        levels each level is blended first, as before.
         On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's
         staggered grid holds them, half a cell east and north of each point,
         as HYSPLIT reads them; "nearest" gives the winds at the nearest
