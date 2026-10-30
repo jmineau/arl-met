@@ -192,7 +192,8 @@ the next one (``.<name>.lock.2``, and so on). Exactly one succeeds, because
 creating a file that exists fails, and the highest number is the live lock;
 nobody ever deletes another caller's lock. A caller that has waited four hours
 downloads the file itself. A download that fails or is interrupted keeps its
-lock file with a time in 1970, so the next caller takes over at once. With
+lock file (the newest one only) with a time in 1970, so the next caller takes
+over at once. With
 ``overwrite=True`` a caller waits for a download in progress, then downloads
 again. The lock saves duplicate work only; a file is always renamed into place
 whole, so even a caller that gave up waiting costs a second download and never

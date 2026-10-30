@@ -266,7 +266,7 @@ def test_the_lock_is_kept_fresh_while_downloading(tmp_path, monkeypatch, fast_lo
     ages = []
 
     def fake_open(url, mode, **opts):
-        lock = tmp_path / ".20240718_00-05_hrrr.lock.1"
+        (lock,) = _markers(tmp_path)
         time.sleep(0.4)
         ages.append(time.time() - lock.stat().st_mtime)
         return io.BytesIO(b"x")
@@ -347,11 +347,11 @@ def test_a_killed_downloader_does_not_block_others(tmp_path, monkeypatch):
     )
     victim = _spawn(tmp_path, START, 600)
     (tmp_path / "go").touch()
-    lock = tmp_path / "met" / ".20240718_00-05_hrrr.lock.1"
     deadline = time.monotonic() + 120
-    while not lock.exists():
+    while not (locks := list((tmp_path / "met").glob(".*.lock.*"))):
         assert time.monotonic() < deadline
         time.sleep(0.05)
+    lock = locks[0]
     victim.kill()  # SIGKILL: no chance to clean up
     victim.wait()
     victim.stderr.close()
@@ -463,3 +463,47 @@ def test_an_unwritable_folder_raises_promptly(tmp_path, opened, monkeypatch, win
     finally:
         folder.chmod(0o700)
     assert opened == []
+
+
+def test_many_failing_calls_leave_one_lock_file(tmp_path, monkeypatch, caplog):
+    def fail(url, mode, **opts):
+        raise RuntimeError("no network")
+
+    monkeypatch.setitem(sys.modules, "fsspec", types.SimpleNamespace(open=fail))
+
+    for _ in range(200):
+        with pytest.raises(RuntimeError):
+            HRRRArchive().fetch(START, START, dest_dir=tmp_path)
+
+    assert len(_markers(tmp_path)) == 1
+    # A failed predecessor is not a stale lock: no warning about one.
+    assert "stale" not in caplog.text
+
+
+def test_a_holder_paused_through_a_whole_cycle_cannot_remove_a_newer_lock(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(archives, "_FETCH_LOCK_BEAT", 3600.0)
+    dest = tmp_path / "20240718_00-05_hrrr"
+
+    def hold():
+        context = archives._fetch_lock(dest, overwrite=True)
+        assert context.__enter__() is True
+        return context
+
+    def age_locks():
+        for lock in _markers(tmp_path):
+            os.utime(lock, (time.time() - 3600,) * 2)
+
+    a = hold()  # paused from here on
+    age_locks()
+    b = hold()  # takes over from the paused a
+    dest.write_bytes(b"from b")
+    b.__exit__(None, None, None)  # a finished download removes the lock files
+    assert _markers(tmp_path) == []
+    c = hold()  # a new cycle (overwrite): the folder had no lock file
+    a.__exit__(None, None, None)  # a resumes and finishes
+
+    assert len(_markers(tmp_path)) == 1  # c's lock is still there
+    c.__exit__(None, None, None)
+    assert _markers(tmp_path) == []

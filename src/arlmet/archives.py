@@ -303,6 +303,7 @@ _FETCH_LOCK_STALE = 300.0
 _FETCH_LOCK_WAIT = 4 * 3600.0
 _FETCH_LOCK_POLL = 2.0
 _WINDOWS = os.name == "nt"
+_RELEASED = 365 * 86400.0  # a lock this old (1970) was released by a failed holder
 
 
 def _keep_fresh(lock: Path, done: threading.Event) -> None:
@@ -368,17 +369,23 @@ def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
     The holder touches its own file every few seconds. A live generation
     untouched for the stale limit belongs to a holder that died, and the
     waiters race to create the next generation: one wins, whichever generation
-    each saw. Nobody ever deletes another caller's lock file, so no step can
-    remove a fresh lock that replaced a stale one.
+    each saw. A caller removes only generations below its own (superseded) and,
+    once its download has finished, its own; the live generation is never
+    removed by another caller.
 
-    A holder that finishes removes its generation and the lower ones; the file
-    then exists and later callers use it without taking a lock. A holder that
-    fails or is interrupted keeps its file but sets its time to 1970, so the
-    next caller takes over at once; keeping it keeps the numbers rising (a
-    deleted top generation could be created again beside a live one). Such a
-    file, or one left by a killed holder, is harmless and is removed by the next
-    download that finishes. A caller that has waited too long downloads without
-    a lock.
+    Generation numbers do not repeat within a download. With no lock file the
+    first is 1, or, for an ``overwrite`` caller whose *dest* is already there,
+    the whole seconds of *dest*'s modification time (every such caller reads
+    the same one, so the create still has one winner). That is above every
+    number of the earlier cycle, which started from 1 or an older time and added
+    one per five minutes. So a holder paused through a whole cycle cleans up
+    only names that are its own or older, never a newer caller's.
+
+    A holder that fails or is interrupted keeps its file but sets its time to
+    1970, so the next caller takes over at once, and removes the generations
+    below it, so failing calls leave one file between them. A finished download
+    removes the rest. A file left by a killed holder is likewise harmless. A
+    caller that has waited too long downloads without a lock.
 
     The lock only saves duplicate work: *dest* is published by an atomic
     rename, so a holder paused past the stale limit, a caller that gave up
@@ -387,6 +394,7 @@ def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
     """
     give_up = time.monotonic() + _FETCH_LOCK_WAIT
     denied = 0
+    age = 0.0
     while True:
         if time.monotonic() > give_up:
             logger.warning("Gave up waiting for %s; downloading it here", dest.name)
@@ -403,7 +411,13 @@ def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
         if not overwrite and dest.exists():
             yield False
             return
-        generation = live[-1][0] + 1 if live else 1
+        if live:
+            generation = live[-1][0] + 1
+        else:
+            try:
+                generation = int(dest.stat().st_mtime)  # only for ``overwrite``
+            except FileNotFoundError:
+                generation = 1
         mine = dest.with_name(f".{dest.name}.lock.{generation}")
         try:
             fd = os.open(mine, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)
@@ -418,7 +432,7 @@ def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
             time.sleep(0.05)
             continue
         break
-    if live:
+    if live and age < _RELEASED:
         logger.warning("Took over the stale lock %s", live[-1][1].name)
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         f.write(f"host {socket.gethostname()}, process {os.getpid()}\n")
@@ -438,6 +452,9 @@ def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
                 if number <= generation:
                     _remove(path)
         else:
+            for number, path in _generations(dest):
+                if number < generation:
+                    _remove(path)
             with suppress(OSError):
                 os.utime(mine, (0, 0))
 
