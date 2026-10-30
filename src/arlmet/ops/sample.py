@@ -442,17 +442,28 @@ def _node_plan(
     return nodes, weights
 
 
+#: A grid point whose weight is below this does not count: a point given by a
+#: grid point's own longitude and latitude comes back from the projection with
+#: weights of about 1e-12 toward its neighbors, not 0.
+_NO_WEIGHT = 1e-6
+
+
 def _blend(values: npt.NDArray[Any], weights: npt.NDArray[Any]) -> npt.NDArray[Any]:
     """
     Blend the values at each point's grid points (:func:`_node_plan`) with their weights.
 
-    A grid point with weight 0 does not count, so a point on a grid point or
-    a grid line is not NaN because of a neighbor it does not use.
+    Only the grid points that have a value at the target count, and their
+    weights are rescaled to sum to 1: a neighbor whose ground is above a
+    pressure target, or whose top is below a height, does not make the point
+    NaN. The point is NaN only where none of its grid points (with a weight of
+    at least :data:`_NO_WEIGHT`) has a value.
     """
     v = np.asarray(values, dtype=float).reshape(weights.shape)
-    with np.errstate(invalid="ignore"):
-        blended = np.where(weights > 0, weights * v, 0.0).sum(axis=0)
-    return blended.astype(np.float32)
+    w = np.where(np.isfinite(v) & (weights >= _NO_WEIGHT), weights, 0.0)
+    total = w.sum(axis=0)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        blended = np.where(w > 0, w * v, 0.0).sum(axis=0) / total
+    return np.where(total > 0, blended, np.nan).astype(np.float32)
 
 
 def _mass_coupled(recordset: RecordSet) -> bool:
@@ -1082,7 +1093,8 @@ def _sample_points_from_file(
         Between grid points the order is HYSPLIT's: the column at each of the
         four grid points around a point (each with its own ground, heights
         and pressures) is interpolated to the point's *z*, then the four
-        values are blended bilinearly.
+        values are blended bilinearly over those that have a value
+        (:func:`_blend`).
     method :
         Horizontal interpolation: ``'linear'`` (bilinear) or ``'nearest'``.
     wind_pairs :
@@ -1261,7 +1273,9 @@ def sample_points(
         Horizontal interpolation: bilinear or nearest grid point. As in
         HYSPLIT, the column at each of the four grid points around a point is
         interpolated to the point's ``z`` first, with that grid point's own
-        ground, heights and pressures, and the four values are then blended.
+        ground, heights and pressures, and the four values are then blended;
+        a grid point with no value there (a pressure below its ground, a
+        height above its top) does not count, and the others are reweighted.
         On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's
         staggered grid holds them, half a cell east and north of each point,
         as HYSPLIT reads them; "nearest" gives the winds at the nearest

@@ -143,9 +143,14 @@ then blended bilinearly. Where the levels' heights differ between neighboring
 grid points (over uneven ground, or wherever the pressure field varies) this
 differs from blending each level first and interpolating the blended column:
 by up to 2 K and 1 m/s in the lowest 50 m on a 27 km WRF grid, and less on
-finer grids and higher up. At a grid point the two are the same. An ``msl`` height is a height above the ground at the point
-itself (``z`` less the ``SHGT`` there), and each grid point's column is read at
-that height above its own ground.
+finer grids and higher up. At a grid point the two are the same.
+
+A grid point with no value at the target (a pressure target below its ground,
+a height above its top) does not count: the other grid points' weights are
+rescaled to sum to 1, and the point is NaN only where none of them has a
+value. An ``msl`` height is a height above the ground at the point itself
+(``z`` less the ``SHGT`` there), and each grid point's column is read at that
+height above its own ground.
 
 .. ipython:: python
 
