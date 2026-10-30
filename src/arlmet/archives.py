@@ -356,7 +356,13 @@ def _break_stale_lock(lock: Path) -> None:
     try:
         if _lock_age(lock) > _FETCH_LOCK_STALE:
             logger.warning("Taking over the stale lock %s", lock.name)
-            lock.unlink(missing_ok=True)
+            try:
+                lock.unlink(missing_ok=True)
+            except PermissionError:
+                # Windows refuses to delete a file another process has open,
+                # so someone is using it after all: leave it.
+                if os.name != "nt":
+                    raise
     finally:
         breaker.unlink(missing_ok=True)
 
