@@ -194,6 +194,25 @@ Other sources are not affected, nor are the readers (:class:`arlmet.File`,
 :func:`arlmet.open_dataset`), which return each field on the grid it is stored
 on.
 
+Some WRF files hold time-averaged winds coupled to the column mass: those
+``arw2arl`` writes with ``MUU0`` and ``MUV0`` (the column mass at the U and V
+points) and the map factors ``MSFU``, ``MSFV`` and ``MSFT``, as STILT's WRF
+runs use. Their ``UWND`` is of order 1e5, and they store potential temperature
+``THET`` instead of ``TEMP``. ``sample_points`` converts them as HYSPLIT does,
+at each grid point before interpolating:
+
+- ``UWND * MSFU / MUU0`` and ``VWND * MSFV / MUV0`` (m/s), and ``WWND * MSFT /
+  100`` (its ``DIFW`` included); ``U10M`` and ``V10M`` are plain winds and stay
+  as stored.
+- ``TEMP`` is ``THET * (PRES / 1000) ** 0.286`` on any file that has ``THET``
+  and ``PRES`` but no ``TEMP``, and the heights for ``agl`` and ``msl`` sampling
+  are built from it.
+
+The readers keep the stored values; on such a file the ``description``
+attribute of ``UWND``, ``VWND`` and ``WWND`` in :func:`arlmet.open_dataset`
+gives the conversion. A Dataset or a crop written from them stays coupled, as
+HYSPLIT expects of a file that still holds ``MUU0`` and ``MUV0``.
+
 Point times
 -----------
 

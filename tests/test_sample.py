@@ -1383,6 +1383,212 @@ class TestWrfStaggeredWinds:
         assert np.isnan(result["VWND"]).all()
 
 
+# --- mass-coupled WRF files: winds decoupled and THET as temperature, as HYSPLIT's metinp (#108) ---
+
+
+def write_coupled_wrf_file(
+    path, *, source="AWRF", coupled=True, map_factors=("MSFU", "MSFV", "MSFT")
+):
+    """
+    A WRF file shaped like arw2arl's mass-coupled output: THET, not TEMP; winds times mass.
+
+    The column mass and map factors vary across the grid, so decoupling before or
+    after interpolation gives different values.
+    """
+    grid = make_test_grid()
+    axis = SigmaAxis(levels=[1.0, 0.99, 0.95, 0.9])
+    yy, xx = np.meshgrid(np.arange(grid.ny), np.arange(grid.nx), indexing="ij")
+
+    def field(values):
+        return np.asarray(values, dtype=np.float32)
+
+    surface = {
+        "SHGT": 1300.0 + 20.0 * xx,
+        "PRSS": 850.0 - 2.0 * xx + 1.0 * yy,
+        "T02M": 285.0 + 0.3 * xx,
+        "U10M": 2.0 + 0.2 * xx,
+        "V10M": -1.0 + 0.3 * yy,
+        "MSFU": 1.0 + 0.01 * xx + 0.002 * yy,
+        "MSFV": 1.0 + 0.003 * xx + 0.012 * yy,
+        "MSFT": 1.0 + 0.005 * (xx + yy),
+    }
+    if coupled:
+        surface["MUU0"] = 80000.0 + 900.0 * xx**1.5 + 200.0 * yy
+        surface["MUV0"] = 80000.0 + 300.0 * xx + 700.0 * yy**1.5
+    with File(path, mode="w", source=source, grid=grid, vertical_axis=axis) as arl:
+        rs = arl.create_recordset(_COLUMN_TIME)
+        for name, values in surface.items():
+            if name.startswith("MSF") and name not in map_factors:
+                continue
+            rs.create_datarecord(name, level=0, forecast=0, data=field(values))
+        for k in range(3):
+            level = k + 1
+            pres = _PRES[k] - 2.0 * xx + 1.0 * yy
+            rs.create_datarecord("PRES", level=level, forecast=0, data=field(pres))
+            theta = (_TEMP[k] + 0.3 * xx) * (1000.0 / pres) ** 0.286
+            rs.create_datarecord("THET", level=level, forecast=0, data=field(theta))
+            rs.create_datarecord(
+                "SPHU", level=level, forecast=0, data=field(_SPHU[k] + 0 * xx)
+            )
+            uwnd = (_UWND[k] + 0.5 * xx) * (surface.get("MUU0", 1.0) / surface["MSFU"])
+            vwnd = (-2.0 + level + 0.4 * yy) * (
+                surface.get("MUV0", 1.0) / surface["MSFV"]
+            )
+            wwnd = _WWND[k] * 100.0 / surface["MSFT"]
+            rs.create_datarecord("UWND", level=level, forecast=0, data=field(uwnd))
+            rs.create_datarecord("VWND", level=level, forecast=0, data=field(vwnd))
+            rs.create_datarecord("WWND", level=level, forecast=0, data=field(wwnd))
+
+
+def _stored(path, level, name):
+    """A field as the file stores it (after packing), full grid."""
+    with File(path) as arl:
+        return arl[arl.times[0]][(level, name)].read().astype(np.float64)
+
+
+def _bilinear(values, x, y):
+    """Bilinear interpolation of a (ny, nx) array at array position (x, y)."""
+    i, j = int(np.floor(x)), int(np.floor(y))
+    fx, fy = x - i, y - j
+    return (
+        (1 - fx) * (1 - fy) * values[j, i]
+        + fx * (1 - fy) * values[j, i + 1]
+        + (1 - fx) * fy * values[j + 1, i]
+        + fx * fy * values[j + 1, i + 1]
+    )
+
+
+class TestWrfMassCoupled:
+    """
+    On a mass-coupled WRF file HYSPLIT decouples the winds and uses THET with PRES.
+
+    ``metinp.f``: ``UWND * MSFU / MUU0``, ``VWND * MSFV / MUV0``, ``WWND * MSFT /
+    100`` at each grid point when ``MUU0`` and ``MUV0`` are in an ``AWRF`` file,
+    and ``THET * (PRES / 1000) ** 0.286`` as the temperature.
+    """
+
+    XY = [(5.3, 7.6), (12.0, 3.0), (0.0, 0.0)]
+
+    def _expected(self, path, level, name, x, y):
+        factor, mass, (dx, dy) = {
+            "UWND": ("MSFU", "MUU0", (0.5, 0.0)),
+            "VWND": ("MSFV", "MUV0", (0.0, 0.5)),
+            "WWND": ("MSFT", None, (0.0, 0.0)),
+        }[name]
+        divisor = 100.0 if mass is None else _stored(path, 0, mass)
+        node = _stored(path, level, name) * _stored(path, 0, factor) / divisor
+        return _bilinear(node, x + dx, y + dy)
+
+    def test_winds_are_decoupled_at_the_grid_points(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        write_coupled_wrf_file(path)
+        result = sample_points(
+            path, _cell_points(self.XY, 2.0), ["UWND", "VWND", "WWND"], z_kind="native"
+        )
+        for name in ("UWND", "VWND", "WWND"):
+            expected = [self._expected(path, 2, name, x, y) for x, y in self.XY]
+            np.testing.assert_allclose(result[name], expected, rtol=1e-5)
+        x, y = np.asarray(self.XY).T
+        np.testing.assert_allclose(
+            result["UWND"], _UWND[1] + 0.5 * (x + 0.5), atol=0.05
+        )
+        np.testing.assert_allclose(result["WWND"], _WWND[1], atol=1e-3)
+
+    def test_temperature_comes_from_thet_and_pres(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        write_coupled_wrf_file(path)
+        result = sample_points(
+            path, _cell_points(self.XY, 1.0), ["TEMP"], z_kind="native"
+        )
+        node = _stored(path, 1, "THET") * (_stored(path, 1, "PRES") / 1000.0) ** 0.286
+        expected = [_bilinear(node, x, y) for x, y in self.XY]
+        np.testing.assert_allclose(result["TEMP"], expected, rtol=1e-6)
+        x = np.asarray(self.XY)[:, 0]
+        np.testing.assert_allclose(result["TEMP"], _TEMP[0] + 0.3 * x, atol=0.05)
+
+    def test_heights_use_the_temperature_from_thet(self, tmp_path):
+        # The same file with TEMP written in place of THET samples the same at heights.
+        coupled, plain = tmp_path / "wrf.arl", tmp_path / "plain.arl"
+        write_coupled_wrf_file(coupled)
+        temps = [
+            _stored(coupled, k, "THET")
+            * (_stored(coupled, k, "PRES") / 1000.0) ** 0.286
+            for k in (1, 2, 3)
+        ]
+        with (
+            File(coupled) as src,
+            File(
+                plain,
+                mode="w",
+                source="TEST",
+                grid=src.grid,
+                vertical_axis=src.vertical_axis,
+            ) as dst,
+        ):
+            rs = dst.create_recordset(_COLUMN_TIME)
+            for record in src[src.times[0]].records:
+                name = "TEMP" if record.variable == "THET" else record.variable
+                data = temps[record.level - 1] if name == "TEMP" else record.read()
+                rs.create_datarecord(
+                    name, level=record.level, forecast=0, data=np.float32(data)
+                )
+        points = _cell_points(self.XY[:2], [30.0, 300.0])
+        got = sample_points(coupled, points, ["TEMP", "pressure"], z_kind="agl")
+        want = sample_points(plain, points, ["TEMP", "pressure"], z_kind="agl")
+        np.testing.assert_allclose(got["TEMP"], want["TEMP"], atol=2e-3)
+        np.testing.assert_allclose(got["pressure"], want["pressure"], atol=2e-3)
+
+    def test_ground_winds_are_not_divided(self, tmp_path):
+        # U10M is a plain wind: at the ground UWND is U10M at the U point.
+        path = tmp_path / "wrf.arl"
+        write_coupled_wrf_file(path)
+        result = sample_points(
+            path, _cell_points(self.XY[:2], 0.0), ["UWND"], z_kind="agl"
+        )
+        expected = [
+            _bilinear(_stored(path, 0, "U10M"), x + 0.5, y) for x, y in self.XY[:2]
+        ]
+        np.testing.assert_allclose(result["UWND"], expected, rtol=1e-5)
+
+    @pytest.mark.parametrize(
+        ("source", "coupled"),
+        [("AWRF", False), ("TEST", True)],
+        ids=["no-mass", "not-awrf"],
+    )
+    def test_other_files_keep_the_stored_winds(self, tmp_path, source, coupled):
+        path = tmp_path / "wrf.arl"
+        write_coupled_wrf_file(path, source=source, coupled=coupled)
+        result = sample_points(
+            path, _cell_points(self.XY, 2.0), ["UWND"], z_kind="native"
+        )
+        dx = 0.5 if source == "AWRF" else 0.0
+        expected = [_bilinear(_stored(path, 2, "UWND"), x + dx, y) for x, y in self.XY]
+        np.testing.assert_allclose(result["UWND"], expected, rtol=1e-5)
+
+    def test_missing_map_factor_raises(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        write_coupled_wrf_file(path, map_factors=("MSFU", "MSFV"))
+        with pytest.raises(ValueError, match="MSFT"):
+            sample_points(path, _cell_points(self.XY, 2.0), ["WWND"], z_kind="native")
+
+    def test_open_dataset_keeps_the_stored_values_and_says_how_to_convert(
+        self, tmp_path
+    ):
+        path = tmp_path / "wrf.arl"
+        write_coupled_wrf_file(path)
+        ds = arlmet.open_dataset(path)
+        np.testing.assert_array_equal(
+            ds["UWND"].isel(time=0).sel(level=2).values, _stored(path, 2, "UWND")
+        )
+        assert "MSFU / MUU0" in ds["UWND"].attrs["description"]
+        assert "MSFV / MUV0" in ds["VWND"].attrs["description"]
+        assert "MSFT / 100" in ds["WWND"].attrs["description"]
+        assert "TEMP" not in ds
+        plain = tmp_path / "plain.arl"
+        write_coupled_wrf_file(plain, coupled=False)
+        assert "description" not in arlmet.open_dataset(plain)["UWND"].attrs
+
+
 # --- pressure-level files over high ground, as NAM12's over the mountain West (prfprs) ---
 
 # Levels 1 to 5 (hPa) and their HGTS (m MSL). With the ground at _SHGT = 1300 m and

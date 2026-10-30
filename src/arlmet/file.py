@@ -832,7 +832,11 @@ class File:
         variables : str or iterable of str
             One or more ARL field names (e.g. ``"TEMP"``, ``"UWND"``), or
             ``"pressure"`` for the virtual pressure variable. A name must not
-            collide with an existing column of ``points``.
+            collide with an existing column of ``points``. On a WRF file with
+            mass-coupled winds (``MUU0``, ``MUV0``) ``UWND``, ``VWND`` and ``WWND``
+            are decoupled as HYSPLIT does (``UWND * MSFU / MUU0``, ...), and on a
+            file with ``THET`` but no ``TEMP``, ``TEMP`` is ``THET * (PRES / 1000)
+            ** 0.286``.
         time : pandas.Timestamp or str, optional
             One valid time for every point, used when ``points`` has no
             ``time`` column. Passing both raises ``ValueError``. When neither

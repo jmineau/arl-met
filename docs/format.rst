@@ -251,6 +251,20 @@ Upper-Air Variables (Levels 1-nz)
 - **Moisture**: RELH, SPHU
 - **Special**: TKEN, DIFT, DIFW
 
+WRF files (source ``AWRF``, written by ``arw2arl``) differ in two ways, both of
+which HYSPLIT handles when it reads them and arl-met's readers leave as stored:
+
+- ``UWND`` and ``VWND`` are on WRF's staggered grid: column ``i`` of ``UWND`` is
+  the west face of cell ``i``, row ``j`` of ``VWND`` its south face.
+- With ``MUU0`` and ``MUV0`` at the surface (time-averaged, mass-coupled
+  winds), ``UWND``, ``VWND`` and ``WWND`` are coupled to the column mass: HYSPLIT
+  uses ``UWND * MSFU / MUU0``, ``VWND * MSFV / MUV0`` and ``WWND * MSFT / 100``.
+  Such files store ``THET`` rather than ``TEMP``; HYSPLIT's temperature is
+  ``THET * (PRES / 1000) ** 0.286``.
+
+:func:`arlmet.sample_points` gives the values HYSPLIT uses (see the *Sampling*
+guide).
+
 The presence of a ``DIF*`` record is stream-dependent. Do not assume every
 variable has one or that every ``DIF*`` name is universally valid outside the
 source workflow that produced it.
