@@ -1067,6 +1067,52 @@ def test_every_archive_says_which_source_its_files_carry():
         assert isinstance(cls.source, str) and cls.source, name
 
 
+#: The time between time steps in a file of each archive, read from the index
+#: records of real NOAA files (and checked against S3 by the network test below).
+_STEP_HOURS = {
+    "hrrr": 1,
+    "hrrr.v1": 1,
+    "nam12": 3,
+    "nams": 1,
+    "gdas1": 3,
+    "gdas0p5": 3,
+    "gfs0p25": 3,
+    "narr": 3,
+    "reanalysis": 6,
+}
+
+
+def test_every_archive_says_the_step_between_its_time_steps():
+    from arlmet.archives import ARCHIVES
+
+    # A new archive must be added to the table above with a checked step.
+    assert set(ARCHIVES) == set(_STEP_HOURS)
+    for name, cls in ARCHIVES.items():
+        assert cls.step == pd.Timedelta(hours=_STEP_HOURS[name]), name
+        assert isinstance(cls.step, pd.Timedelta), name
+
+
+def test_step_is_not_the_span_of_a_file():
+    """A HRRR file spans 6 hours in 6 time steps; a NAM 12 km file a day in 8."""
+    from arlmet.archives import HRRRArchive, NAMArchive
+
+    for cls, hours_per_file, time_steps in [(HRRRArchive, 6, 6), (NAMArchive, 24, 8)]:
+        archive = cls()
+        t0 = pd.Timestamp("2021-01-15")
+        last_hour = t0 + pd.Timedelta(hours=hours_per_file - 1)
+        assert archive.paths_for_range(t0, last_hour) == [archive._archive_path(t0)]
+        assert pd.Timedelta(hours=hours_per_file) / archive.step == time_steps
+
+
+def test_a_custom_archive_inherits_its_parents_step():
+    from arlmet.archives import NAMArchive
+
+    class Mine(NAMArchive):
+        pass
+
+    assert Mine().step == pd.Timedelta(hours=3)
+
+
 #: A date each archive has a file for on S3.
 _SOURCE_CHECK_DATES = {
     "hrrr": "2021-01-15",
@@ -1096,3 +1142,24 @@ def test_an_archives_source_is_the_one_its_files_carry(name):
     with fs.open(f"{archive.S3_BUCKET}/{key}", "rb", block_size=2**20) as f:
         index = IndexRecord.from_position(f, 0)
     assert index.source == archive.source
+
+
+@pytest.mark.network
+@pytest.mark.parametrize("name", sorted(_SOURCE_CHECK_DATES))
+def test_an_archives_step_is_the_one_its_files_hold(name):
+    """Read the first two index records of one real file."""
+    import s3fs
+
+    from arlmet.archives import ARCHIVES
+    from arlmet.header import Header
+    from arlmet.indexrecord import IndexRecord
+
+    archive = ARCHIVES[name]()
+    key = archive._archive_path(pd.Timestamp(_SOURCE_CHECK_DATES[name]))
+    fs = s3fs.S3FileSystem(anon=True)
+    with fs.open(f"{archive.S3_BUCKET}/{key}", "rb", block_size=2**20) as f:
+        first = IndexRecord.from_position(f, 0)
+        record_length = Header.N_BYTES + first.nx * first.ny
+        n_data = sum(len(level.variables) for level in first.levels)
+        second = IndexRecord.from_position(f, (1 + n_data) * record_length)
+    assert second.time - first.time == archive.step

@@ -408,7 +408,8 @@ class Archive(ABC):
     :meth:`fetch`, or keep a whole local folder in step with NOAA's with
     :meth:`sync`, choosing the ``mirror`` (server) to download from.
 
-    Subclasses set class-level metadata and implement ``_archive_path()`` to
+    Subclasses set class-level metadata (``name``, ``description``,
+    ``start_date``, ``source``, ``step``) and implement ``_archive_path()`` to
     encode the filename convention for their product. A subclass that sets
     ``name`` is registered in :data:`ARCHIVES` under that name.
 
@@ -425,6 +426,10 @@ class Archive(ABC):
         such as ``"HRRR"``, so a caller can tell which product an archive
         holds without downloading a file. Every file of an archive carries
         the same id, except where a subclass says otherwise.
+    step : pandas.Timedelta
+        The time between one time step and the next inside a file (the
+        spacing of its index records), such as 3 hours for NAM 12 km. It is
+        not the span of one file, which is a separate fact of each archive.
 
     Methods
     -------
@@ -443,6 +448,29 @@ class Archive(ABC):
     start_date: ClassVar[pd.Timestamp]
     #: The source id in the headers of the archive's files.
     source: ClassVar[str]
+    #: The time between one time step and the next inside a file, as a
+    #: :class:`pandas.Timedelta`: the spacing of the file's index records, the
+    #: product's own time resolution. It is **not** how much time one file
+    #: covers (the *file span*). HRRR has a step of 1 hour and its files hold
+    #: 6 time steps, a 6-hour block. NAM 12 km has a step of 3 hours and its
+    #: files hold 8 time steps, 00:00 to 21:00 of a calendar day, so a file's
+    #: last time step is one step before the file's end, and a run that needs
+    #: the time step at or after 22:00 needs the next day's file.
+    #:
+    #: See Also
+    #: --------
+    #: arlmet.File.times : The valid times of the time steps in one file.
+    #: Archive.paths_for_range : The archive paths that cover a time range.
+    #: Archive.start_date : The earliest date in the archive.
+    #:
+    #: Examples
+    #: --------
+    #: >>> from arlmet.archives import ARCHIVES, get_archive
+    #: >>> ARCHIVES["nam12"].step
+    #: Timedelta('0 days 03:00:00')
+    #: >>> get_archive("hrrr").step
+    #: Timedelta('0 days 01:00:00')
+    step: ClassVar[pd.Timedelta]
 
     S3_BUCKET: ClassVar[str] = "noaa-oar-arl-hysplit-pds"
 
@@ -1021,6 +1049,7 @@ class HRRRArchive(Archive):
     description = "HRRR 3 km analysis"
     start_date = ensure_timestamp("2019-06-12")
     source = "HRRR"
+    step = pd.Timedelta(hours=1)
 
     _HOURS_PER_FILE: ClassVar[int] = 6
 
@@ -1049,6 +1078,7 @@ class NAMArchive(Archive):
     description = "NAM 12 km analysis"
     start_date = ensure_timestamp("2007-05-26")
     source = "NAM"
+    step = pd.Timedelta(hours=3)
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the daily NAM archive filename for *time*."""
@@ -1075,6 +1105,7 @@ class GDASArchive(Archive):
     description = "GDAS 1-degree global analysis"
     start_date = ensure_timestamp("2004-12-01")
     source = "GDAS"
+    step = pd.Timedelta(hours=3)
 
     def _week(self, time: pd.Timestamp) -> int:
         """Return the 1-based archive week within the month for *time*."""
@@ -1106,6 +1137,7 @@ class GFSArchive(Archive):
     description = "GFS 0.25-degree global analysis"
     start_date = ensure_timestamp("2019-06-13")
     source = "GFSQ"
+    step = pd.Timedelta(hours=3)
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the daily GFS archive filename for *time*."""
@@ -1136,6 +1168,7 @@ class NAMSArchive(Archive):
     description = "NAMS hybrid sigma-pressure analysis"
     start_date = ensure_timestamp("2009-03-22")
     source = "NAMS"
+    step = pd.Timedelta(hours=1)
 
     _DOMAIN_SUFFIXES: ClassVar[dict[str, str]] = {
         "conus": "",
@@ -1180,6 +1213,7 @@ class ReanalysisArchive(Archive):
     description = "NCEP/NCAR Reanalysis 2.5-degree global"
     start_date = ensure_timestamp("1948-01-01")
     source = "CDC1"
+    step = pd.Timedelta(hours=6)
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the monthly reanalysis archive filename for *time*."""
@@ -1205,6 +1239,7 @@ class HRRRv1Archive(Archive):
     description = "HRRR 3 km analysis v1"
     start_date = ensure_timestamp("2015-06-15")
     source = "HRRR"
+    step = pd.Timedelta(hours=1)
 
     _HOURS_PER_FILE: ClassVar[int] = 6
 
@@ -1234,6 +1269,7 @@ class GDAS0p5Archive(Archive):
     start_date = ensure_timestamp("2007-09-01")
     #: Files before 2013-07-29 carry "GHDA", the id of the same product.
     source = "GFSG"
+    step = pd.Timedelta(hours=3)
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the daily GDAS 0.5-degree archive filename for *time*."""
@@ -1260,6 +1296,7 @@ class NARRArchive(Archive):
     description = "NCEP North American Regional Reanalysis 32 km"
     start_date = ensure_timestamp("1979-01-01")
     source = "NARR"
+    step = pd.Timedelta(hours=3)
 
     def _filename(self, time: pd.Timestamp) -> str:
         """Return the monthly NARR archive filename for *time*."""
