@@ -135,6 +135,10 @@ Which files are read
 
      bad = idx.table[idx.table["error"] != ""]
 
+  A folder kept by :meth:`~arlmet.archives.Archive.sync` holds
+  ``arlmet-manifest.tsv`` (see :doc:`downloading`), which is not ARL, so it
+  appears here with an ``error``; ``covering`` ignores it.
+
 - **Opening a file is all that is checked.** A time step written partway, or a
   record overwritten with other bytes, opens cleanly. Use
   :meth:`arlmet.File.check` on the files ``covering`` returns to find those
