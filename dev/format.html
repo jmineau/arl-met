@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=0f68595e"></script>
+    <script src="_static/documentation_options.js?v=b33b6d0d"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev4+gb0d9f5525" />
+  <meta name="docsearch:version" content="0.1.0b6.dev5+gf2701d064" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -689,6 +689,19 @@ good.</p>
 <li><p><strong>Moisture</strong>: RELH, SPHU</p></li>
 <li><p><strong>Special</strong>: TKEN, DIFT, DIFW</p></li>
 </ul>
+<p>WRF files (source <code class="docutils literal notranslate"><span class="pre">AWRF</span></code>, written by <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code>) differ in two ways, both of
+which HYSPLIT handles when it reads them and arl-met’s readers leave as stored:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">UWND</span></code> and <code class="docutils literal notranslate"><span class="pre">VWND</span></code> are on WRF’s staggered grid: column <code class="docutils literal notranslate"><span class="pre">i</span></code> of <code class="docutils literal notranslate"><span class="pre">UWND</span></code> is
+the west face of cell <code class="docutils literal notranslate"><span class="pre">i</span></code>, row <code class="docutils literal notranslate"><span class="pre">j</span></code> of <code class="docutils literal notranslate"><span class="pre">VWND</span></code> its south face.</p></li>
+<li><p>With <code class="docutils literal notranslate"><span class="pre">MUU0</span></code> and <code class="docutils literal notranslate"><span class="pre">MUV0</span></code> at the surface (time-averaged, mass-coupled
+winds), <code class="docutils literal notranslate"><span class="pre">UWND</span></code>, <code class="docutils literal notranslate"><span class="pre">VWND</span></code> and <code class="docutils literal notranslate"><span class="pre">WWND</span></code> are coupled to the column mass: HYSPLIT
+uses <code class="docutils literal notranslate"><span class="pre">UWND</span> <span class="pre">*</span> <span class="pre">MSFU</span> <span class="pre">/</span> <span class="pre">MUU0</span></code>, <code class="docutils literal notranslate"><span class="pre">VWND</span> <span class="pre">*</span> <span class="pre">MSFV</span> <span class="pre">/</span> <span class="pre">MUV0</span></code> and <code class="docutils literal notranslate"><span class="pre">WWND</span> <span class="pre">*</span> <span class="pre">MSFT</span> <span class="pre">/</span> <span class="pre">100</span></code>.
+Such files store <code class="docutils literal notranslate"><span class="pre">THET</span></code> rather than <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>; HYSPLIT’s temperature is
+<code class="docutils literal notranslate"><span class="pre">THET</span> <span class="pre">*</span> <span class="pre">(PRES</span> <span class="pre">/</span> <span class="pre">1000)</span> <span class="pre">**</span> <span class="pre">0.286</span></code>.</p></li>
+</ul>
+<p><a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> gives the values HYSPLIT uses (see the <em>Sampling</em>
+guide).</p>
 <p>The presence of a <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> record is stream-dependent. Do not assume every
 variable has one or that every <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> name is universally valid outside the
 source workflow that produced it.</p>

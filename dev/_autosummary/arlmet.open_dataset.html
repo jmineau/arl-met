@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=0f68595e"></script>
+    <script src="../_static/documentation_options.js?v=b33b6d0d"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev4+gb0d9f5525" />
+  <meta name="docsearch:version" content="0.1.0b6.dev5+gf2701d064" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -646,6 +646,12 @@ where the index record says 0), but it is not represented here: HYSPLIT
 reads a data record’s forecast hour only as the missing flag, and the hour
 it uses is the index record’s. <a class="reference internal" href="arlmet.DataRecord.forecast.html#arlmet.DataRecord.forecast" title="arlmet.DataRecord.forecast"><code class="xref py py-attr docutils literal notranslate"><span class="pre">arlmet.DataRecord.forecast</span></code></a> reads a
 record’s own hour.</p>
+<p>Values are as the file stores them. On a mass-coupled WRF file (source
+<code class="docutils literal notranslate"><span class="pre">AWRF</span></code> with <code class="docutils literal notranslate"><span class="pre">MUU0</span></code> and <code class="docutils literal notranslate"><span class="pre">MUV0</span></code>, the time-averaged winds of
+<code class="docutils literal notranslate"><span class="pre">arw2arl</span></code>) <code class="docutils literal notranslate"><span class="pre">UWND</span></code>, <code class="docutils literal notranslate"><span class="pre">VWND</span></code> and <code class="docutils literal notranslate"><span class="pre">WWND</span></code> are coupled to the column
+mass, and their <code class="docutils literal notranslate"><span class="pre">description</span></code> attribute gives the conversion HYSPLIT
+makes (<code class="docutils literal notranslate"><span class="pre">UWND</span> <span class="pre">*</span> <span class="pre">MSFU</span> <span class="pre">/</span> <span class="pre">MUU0</span></code>, …); <a class="reference internal" href="arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> returns
+the converted winds.</p>
 <p>ARL metadata is accessible via the <code class="docutils literal notranslate"><span class="pre">.arl</span></code> accessor:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">)</span>
 <span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">grid</span>  <span class="c1"># Grid object (survives isel/sel)</span>

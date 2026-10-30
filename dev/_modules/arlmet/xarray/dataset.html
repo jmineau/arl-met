@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=0f68595e"></script>
+    <script src="../../../_static/documentation_options.js?v=b33b6d0d"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev4+gb0d9f5525" />
+  <meta name="docsearch:version" content="0.1.0b6.dev5+gf2701d064" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -431,6 +431,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_output</span><span class="p">,</span> <span class="n">reject_same_file</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._time</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_timestamp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.ops.sample</span><span class="w"> </span><span class="kn">import</span> <span class="n">_mass_coupled</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.ops.subset</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize_levels</span><span class="p">,</span> <span class="n">resolve_window</span><span class="p">,</span> <span class="n">select_records</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerticalAxis</span>
 
@@ -449,6 +450,24 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"open_dataset"</span><span class="p">,</span> <span class="s2">"write_dataset"</span><span class="p">]</span>
+
+<span class="c1">#: What each wind of a mass-coupled WRF file holds (``AWRF`` with ``MUU0`` and</span>
+<span class="c1">#: ``MUV0``), as its ``description`` attribute. The Dataset keeps the stored</span>
+<span class="c1">#: values; HYSPLIT (``metinp.f``) and :func:`arlmet.sample_points` decouple them.</span>
+<span class="n">_MASS_COUPLED_WINDS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"UWND"</span><span class="p">:</span> <span class="p">(</span>
+        <span class="s2">"WRF's time-averaged x-wind coupled to the column mass, as stored. HYSPLIT "</span>
+        <span class="s2">"uses UWND * MSFU / MUU0 (m s-1)."</span>
+    <span class="p">),</span>
+    <span class="s2">"VWND"</span><span class="p">:</span> <span class="p">(</span>
+        <span class="s2">"WRF's time-averaged y-wind coupled to the column mass, as stored. HYSPLIT "</span>
+        <span class="s2">"uses VWND * MSFV / MUV0 (m s-1)."</span>
+    <span class="p">),</span>
+    <span class="s2">"WWND"</span><span class="p">:</span> <span class="p">(</span>
+        <span class="s2">"WRF's time-averaged vertical motion coupled to the column mass, as stored "</span>
+        <span class="s2">"(DIFW added). HYSPLIT uses WWND * MSFT / 100."</span>
+    <span class="p">),</span>
+<span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_dataset_from_file</span><span class="p">(</span>
@@ -544,6 +563,10 @@
             <span class="n">window</span><span class="o">=</span><span class="n">read_window</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">indexing</span><span class="o">.</span><span class="n">LazilyIndexedArray</span><span class="p">(</span><span class="n">backend</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">met</span><span class="o">.</span><span class="n">times</span> <span class="ow">and</span> <span class="n">_mass_coupled</span><span class="p">(</span><span class="n">met</span><span class="p">[</span><span class="n">met</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">]]):</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">description</span> <span class="ow">in</span> <span class="n">_MASS_COUPLED_WINDS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
+                <span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"description"</span><span class="p">]</span> <span class="o">=</span> <span class="n">description</span>
 
     <span class="n">sfc_pos</span> <span class="o">=</span> <span class="n">level_pos</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">sfc_pos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -623,6 +646,13 @@
 <span class="sd">    reads a data record's forecast hour only as the missing flag, and the hour</span>
 <span class="sd">    it uses is the index record's. :attr:`arlmet.DataRecord.forecast` reads a</span>
 <span class="sd">    record's own hour.</span>
+
+<span class="sd">    Values are as the file stores them. On a mass-coupled WRF file (source</span>
+<span class="sd">    ``AWRF`` with ``MUU0`` and ``MUV0``, the time-averaged winds of</span>
+<span class="sd">    ``arw2arl``) ``UWND``, ``VWND`` and ``WWND`` are coupled to the column</span>
+<span class="sd">    mass, and their ``description`` attribute gives the conversion HYSPLIT</span>
+<span class="sd">    makes (``UWND * MSFU / MUU0``, ...); :func:`arlmet.sample_points` returns</span>
+<span class="sd">    the converted winds.</span>
 
 <span class="sd">    ARL metadata is accessible via the ``.arl`` accessor::</span>
 

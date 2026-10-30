@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=0f68595e"></script>
+    <script src="../../../_static/documentation_options.js?v=b33b6d0d"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev4+gb0d9f5525" />
+  <meta name="docsearch:version" content="0.1.0b6.dev5+gf2701d064" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -480,6 +480,17 @@
     <span class="s2">"VWND"</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
 <span class="p">}</span>
 
+<span class="c1">#: On a mass-coupled WRF file (``AWRF`` with ``MUU0`` and ``MUV0``: ``arw2arl``'s</span>
+<span class="c1">#: time-averaged fluxes, HYSPLIT's ``WRF = 3``), each upper-level wind is stored</span>
+<span class="c1">#: coupled to the column mass. HYSPLIT's ``metinp.f`` decouples it at each grid</span>
+<span class="c1">#: point: the field times the surface map factor named here, divided by the</span>
+<span class="c1">#: surface column mass named here (or by 100), ``UWND * MSFU / MUU0``.</span>
+<span class="n">_DECOUPLE</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"UWND"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"MSFU"</span><span class="p">,</span> <span class="s2">"MUU0"</span><span class="p">),</span>
+    <span class="s2">"VWND"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"MSFV"</span><span class="p">,</span> <span class="s2">"MUV0"</span><span class="p">),</span>
+    <span class="s2">"WWND"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"MSFT"</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">),</span>
+<span class="p">}</span>
+
 <span class="c1"># One sampling input: an open File or a path to an ARL file.</span>
 <span class="n">FileLike</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="s2">"File"</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">"os.PathLike[str]"</span><span class="p">]</span>
 
@@ -790,6 +801,82 @@
     <span class="k">return</span> <span class="n">_sample_field</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">plan</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_mass_coupled</span><span class="p">(</span><span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Whether the time step's winds are WRF's mass-coupled fluxes (HYSPLIT's ``WRF = 3``).</span>
+
+<span class="sd">    As HYSPLIT's ``metini.f`` decides: an ``AWRF`` file with ``MUU0`` and</span>
+<span class="sd">    ``MUV0`` at the surface.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">recordset</span><span class="o">.</span><span class="n">source</span> <span class="o">==</span> <span class="s2">"AWRF"</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
+        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">in</span> <span class="n">recordset</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"MUU0"</span><span class="p">,</span> <span class="s2">"MUV0"</span><span class="p">)</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_levels</span><span class="p">(</span><span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span> <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Levels at which the time step holds *variable* as HYSPLIT reads it, in order.</span>
+
+<span class="sd">    ``TEMP`` on a file without it but with potential temperature (``THET``) is</span>
+<span class="sd">    at the levels that hold both ``THET`` and ``PRES`` (:func:`_read_field`).</span>
+<span class="sd">    """</span>
+    <span class="n">levels</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">level</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">recordset</span><span class="o">.</span><span class="n">records</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">variable</span> <span class="o">==</span> <span class="n">variable</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">levels</span> <span class="ow">and</span> <span class="n">variable</span> <span class="o">==</span> <span class="s2">"TEMP"</span><span class="p">:</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">level</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">recordset</span><span class="o">.</span><span class="n">records</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">variable</span> <span class="o">==</span> <span class="s2">"THET"</span><span class="p">}</span>
+        <span class="n">pres</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">level</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">recordset</span><span class="o">.</span><span class="n">records</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">variable</span> <span class="o">==</span> <span class="s2">"PRES"</span><span class="p">}</span>
+        <span class="n">levels</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">theta</span> <span class="o">&amp;</span> <span class="n">pres</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_read_field</span><span class="p">(</span>
+    <span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span> <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">window</span><span class="p">:</span> <span class="n">GridWindow</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Read *variable* at *level* in *window* as HYSPLIT's ``metinp.f`` uses it.</span>
+
+<span class="sd">    That is the stored field, except for two conversions HYSPLIT makes at</span>
+<span class="sd">    each grid point before any interpolation:</span>
+
+<span class="sd">    - ``TEMP`` on a file that stores ``THET`` instead (lines 579 to 584):</span>
+<span class="sd">      ``THET * (PRES / 1000) ** 0.286``.</span>
+<span class="sd">    - The upper-level winds of a mass-coupled WRF file (:func:`_mass_coupled`;</span>
+<span class="sd">      lines 360 to 386): ``UWND * MSFU / MUU0``, ``VWND * MSFV / MUV0`` and</span>
+<span class="sd">      ``WWND * MSFT / 100``, its ``DIFW`` included (HYSPLIT scales the two</span>
+<span class="sd">      before adding them; arlmet adds, then scales).</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">at</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Read the stored field *name* at level *at* in the window."""</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="n">recordset</span><span class="p">[(</span><span class="n">at</span><span class="p">,</span> <span class="n">name</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">variable</span> <span class="o">==</span> <span class="s2">"TEMP"</span> <span class="ow">and</span> <span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="s2">"TEMP"</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">recordset</span><span class="p">:</span>
+        <span class="n">pres</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="s2">"PRES"</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">read</span><span class="p">(</span><span class="s2">"THET"</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">pres</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mf">1000.0</span><span class="p">))</span> <span class="o">**</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mf">0.286</span><span class="p">)</span>
+    <span class="n">field</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">level</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">_DECOUPLE</span> <span class="ow">and</span> <span class="n">_mass_coupled</span><span class="p">(</span><span class="n">recordset</span><span class="p">):</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"MSFU"</span><span class="p">,</span> <span class="s2">"MSFV"</span><span class="p">,</span> <span class="s2">"MSFT"</span><span class="p">)</span> <span class="k">if</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">recordset</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>  <span class="c1"># HYSPLIT stops too</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"A mass-coupled WRF file (MUU0 and MUV0 at the surface) needs the "</span>
+                <span class="s2">"map factors MSFU, MSFV and MSFT to decouple its winds; missing "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span><span class="si">}</span><span class="s2"> at time </span><span class="si">{</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">."</span>
+            <span class="p">)</span>
+        <span class="n">factor</span><span class="p">,</span> <span class="n">mass</span> <span class="o">=</span> <span class="n">_DECOUPLE</span><span class="p">[</span><span class="n">variable</span><span class="p">]</span>
+        <span class="n">divisor</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">mass</span><span class="p">)</span>
+        <span class="n">field</span> <span class="o">=</span> <span class="n">field</span> <span class="o">*</span> <span class="n">read</span><span class="p">(</span><span class="n">factor</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">divisor</span>
+    <span class="k">return</span> <span class="n">field</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_sample_level</span><span class="p">(</span>
+    <span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span> <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Sample *variable* at *level*, as HYSPLIT reads it (:func:`_read_field`), at each point."""</span>
+    <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">window</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_sample_field</span><span class="p">(</span><span class="n">_read_field</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">plan</span><span class="o">.</span><span class="n">window</span><span class="p">),</span> <span class="n">plan</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_interp_profile</span><span class="p">(</span>
     <span class="n">values</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">target</span><span class="p">:</span> <span class="nb">float</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
@@ -885,16 +972,16 @@
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Sample *variable* at *levels*: ``(n_points, n_levels)``, NaN where a level lacks it.</span>
 
-<span class="sd">    Returns None when the time step has no *variable* record at all.</span>
+<span class="sd">    Returns None when the time step does not hold *variable* at all.</span>
 <span class="sd">    """</span>
-    <span class="n">by_level</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">level</span><span class="p">:</span> <span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">recordset</span><span class="o">.</span><span class="n">records</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">variable</span> <span class="o">==</span> <span class="n">variable</span><span class="p">}</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">by_level</span><span class="p">:</span>
+    <span class="n">available</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">_levels</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">available</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="n">n_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">)</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_points</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="n">level</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">levels</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">by_level</span><span class="p">:</span>
-            <span class="n">out</span><span class="p">[:,</span> <span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sample_record</span><span class="p">(</span><span class="n">by_level</span><span class="p">[</span><span class="n">level</span><span class="p">],</span> <span class="n">plan</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">available</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[:,</span> <span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sample_level</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span>
 
 
@@ -904,11 +991,14 @@
     <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">"""Sample *variable* at all its levels. Returns ((n_points, n_levels), level_indices)."""</span>
-    <span class="n">records</span> <span class="o">=</span> <span class="n">_record_levels</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">)</span>
-    <span class="n">levels</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">records</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">levels</span> <span class="o">=</span> <span class="n">_levels</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">levels</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Variable '</span><span class="si">{</span><span class="n">variable</span><span class="si">}</span><span class="s2">' is not available at time </span><span class="si">{</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">."</span>
+        <span class="p">)</span>
     <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="n">level</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">levels</span><span class="p">):</span>
-        <span class="n">samples</span><span class="p">[:,</span> <span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sample_record</span><span class="p">(</span><span class="n">records</span><span class="p">[</span><span class="n">level</span><span class="p">],</span> <span class="n">plan</span><span class="p">)</span>
+        <span class="n">samples</span><span class="p">[:,</span> <span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sample_level</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">samples</span><span class="p">,</span> <span class="n">levels</span>
 
 
@@ -1135,7 +1225,7 @@
         <span class="k">if</span> <span class="n">temp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">coord_system</span><span class="si">}</span><span class="s2"> (flag=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">flag</span><span class="si">}</span><span class="s2">) files require "</span>
-                <span class="s2">"TEMP for AGL/MSL sampling."</span>
+                <span class="s2">"TEMP (or THET and PRES) for AGL/MSL sampling."</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">temp</span>
 
@@ -1484,7 +1574,11 @@
 <span class="sd">    variables : str or iterable of str</span>
 <span class="sd">        One or more ARL field names (e.g. ``"TEMP"``, ``"UWND"``), or</span>
 <span class="sd">        ``"pressure"`` for the virtual pressure variable. A name must not</span>
-<span class="sd">        collide with an existing column of ``points``.</span>
+<span class="sd">        collide with an existing column of ``points``. On a WRF file with</span>
+<span class="sd">        mass-coupled winds (``MUU0``, ``MUV0``) ``UWND``, ``VWND`` and ``WWND``</span>
+<span class="sd">        are decoupled as HYSPLIT does (``UWND * MSFU / MUU0``, ...), and on a</span>
+<span class="sd">        file with ``THET`` but no ``TEMP``, ``TEMP`` is ``THET * (PRES / 1000)</span>
+<span class="sd">        ** 0.286``.</span>
 <span class="sd">    time : pandas.Timestamp or str, optional</span>
 <span class="sd">        One valid time for every point, used when ``points`` has no ``time``</span>
 <span class="sd">        column. Passing both raises ``ValueError``. When neither is given, the</span>
