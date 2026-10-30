@@ -7,6 +7,7 @@ and counts how often it is opened.
 
 import io
 import os
+import random
 import subprocess
 import sys
 import textwrap
@@ -136,19 +137,38 @@ def test_different_files_download_in_parallel(tmp_path, monkeypatch, fast_locks)
     assert _visible(tmp_path) == ["20240718_00-05_hrrr", "20240718_06-11_hrrr"]
 
 
-def test_interrupted_download_leaves_no_lock_or_partial(tmp_path, monkeypatch):
+def _markers(folder: Path) -> list[Path]:
+    return [p for p in folder.iterdir() if ".lock." in p.name]
+
+
+def test_interrupted_download_leaves_no_partial_and_no_live_lock(tmp_path, monkeypatch):
+    calls = []
+
     def fake_open(url, mode, **opts):
-        raise KeyboardInterrupt
+        calls.append(url)
+        if len(calls) == 1:
+            raise KeyboardInterrupt
+        return io.BytesIO(b"arl-bytes")
 
     monkeypatch.setitem(sys.modules, "fsspec", types.SimpleNamespace(open=fake_open))
 
     with pytest.raises(KeyboardInterrupt):
         HRRRArchive().fetch(START, START, dest_dir=tmp_path)
 
-    assert _visible(tmp_path) == []
+    # Nothing but the released lock file, which no one waits for.
+    left = _markers(tmp_path)
+    assert [p.name for p in tmp_path.iterdir()] == [p.name for p in left]
+    assert all(time.time() - p.stat().st_mtime > 3600 for p in left)
+
+    start = time.monotonic()
+    HRRRArchive().fetch(START, START, dest_dir=tmp_path)
+
+    assert time.monotonic() - start < 1
+    assert len(calls) == 2
+    assert _visible(tmp_path) == ["20240718_00-05_hrrr"]
 
 
-def test_interrupted_download_leaves_no_lock_during_a_crop(tmp_path, monkeypatch):
+def test_interrupted_crop_leaves_no_live_lock(tmp_path, monkeypatch):
     monkeypatch.setitem(
         sys.modules,
         "fsspec",
@@ -166,12 +186,12 @@ def test_interrupted_download_leaves_no_lock_during_a_crop(tmp_path, monkeypatch
             START, START, dest_dir=tmp_path, bbox=(-112.0, 40.0, -111.0, 41.0)
         )
 
-    # The lock goes; the partial file is the crop code's to remove.
-    assert not [n for n in _visible(tmp_path) if n.endswith(".lock")]
+    # The partial file is the crop code's to remove; the lock is released.
+    assert all(time.time() - p.stat().st_mtime > 3600 for p in _markers(tmp_path))
 
 
 def _old_lock(tmp_path: Path, age: float) -> Path:
-    lock = tmp_path / ".20240718_00-05_hrrr.lock"
+    lock = tmp_path / ".20240718_00-05_hrrr.lock.1"
     lock.write_text("host gone, process 1\n")
     old = time.time() - age
     os.utime(lock, (old, old))
@@ -246,7 +266,7 @@ def test_the_lock_is_kept_fresh_while_downloading(tmp_path, monkeypatch, fast_lo
     ages = []
 
     def fake_open(url, mode, **opts):
-        lock = tmp_path / ".20240718_00-05_hrrr.lock"
+        lock = tmp_path / ".20240718_00-05_hrrr.lock.1"
         time.sleep(0.4)
         ages.append(time.time() - lock.stat().st_mtime)
         return io.BytesIO(b"x")
@@ -327,7 +347,7 @@ def test_a_killed_downloader_does_not_block_others(tmp_path, monkeypatch):
     )
     victim = _spawn(tmp_path, START, 600)
     (tmp_path / "go").touch()
-    lock = tmp_path / "met" / ".20240718_00-05_hrrr.lock"
+    lock = tmp_path / "met" / ".20240718_00-05_hrrr.lock.1"
     deadline = time.monotonic() + 120
     while not lock.exists():
         assert time.monotonic() < deadline
@@ -347,11 +367,12 @@ def test_a_killed_downloader_does_not_block_others(tmp_path, monkeypatch):
 
 # -- callers finding one stale lock together --------------------------------
 
-TRIALS = 12
+TRIALS = 20
 CALLERS = 8
+STALE = 5.0
 
 
-def _stale_race_worker(barrier, folders: list[str], calls: str) -> None:
+def _stale_race_worker(barrier, rank: int, folders: list[str], calls: str) -> None:
     """Fetch the same file in each folder, released together by *barrier*."""
     import uuid
 
@@ -362,7 +383,19 @@ def _stale_race_worker(barrier, folders: list[str], calls: str) -> None:
 
     sys.modules["fsspec"] = types.SimpleNamespace(open=fake_open)
     archives._FETCH_LOCK_POLL = 0.05
-    for folder in folders:
+    archives._FETCH_LOCK_STALE = STALE
+    remove = archives._remove
+
+    def slow_remove(path):  # widen any window between a look and a delete
+        time.sleep(random.random() * 0.05)
+        remove(path)
+
+    archives._remove = slow_remove
+    for i, folder in enumerate(folders):
+        if rank == 0:
+            # Even trials: long stale. Odd: turns stale 0.3 s after the start, so
+            # callers meet it fresh and then stale, while others take it over.
+            _old_lock(Path(folder), age=600 if i % 2 == 0 else STALE - 0.3)
         barrier.wait(timeout=120)
         HRRRArchive().fetch(START, START, dest_dir=folder)
 
@@ -376,13 +409,14 @@ def test_callers_finding_a_stale_lock_together_download_once(tmp_path):
     for i in range(TRIALS):
         met = tmp_path / f"met{i}"
         met.mkdir()
-        _old_lock(met, age=600)
         folders.append(str(met))
     calls = tmp_path / "calls"
     calls.mkdir()
     procs = [
-        ctx.Process(target=_stale_race_worker, args=(barrier, folders, str(calls)))
-        for _ in range(CALLERS)
+        ctx.Process(
+            target=_stale_race_worker, args=(barrier, rank, folders, str(calls))
+        )
+        for rank in range(CALLERS)
     ]
     for p in procs:
         p.start()
@@ -396,16 +430,36 @@ def test_callers_finding_a_stale_lock_together_download_once(tmp_path):
     assert len(list(calls.iterdir())) == TRIALS
 
 
-def test_a_break_file_left_by_a_killed_caller_is_removed(
-    tmp_path, opened, fast_locks, monkeypatch
+def test_leftover_lock_files_are_cleaned_by_the_next_finished_download(
+    tmp_path, opened, fast_locks
 ):
-    monkeypatch.setattr(archives, "_FETCH_LOCK_STALE", 30.0)
-    lock = _old_lock(tmp_path, age=3600)
-    breaker = lock.with_name(lock.name + ".break")
-    breaker.touch()
-    os.utime(breaker, (time.time() - 3600,) * 2)
+    # A killed holder, then a taker killed in turn: two stale generations.
+    _old_lock(tmp_path, age=3600)
+    two = tmp_path / ".20240718_00-05_hrrr.lock.2"
+    two.write_text("host gone, process 2\n")
+    os.utime(two, (time.time() - 3600,) * 2)
 
     HRRRArchive().fetch(START, START, dest_dir=tmp_path)
 
     assert len(opened) == 1
     assert _visible(tmp_path) == ["20240718_00-05_hrrr"]
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32" or (hasattr(os, "geteuid") and os.geteuid() == 0),
+    reason="needs a folder this user cannot write",
+)
+@pytest.mark.parametrize("windows", [False, True])
+def test_an_unwritable_folder_raises_promptly(tmp_path, opened, monkeypatch, windows):
+    monkeypatch.setattr(archives, "_WINDOWS", windows)
+    folder = tmp_path / "met"
+    folder.mkdir()
+    folder.chmod(0o500)
+    try:
+        start = time.monotonic()
+        with pytest.raises(PermissionError):
+            HRRRArchive().fetch(START, START, dest_dir=folder)
+        assert time.monotonic() - start < 10
+    finally:
+        folder.chmod(0o700)
+    assert opened == []

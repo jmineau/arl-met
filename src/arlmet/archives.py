@@ -302,6 +302,7 @@ _FETCH_LOCK_BEAT = 15.0
 _FETCH_LOCK_STALE = 300.0
 _FETCH_LOCK_WAIT = 4 * 3600.0
 _FETCH_LOCK_POLL = 2.0
+_WINDOWS = os.name == "nt"
 
 
 def _keep_fresh(lock: Path, done: threading.Event) -> None:
@@ -319,76 +320,36 @@ def _lock_age(lock: Path) -> float:
         return math.inf
 
 
-def _raise_unless_taken(error: OSError) -> None:
-    """
-    Re-raise *error* unless it says the lock file is already taken.
-
-    That is ``FileExistsError`` everywhere, and on Windows also
-    ``PermissionError``, which creating a file whose deletion is still pending
-    raises instead.
-    """
-    if not isinstance(error, FileExistsError) and os.name != "nt":
-        raise error
-
-
 def _remove(path: Path) -> None:
     """
-    Remove *path* if it exists.
+    Remove *path* if it exists, as well as it can be done.
 
     Windows refuses to delete a file another process has open, and the other
-    callers do look at these files (a ``stat`` is enough), so there the delete
-    is tried again for a second; what stays is dealt with as a stale lock.
+    callers do look at lock files (a ``stat`` is enough), so there the delete is
+    tried again for a second. A lock file that stays is harmless (see
+    :func:`_fetch_lock`).
     """
-    for _ in range(20):
+    for _ in range(20 if _WINDOWS else 1):
         try:
             path.unlink(missing_ok=True)
         except PermissionError:
-            if os.name != "nt":
+            if not _WINDOWS:
                 raise
             time.sleep(0.05)
         else:
             return
 
 
-def _break_stale_lock(lock: Path) -> None:
-    """
-    Remove *lock* if it is still stale, letting one caller at a time decide.
-
-    Judging a lock stale and removing it are two steps, and between them
-    another caller may have removed it and made a fresh one, which a plain
-    remove would then delete. So the remove happens under a second lock, the
-    hidden ``<lock name>.break`` file (``O_EXCL`` like the lock), and the
-    lock's age is looked at again under it. A caller that cannot make the break
-    file does nothing: whoever holds it is breaking this lock. A break file
-    older than the stale limit is itself left by a killed caller and is removed.
-    """
-    breaker = lock.with_name(f"{lock.name}.break")
-    try:
-        os.close(os.open(breaker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666))
-    except (FileExistsError, PermissionError) as exc:
-        _raise_unless_taken(exc)
-        if _lock_age(breaker) > _FETCH_LOCK_STALE:
-            _remove(breaker)
-        else:
-            time.sleep(_FETCH_LOCK_POLL)
-        return
-    try:
-        # Only a lock that is there and stale: one that went meanwhile may be
-        # replaced by a fresh one at any moment, which must not be removed.
-        if _FETCH_LOCK_STALE < _lock_age(lock) < math.inf:
-            logger.warning("Taking over the stale lock %s", lock.name)
-            _remove(lock)
-    finally:
-        _remove(breaker)
-
-
-def _release(lock: Path, owner: str) -> None:
-    """Remove *lock* unless it was taken over, so it no longer holds *owner*."""
-    try:
-        if lock.read_text(encoding="utf-8") == owner:
-            _remove(lock)
-    except FileNotFoundError:
-        pass
+def _generations(dest: Path) -> list[tuple[int, Path]]:
+    """Return the lock files of *dest* as ``(generation, path)``, lowest first."""
+    prefix = f".{dest.name}.lock."
+    found = []
+    with os.scandir(dest.parent) as entries:
+        for entry in entries:
+            number = entry.name[len(prefix) :]
+            if entry.name.startswith(prefix) and number.isdigit():
+                found.append((int(number), Path(entry.path)))
+    return sorted(found)
 
 
 @contextmanager
@@ -396,54 +357,89 @@ def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
     """
     Yield whether this caller must download *dest*, serializing callers per file.
 
-    The lock is the hidden file ``.<name>.lock`` next to *dest*, made with
-    ``O_CREAT | O_EXCL``, which is atomic on NFS and Lustre as well as local
-    disks. The caller that makes it downloads (yields ``True``) while a thread
-    touches the file. The others poll the lock, not *dest*, which Windows would
-    not let the downloader replace while it is being looked at. When the lock
-    goes they make it themselves: they find *dest* there (yield ``False``,
-    unless ``overwrite``), or, after a failed download, not (they download).
-    The lock is removed on the way out, also after an error or
-    ``KeyboardInterrupt``. A lock that is stale or waited on too long is dealt
-    with as below.
+    The lock is a numbered generation of hidden files next to *dest*,
+    ``.<name>.lock.<n>``, and the highest number is the live one. A caller
+    takes the lock by creating generation ``n + 1`` with ``O_CREAT | O_EXCL``
+    (atomic on NFS and Lustre as well as local disks), where ``n`` is the
+    highest generation it sees (none: 1). Exactly one caller can create a given
+    generation, so exactly one takes the lock; the others see it and wait,
+    polling until the live generation is gone (the download finished) or stale.
 
-    Exactly one caller takes over a stale lock (:func:`_break_stale_lock`). The
-    lock still only saves duplicate work: *dest* is published by an atomic
-    rename, so a caller that gave up waiting, or a holder paused longer than the
-    stale limit, costs a second download and never a bad file.
+    The holder touches its own file every few seconds. A live generation
+    untouched for the stale limit belongs to a holder that died, and the
+    waiters race to create the next generation: one wins, whichever generation
+    each saw. Nobody ever deletes another caller's lock file, so no step can
+    remove a fresh lock that replaced a stale one.
+
+    A holder that finishes removes its generation and the lower ones; the file
+    then exists and later callers use it without taking a lock. A holder that
+    fails or is interrupted keeps its file but sets its time to 1970, so the
+    next caller takes over at once; keeping it keeps the numbers rising (a
+    deleted top generation could be created again beside a live one). Such a
+    file, or one left by a killed holder, is harmless and is removed by the next
+    download that finishes. A caller that has waited too long downloads without
+    a lock.
+
+    The lock only saves duplicate work: *dest* is published by an atomic
+    rename, so a holder paused past the stale limit, a caller that gave up
+    waiting, or two ``overwrite`` callers after a finished download cost a
+    second download and never a bad file.
     """
-    lock = dest.with_name(f".{dest.name}.lock")
-    owner = f"host {socket.gethostname()}, process {os.getpid()}, {uuid.uuid4().hex}\n"
     give_up = time.monotonic() + _FETCH_LOCK_WAIT
+    denied = 0
     while True:
-        try:
-            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)
-            break
-        except (FileExistsError, PermissionError) as exc:
-            _raise_unless_taken(exc)
-        age = _lock_age(lock)
-        if age == math.inf:
-            continue  # the holder just finished or failed: look again
-        if age > _FETCH_LOCK_STALE:
-            _break_stale_lock(lock)
-        elif time.monotonic() > give_up:
-            logger.warning("Gave up waiting for %s; downloading it here", lock.name)
+        if time.monotonic() > give_up:
+            logger.warning("Gave up waiting for %s; downloading it here", dest.name)
             yield True
             return
-        else:
-            time.sleep(_FETCH_LOCK_POLL)
+        live = _generations(dest)
+        if live:
+            age = _lock_age(live[-1][1])
+            if age == math.inf:
+                continue  # it was just removed: look again
+            if age <= _FETCH_LOCK_STALE:
+                time.sleep(_FETCH_LOCK_POLL)
+                continue
+        if not overwrite and dest.exists():
+            yield False
+            return
+        generation = live[-1][0] + 1 if live else 1
+        mine = dest.with_name(f".{dest.name}.lock.{generation}")
+        try:
+            fd = os.open(mine, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)
+        except FileExistsError:
+            continue  # another caller took this generation
+        except PermissionError:
+            # An unwritable folder, as on POSIX. Windows also says this for a
+            # name whose deletion is still pending: try a few times.
+            denied += 1
+            if not _WINDOWS or denied > 20:
+                raise
+            time.sleep(0.05)
+            continue
+        break
+    if live:
+        logger.warning("Took over the stale lock %s", live[-1][1].name)
     with os.fdopen(fd, "w", encoding="utf-8") as f:
-        f.write(owner)
+        f.write(f"host {socket.gethostname()}, process {os.getpid()}\n")
     done = threading.Event()
-    beat = threading.Thread(target=_keep_fresh, args=(lock, done), daemon=True)
+    beat = threading.Thread(target=_keep_fresh, args=(mine, done), daemon=True)
     beat.start()
+    finished = False
     try:
         # Another caller may have finished between our first look and the lock.
         yield overwrite or not dest.exists()
+        finished = True
     finally:
         done.set()
         beat.join()
-        _release(lock, owner)
+        if finished:
+            for number, path in _generations(dest):
+                if number <= generation:
+                    _remove(path)
+        else:
+            with suppress(OSError):
+                os.utime(mine, (0, 0))
 
 
 def _utc_naive(value: pd.Timestamp | str) -> pd.Timestamp:
@@ -743,11 +739,13 @@ class Archive(ABC):
 
         Concurrent calls (threads, processes, or jobs on other nodes sharing
         *dest_dir*) download each file once: the first creates a hidden
-        ``.<name>.lock`` file, which it keeps touching while it works, and the
+        ``.<name>.lock.1`` file, which it keeps touching while it works, and the
         others wait for the finished file. A lock untouched for five minutes
-        (its holder was killed) is taken over, and a caller that has waited
-        four hours downloads the file itself. With ``overwrite=True`` a
-        caller waits for any download in progress, then downloads again.
+        (its holder was killed) is taken over by exactly one waiter, which
+        creates ``.<name>.lock.2``; no caller deletes another's lock. A caller
+        that has waited four hours downloads the file itself. With
+        ``overwrite=True`` a caller waits for any download in progress, then
+        downloads again.
 
         Examples
         --------
