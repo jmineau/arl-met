@@ -22,6 +22,11 @@ __all__ = ["Projection", "Grid", "GridWindow"]
 _Coord = tuple[tuple[str, ...], npt.NDArray[Any]]
 
 
+#: The most points a projected bbox's edge is sampled at (``Grid.window_from_bbox``).
+#: Half a cell apart, a 360-degree edge on HRRR's 3 km grid needs about 26,000.
+_OUTLINE_MAX_POINTS = 100_000
+
+
 def wrap_lons(lons: npt.NDArray[Any]) -> npt.NDArray[Any]:
     """
     Wrap longitude values to -180 to 180 degree range.
@@ -661,6 +666,28 @@ class Grid:
         """
         Resolve a geographic bounding box to grid indices.
 
+        On a lat/lon grid the window holds the cells whose centers lie inside
+        the box, edges included, as HYSPLIT's ``xtrct_grid`` crops.
+
+        On a projected grid the window is the smallest rectangle of cells
+        that holds every point of the box that lies on the grid (in one of its
+        cells). Its edges come from the box's outline, sampled at most half a
+        cell apart on the grid, where it lies on the grid or crosses the grid's
+        border, and from the grid's own corners that lie inside the box; the
+        lowest and highest index on each axis is rounded to the nearest cell,
+        like Fortran ``NINT``. Parallels and meridians curve on these grids, so
+        an extreme is often the box's south-east or north-west corner, or a
+        point partway along an edge. Points off the grid do not widen the
+        window, so a box that reaches past the grid, across the meridian
+        opposite the projection's center or to a pole the projection cannot
+        map, gives the cells of its part on the grid (all of them, for a box
+        that holds the whole grid). ``xtrct_grid`` uses only the south-west and
+        north-east corners, on or off the grid, so its crop can leave out part
+        of the box; for a box inside the grid this window holds that crop and
+        can be a few cells larger.
+
+        Raises ``ValueError`` when no point of the box lies on the grid.
+
         Parameters
         ----------
         bbox : tuple[float, float, float, float]
@@ -677,43 +704,20 @@ class Grid:
                     "Projected-grid bboxes must not cross the dateline (west <= east)."
                 )
 
-            x_sw, y_sw = self.fractional_indices(west, south)
-            x_ne, y_ne = self.fractional_indices(east, north)
+            x, y = self._bbox_points_on_grid(west, south, east, north)
+            if x.size == 0:
+                raise ValueError("bbox does not intersect the grid.")
 
             def nint(value: float) -> int:
-                """Round like Fortran NINT for HYSPLIT-compatible window bounds."""
-                if value >= 0.0:
-                    return int(np.floor(value + 0.5))
-                return int(np.ceil(value - 0.5))
+                """Round like Fortran NINT (the 1-based values here are >= 0.5)."""
+                return int(np.floor(value + 0.5))
 
-            x1 = (nint(float(x_sw) + 1.0), nint(float(x_ne) + 1.0))
-            y1 = (nint(float(y_sw) + 1.0), nint(float(y_ne) + 1.0))
-            xmin_1based = min(x1)
-            xmax_1based = max(x1)
-            ymin_1based = min(y1)
-            ymax_1based = max(y1)
-
-            if (
-                xmax_1based < 1
-                or xmin_1based > self.nx
-                or ymax_1based < 1
-                or ymin_1based > self.ny
-            ):
-                raise ValueError("bbox does not intersect the grid.")
-
-            x_start = max(0, xmin_1based - 1)
-            x_stop = min(self.nx, xmax_1based)
-            y_start = max(0, ymin_1based - 1)
-            y_stop = min(self.ny, ymax_1based)
-
-            if x_stop <= x_start or y_stop <= y_start:
-                raise ValueError("bbox does not intersect the grid.")
-
+            # Every point lies in [-0.5, n - 0.5], so the window is on the grid.
             return GridWindow(
-                x_start=x_start,
-                x_stop=x_stop,
-                y_start=y_start,
-                y_stop=y_stop,
+                x_start=max(0, nint(float(x.min()) + 1.0) - 1),
+                x_stop=min(self.nx, nint(float(x.max()) + 1.0)),
+                y_start=max(0, nint(float(y.min()) + 1.0) - 1),
+                y_stop=min(self.ny, nint(float(y.max()) + 1.0)),
             )
 
         # Lat/lon grids only reach here, so lon/lat are 1-D.
@@ -759,6 +763,118 @@ class Grid:
             y_start=int(y_idx.min()),
             y_stop=int(y_idx.max()) + 1,
         )
+
+    def _lonlat_at(
+        self, x: npt.NDArray[Any], y: npt.NDArray[Any]
+    ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+        """Longitude and latitude of fractional grid indices (projected grids)."""
+        transformer = pyproj.Transformer.from_crs(self.crs, "EPSG:4326", always_xy=True)
+        step = self.projection.grid_size * 1000.0
+        lon, lat = transformer.transform(np.asarray(x) * step, np.asarray(y) * step)
+        return np.asarray(lon, dtype=float), np.asarray(lat, dtype=float)
+
+    @cached_property
+    def _outline_spacing(self) -> tuple[float, float]:
+        """
+        Degrees of longitude and of latitude that move a point at most half a cell.
+
+        The rates (cells per degree) are measured at the grid's border nodes:
+        on a Lambert, polar stereographic or Mercator grid the scale grows
+        away from the standard parallel or the pole, so its largest value on
+        the grid is on the border.
+        """
+        i = np.arange(self.nx, dtype=float)
+        j = np.arange(self.ny, dtype=float)
+        lon, lat = self._lonlat_at(
+            np.concatenate([i, i, np.zeros(self.ny), np.full(self.ny, self.nx - 1.0)]),
+            np.concatenate([np.zeros(self.nx), np.full(self.nx, self.ny - 1.0), j, j]),
+        )
+        d = 1e-3
+        lat_lo, lat_hi = np.maximum(lat - d, -90.0), np.minimum(lat + d, 90.0)
+
+        Arr = npt.NDArray[Any]
+
+        def half_cell(lon0: Arr, lat0: Arr, lon1: Arr, lat1: Arr, span: Any) -> float:
+            """Degrees that move at most half a cell, from the largest rate."""
+            x0, y0 = self.fractional_indices(lon0, lat0)
+            x1, y1 = self.fractional_indices(lon1, lat1)
+            with np.errstate(invalid="ignore"):
+                rate = np.hypot(x1 - x0, y1 - y0) / span
+            rate = rate[np.isfinite(rate)]
+            return 0.5 / float(rate.max()) if rate.size and rate.max() > 0 else 0.1
+
+        return (
+            half_cell(lon - d, lat, lon + d, lat, 2 * d),
+            half_cell(lon, lat_lo, lon, lat_hi, lat_hi - lat_lo),
+        )
+
+    def _bbox_points_on_grid(
+        self, west: float, south: float, east: float, north: float
+    ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+        """
+        Fractional indices that bound the part of a lon/lat box on a projected grid.
+
+        The grid's cells span ``[-0.5, n - 0.5]`` on each axis. Returned: the
+        points of the box's outline inside the cells, where each outline
+        segment enters and leaves them, and the cells' corners that lie inside
+        the box; empty when no point of the box is on the grid. The outline is
+        sampled at ``_outline_spacing`` (at most ``_OUTLINE_MAX_POINTS`` per
+        edge). A segment longer than two cells jumps across the projection's
+        cut or past a point it cannot map, so it is not followed across the
+        grid; its ends still count.
+        """
+        dlon, dlat = self._outline_spacing
+        edges = (
+            (west, south, east, south, dlon),
+            (east, south, east, north, dlat),
+            (east, north, west, north, dlon),
+            (west, north, west, south, dlat),
+        )
+        lons: list[npt.NDArray[Any]] = []
+        lats: list[npt.NDArray[Any]] = []
+        for lon0, lat0, lon1, lat1, spacing in edges:
+            span = max(abs(lon1 - lon0), abs(lat1 - lat0))
+            n = min(_OUTLINE_MAX_POINTS, max(2, math.ceil(span / spacing) + 1))
+            lons.append(np.linspace(lon0, lon1, n))
+            lats.append(np.linspace(lat0, lat1, n))
+        x, y = self.fractional_indices(np.concatenate(lons), np.concatenate(lats))
+
+        lo, x_hi, y_hi = -0.5, self.nx - 0.5, self.ny - 0.5
+        finite = np.isfinite(x) & np.isfinite(y)
+        on = finite & (x >= lo) & (x <= x_hi) & (y >= lo) & (y <= y_hi)
+        xs, ys = [x[on]], [y[on]]
+
+        # Where each segment enters and leaves the cells (Liang-Barsky clipping).
+        # Points the projection cannot map are dropped first (inf - inf).
+        x, y = np.where(finite, x, 0.0), np.where(finite, y, 0.0)
+        x0, y0, dx, dy = x[:-1], y[:-1], np.diff(x), np.diff(y)
+        keep = finite[:-1] & finite[1:] & (np.hypot(dx, dy) <= 2.0)
+        t0, t1 = np.zeros(dx.size), np.ones(dx.size)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            for p, q in (
+                (-dx, x0 - lo),
+                (dx, x_hi - x0),
+                (-dy, y0 - lo),
+                (dy, y_hi - y0),
+            ):
+                keep &= (p != 0) | (q >= 0)
+                r = q / p
+                t0 = np.where(p < 0, np.maximum(t0, r), t0)
+                t1 = np.where(p > 0, np.minimum(t1, r), t1)
+        keep &= t0 <= t1
+        for t in (t0[keep], t1[keep]):
+            xs.append(np.clip(x0[keep] + t * dx[keep], lo, x_hi))
+            ys.append(np.clip(y0[keep] + t * dy[keep], lo, y_hi))
+
+        # The cells' corners inside the box (a box larger than the grid).
+        cx = np.array([lo, x_hi, lo, x_hi])
+        cy = np.array([lo, lo, y_hi, y_hi])
+        clon, clat = self._lonlat_at(cx, cy)
+        inside = (clat >= south) & (clat <= north)
+        inside &= (clon - west) % 360.0 <= east - west
+        xs.append(cx[inside])
+        ys.append(cy[inside])
+        return np.concatenate(xs), np.concatenate(ys)
 
     def subset(self, window: GridWindow) -> "Grid":
         """

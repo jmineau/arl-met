@@ -102,11 +102,15 @@ when it downloads, so it imports without the `archives` extra.
    Without a horizontal crop it does not unpack: `_copy_subset_records` copies
    each record's bytes (DIF records included), renumbers the header's level, and
    rebuilds the index records. Keep both paths writing the same index records.
-4. **Windowing matches HYSPLIT's `xtrct_grid`.** On lat/lon grids a cell is kept
-   when its center is inside the bbox, edges included, `west > east` crosses the
-   dateline, and a window across a global grid's seam has `x_stop > nx`. On projected
-   grids the SW and NE corners are mapped to grid indices and rounded like Fortran
-   `NINT` (reference: `test_grid.py`). A bbox is `(west, south, east, north)` in degrees.
+4. **Windowing.** On lat/lon grids a cell is kept when its center is inside the
+   bbox, edges included, as HYSPLIT's `xtrct_grid`; `west > east` crosses the dateline,
+   and a window across a global grid's seam has `x_stop > nx`. On projected grids the
+   window holds every point of the box that is on the grid: the outline (sampled at a
+   fixed, capped spacing of at most half a cell on the grid, never refined) is kept
+   where it is inside the cells or crosses their border, plus the grid corners in the
+   box, and each axis's extremes are rounded like Fortran `NINT`; a step over two cells
+   is a jump across the projection's cut. `xtrct_grid` uses only the SW and NE corners
+   (reference: `test_grid.py`). A bbox is `(west, south, east, north)` in degrees.
 5. **`write_dataset` handles the common case only:** the flat Dataset that
    `open_dataset` returns, with DIF records written from `attrs["diff"] =
    "DIF..."` on the parent. The `forecast_hour(time)` coordinate is the index
