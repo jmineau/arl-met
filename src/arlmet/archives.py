@@ -49,10 +49,12 @@ import os
 import re
 import shutil
 import socket
+import threading
+import time
 import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator, Mapping
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -290,6 +292,95 @@ def _sync_lock(root: Path) -> Iterator[None]:
         yield
     finally:
         shutil.rmtree(lock, ignore_errors=True)
+
+
+# Per-file lock for ``Archive.fetch``, in seconds. A holder touches its lock file
+# every _BEAT seconds; a lock untouched for _STALE seconds belongs to a holder that
+# died (``kill -9``, a lost node) and is taken over. A caller waits at most _WAIT
+# seconds for another's download, then downloads itself.
+_FETCH_LOCK_BEAT = 15.0
+_FETCH_LOCK_STALE = 300.0
+_FETCH_LOCK_WAIT = 4 * 3600.0
+_FETCH_LOCK_POLL = 2.0
+
+
+def _keep_fresh(lock: Path, done: threading.Event) -> None:
+    """Touch *lock* every beat until *done* is set, so waiters see its holder alive."""
+    while not done.wait(_FETCH_LOCK_BEAT):
+        with suppress(OSError):  # a missed beat is harmless; staleness takes minutes
+            os.utime(lock)
+
+
+def _lock_age(lock: Path) -> float:
+    """Return seconds since *lock* was last touched; infinite if it is gone."""
+    try:
+        return time.time() - lock.stat().st_mtime
+    except FileNotFoundError:
+        return math.inf
+
+
+@contextmanager
+def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
+    """
+    Yield whether this caller must download *dest*, serializing callers per file.
+
+    The lock is the hidden file ``.<name>.lock`` next to *dest*, made with
+    ``O_CREAT | O_EXCL``, which is atomic on NFS and Lustre as well as local
+    disks. The caller that makes it downloads (yields ``True``) while a thread
+    touches the file; the others poll until *dest* appears (yield ``False``,
+    unless ``overwrite``), until the lock goes (a failed download: they try to
+    take it), or until it is stale or the wait runs out. The lock is removed
+    on the way out, also after an error or ``KeyboardInterrupt``.
+
+    The lock only saves duplicate work: *dest* is still published by an atomic
+    rename, so the rare race (two callers both taking over one stale lock, or a
+    caller that gave up waiting) costs a second download and never a bad file.
+    """
+    lock = dest.with_name(f".{dest.name}.lock")
+    owner = f"host {socket.gethostname()}, process {os.getpid()}, {uuid.uuid4().hex}\n"
+    give_up = time.monotonic() + _FETCH_LOCK_WAIT
+    while True:
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)
+            break
+        except FileExistsError:
+            pass
+        if not overwrite and dest.exists():
+            yield False
+            return
+        age = _lock_age(lock)
+        if age == math.inf:
+            continue  # the holder just finished or failed: look again
+        if age > _FETCH_LOCK_STALE:
+            logger.warning("Taking over the stale lock %s", lock.name)
+            grave = lock.with_name(f"{lock.name}.{uuid.uuid4().hex[:8]}.stale")
+            try:
+                os.rename(lock, grave)  # of racing callers, only one succeeds
+                grave.unlink(missing_ok=True)
+            except FileNotFoundError:
+                pass
+        elif time.monotonic() > give_up:
+            logger.warning("Gave up waiting for %s; downloading it here", lock.name)
+            yield True
+            return
+        else:
+            time.sleep(_FETCH_LOCK_POLL)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(owner)
+    done = threading.Event()
+    beat = threading.Thread(target=_keep_fresh, args=(lock, done), daemon=True)
+    beat.start()
+    try:
+        # Another caller may have finished between our first look and the lock.
+        yield overwrite or not dest.exists()
+    finally:
+        done.set()
+        beat.join()
+        try:
+            if lock.read_text(encoding="utf-8") == owner:  # not one taken over
+                lock.unlink()
+        except FileNotFoundError:
+            pass
 
 
 def _utc_naive(value: pd.Timestamp | str) -> pd.Timestamp:
@@ -587,6 +678,14 @@ class Archive(ABC):
         would reuse. When cropping, the full download is also staged in
         *dest_dir* (not the system temp directory) and removed afterwards.
 
+        Concurrent calls (threads, processes, or jobs on other nodes sharing
+        *dest_dir*) download each file once: the first creates a hidden
+        ``.<name>.lock`` file, which it keeps touching while it works, and the
+        others wait for the finished file. A lock untouched for five minutes
+        (its holder was killed) is taken over, and a caller that has waited
+        four hours downloads the file itself. With ``overwrite=True`` a
+        caller waits for any download in progress, then downloads again.
+
         Examples
         --------
         >>> from arlmet.archives import HRRRArchive
@@ -617,14 +716,18 @@ class Archive(ABC):
                 results.append(dest)
                 continue
 
-            url = self._url(archive_path, mirror)
-            opts = self._storage_options(mirror)
-            logger.info("Fetching %s → %s", url, dest.name)
+            with _fetch_lock(dest, overwrite=overwrite) as download:
+                if download:
+                    url = self._url(archive_path, mirror)
+                    opts = self._storage_options(mirror)
+                    logger.info("Fetching %s → %s", url, dest.name)
 
-            if bbox is not None or keep is not None:
-                self._fetch_and_crop(url, dest, opts, bbox=bbox, levels=keep)
-            else:
-                self._download(url, dest, opts)
+                    if bbox is not None or keep is not None:
+                        self._fetch_and_crop(url, dest, opts, bbox=bbox, levels=keep)
+                    else:
+                        self._download(url, dest, opts)
+                else:
+                    logger.debug("Using %s fetched by another caller", dest.name)
 
             results.append(dest)
 

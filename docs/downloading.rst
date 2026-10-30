@@ -180,6 +180,20 @@ renamed into place only once complete, so an interrupted fetch never leaves a
 truncated file that a later call would reuse. A ``.partial`` file left behind
 by a killed process is never used and can be deleted.
 
+Several callers can fetch into one folder at once: threads, processes such as
+PYSTILT's workers, or jobs on other nodes that share the folder. Each file is
+downloaded once. The first caller to reach a file creates a hidden
+``.<name>.lock`` file beside it and keeps touching it while it downloads; the
+others wait until the finished file appears and use it. The lock is removed
+when the download ends, also after an error or ``Ctrl-C``. If its holder is
+killed without a chance to clean up (``kill -9``, a lost node), nobody waits
+forever: a lock untouched for five minutes is taken over, and a caller that has
+waited four hours downloads the file itself. With ``overwrite=True`` a caller
+waits for a download in progress, then downloads again. The lock saves
+duplicate work only; a file is always renamed into place whole, so a lost
+race costs a second download and never a damaged file. A ``.lock`` file left
+by a killed process is harmless and can be deleted.
+
 Requesting a time range that begins before an archive's ``start_date`` (the
 start of its archive) raises ``ValueError``.
 
