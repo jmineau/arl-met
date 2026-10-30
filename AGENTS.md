@@ -128,6 +128,9 @@ when it downloads, so it imports without the `archives` extra.
 9. **Outputs appear only when complete.** `extract_subset`, `write_dataset`, `concat`
    and archive downloads write a hidden `.partial` file and rename it on success
    (`_io.atomic_output`), and the first three refuse an output that is their input.
+   `Archive.fetch` also takes a numbered hidden lock `.<name>.lock.<n>` per file (highest `n` is
+   live; created `O_EXCL`; the holder's thread touches it; a takeover creates `n + 1`; nobody deletes
+   another caller's lock), so concurrent callers download once; the lock saves work only.
 10. **Metadata types are immutable values**: `Projection`, `Grid`, `GridWindow`,
     `Header` and `IndexRecord` are frozen dataclasses, and `VerticalAxis` blocks
     assignment and keeps `levels` read-only. Hashing and `cached_property`

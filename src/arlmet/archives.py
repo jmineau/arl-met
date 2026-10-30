@@ -49,10 +49,12 @@ import os
 import re
 import shutil
 import socket
+import threading
+import time
 import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator, Mapping
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -290,6 +292,171 @@ def _sync_lock(root: Path) -> Iterator[None]:
         yield
     finally:
         shutil.rmtree(lock, ignore_errors=True)
+
+
+# Per-file lock for ``Archive.fetch``, in seconds. A holder touches its lock file
+# every _BEAT seconds; a lock untouched for _STALE seconds belongs to a holder that
+# died (``kill -9``, a lost node) and is taken over. A caller waits at most _WAIT
+# seconds for another's download, then downloads itself.
+_FETCH_LOCK_BEAT = 15.0
+_FETCH_LOCK_STALE = 300.0
+_FETCH_LOCK_WAIT = 4 * 3600.0
+_FETCH_LOCK_POLL = 2.0
+_WINDOWS = os.name == "nt"
+_RELEASED = 365 * 86400.0  # a lock this old (1970) was released by a failed holder
+
+
+def _keep_fresh(lock: Path, done: threading.Event) -> None:
+    """Touch *lock* every beat until *done* is set, so waiters see its holder alive."""
+    while not done.wait(_FETCH_LOCK_BEAT):
+        with suppress(OSError):  # a missed beat is harmless; staleness takes minutes
+            os.utime(lock)
+
+
+def _lock_age(lock: Path) -> float:
+    """Return seconds since *lock* was last touched; infinite if it is gone."""
+    try:
+        return time.time() - lock.stat().st_mtime
+    except FileNotFoundError:
+        return math.inf
+
+
+def _remove(path: Path) -> None:
+    """
+    Remove *path* if it exists, as well as it can be done.
+
+    Windows refuses to delete a file another process has open, and the other
+    callers do look at lock files (a ``stat`` is enough), so there the delete is
+    tried again for a second. A lock file that stays is harmless (see
+    :func:`_fetch_lock`).
+    """
+    for _ in range(20 if _WINDOWS else 1):
+        try:
+            path.unlink(missing_ok=True)
+        except PermissionError:
+            if not _WINDOWS:
+                raise
+            time.sleep(0.05)
+        else:
+            return
+
+
+def _generations(dest: Path) -> list[tuple[int, Path]]:
+    """Return the lock files of *dest* as ``(generation, path)``, lowest first."""
+    prefix = f".{dest.name}.lock."
+    found = []
+    with os.scandir(dest.parent) as entries:
+        for entry in entries:
+            number = entry.name[len(prefix) :]
+            if entry.name.startswith(prefix) and number.isdigit():
+                found.append((int(number), Path(entry.path)))
+    return sorted(found)
+
+
+@contextmanager
+def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
+    """
+    Yield whether this caller must download *dest*, serializing callers per file.
+
+    The lock is a numbered generation of hidden files next to *dest*,
+    ``.<name>.lock.<n>``, and the highest number is the live one. A caller
+    takes the lock by creating generation ``n + 1`` with ``O_CREAT | O_EXCL``
+    (atomic on NFS and Lustre as well as local disks), where ``n`` is the
+    highest generation it sees (none: 1). Exactly one caller can create a given
+    generation, so exactly one takes the lock; the others see it and wait,
+    polling until the live generation is gone (the download finished) or stale.
+
+    The holder touches its own file every few seconds. A live generation
+    untouched for the stale limit belongs to a holder that died, and the
+    waiters race to create the next generation: one wins, whichever generation
+    each saw. A caller removes only generations below its own (superseded) and,
+    once its download has finished, its own; the live generation is never
+    removed by another caller.
+
+    Generation numbers do not repeat within a download. With no lock file the
+    first is 1, or, for an ``overwrite`` caller whose *dest* is already there,
+    the whole seconds of *dest*'s modification time (every such caller reads
+    the same one, so the create still has one winner). That is above every
+    number of the earlier cycle, which started from 1 or an older time and added
+    one per five minutes. So a holder paused through a whole cycle cleans up
+    only names that are its own or older, never a newer caller's.
+
+    A holder that fails or is interrupted keeps its file but sets its time to
+    1970, so the next caller takes over at once, and removes the generations
+    below it, so failing calls leave one file between them. A finished download
+    removes the rest. A file left by a killed holder is likewise harmless. A
+    caller that has waited too long downloads without a lock.
+
+    The lock only saves duplicate work: *dest* is published by an atomic
+    rename, so a holder paused past the stale limit, a caller that gave up
+    waiting, or two ``overwrite`` callers after a finished download cost a
+    second download and never a bad file.
+    """
+    give_up = time.monotonic() + _FETCH_LOCK_WAIT
+    denied = 0
+    age = 0.0
+    while True:
+        if time.monotonic() > give_up:
+            logger.warning("Gave up waiting for %s; downloading it here", dest.name)
+            yield True
+            return
+        live = _generations(dest)
+        if live:
+            age = _lock_age(live[-1][1])
+            if age == math.inf:
+                continue  # it was just removed: look again
+            if age <= _FETCH_LOCK_STALE:
+                time.sleep(_FETCH_LOCK_POLL)
+                continue
+        if not overwrite and dest.exists():
+            yield False
+            return
+        if live:
+            generation = live[-1][0] + 1
+        else:
+            try:
+                generation = int(dest.stat().st_mtime)  # only for ``overwrite``
+            except FileNotFoundError:
+                generation = 1
+        mine = dest.with_name(f".{dest.name}.lock.{generation}")
+        try:
+            fd = os.open(mine, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)
+        except FileExistsError:
+            continue  # another caller took this generation
+        except PermissionError:
+            # An unwritable folder, as on POSIX. Windows also says this for a
+            # name whose deletion is still pending: try a few times.
+            denied += 1
+            if not _WINDOWS or denied > 20:
+                raise
+            time.sleep(0.05)
+            continue
+        break
+    if live and age < _RELEASED:
+        logger.warning("Took over the stale lock %s", live[-1][1].name)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(f"host {socket.gethostname()}, process {os.getpid()}\n")
+    done = threading.Event()
+    beat = threading.Thread(target=_keep_fresh, args=(mine, done), daemon=True)
+    beat.start()
+    finished = False
+    try:
+        # Another caller may have finished between our first look and the lock.
+        yield overwrite or not dest.exists()
+        finished = True
+    finally:
+        done.set()
+        beat.join()
+        if finished:
+            for number, path in _generations(dest):
+                if number <= generation:
+                    _remove(path)
+        else:
+            for number, path in _generations(dest):
+                if number < generation:
+                    _remove(path)
+            with suppress(OSError):
+                os.utime(mine, (0, 0))
 
 
 def _utc_naive(value: pd.Timestamp | str) -> pd.Timestamp:
@@ -587,6 +754,16 @@ class Archive(ABC):
         would reuse. When cropping, the full download is also staged in
         *dest_dir* (not the system temp directory) and removed afterwards.
 
+        Concurrent calls (threads, processes, or jobs on other nodes sharing
+        *dest_dir*) download each file once: the first creates a hidden
+        ``.<name>.lock.1`` file, which it keeps touching while it works, and the
+        others wait for the finished file. A lock untouched for five minutes
+        (its holder was killed) is taken over by exactly one waiter, which
+        creates ``.<name>.lock.2``; no caller deletes another's lock. A caller
+        that has waited four hours downloads the file itself. With
+        ``overwrite=True`` a caller waits for any download in progress, then
+        downloads again.
+
         Examples
         --------
         >>> from arlmet.archives import HRRRArchive
@@ -617,14 +794,18 @@ class Archive(ABC):
                 results.append(dest)
                 continue
 
-            url = self._url(archive_path, mirror)
-            opts = self._storage_options(mirror)
-            logger.info("Fetching %s → %s", url, dest.name)
+            with _fetch_lock(dest, overwrite=overwrite) as download:
+                if download:
+                    url = self._url(archive_path, mirror)
+                    opts = self._storage_options(mirror)
+                    logger.info("Fetching %s → %s", url, dest.name)
 
-            if bbox is not None or keep is not None:
-                self._fetch_and_crop(url, dest, opts, bbox=bbox, levels=keep)
-            else:
-                self._download(url, dest, opts)
+                    if bbox is not None or keep is not None:
+                        self._fetch_and_crop(url, dest, opts, bbox=bbox, levels=keep)
+                    else:
+                        self._download(url, dest, opts)
+                else:
+                    logger.debug("Using %s fetched by another caller", dest.name)
 
             results.append(dest)
 
