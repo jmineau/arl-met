@@ -562,6 +562,91 @@ class TestGrid:
         with pytest.raises(ValueError, match="both ends"):
             grid.window_from_bbox((-80, 0, 110, 10))
 
+    @staticmethod
+    def _latlon_grid(sync_lat, sync_lon, spacing, nx, ny) -> Grid:
+        """A lat/lon grid from its first cell, as HYSPLIT writes one."""
+        return Grid(
+            projection=Projection(
+                pole_lat=sync_lat + (ny - 1) * spacing,
+                pole_lon=sync_lon + (nx - 1) * spacing,
+                tangent_lat=spacing,
+                tangent_lon=spacing,
+                grid_size=0.0,
+                orientation=0.0,
+                cone_angle=0.0,
+                sync_x=1.0,
+                sync_y=1.0,
+                sync_lat=sync_lat,
+                sync_lon=sync_lon,
+            ),
+            nx=nx,
+            ny=ny,
+        )
+
+    @pytest.mark.parametrize("sync_lon", [0.0, -180.0], ids=["from_0E", "from_180W"])
+    @pytest.mark.parametrize(
+        ("bbox", "west", "n_cols"),
+        [
+            # an east edge at 180 keeps the 180 column, a west edge at -180 too (#135)
+            ((170, 0, 180, 10), 170.0, 41),
+            ((-180, 0, -170, 10), 180.0, 41),
+            ((179.75, 0, 180, 10), 179.75, 2),
+            # a box past 180 is wrapped, not cut at 180
+            ((170, 0, 190, 10), 170.0, 81),
+            ((170, 0, -170, 10), 170.0, 81),
+            ((190, 0, 200, 10), 190.0, 41),
+            ((-200, 0, -190, 10), 160.0, 41),
+            ((350, 0, 370, 10), 350.0, 81),
+            ((246, 0, 249, 10), 246.0, 13),
+            # unchanged: a box across 0 E
+            ((-10, 0, 10, 10), 350.0, 81),
+        ],
+    )
+    def test_latlon_bbox_edges_at_and_past_180_on_a_global_grid(
+        self, sync_lon, bbox, west, n_cols
+    ):
+        """GFS 0.25 degree layout: 1440 x 721, from 0 E or from 180 W (#135)."""
+        grid = self._latlon_grid(-90.0, sync_lon, 0.25, 1440, 721)
+        win = grid.window_from_bbox(bbox)
+        assert win.nx == n_cols
+        lons = grid.subset(win).calculate_coords()["lon"][1]
+        assert lons[0] % 360 == pytest.approx(west % 360)
+        np.testing.assert_allclose(np.diff(lons), 0.25)
+
+    @pytest.mark.parametrize("sync_lon", [0.0, -180.0], ids=["from_0E", "from_180W"])
+    def test_latlon_bbox_with_equivalent_longitudes_selects_the_same_columns(
+        self, sync_lon
+    ):
+        grid = self._latlon_grid(-90.0, sync_lon, 0.25, 1440, 721)
+        boxes = [(170, 0, 190, 10), (170, 0, -170, 10), (-190, 0, -170, 10)]
+        windows = {grid.window_from_bbox(box) for box in boxes}
+        assert len(windows) == 1
+        assert (
+            grid.window_from_bbox((190, 0, 200, 10)).nx
+            == grid.window_from_bbox((-170, 0, -160, 10)).nx
+        )
+
+    @pytest.mark.parametrize("sync_lon", [0.0, -180.0], ids=["from_0E", "from_180W"])
+    def test_latlon_bbox_of_all_longitudes_keeps_every_column(self, sync_lon):
+        grid = self._latlon_grid(-90.0, sync_lon, 0.25, 1440, 721)
+        for bbox in [(-180, 0, 180, 10), (0, 0, 360, 10), (-90, 0, 270, 10)]:
+            assert grid.window_from_bbox(bbox).nx == 1440
+
+    def test_latlon_bbox_at_and_past_180_on_a_regional_grid(self):
+        """A grid stored from 160 E to 200 E (81 x 41, half a degree) (#135)."""
+        grid = self._latlon_grid(20.0, 160.0, 0.5, 81, 41)
+        for bbox in [(170, 25, 190, 30), (170, 25, -170, 30), (-190, 25, -170, 30)]:
+            win = grid.window_from_bbox(bbox)
+            assert (win.x_start, win.x_stop) == (20, 61)
+        assert grid.window_from_bbox((170, 25, 180, 30)).nx == 21
+        assert grid.window_from_bbox((-180, 25, -170, 30)).nx == 21
+        assert grid.window_from_bbox((-175, 25, -165, 30)).nx == 21
+
+    def test_latlon_bbox_past_180_outside_a_regional_grid_raises(self):
+        grid = self._latlon_grid(20.0, 160.0, 0.5, 81, 41)
+        with pytest.raises(ValueError, match="does not intersect"):
+            grid.window_from_bbox((-150, 25, -140, 30))
+
     @pytest.mark.parametrize("source", [(0.0, 359.0), (-180.0, 179.0)])
     def test_latlon_subset_of_whole_grid_is_unchanged(self, source):
         grid = self._global_grid(*source)

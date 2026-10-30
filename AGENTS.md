@@ -104,7 +104,8 @@ when it downloads, so it imports without the `archives` extra.
    rebuilds the index records. Keep both paths writing the same index records.
 4. **Windowing matches HYSPLIT's `xtrct_grid`.** On lat/lon grids a cell is kept
    when its center is inside the bbox, edges included, `west > east` crosses the
-   dateline, and a window across a global grid's seam has `x_stop > nx`. On projected
+   dateline, longitudes count modulo 360 (an edge at 180 keeps the 180 column; a box may reach
+   past 180), and a window across a global grid's seam has `x_stop > nx`. On projected
    grids the SW and NE corners are mapped to grid indices and rounded like Fortran
    `NINT` (reference: `test_grid.py`). A bbox is `(west, south, east, north)` in degrees.
 5. **`write_dataset` handles the common case only:** the flat Dataset that

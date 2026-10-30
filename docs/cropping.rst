@@ -99,6 +99,14 @@ crop, but its values east of the seam come from the column after the right one.
 A box with columns at both ends of a lat-lon grid that does not span 360 degrees
 raises ``ValueError``, since no single grid holds them.
 
+On a lat-lon grid longitudes in a ``bbox`` count modulo 360, as in HYSPLIT's
+``xtrct_grid``: 180 and -180 are the same meridian, so an east edge at 180 keeps
+the column at 180 whether the grid writes it as 180 or -180, and a box may reach
+past 180. ``bbox=(170.0, 0.0, 190.0, 10.0)`` and ``(170.0, 0.0, -170.0, 10.0)``
+select the same columns. A box that reaches past the grid's own columns only
+crops to the ones it has (a regional grid from 160 E to 200 E holds
+``(170.0, 25.0, 190.0, 30.0)`` whole).
+
 Keep only the levels and variables you need
 -------------------------------------------
 
