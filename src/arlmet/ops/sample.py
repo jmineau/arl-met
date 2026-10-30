@@ -302,6 +302,11 @@ def _build_horizontal_plan(
             x = np.mod(x, grid.nx)
             x = np.where(x >= grid.nx, 0.0, x)
         else:
+            if grid.is_latlon:
+                # Longitude is measured east of the first column modulo 360, so
+                # one a rounding error west of it is a full turn east (#141).
+                turn = 360.0 / abs(grid.projection.tangent_lon)
+                x = np.where(np.abs(x - turn) <= _EDGE_TOLERANCE, x - turn, x)
             x = snap(x, x_max)
         return x, snap(y, float(grid.ny - 1))
 

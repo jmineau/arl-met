@@ -2390,3 +2390,53 @@ def test_sample_points_projected_just_outside_the_edge_is_nan(tmp_path, name):
             tmp_path / "edge.arl", points, ["T02M"], z_kind="native", method=method
         )
         assert result["T02M"].isna().all()
+
+
+@pytest.mark.parametrize("sync_lon", [12.7, 0.1])
+def test_sample_points_regional_latlon_first_column_at_its_own_lon(tmp_path, sync_lon):
+    """
+    A regional grid's first column at the longitude arl-met reports has values (#141).
+
+    On these 0.1-degree grids ``open_dataset`` reports the first column a
+    rounding error west of the origin (12.699999999999989), which modulo 360
+    is a full turn east.
+    """
+    grid = Grid(
+        projection=Projection(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=0.1,
+            tangent_lon=0.1,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=40.1,
+            sync_lon=sync_lon,
+        ),
+        nx=30,
+        ny=20,
+    )
+    time = pd.Timestamp("2024-01-01 00:00")
+    stored = _write_node_field(tmp_path / "regional.arl", grid, time)
+    ds = arlmet.open_dataset(tmp_path / "regional.arl")
+    lon0 = float(ds["lon"].values[0])
+    assert lon0 < sync_lon  # the case: a rounding error west
+    points = pd.DataFrame(
+        {"lon": lon0, "lat": ds["lat"].values, "z": 0.0, "time": time}
+    )
+    west = pd.DataFrame(
+        {"lon": sync_lon - 1e-3, "lat": ds["lat"].values, "z": 0.0, "time": time}
+    )
+
+    for method in ("linear", "nearest"):
+        result = sample_points(
+            tmp_path / "regional.arl", points, ["T02M"], z_kind="native", method=method
+        )
+        np.testing.assert_allclose(result["T02M"], stored[:, 0], rtol=0, atol=1e-6)
+        # 0.01 cells west of the first column is still off the grid
+        outside = sample_points(
+            tmp_path / "regional.arl", west, ["T02M"], z_kind="native", method=method
+        )
+        assert outside["T02M"].isna().all()
