@@ -666,6 +666,22 @@ class Grid:
         bbox : tuple[float, float, float, float]
             Bounding box as ``(west, south, east, north)`` in degrees.
             If ``west > east``, the box is assumed to cross the dateline.
+
+        Notes
+        -----
+        On a lat/lon grid the window holds the cells whose centers lie inside
+        the box, edges included, as HYSPLIT's ``xtrct_grid`` crops.
+
+        On a projected grid the window is the smallest rectangle of cells
+        that holds the whole box: the box's outline (its corners and points
+        along its edges, at most half a cell apart) is mapped to grid indices,
+        and the lowest and highest index on each axis is rounded to the
+        nearest cell, like Fortran ``NINT``. Every point of the box then lies
+        in a cell of the window. Parallels and meridians curve on these grids,
+        so an extreme is often the south-east or north-west corner, or a point
+        partway along an edge. ``xtrct_grid`` uses only the south-west and
+        north-east corners, so its crop can leave out part of the box; this
+        window holds that crop and can be a few cells larger.
         """
         west, south, east, north = bbox
         if south > north:
@@ -677,8 +693,9 @@ class Grid:
                     "Projected-grid bboxes must not cross the dateline (west <= east)."
                 )
 
-            x_sw, y_sw = self.fractional_indices(west, south)
-            x_ne, y_ne = self.fractional_indices(east, north)
+            x, y = self._bbox_outline_indices(west, south, east, north)
+            if x.size == 0:
+                raise ValueError("bbox does not intersect the grid.")
 
             def nint(value: float) -> int:
                 """Round like Fortran NINT for HYSPLIT-compatible window bounds."""
@@ -686,12 +703,10 @@ class Grid:
                     return int(np.floor(value + 0.5))
                 return int(np.ceil(value - 0.5))
 
-            x1 = (nint(float(x_sw) + 1.0), nint(float(x_ne) + 1.0))
-            y1 = (nint(float(y_sw) + 1.0), nint(float(y_ne) + 1.0))
-            xmin_1based = min(x1)
-            xmax_1based = max(x1)
-            ymin_1based = min(y1)
-            ymax_1based = max(y1)
+            xmin_1based = nint(float(x.min()) + 1.0)
+            xmax_1based = nint(float(x.max()) + 1.0)
+            ymin_1based = nint(float(y.min()) + 1.0)
+            ymax_1based = nint(float(y.max()) + 1.0)
 
             if (
                 xmax_1based < 1
@@ -759,6 +774,55 @@ class Grid:
             y_start=int(y_idx.min()),
             y_stop=int(y_idx.max()) + 1,
         )
+
+    def _bbox_outline_indices(
+        self, west: float, south: float, east: float, north: float
+    ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+        """
+        Fractional indices of points along a lon/lat box's outline (projected grids).
+
+        Each edge is sampled every 0.1 degree, and more finely where that
+        leaves neighboring points on or near the grid more than half a cell
+        apart, so the outline's extremes on each axis are found to a small
+        fraction of a cell where an edge curves. The corners are always
+        included; points the projection cannot map are dropped.
+        """
+        edges = (
+            (west, south, east, south),
+            (east, south, east, north),
+            (east, north, west, north),
+            (west, north, west, south),
+        )
+        counts = [
+            max(2, math.ceil(max(abs(lon1 - lon0), abs(lat1 - lat0)) / 0.1) + 1)
+            for lon0, lat0, lon1, lat1 in edges
+        ]
+        for _ in range(3):
+            lon = np.concatenate(
+                [np.linspace(e[0], e[2], n) for e, n in zip(edges, counts, strict=True)]
+            )
+            lat = np.concatenate(
+                [np.linspace(e[1], e[3], n) for e, n in zip(edges, counts, strict=True)]
+            )
+            x, y = self.fractional_indices(lon, lat)
+            # Only the spacing on or next to the grid matters.
+            xc = np.clip(x, -1.0, self.nx)
+            yc = np.clip(y, -1.0, self.ny)
+            needed = []
+            start = 0
+            for n in counts:
+                steps = np.hypot(
+                    np.diff(xc[start : start + n]), np.diff(yc[start : start + n])
+                )
+                steps = steps[np.isfinite(steps)]
+                step = float(steps.max()) if steps.size else 0.0
+                needed.append(n if step <= 0.5 else math.ceil((n - 1) * step / 0.5) + 1)
+                start += n
+            if needed == counts:
+                break
+            counts = needed
+        finite = np.isfinite(x) & np.isfinite(y)
+        return x[finite], y[finite]
 
     def subset(self, window: GridWindow) -> "Grid":
         """

@@ -77,8 +77,33 @@ def _max_finite_abs_diff(left: np.ndarray, right: np.ndarray) -> float:
     return float(np.max(np.abs(left[mask] - right[mask])))
 
 
+def _xtrct_cells(source_path: Path, bbox) -> dict[str, slice]:
+    """
+    Where xtrct_grid's crop lies in extract_subset's, as ``isel`` slices.
+
+    On a lat/lon grid the two crops are the same. On a projected grid
+    xtrct_grid keeps the window of the box's south-west and north-east corners
+    (rounded like NINT), and extract_subset the window of the whole box, which
+    holds it (#131).
+    """
+    with File(source_path) as arl_file:
+        grid = arl_file.grid
+    if grid.is_latlon:
+        return {}
+    window = grid.window_from_bbox(bbox)
+    x, y = grid.fractional_indices([bbox[0], bbox[2]], [bbox[1], bbox[3]])
+    xs = sorted(int(np.floor(v + 0.5)) for v in x)
+    ys = sorted(int(np.floor(v + 0.5)) for v in y)
+    assert window.x_start <= xs[0] and xs[1] < window.x_stop
+    assert window.y_start <= ys[0] and ys[1] < window.y_stop
+    return {
+        "x": slice(xs[0] - window.x_start, xs[1] + 1 - window.x_start),
+        "y": slice(ys[0] - window.y_start, ys[1] + 1 - window.y_start),
+    }
+
+
 def _assert_subset_parity(
-    source_ds, xtrct_ds, subset_ds, xtrct_precisions, subset_precisions
+    source_ds, xtrct_ds, subset_ds, xtrct_precisions, subset_precisions, xtrct_cells
 ) -> None:
     assert set(source_ds.data_vars) == set(xtrct_ds.data_vars)
     assert set(source_ds.data_vars) == set(subset_ds.data_vars)
@@ -100,12 +125,12 @@ def _assert_subset_parity(
     # longitude to 0.01 degree, so on a projected grid its cells move by up to
     # that much; it must still have chosen the same cells.
     projected = "x" in source_ds.dims
+    xtrct_source = source_ds.isel(xtrct_cells)
     for coord in ("lat", "lon"):
         if coord in source_ds.coords:
-            expected = source_ds[coord].values
             np.testing.assert_allclose(
                 subset_ds[coord].values,
-                expected,
+                source_ds[coord].values,
                 rtol=0,
                 # #86: the crop writes HRRR's sync_lon 237.281 as -122.72
                 atol=2e-3 if projected else 1e-9,
@@ -113,7 +138,7 @@ def _assert_subset_parity(
             )
             np.testing.assert_allclose(
                 xtrct_ds[coord].values,
-                expected,
+                xtrct_source[coord].values,
                 rtol=0,
                 atol=0.006 if projected else 1e-9,
                 err_msg=f"{coord}: extract_subset and xtrct_grid chose different cells",
@@ -121,10 +146,10 @@ def _assert_subset_parity(
 
     for name in sorted(source_ds.data_vars):
         xtrct_error = _max_finite_abs_diff(
-            source_ds[name].values, xtrct_ds[name].values
+            xtrct_source[name].values, xtrct_ds[name].values
         )
         subset_error = _max_finite_abs_diff(
-            source_ds[name].values, subset_ds[name].values
+            xtrct_source[name].values, subset_ds.isel(xtrct_cells)[name].values
         )
         precision_budget = max(
             xtrct_precisions.get(name, 0.0),
@@ -181,5 +206,10 @@ def test_extract_subset_matches_xtrct_grid_error_envelope(
     xtrct_precisions = _max_variable_precision(xtrct_path)
     subset_precisions = _max_variable_precision(subset_path)
     _assert_subset_parity(
-        source_ds, xtrct_ds, subset_ds, xtrct_precisions, subset_precisions
+        source_ds,
+        xtrct_ds,
+        subset_ds,
+        xtrct_precisions,
+        subset_precisions,
+        _xtrct_cells(source_path, bbox),
     )

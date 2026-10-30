@@ -941,6 +941,8 @@ class File:
             Variable names to omit.
         bbox : tuple[float, float, float, float], optional
             Geographic bounding box ``(west, south, east, north)`` in degrees.
+            On a projected grid the crop is the smallest rectangle of cells
+            that holds the whole box (:meth:`arlmet.Grid.window_from_bbox`).
         levels : iterable of int, optional
             ARL level indices to keep.
 
@@ -979,6 +981,8 @@ class File:
             file.
         bbox : tuple[float, float, float, float], optional
             Geographic bounding box ``(west, south, east, north)`` in degrees.
+            On a projected grid the crop is the smallest rectangle of cells
+            that holds the whole box (:meth:`arlmet.Grid.window_from_bbox`).
         levels : iterable of int, optional
             ARL level indices to keep. Output levels are compacted and
             renumbered from zero while preserving the selected level heights.

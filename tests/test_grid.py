@@ -235,6 +235,97 @@ class TestProjection:
             )
 
 
+# Real grids, their 12 projection fields as the files store them: the
+# 2020-02-08 HRRR file, and the NAMS Alaska and Hawaii files of 2025.
+_HRRR = Projection(
+    pole_lat=90.0,
+    pole_lon=0.0,
+    tangent_lat=38.5,
+    tangent_lon=262.5,
+    grid_size=3.0,
+    orientation=0.0,
+    cone_angle=38.5,
+    sync_x=1.0,
+    sync_y=1.0,
+    sync_lat=21.1381,
+    sync_lon=237.281,
+)
+_NAMS_AK = Projection(
+    pole_lat=90.0,
+    pole_lon=0.0,
+    tangent_lat=60.0,
+    tangent_lon=210.0,
+    grid_size=11.904,
+    orientation=0.0,
+    cone_angle=90.0,
+    sync_x=1.0,
+    sync_y=1.0,
+    sync_lat=40.53,
+    sync_lon=181.429,
+)
+_NAMS_HI = Projection(
+    pole_lat=90.0,
+    pole_lon=0.0,
+    tangent_lat=20.0,
+    tangent_lon=206.131,
+    grid_size=2.5,
+    orientation=0.0,
+    cone_angle=0.0,
+    sync_x=1.0,
+    sync_y=1.0,
+    sync_lat=18.073,
+    sync_lon=198.475,
+)
+
+
+def _nint(value: float) -> int:
+    """Round like Fortran NINT."""
+    value = float(value)
+    if value >= 0.0:
+        return int(np.floor(value + 0.5))
+    return int(np.ceil(value - 0.5))
+
+
+def _dense_outline(grid: Grid, bbox, n: int = 20001):
+    """Fractional indices of *n* points along each edge of a lon/lat box."""
+    west, south, east, north = bbox
+    t = np.linspace(0.0, 1.0, n)
+    lon = np.concatenate(
+        [west + (east - west) * t, np.full(n, east), east - (east - west) * t]
+        + [np.full(n, west)]
+    )
+    lat = np.concatenate(
+        [np.full(n, south), south + (north - south) * t, np.full(n, north)]
+        + [north - (north - south) * t]
+    )
+    return grid.fractional_indices(lon, lat)
+
+
+def _corner_window(grid: Grid, bbox) -> GridWindow | None:
+    """HYSPLIT ``xtrct_grid``'s window: the SW and NE corners only, NINT."""
+    x, y = grid.fractional_indices([bbox[0], bbox[2]], [bbox[1], bbox[3]])
+    x1 = [_nint(v + 1.0) for v in x]
+    y1 = [_nint(v + 1.0) for v in y]
+    x_start, x_stop = max(0, min(x1) - 1), min(grid.nx, max(x1))
+    y_start, y_stop = max(0, min(y1) - 1), min(grid.ny, max(y1))
+    if x_stop <= x_start or y_stop <= y_start:
+        return None  # the two corners' window misses the grid
+    return GridWindow(x_start=x_start, x_stop=x_stop, y_start=y_start, y_stop=y_stop)
+
+
+def _assert_in_window_cells(grid: Grid, window: GridWindow, x, y, tol=1e-3):
+    """Assert that points on the grid lie in a cell (center +- 0.5) of *window*."""
+    x, y = np.atleast_1d(x), np.atleast_1d(y)
+    on = (x >= -0.5) & (x <= grid.nx - 0.5) & (y >= -0.5) & (y <= grid.ny - 0.5)
+    x, y = x[on], y[on]
+    if not x.size:
+        return
+    assert x.min() >= window.x_start - 0.5 - tol
+    assert x.max() <= window.x_stop - 0.5 + tol
+    assert y.min() >= window.y_start - 0.5 - tol
+    assert y.max() <= window.y_stop - 0.5 + tol
+
+
 class TestGrid:
     """Tests for Grid class."""
 
@@ -339,40 +430,103 @@ class TestGrid:
         assert window.x_start < window.x_stop
         assert window.y_start < window.y_stop
 
-    def test_window_from_bbox_projected_uses_corner_rounding(self):
-        proj = Projection(
-            pole_lat=90.0,
-            pole_lon=0.0,
-            tangent_lat=38.5,
-            tangent_lon=-97.5,
-            grid_size=3.0,
-            orientation=0.0,
-            cone_angle=38.5,
-            sync_x=1.0,
-            sync_y=1.0,
-            sync_lat=30.0,
-            sync_lon=-125.0,
-        )
+    def test_window_from_bbox_projected_rounds_the_outline(self):
+        """
+        A projected window is NINT of the box outline's extremes (#131).
+
+        Far west of the Lambert grid's central meridian the box is rotated in
+        index space: its south-east corner is the lowest row and its
+        north-west corner the highest, so the south-west/north-east window
+        that ``xtrct_grid`` crops leaves both out.
+        """
+        proj = _lambert_projection(sync_lat=30.0, sync_lon=-125.0)
         grid = Grid(projection=proj, nx=800, ny=600)
         bbox = (-124.0, 31.0, -120.0, 35.0)
 
         window = grid.window_from_bbox(bbox)
-        x_sw, y_sw = grid.fractional_indices(bbox[0], bbox[1])
-        x_ne, y_ne = grid.fractional_indices(bbox[2], bbox[3])
-
-        def nint(value):
-            if value >= 0.0:
-                return int(np.floor(value + 0.5))
-            return int(np.ceil(value - 0.5))
-
-        expected = GridWindow(
-            x_start=min(nint(float(x_sw) + 1.0), nint(float(x_ne) + 1.0)) - 1,
-            x_stop=max(nint(float(x_sw) + 1.0), nint(float(x_ne) + 1.0)),
-            y_start=min(nint(float(y_sw) + 1.0), nint(float(y_ne) + 1.0)) - 1,
-            y_stop=max(nint(float(y_sw) + 1.0), nint(float(y_ne) + 1.0)),
+        x, y = _dense_outline(grid, bbox)
+        assert window == GridWindow(
+            x_start=max(0, _nint(x.min() + 1.0) - 1),
+            x_stop=min(grid.nx, _nint(x.max() + 1.0)),
+            y_start=max(0, _nint(y.min() + 1.0) - 1),
+            y_stop=min(grid.ny, _nint(y.max() + 1.0)),
         )
+        corner = _corner_window(grid, bbox)
+        assert corner is not None
+        assert window.y_start < corner.y_start and window.y_stop > corner.y_stop
+        for lon, lat in ((bbox[2], bbox[1]), (bbox[0], bbox[3])):  # SE, NW
+            _assert_in_window_cells(grid, window, *grid.fractional_indices(lon, lat))
 
-        assert window == expected
+    def test_window_from_bbox_hrrr_holds_every_node_in_the_box(self):
+        """
+        On the real HRRR grid every node inside the SLV box is in the crop (#131).
+
+        The grid is the 2020-02-08 HRRR file's (its 12 projection fields as
+        stored). ``xtrct_grid``'s window, from the south-west and north-east
+        corners only, is x 444:543, y 606:685 and misses 1,076 of these nodes.
+        """
+        grid = Grid(projection=_HRRR, nx=1799, ny=1059)
+        bbox = (-113.5, 39.5, -110.5, 42.0)
+
+        window = grid.window_from_bbox(bbox)
+        assert window == GridWindow(x_start=444, x_stop=543, y_start=592, y_stop=698)
+        assert _corner_window(grid, bbox) == GridWindow(
+            x_start=444, x_stop=543, y_start=606, y_stop=685
+        )
+        coords = grid.calculate_coords()
+        lon, lat = wrap_lons(coords["lon"][1]), coords["lat"][1]
+        inside = (lon >= bbox[0]) & (lon <= bbox[2]) & (lat >= bbox[1])
+        inside &= lat <= bbox[3]
+        rows, cols = np.nonzero(inside)
+        assert rows.size == 7818
+        assert window.x_start <= cols.min() and cols.max() < window.x_stop
+        assert window.y_start <= rows.min() and rows.max() < window.y_stop
+
+    @pytest.mark.parametrize(
+        ("projection", "nx", "ny"),
+        [
+            pytest.param(_HRRR, 1799, 1059, id="lambert"),
+            pytest.param(_NAMS_AK, 387, 276, id="polar-stereographic"),
+            pytest.param(_NAMS_HI, 321, 225, id="mercator"),
+        ],
+    )
+    def test_window_from_bbox_projected_holds_random_boxes(self, projection, nx, ny):
+        """Every point of a random box on the grid lies in a cell of its window (#131)."""
+        grid = Grid(projection=projection, nx=nx, ny=ny)
+        coords = grid.calculate_coords()
+        lons, lats = wrap_lons(coords["lon"][1]), coords["lat"][1]
+        lon_span, lat_span = np.ptp(lons), np.ptp(lats)
+        rng = np.random.default_rng(131)
+        for _ in range(25):
+            # boxes from a few cells to wider than the grid
+            row, col = rng.integers(0, ny), rng.integers(0, nx)
+            half_lon = rng.uniform(0.01, 0.6) * lon_span
+            half_lat = rng.uniform(0.01, 0.6) * lat_span
+            lon0, lat0 = float(lons[row, col]), float(lats[row, col])
+            bbox = (
+                lon0 - half_lon,
+                max(lat0 - half_lat, -80.0),
+                lon0 + half_lon,
+                min(lat0 + half_lat, 80.0),
+            )
+            window = grid.window_from_bbox(bbox)
+            corner = _corner_window(grid, bbox)
+            if corner is not None:
+                assert window.x_start <= corner.x_start
+                assert window.y_start <= corner.y_start
+                assert corner.x_stop <= window.x_stop
+                assert corner.y_stop <= window.y_stop
+            outline = _dense_outline(grid, bbox, n=2001)
+            _assert_in_window_cells(grid, window, *outline)
+            lon = rng.uniform(bbox[0], bbox[2], 2000)
+            lat = rng.uniform(bbox[1], bbox[3], 2000)
+            _assert_in_window_cells(grid, window, *grid.fractional_indices(lon, lat))
+
+    def test_window_from_bbox_projected_unmappable_box_raises(self):
+        """A box the projection cannot map (a northern Lambert's south pole) raises."""
+        grid = Grid(projection=_HRRR, nx=1799, ny=1059)
+        with pytest.raises(ValueError, match="does not intersect"):
+            grid.window_from_bbox((-160.0, -90.0, -150.0, -90.0))
 
     def test_subset_updates_lower_left_sync_point(self):
         proj = Projection(
