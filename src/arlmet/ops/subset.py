@@ -70,6 +70,27 @@ def select_records(
     ]
 
 
+def validate_variables(variables: set[str], recordsets: Sequence[RecordSet]) -> None:
+    """
+    Fail when a requested variable is not in the file, or none was requested.
+
+    A name the file does not hold would otherwise be dropped without a word,
+    and a selection of only such names would write an empty file.
+    """
+    if not variables:
+        raise ValueError("variables must include at least one variable name.")
+
+    in_file = {
+        record.variable for recordset in recordsets for record in recordset.records
+    }
+    unknown = sorted(variables - in_file)
+    if unknown:
+        raise ValueError(
+            f"variables not in the file: {', '.join(unknown)}. "
+            f"The file holds: {', '.join(sorted(in_file))}."
+        )
+
+
 def _source_index_entries(
     selected_records: Sequence[DataRecord], level_map: dict[int, int]
 ) -> list[tuple[int, str, VarInfo]]:
@@ -373,7 +394,8 @@ def extract_subset(
         ARL level indices to keep. Output levels are compacted and renumbered
         from zero while preserving the selected level heights.
     variables : iterable of str, optional
-        Variable names to keep. All variables are included by default.
+        Variable names to keep, as the file spells them (``"TEMP"``, not
+        ``"temp"``). All variables are included by default.
 
     Returns
     -------
@@ -385,9 +407,13 @@ def extract_subset(
     ------
     ValueError
         If ``dest`` is the same file as ``path``, the cropped grid is too
-        small to hold the ARL index record, or ``levels`` leaves out level 0
+        small to hold the ARL index record, ``levels`` leaves out level 0
         and so moves a record with ``DIF*`` records to the surface, where
-        HYSPLIT's name table would not pair them with it.
+        HYSPLIT's name table would not pair them with it, ``variables`` is
+        empty or names a variable the file does not hold (every unknown name
+        is listed, also when others are known), or the selected levels and
+        variables leave no record in any time step, so there is nothing to
+        write.
 
     Notes
     -----
@@ -430,9 +456,11 @@ def extract_subset(
             levels=src.vertical_axis.levels[list(selected_levels)].tolist(),
             offset=src.vertical_axis.offset,
         )
+        source_recordsets = [src[time] for time in src.times]
+        if variable_names is not None:
+            validate_variables(variable_names, source_recordsets)
         selected_recordsets = []
-        for time in src.times:
-            src_recordset = src[time]
+        for src_recordset in source_recordsets:
             selected_records = select_records(
                 src_recordset.records,
                 levels=selected_level_set,
@@ -440,6 +468,11 @@ def extract_subset(
             )
             if selected_records:
                 selected_recordsets.append((src_recordset, selected_records))
+        if not selected_recordsets:
+            raise ValueError(
+                "The selected levels and variables leave no record in the file, "
+                "so there is nothing to write."
+            )
 
         validate_subset_difs(selected_recordsets, level_map=level_map)
         validate_subset_record_length(

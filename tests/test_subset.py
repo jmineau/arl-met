@@ -598,15 +598,74 @@ def test_extract_subset_byte_copy_with_diff_records(tmp_path, monkeypatch, kwarg
                 np.testing.assert_allclose(record.read(), other.read(), atol=atol)
 
 
-def test_extract_subset_byte_copy_empty_selection(tmp_path):
+@pytest.mark.parametrize("bbox", [None, (21.0, -9.0, 30.0, 0.0)], ids=["copy", "crop"])
+def test_extract_subset_rejects_only_unknown_variable(tmp_path, bbox):
     source = tmp_path / "source.arl"
     destination = tmp_path / "subset.arl"
-    write_byte_copy_source(source)
+    write_subset_source(source)
 
-    extract_subset(source, destination, variables=["NONE"])
+    with pytest.raises(ValueError, match="not in the file: FOO") as excinfo:
+        extract_subset(source, destination, bbox=bbox, variables=["FOO"])
 
-    assert destination.exists()
-    assert destination.stat().st_size == 0
+    assert "PRSS, TEMP, UWND" in str(excinfo.value)
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize("bbox", [None, (21.0, -9.0, 30.0, 0.0)], ids=["copy", "crop"])
+def test_extract_subset_rejects_some_unknown_variables(tmp_path, bbox):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+
+    with pytest.raises(ValueError, match="not in the file: TMEP, uwnd"):
+        extract_subset(
+            source, destination, bbox=bbox, variables=["TEMP", "TMEP", "uwnd"]
+        )
+
+    assert not destination.exists()
+
+
+def test_file_extract_subset_rejects_unknown_variable(tmp_path):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+
+    with File(source) as met, pytest.raises(ValueError, match="not in the file: FOO"):
+        met.extract_subset(destination, variables=["FOO"])
+
+
+def test_extract_subset_rejects_empty_variables(tmp_path):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+
+    with pytest.raises(ValueError, match="at least one variable"):
+        extract_subset(source, destination, variables=[])
+
+    assert not destination.exists()
+
+
+def test_extract_subset_rejects_selection_with_no_records(tmp_path):
+    """Known variables that sit only on levels the crop leaves out."""
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)  # PRSS is on level 0 only
+
+    with pytest.raises(ValueError, match="nothing to write"):
+        extract_subset(source, destination, levels=[1, 2], variables=["PRSS"])
+
+    assert not destination.exists()
+
+
+def test_extract_subset_keeps_known_variables(tmp_path):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+
+    extract_subset(source, destination, variables=["PRSS", "TEMP"])
+
+    with File(destination) as out:
+        assert {r.variable for r in out[0].records} == {"PRSS", "TEMP"}
 
 
 def test_extract_subset_byte_copy_rejects_mismatched_record_header(tmp_path):
