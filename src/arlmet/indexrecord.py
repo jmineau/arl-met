@@ -284,6 +284,11 @@ class IndexRecord:
 
     def _serialize_fixed(self, index_length: int) -> bytes:
         """Serialize the fixed 108-byte portion of the index record."""
+        if self.forecast > 999:
+            raise ValueError(
+                f"Forecast hour {self.forecast} does not fit the index record's "
+                "three characters (the most is 999)."
+            )
         values = [
             self.pole_lat,
             self.pole_lon,

@@ -524,3 +524,105 @@ class TestWriter:
             exponent,
             initial_value,
         )
+
+
+class TestForecastHourAbove99:
+    """The label holds two digits of forecast hour, the index record three."""
+
+    HOUR = pd.Timestamp("2025-09-01 00:00")
+
+    @staticmethod
+    def write_hour_100_file(path):
+        """Write a file as ``pakrec`` does for hour 100: 99 in every label, 100 in the index."""
+        grid = make_test_grid()
+        data = np.arange(grid.nx * grid.ny, dtype=np.float32).reshape(grid.ny, grid.nx)
+        with File(
+            path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=PressureAxis(levels=[0.0, 1000.0]),
+        ) as arl:
+            rs = arl.create_recordset(TestForecastHourAbove99.HOUR, forecast=99)
+            rs.create_datarecord("PRSS", level=0, forecast=99, data=data)
+            rs.create_datarecord("TEMP", level=1, forecast=99, data=data + 200.0)
+        raw = bytearray(path.read_bytes())
+        assert raw[54:57] == b" 99"  # the index record's forecast field
+        raw[54:57] = b"100"
+        path.write_bytes(raw)
+
+    @staticmethod
+    def assert_hour_100(path):
+        with File(path) as arl:
+            assert arl[0].forecast == 100
+            assert [record.forecast for record in arl[0].records] == [99, 99]
+        with open(path, "rb") as handle:
+            index = IndexRecord.from_position(handle, 0)
+        assert index.forecast == 100
+        assert index.header.forecast == 99
+
+    def test_the_helper_file_reads_as_hysplit_writes_it(self, tmp_path):
+        path = tmp_path / "h100.arl"
+        self.write_hour_100_file(path)
+        self.assert_hour_100(path)
+
+    def test_file_writer_splits_the_hour_between_label_and_index_record(self, tmp_path):
+        path = tmp_path / "written.arl"
+        grid = make_test_grid()
+        data = np.ones((grid.ny, grid.nx), dtype=np.float32)
+        with File(
+            path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=PressureAxis(levels=[0.0, 1000.0]),
+        ) as arl:
+            rs = arl.create_recordset(self.HOUR, forecast=100)
+            rs.create_datarecord("PRSS", level=0, forecast=100, data=data)
+            rs.create_datarecord("TEMP", level=1, forecast=100, data=data)
+        self.assert_hour_100(path)
+        # the label bytes themselves: characters 8-9 of the first data record
+        record_length = 50 + grid.nx * grid.ny
+        raw = path.read_bytes()
+        assert raw[8:10] == b"99"
+        assert raw[record_length + 8 : record_length + 10] == b"99"
+
+    def test_extract_subset_levels_keeps_the_hour(self, tmp_path):
+        from arlmet import extract_subset
+
+        path, out = tmp_path / "h100.arl", tmp_path / "levels.arl"
+        self.write_hour_100_file(path)
+        extract_subset(path, out, levels=[0, 1])
+        self.assert_hour_100(out)
+
+    def test_extract_subset_bbox_keeps_the_hour(self, tmp_path):
+        from arlmet import extract_subset
+
+        path, out = tmp_path / "h100.arl", tmp_path / "crop.arl"
+        self.write_hour_100_file(path)
+        extract_subset(path, out, bbox=(20.0, -10.0, 36.0, 6.0))
+        self.assert_hour_100(out)
+
+    def test_write_dataset_keeps_the_hour(self, tmp_path):
+        path, out = tmp_path / "h100.arl", tmp_path / "rt.arl"
+        self.write_hour_100_file(path)
+        ds = open_dataset(path)
+        np.testing.assert_array_equal(ds["forecast_hour"].values, [100])
+        write_dataset(ds, out)
+        self.assert_hour_100(out)
+
+    def test_hour_above_999_raises(self, tmp_path):
+        grid = make_test_grid()
+        data = np.ones((grid.ny, grid.nx), dtype=np.float32)
+        with (
+            pytest.raises(ValueError, match="999"),
+            File(
+                tmp_path / "bad.arl",
+                mode="w",
+                source="TEST",
+                grid=grid,
+                vertical_axis=PressureAxis(levels=[0.0]),
+            ) as arl,
+        ):
+            rs = arl.create_recordset(self.HOUR, forecast=1000)
+            rs.create_datarecord("PRSS", level=0, forecast=99, data=data)
