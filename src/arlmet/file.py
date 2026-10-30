@@ -857,10 +857,9 @@ class File:
               HYSPLIT's ``prfsig`` and ``prfecm`` do; pressure files use
               ``HGTS - SHGT`` from the ground up; terrain-following files use
               the stored levels.
-            - ``"msl"``: meters above mean sea level. Sigma/hybrid/WRF files
-              add ``SHGT`` to the hypsometric AGL height; pressure files use
-              ``HGTS``; terrain-following files add ``SHGT`` to the stored
-              levels.
+            - ``"msl"``: meters above mean sea level, taken as the height
+              above the ground at the point (less ``SHGT`` there), then as
+              ``"agl"``. Every file needs ``SHGT``.
 
             Each vertical coordinate system has exactly one method, as in
             HYSPLIT; there is no fallback between them. On sigma, hybrid and
@@ -873,11 +872,15 @@ class File:
             are passed over, as in HYSPLIT. The *Vertical Coordinates* guide
             has the details.
         method : {"linear", "nearest"}, default "linear"
-            Horizontal interpolation: bilinear or nearest grid point. On a WRF
-            file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's
-            staggered grid holds them, half a cell east and north of each point,
-            as HYSPLIT reads them; "nearest" gives the winds at the nearest
-            cell's center. The *Sampling* guide has the details.
+            Horizontal interpolation: bilinear or nearest grid point. As in
+            HYSPLIT, the column at each of the four grid points around a point
+            is interpolated to the point's ``z`` first, with that grid point's
+            own ground, heights and pressures, and the four values are then
+            blended. On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are
+            read where WRF's staggered grid holds them, half a cell east and
+            north of each point, as HYSPLIT reads them; "nearest" gives the
+            winds at the nearest cell's center. The *Sampling* guide has the
+            details.
         earth_relative : bool, default False
             Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``)
             from the grid axes to east/north. Winds in ARL files on projected

@@ -1802,6 +1802,180 @@ class TestHorizontalInterpolation:
         assert np.isnan(result["TEMP"].iloc[0])
 
 
+# --- between grid points: each grid point's column first, then the blend (#116) ---
+
+
+def write_hilly_file(path, *, flag=1, source="TEST"):
+    """
+    A sigma (flag 1) or pressure-level (flag 2) file whose columns differ from cell to cell.
+
+    Terrain, surface pressure and every level's pressure (sigma) or height
+    (pressure levels), temperature and winds vary at random between grid
+    points, so the levels' heights and pressures differ between neighbors.
+    """
+    grid = make_test_grid()
+    rng = np.random.default_rng(116)
+
+    def noise(scale=1.0):
+        return scale * rng.random((grid.ny, grid.nx))
+
+    def f32(values):
+        return np.asarray(values, dtype=np.float32)
+
+    if flag == 1:
+        axis = SigmaAxis(levels=[1.0, 0.99, 0.95, 0.9, 0.8])
+        shgt = 1300.0 + noise(600.0)
+        prss = 870.0 - 0.1 * (shgt - 1300.0) + noise(3.0)
+    else:
+        axis = PressureAxis(levels=[0.0, 1000.0, 925.0, 850.0, 700.0, 500.0])
+        shgt = 300.0 + noise(900.0)
+        prss = 1013.25 * np.exp(-shgt / 8000.0)
+    t02m = 285.0 + noise(4.0)
+    with File(path, mode="w", source=source, grid=grid, vertical_axis=axis) as arl:
+        rs = arl.create_recordset(_COLUMN_TIME)
+        for name, values in (
+            ("SHGT", shgt),
+            ("PRSS", prss),
+            ("T02M", t02m),
+            ("U10M", 2.0 + noise(2.0)),
+            ("V10M", -1.0 + noise(2.0)),
+        ):
+            rs.create_datarecord(name, level=0, forecast=0, data=f32(values))
+        for level in range(1, len(axis.levels)):
+            if flag == 1:
+                pres = prss * axis.levels[level] - noise(8.0)
+                rs.create_datarecord("PRES", level=level, forecast=0, data=f32(pres))
+            else:
+                hgts = 8000.0 * np.log(1013.25 / axis.levels[level]) + noise(40.0)
+                rs.create_datarecord("HGTS", level=level, forecast=0, data=f32(hgts))
+            temp = t02m - 2.0 - 3.0 * level + noise(2.0)
+            rs.create_datarecord("TEMP", level=level, forecast=0, data=f32(temp))
+            sphu = np.full_like(shgt, 0.008 - 0.001 * level)
+            rs.create_datarecord("SPHU", level=level, forecast=0, data=f32(sphu))
+            uwnd = 4.0 + 3.0 * level + noise(3.0)
+            rs.create_datarecord("UWND", level=level, forecast=0, data=f32(uwnd))
+            vwnd = -2.0 + level + noise(2.0)
+            rs.create_datarecord("VWND", level=level, forecast=0, data=f32(vwnd))
+
+
+class TestBetweenGridPointsAsHysplit:
+    """
+    Between grid points, each grid point's column is interpolated first (#116).
+
+    HYSPLIT's ``prfcom`` builds the profile at every grid point and ``adv3nt``
+    blends the four around a point at the point's height. Where the levels'
+    heights or pressures differ between grid points, that differs from
+    blending each level first and interpolating the blended column. By hand
+    here: sample each of the four grid points, then blend them bilinearly.
+    """
+
+    # Array positions between grid points of the fixture grid.
+    XY = [(4.3, 7.6), (10.75, 2.2), (15.5, 15.5)]
+    VARIABLES = ["TEMP", "UWND", "VWND", "PRES", "SPHU", "pressure"]
+    HEIGHTS = [5.0, 40.0, 150.0, 400.0, 900.0]
+
+    @staticmethod
+    def _by_hand(path, variables, z, z_kind, *, stagger=(0.0, 0.0), xy=XY):
+        """At each position of *xy*: the four grid points around it, sampled at *z*, blended."""
+        out = {name: [] for name in variables}
+        for x, y in xy:
+            # A staggered wind's grid point (i, j) is read at mass position (i - dx, j - dy).
+            xs, ys = x + stagger[0], y + stagger[1]
+            i, j = int(np.floor(xs)), int(np.floor(ys))
+            wx, wy = xs - i, ys - j
+            nodes = [(i, j), (i + 1, j), (i, j + 1), (i + 1, j + 1)]
+            weights = [(1 - wx) * (1 - wy), wx * (1 - wy), (1 - wx) * wy, wx * wy]
+            at = [(a - stagger[0], b - stagger[1]) for a, b in nodes]
+            values = sample_points(path, _cell_points(at, z), variables, z_kind=z_kind)
+            for name in variables:
+                out[name].append(
+                    sum(w * v for w, v in zip(weights, values[name], strict=True))
+                )
+        return pd.DataFrame(out)
+
+    def _check(self, path, variables, targets, z_kind, *, stagger=(0.0, 0.0)):
+        for z in targets:
+            result = sample_points(
+                path, _cell_points(self.XY, z), variables, z_kind=z_kind
+            )
+            expected = self._by_hand(path, variables, z, z_kind, stagger=stagger)
+            for name in variables:
+                np.testing.assert_allclose(
+                    result[name], expected[name], rtol=1e-6, atol=1e-5, err_msg=name
+                )
+
+    def test_sigma_heights(self, tmp_path):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        self._check(path, self.VARIABLES, self.HEIGHTS, "agl")
+
+    def test_sigma_pressures(self, tmp_path):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        self._check(path, self.VARIABLES, [850.0, 820.0, 780.0, 720.0], "pressure")
+
+    def test_pressure_levels_at_heights(self, tmp_path):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path, flag=2)
+        variables = ["TEMP", "UWND", "VWND", "SPHU", "pressure"]
+        self._check(path, variables, [5.0, 150.0, 900.0, 2500.0], "agl")
+
+    def test_msl_is_above_the_ground_at_the_point(self, tmp_path):
+        # Each grid point's column is read at the point's height above its own
+        # ground: the height above sea level less the terrain at the point.
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        terrain = sample_points(path, _cell_points(self.XY, 0.0), ["SHGT"])["SHGT"]
+        for z_agl in self.HEIGHTS:
+            z_msl = (terrain + z_agl).to_numpy()
+            result = sample_points(
+                path, _cell_points(self.XY, z_msl), self.VARIABLES, z_kind="msl"
+            )
+            expected = self._by_hand(path, self.VARIABLES, z_agl, "agl")
+            for name in self.VARIABLES:
+                np.testing.assert_allclose(
+                    result[name], expected[name], rtol=1e-6, atol=1e-4, err_msg=name
+                )
+
+    def test_wrf_winds_blend_their_own_grid_points(self, tmp_path):
+        # On an AWRF file UWND is read half a cell east: from the columns of the
+        # four U points around that position.
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path, source="AWRF")
+        self._check(path, ["UWND"], self.HEIGHTS, "agl", stagger=(0.5, 0.0))
+        self._check(path, ["VWND"], self.HEIGHTS, "agl", stagger=(0.0, 0.5))
+
+    @pytest.mark.parametrize("flag", [1, 2])
+    def test_at_a_grid_point_the_value_is_its_own_column(self, tmp_path, flag):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path, flag=flag)
+        variables = ["TEMP", "UWND", "pressure"]
+        points = _cell_points([(4.0, 7.0), (11.0, 2.0)], 150.0)
+        linear = sample_points(path, points, variables, z_kind="agl")
+        nearest = sample_points(path, points, variables, z_kind="agl", method="nearest")
+        pd.testing.assert_frame_equal(linear, nearest)
+
+    def test_a_grid_point_with_no_weight_does_not_count(self, tmp_path):
+        # On a grid point, at a height above its east neighbor's top level (NaN
+        # there), the value is still the grid point's own.
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path, flag=2)
+        with File(path) as met:
+            rs = met[_COLUMN_TIME]
+            top = rs[(5, "HGTS")].read() - rs[(0, "SHGT")].read()
+        j, i = np.argwhere(top[:, :-1] - top[:, 1:] > 50.0)[0]
+        z = 0.5 * (top[j, i] + top[j, i + 1])
+        points = _cell_points([(float(i), float(j))], z)
+        linear = sample_points(path, points, ["TEMP"], z_kind="agl")
+        nearest = sample_points(path, points, ["TEMP"], z_kind="agl", method="nearest")
+        east = sample_points(
+            path, _cell_points([(i + 1.0, float(j))], z), ["TEMP"], z_kind="agl"
+        )
+        assert np.isnan(east["TEMP"]).all()
+        assert np.isfinite(linear["TEMP"]).all()
+        pd.testing.assert_frame_equal(linear, nearest)
+
+
 class TestSamplingErrors:
     """Correct NaN and error behavior for out-of-range targets and missing fields."""
 
