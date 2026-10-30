@@ -239,7 +239,7 @@ Surface Variables (Level 0)
 - **Pressure fields**: PRSS, MSLP
 - **Temperature**: T02M, TMPS
 - **Winds**: U10M, V10M
-- **Fluxes**: SHTF, LTHF, USTR
+- **Fluxes**: SHTF, LHTF, USTR
 - **Precipitation**: TPP1, RAINC, RAINNC
 
 Upper-Air Variables (Levels 1-nz)
