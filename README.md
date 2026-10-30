@@ -189,7 +189,7 @@ Documentation is available at https://jmineau.github.io/arl-met/
 
 Useful ARL/HYSPLIT references:
 
-- [HYSPLIT User Guide](https://www.arl.noaa.gov/documents/reports/hysplit_user_guide.pdf) for the broader model and file-format context.
+- [HYSPLIT User Guide](https://www.arl.noaa.gov/wp-content/uploads/documents/reports/hysplit_user_guide.pdf) for the broader model and file-format context.
 - [HYSPLIT meteorology page](https://www.ready.noaa.gov/hysplitusersguide/S141.htm) for the ARL meteorology format overview.
 - [READY archive](https://www.ready.noaa.gov/archives.php) for the available meteorology archives.
 - [GDAS1 packing notes](https://www.ready.noaa.gov/gdas1.php) for a concrete example of ARL packing behavior.
