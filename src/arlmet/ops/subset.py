@@ -80,8 +80,12 @@ def validate_variables(variables: set[str], recordsets: Sequence[RecordSet]) -> 
     if not variables:
         raise ValueError("variables must include at least one variable name.")
 
+    # A DIF record hangs off the record it corrects and is not in ``records``.
     in_file = {
-        record.variable for recordset in recordsets for record in recordset.records
+        r.variable
+        for recordset in recordsets
+        for record in recordset.records
+        for r in (record, *record.diffs)
     }
     unknown = sorted(variables - in_file)
     if unknown:
@@ -377,7 +381,7 @@ def extract_subset(
     *,
     bbox: tuple[float, float, float, float] | None = None,
     levels: Iterable[int] | None = None,
-    variables: Iterable[str] | None = None,
+    variables: str | Iterable[str] | None = None,
 ) -> Path:
     """
     Extract a spatial/vertical subset from an ARL file into a new ARL file.
@@ -393,9 +397,12 @@ def extract_subset(
     levels : iterable of int, optional
         ARL level indices to keep. Output levels are compacted and renumbered
         from zero while preserving the selected level heights.
-    variables : iterable of str, optional
+    variables : str or iterable of str, optional
         Variable names to keep, as the file spells them (``"TEMP"``, not
-        ``"temp"``). All variables are included by default.
+        ``"temp"``); a single string is one name. A ``DIF*`` name the file
+        holds is accepted, but naming it selects nothing: a ``DIF*`` record is
+        written with its parent record, when the parent is selected. All
+        variables are included by default.
 
     Returns
     -------
@@ -440,6 +447,8 @@ def extract_subset(
     >>> ds = arlmet.open_dataset(out)
     """
     reject_same_file(path, dest)
+    if isinstance(variables, str):
+        variables = [variables]  # one name, not its letters
     variable_names = None if variables is None else set(variables)
 
     with File(path) as src:
