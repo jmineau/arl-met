@@ -367,6 +367,28 @@ def _break_stale_lock(lock: Path) -> None:
         breaker.unlink(missing_ok=True)
 
 
+def _release(lock: Path, owner: str) -> None:
+    """
+    Remove *lock* unless it was taken over, so it no longer holds *owner*.
+
+    Windows refuses to delete a file that another process is looking at (a
+    waiter's ``stat``), so there the delete is tried again for a second; a lock
+    that still stays goes stale and is taken over.
+    """
+    for _ in range(20):
+        try:
+            if lock.read_text(encoding="utf-8") == owner:
+                lock.unlink()
+        except FileNotFoundError:
+            pass
+        except PermissionError:
+            if os.name != "nt":
+                raise
+            time.sleep(0.05)
+            continue
+        return
+
+
 @contextmanager
 def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
     """
@@ -375,10 +397,13 @@ def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
     The lock is the hidden file ``.<name>.lock`` next to *dest*, made with
     ``O_CREAT | O_EXCL``, which is atomic on NFS and Lustre as well as local
     disks. The caller that makes it downloads (yields ``True``) while a thread
-    touches the file; the others poll until *dest* appears (yield ``False``,
-    unless ``overwrite``), until the lock goes (a failed download: they try to
-    take it), or until it is stale or the wait runs out. The lock is removed
-    on the way out, also after an error or ``KeyboardInterrupt``.
+    touches the file. The others poll the lock, not *dest*, which Windows would
+    not let the downloader replace while it is being looked at. When the lock
+    goes they make it themselves: they find *dest* there (yield ``False``,
+    unless ``overwrite``), or, after a failed download, not (they download).
+    The lock is removed on the way out, also after an error or
+    ``KeyboardInterrupt``. A lock that is stale or waited on too long is dealt
+    with as below.
 
     Exactly one caller takes over a stale lock (:func:`_break_stale_lock`). The
     lock still only saves duplicate work: *dest* is published by an atomic
@@ -394,9 +419,6 @@ def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
             break
         except (FileExistsError, PermissionError) as exc:
             _raise_unless_taken(exc)
-        if not overwrite and dest.exists():
-            yield False
-            return
         age = _lock_age(lock)
         if age == math.inf:
             continue  # the holder just finished or failed: look again
@@ -419,11 +441,7 @@ def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
     finally:
         done.set()
         beat.join()
-        try:
-            if lock.read_text(encoding="utf-8") == owner:  # not one taken over
-                lock.unlink()
-        except FileNotFoundError:
-            pass
+        _release(lock, owner)
 
 
 def _utc_naive(value: pd.Timestamp | str) -> pd.Timestamp:
