@@ -120,11 +120,14 @@ before it is cached locally.
        "2024-07-18 00:00",
        "2024-07-19 00:00",
        dest_dir="./met",
-       bbox=(-114.0, 39.0, -110.0, 42.0),
+       bbox=(-125.0, 30.0, -100.0, 50.0),
    )
 
 This uses :func:`arlmet.extract_subset` internally after the raw file is
-downloaded.
+downloaded. The box must be large enough to hold the cropped file's index
+record: for GFS 0.25 degree with all levels, at least 3,340 grid cells, so a 4
+by 3 degree box raises ``ValueError`` after the whole file has been downloaded
+(:doc:`cropping` has the rule).
 
 Pass ``levels=`` to keep only some vertical levels, counted from 0 at the
 surface. It works with or without ``bbox``.
@@ -135,12 +138,12 @@ surface. It works with or without ``bbox``.
        "2024-07-18 00:00",
        "2024-07-19 00:00",
        dest_dir="./met",
-       bbox=(-114.0, 39.0, -110.0, 42.0),
+       bbox=(-125.0, 30.0, -100.0, 50.0),
        levels=range(20),   # the lowest 20 levels
    )
 
 The crop is part of each cached file's name (for example
-``...crop_-114.00_39.00_-110.00_42.00.levels_0-19``), so files cropped
+``...crop_-125.00_30.00_-100.00_50.00.levels_0-19``), so files cropped
 differently are cached separately. Bbox values are written with two decimals
 unless they have more, which are kept in full (``...crop_-111.925_...``).
 
