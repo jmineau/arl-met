@@ -26,42 +26,52 @@ registered under a short name.
      - Class
      - Product
      - Typical coverage
+     - ``step``
    * - ``"hrrr"``
      - :class:`arlmet.archives.HRRRArchive`
      - HRRR 3 km
      - CONUS, 6-hour files, June 2019–present
+     - 1 hour
    * - ``"hrrr.v1"``
      - :class:`arlmet.archives.HRRRv1Archive`
      - HRRR 3 km, version 1
      - CONUS, 6-hour files, June 2015–2019
+     - 1 hour
    * - ``"nam12"``
      - :class:`arlmet.archives.NAMArchive`
      - NAM 12 km
      - North America, daily files
+     - 3 hours
    * - ``"nams"``
      - :class:`arlmet.archives.NAMSArchive`
      - NAM hybrid sigma-pressure
      - CONUS, Alaska, or Hawaii (``domain=``), daily files
+     - 1 hour
    * - ``"gdas1"``
      - :class:`arlmet.archives.GDASArchive`
      - GDAS 1 degree
      - Global, weekly files
+     - 3 hours
    * - ``"gdas0p5"``
      - :class:`arlmet.archives.GDAS0p5Archive`
      - GDAS 0.5 degree
      - Global, daily files, 2007–2019
+     - 3 hours
    * - ``"gfs0p25"``
      - :class:`arlmet.archives.GFSArchive`
      - GFS 0.25 degree
      - Global, daily files
+     - 3 hours
    * - ``"narr"``
      - :class:`arlmet.archives.NARRArchive`
      - North American Regional Reanalysis 32 km
      - North America, monthly files, 1979–2019
+     - 3 hours
    * - ``"reanalysis"``
      - :class:`arlmet.archives.ReanalysisArchive`
      - NCEP/NCAR Reanalysis 2.5 degree
      - Global, monthly files
+     - 6 hours
 
 Choose an archive by name
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -86,6 +96,28 @@ An unknown name raises ``ValueError`` listing the available ones. A subclass of
 :class:`arlmet.archives.Archive` that sets ``name`` is registered
 automatically when it is defined, so your own archives work with
 ``get_archive()`` too.
+
+The time step and the file span
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Two times describe an archive, and they are different things. The **file span**
+is how much time one file covers: 6 hours for HRRR, a day for NAM 12 km, a week
+for GDAS 1 degree. The **step** (:attr:`~arlmet.archives.Archive.step`, the last
+column above) is the time between one time step and the next *inside* a file, the
+spacing of its index records. A HRRR file spans 6 hours and holds 6 time steps an
+hour apart; a NAM 12 km file spans a day and holds 8, three hours apart, from
+00:00 to 21:00. So a file's last time step is one step before the file's end, and
+a run that needs the time step at or after 22:00 needs the next day's NAM file,
+although 22:00 lies in the first.
+
+.. ipython:: python
+
+   ARCHIVES["hrrr"].step
+   get_archive("nam12").step
+
+Each ``step`` was read from the index records of real NOAA files of that product
+(files from 1979 to 2025). It is the same for every file of an archive, and for
+all three domains of ``"nams"``.
 
 Download files for a time range
 -------------------------------
