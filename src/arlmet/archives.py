@@ -319,6 +319,35 @@ def _lock_age(lock: Path) -> float:
         return math.inf
 
 
+def _break_stale_lock(lock: Path) -> None:
+    """
+    Remove *lock* if it is still stale, letting one caller at a time decide.
+
+    Judging a lock stale and removing it are two steps, and between them
+    another caller may have removed it and made a fresh one, which a plain
+    remove would then delete. So the remove happens under a second lock, the
+    hidden ``<lock name>.break`` file (``O_EXCL`` like the lock), and the
+    lock's age is looked at again under it. A caller that cannot make the break
+    file does nothing: whoever holds it is breaking this lock. A break file
+    older than the stale limit is itself left by a killed caller and is removed.
+    """
+    breaker = lock.with_name(f"{lock.name}.break")
+    try:
+        os.close(os.open(breaker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666))
+    except FileExistsError:
+        if _lock_age(breaker) > _FETCH_LOCK_STALE:
+            breaker.unlink(missing_ok=True)
+        else:
+            time.sleep(_FETCH_LOCK_POLL)
+        return
+    try:
+        if _lock_age(lock) > _FETCH_LOCK_STALE:
+            logger.warning("Taking over the stale lock %s", lock.name)
+            lock.unlink(missing_ok=True)
+    finally:
+        breaker.unlink(missing_ok=True)
+
+
 @contextmanager
 def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
     """
@@ -332,9 +361,10 @@ def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
     take it), or until it is stale or the wait runs out. The lock is removed
     on the way out, also after an error or ``KeyboardInterrupt``.
 
-    The lock only saves duplicate work: *dest* is still published by an atomic
-    rename, so the rare race (two callers both taking over one stale lock, or a
-    caller that gave up waiting) costs a second download and never a bad file.
+    Exactly one caller takes over a stale lock (:func:`_break_stale_lock`). The
+    lock still only saves duplicate work: *dest* is published by an atomic
+    rename, so a caller that gave up waiting, or a holder paused longer than the
+    stale limit, costs a second download and never a bad file.
     """
     lock = dest.with_name(f".{dest.name}.lock")
     owner = f"host {socket.gethostname()}, process {os.getpid()}, {uuid.uuid4().hex}\n"
@@ -352,13 +382,7 @@ def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
         if age == math.inf:
             continue  # the holder just finished or failed: look again
         if age > _FETCH_LOCK_STALE:
-            logger.warning("Taking over the stale lock %s", lock.name)
-            grave = lock.with_name(f"{lock.name}.{uuid.uuid4().hex[:8]}.stale")
-            try:
-                os.rename(lock, grave)  # of racing callers, only one succeeds
-                grave.unlink(missing_ok=True)
-            except FileNotFoundError:
-                pass
+            _break_stale_lock(lock)
         elif time.monotonic() > give_up:
             logger.warning("Gave up waiting for %s; downloading it here", lock.name)
             yield True

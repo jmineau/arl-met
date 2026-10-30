@@ -187,12 +187,14 @@ downloaded once. The first caller to reach a file creates a hidden
 others wait until the finished file appears and use it. The lock is removed
 when the download ends, also after an error or ``Ctrl-C``. If its holder is
 killed without a chance to clean up (``kill -9``, a lost node), nobody waits
-forever: a lock untouched for five minutes is taken over, and a caller that has
-waited four hours downloads the file itself. With ``overwrite=True`` a caller
+forever: a lock untouched for five minutes is taken over by exactly one of
+the waiting callers, and a caller that has waited four hours downloads the
+file itself. With ``overwrite=True`` a caller
 waits for a download in progress, then downloads again. The lock saves
-duplicate work only; a file is always renamed into place whole, so a lost
-race costs a second download and never a damaged file. A ``.lock`` file left
-by a killed process is harmless and can be deleted.
+duplicate work only; a file is always renamed into place whole, so even a
+caller that gave up waiting costs a second download and never a damaged file.
+A ``.lock`` or ``.lock.break`` file left by a killed process is harmless and
+can be deleted.
 
 Requesting a time range that begins before an archive's ``start_date`` (the
 start of its archive) raises ``ValueError``.

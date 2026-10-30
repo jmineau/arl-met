@@ -343,3 +343,69 @@ def test_a_killed_downloader_does_not_block_others(tmp_path, monkeypatch):
     assert time.monotonic() - start < 30
     assert (tmp_path / "met" / "20240718_00-05_hrrr").read_bytes() == b"mine"
     assert not lock.exists()
+
+
+# -- callers finding one stale lock together --------------------------------
+
+TRIALS = 12
+CALLERS = 8
+
+
+def _stale_race_worker(barrier, folders: list[str], calls: str) -> None:
+    """Fetch the same file in each folder, released together by *barrier*."""
+    import uuid
+
+    def fake_open(url, mode, **opts):
+        (Path(calls) / uuid.uuid4().hex).touch()
+        time.sleep(0.3)
+        return io.BytesIO(b"arl-bytes")
+
+    sys.modules["fsspec"] = types.SimpleNamespace(open=fake_open)
+    archives._FETCH_LOCK_POLL = 0.05
+    for folder in folders:
+        barrier.wait(timeout=120)
+        HRRRArchive().fetch(START, START, dest_dir=folder)
+
+
+def test_callers_finding_a_stale_lock_together_download_once(tmp_path):
+    import multiprocessing
+
+    ctx = multiprocessing.get_context("spawn")
+    barrier = ctx.Barrier(CALLERS)
+    folders = []
+    for i in range(TRIALS):
+        met = tmp_path / f"met{i}"
+        met.mkdir()
+        _old_lock(met, age=600)
+        folders.append(str(met))
+    calls = tmp_path / "calls"
+    calls.mkdir()
+    procs = [
+        ctx.Process(target=_stale_race_worker, args=(barrier, folders, str(calls)))
+        for _ in range(CALLERS)
+    ]
+    for p in procs:
+        p.start()
+    for p in procs:
+        p.join(timeout=300)
+        assert p.exitcode == 0
+
+    # Every trial's folder holds the file; across all, one download per trial.
+    for folder in folders:
+        assert _visible(Path(folder)) == ["20240718_00-05_hrrr"]
+    assert len(list(calls.iterdir())) == TRIALS
+
+
+def test_a_break_file_left_by_a_killed_caller_is_removed(
+    tmp_path, opened, fast_locks, monkeypatch
+):
+    monkeypatch.setattr(archives, "_FETCH_LOCK_STALE", 30.0)
+    lock = _old_lock(tmp_path, age=3600)
+    breaker = lock.with_name(lock.name + ".break")
+    breaker.touch()
+    os.utime(breaker, (time.time() - 3600,) * 2)
+
+    HRRRArchive().fetch(START, START, dest_dir=tmp_path)
+
+    assert len(opened) == 1
+    assert _visible(tmp_path) == ["20240718_00-05_hrrr"]
