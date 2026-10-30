@@ -319,6 +319,18 @@ def _lock_age(lock: Path) -> float:
         return math.inf
 
 
+def _raise_unless_taken(error: OSError) -> None:
+    """
+    Re-raise *error* unless it says the lock file is already taken.
+
+    That is ``FileExistsError`` everywhere, and on Windows also
+    ``PermissionError``, which creating a file whose deletion is still pending
+    raises instead.
+    """
+    if not isinstance(error, FileExistsError) and os.name != "nt":
+        raise error
+
+
 def _break_stale_lock(lock: Path) -> None:
     """
     Remove *lock* if it is still stale, letting one caller at a time decide.
@@ -334,7 +346,8 @@ def _break_stale_lock(lock: Path) -> None:
     breaker = lock.with_name(f"{lock.name}.break")
     try:
         os.close(os.open(breaker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666))
-    except FileExistsError:
+    except (FileExistsError, PermissionError) as exc:
+        _raise_unless_taken(exc)
         if _lock_age(breaker) > _FETCH_LOCK_STALE:
             breaker.unlink(missing_ok=True)
         else:
@@ -373,8 +386,8 @@ def _fetch_lock(dest: Path, *, overwrite: bool) -> Iterator[bool]:
         try:
             fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)
             break
-        except FileExistsError:
-            pass
+        except (FileExistsError, PermissionError) as exc:
+            _raise_unless_taken(exc)
         if not overwrite and dest.exists():
             yield False
             return
