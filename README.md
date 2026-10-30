@@ -80,7 +80,7 @@ import arlmet
 ds = arlmet.open_dataset("met.arl")
 print(ds)
 
-# or through xarray, e.g. to get dask-backed arrays
+# or through xarray, e.g. to get dask-backed arrays (needs dask: pip install dask)
 import xarray as xr
 ds = xr.open_dataset("met.arl", engine="arl", chunks={"time": 1})
 ```
