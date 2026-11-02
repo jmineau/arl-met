@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=d6753010"></script>
+    <script src="../../../_static/documentation_options.js?v=8c4c4232"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev16+ga0f8dce66" />
+  <meta name="docsearch:version" content="0.1.0b6.dev17+g3dd086c38" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -480,6 +480,12 @@
     <span class="s2">"VWND"</span><span class="p">:</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
 <span class="p">}</span>
 
+<span class="c1">#: How far outside the grid, in cells, a point is still on its edge. Mapping a</span>
+<span class="c1">#: projected grid's own node lon/lat back to grid indices leaves about 1e-12</span>
+<span class="c1">#: cells of rounding error, which puts half the edge nodes just off the grid</span>
+<span class="c1">#: (#134); 1e-6 cells is a few millimeters on a 3 km grid.</span>
+<span class="n">_EDGE_TOLERANCE</span> <span class="o">=</span> <span class="mf">1e-6</span>
+
 <span class="c1">#: On a mass-coupled WRF file (``AWRF`` with ``MUU0`` and ``MUV0``: ``arw2arl``'s</span>
 <span class="c1">#: time-averaged fluxes, HYSPLIT's ``WRF = 3``), each upper-level wind is stored</span>
 <span class="c1">#: coupled to the column mass. HYSPLIT's ``metinp.f`` decouples it at each grid</span>
@@ -696,6 +702,30 @@
     <span class="n">wraps</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">wraps_lon</span>
     <span class="n">x_max</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span> <span class="k">if</span> <span class="n">wraps</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_onto_edges</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">y</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Move positions within ``_EDGE_TOLERANCE`` outside the grid onto its edge."""</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">snap</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">hi</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">            </span><span class="sd">"""Clip values within the tolerance of ``[0, hi]`` onto it."""</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">v</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">v</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="n">_EDGE_TOLERANCE</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">v</span> <span class="o">&gt;</span> <span class="n">hi</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">v</span> <span class="o">&lt;=</span> <span class="n">hi</span> <span class="o">+</span> <span class="n">_EDGE_TOLERANCE</span><span class="p">),</span> <span class="n">hi</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">wraps</span><span class="p">:</span>
+            <span class="c1"># x = nx on a global grid (a longitude a rounding error west of</span>
+            <span class="c1"># the first column; np.mod can return nx too) is column 0.</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">grid</span><span class="o">.</span><span class="n">is_latlon</span><span class="p">:</span>
+                <span class="c1"># Longitude is measured east of the first column modulo 360, so</span>
+                <span class="c1"># one a rounding error west of it is a full turn east (#141).</span>
+                <span class="n">turn</span> <span class="o">=</span> <span class="mf">360.0</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">tangent_lon</span><span class="p">)</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">turn</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">_EDGE_TOLERANCE</span><span class="p">,</span> <span class="n">x</span> <span class="o">-</span> <span class="n">turn</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">snap</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x_max</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">snap</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_on_grid</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">y</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Return True where array position ``(x, y)`` can be interpolated."""</span>
         <span class="k">return</span> <span class="p">(</span>
@@ -707,15 +737,13 @@
             <span class="o">&amp;</span> <span class="p">(</span><span class="n">y</span> <span class="o">&lt;=</span> <span class="n">grid</span><span class="o">.</span><span class="n">ny</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
         <span class="p">)</span>
 
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">_onto_edges</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
     <span class="n">inside</span> <span class="o">=</span> <span class="n">_on_grid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">stagger</span> <span class="o">!=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"nearest"</span><span class="p">:</span>
             <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
             <span class="n">method</span> <span class="o">=</span> <span class="s2">"linear"</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">stagger</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">stagger</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">wraps</span><span class="p">:</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">_onto_edges</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">stagger</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span> <span class="o">+</span> <span class="n">stagger</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">inside</span> <span class="o">&amp;=</span> <span class="n">_on_grid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
 
     <span class="n">x_safe</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">x_max</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
@@ -1604,7 +1632,9 @@
 <span class="sd">    pandas.DataFrame</span>
 <span class="sd">        Copy of ``points`` (all columns and the index preserved) with one</span>
 <span class="sd">        added column per requested variable. Points outside the grid or the</span>
-<span class="sd">        vertical range are NaN.</span>
+<span class="sd">        vertical range are NaN. A point within 1e-6 cells of the grid's edge</span>
+<span class="sd">        is on it, so a projected grid's edge nodes, given by the longitude and</span>
+<span class="sd">        latitude :meth:`arlmet.Grid.calculate_coords` reports, have values.</span>
 
 <span class="sd">    Raises</span>
 <span class="sd">    ------</span>

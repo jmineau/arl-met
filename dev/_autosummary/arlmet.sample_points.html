@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=d6753010"></script>
+    <script src="../_static/documentation_options.js?v=8c4c4232"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev16+ga0f8dce66" />
+  <meta name="docsearch:version" content="0.1.0b6.dev17+g3dd086c38" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -670,7 +670,9 @@ lat/lon grids.</p></li>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Copy of <code class="docutils literal notranslate"><span class="pre">points</span></code> (all columns and the index preserved) with one
 added column per requested variable. Points outside the grid or the
-vertical range are NaN.</p>
+vertical range are NaN. A point within 1e-6 cells of the grid’s edge
+is on it, so a projected grid’s edge nodes, given by the longitude and
+latitude <a class="reference internal" href="arlmet.Grid.calculate_coords.html#arlmet.Grid.calculate_coords" title="arlmet.Grid.calculate_coords"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.Grid.calculate_coords()</span></code></a> reports, have values.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a></span></p>
