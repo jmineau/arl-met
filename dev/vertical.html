@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=2c2b137f"></script>
+    <script src="_static/documentation_options.js?v=6a90e34a"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev7+g1712d2e84" />
+  <meta name="docsearch:version" content="0.1.0b6.dev12+g6fae8140f" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -553,6 +553,9 @@ raises <code class="docutils literal notranslate"><span class="pre">ValueError</
 <span class="gh">Out[10]: </span><span class="go">array([ 157.30005, 1712.1809 , 4274.435  , 7863.953  ], dtype=float32)</span>
 </pre></div>
 </div>
+<p>The sample file is on a lat-lon grid. On a projected grid, such as HRRR’s or
+NAM’s, the horizontal dimensions are <code class="docutils literal notranslate"><span class="pre">y</span></code> and <code class="docutils literal notranslate"><span class="pre">x</span></code>, so select with
+<code class="docutils literal notranslate"><span class="pre">z.isel(time=0,</span> <span class="pre">y=0,</span> <span class="pre">x=0)</span></code>.</p>
 <p>The method used depends on the vertical flag, matching HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfcom</span></code>
 dispatcher — each coordinate system has exactly one correct method:</p>
 <ul class="simple">

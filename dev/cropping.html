@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=2c2b137f"></script>
+    <script src="_static/documentation_options.js?v=6a90e34a"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev7+g1712d2e84" />
+  <meta name="docsearch:version" content="0.1.0b6.dev12+g6fae8140f" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -477,7 +477,9 @@ only need a smaller region.</p>
 </section>
 <section id="select-levels-while-reading">
 <h2>Select levels while reading<a class="headerlink" href="#select-levels-while-reading" title="Link to this heading">#</a></h2>
-<p>ARL levels are selected by integer level index.</p>
+<p>ARL levels are selected by integer level index, counted from 0 at the surface,
+so <code class="docutils literal notranslate"><span class="pre">levels=[0,</span> <span class="pre">1,</span> <span class="pre">2]</span></code> keeps the surface fields and the first two upper-air
+levels (the Dataset’s <code class="docutils literal notranslate"><span class="pre">level</span></code> coordinate is then 1 and 2).</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
 <span class="gp">   ...: </span>    <span class="s2">"met.arl"</span><span class="p">,</span>
 <span class="gp">   ...: </span>    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span>
@@ -590,7 +592,11 @@ of its ends</p></li>
 </ul>
 <p>If the selected domain is too small to hold the output index record,
 <code class="docutils literal notranslate"><span class="pre">extract_subset()</span></code> raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> explaining how many grid cells are
-required.</p>
+required. The index record lists every level and variable, so the minimum grows
+with them. On a NAM 12 km file with all its levels and variables it is 2,012
+cells, and the 4 by 3 degree box used on this page is 33 by 26 = 858 cells
+there: pass <code class="docutils literal notranslate"><span class="pre">levels=</span></code> or <code class="docutils literal notranslate"><span class="pre">variables=</span></code>, or use a larger box. On a GFS 0.25
+degree file with all levels it is 3,340 cells.</p>
 </section>
 </section>
 

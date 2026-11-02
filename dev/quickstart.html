@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=2c2b137f"></script>
+    <script src="_static/documentation_options.js?v=6a90e34a"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev7+g1712d2e84" />
+  <meta name="docsearch:version" content="0.1.0b6.dev12+g6fae8140f" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -447,7 +447,8 @@ back to disk.</p>
 <p>The examples run when the docs are built, on <code class="docutils literal notranslate"><span class="pre">met.arl</span></code>, a small file of made-up
 values that the build writes with <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>: a July day over
 Utah, four time steps six hours apart, on a 61 by 51 grid of 0.1 degree cells
-and four pressure levels. Use your own file’s name in its place.</p>
+and four pressure levels. Use your own file’s name in its place; if you have no
+ARL file yet, <a class="reference internal" href="downloading.html"><span class="doc">Downloading Archived Meteorology</span></a> shows how to fetch one.</p>
 <section id="open-a-file-lazily-with-xarray">
 <h2>Open a file lazily with xarray<a class="headerlink" href="#open-a-file-lazily-with-xarray" title="Link to this heading">#</a></h2>
 <p>The main entry point is <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a>. It returns an
@@ -455,7 +456,9 @@ and four pressure levels. Use your own file’s name in its place.</p>
 when you actually access them.</p>
 <p>Surface variables (e.g. <code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>) have dimensions
 <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">lat,</span> <span class="pre">lon)</span></code> and upper-air variables (e.g. <code class="docutils literal notranslate"><span class="pre">UWND</span></code>, <code class="docutils literal notranslate"><span class="pre">VWND</span></code>,
-<code class="docutils literal notranslate"><span class="pre">TEMP</span></code>) have dimensions <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">level,</span> <span class="pre">lat,</span> <span class="pre">lon)</span></code>. The <code class="docutils literal notranslate"><span class="pre">level</span></code>
+<code class="docutils literal notranslate"><span class="pre">TEMP</span></code>) have dimensions <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">level,</span> <span class="pre">lat,</span> <span class="pre">lon)</span></code>. On a projected grid,
+such as HRRR’s or NAM’s, <code class="docutils literal notranslate"><span class="pre">lat</span></code> and <code class="docutils literal notranslate"><span class="pre">lon</span></code> are <code class="docutils literal notranslate"><span class="pre">y</span></code> and <code class="docutils literal notranslate"><span class="pre">x</span></code> (the
+<code class="docutils literal notranslate"><span class="pre">lat</span></code> and <code class="docutils literal notranslate"><span class="pre">lon</span></code> coordinates are then 2D). The <code class="docutils literal notranslate"><span class="pre">level</span></code>
 coordinate contains only the upper-air pressure levels. <code class="docutils literal notranslate"><span class="pre">ds.isel(level=0)</span></code>
 selects the first upper-air level for upper-air variables and leaves surface
 variables unchanged.</p>
@@ -521,7 +524,9 @@ variables unchanged.</p>
 </div>
 <p>arlmet also registers itself as an xarray backend, so the same Dataset is
 available through <a class="reference external" href="https://docs.xarray.dev/en/stable/generated/xarray.open_dataset.html#xarray.open_dataset" title="(in xarray v2026.9.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">xarray.open_dataset()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">engine=&quot;arl&quot;</span></code>. That route
-adds xarray’s generic options, such as <code class="docutils literal notranslate"><span class="pre">chunks=</span></code> for dask-backed arrays:</p>
+adds xarray’s generic options, such as <code class="docutils literal notranslate"><span class="pre">chunks=</span></code> for dask-backed arrays.
+arl-met does not install dask: <code class="docutils literal notranslate"><span class="pre">chunks=</span></code> raises <code class="docutils literal notranslate"><span class="pre">ImportError</span></code> until you run
+<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">dask</span></code>.</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
 <span class="gp">In [8]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">"arl"</span><span class="p">)</span>
