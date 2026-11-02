@@ -42,7 +42,9 @@ only need a smaller region.
 Select levels while reading
 ---------------------------
 
-ARL levels are selected by integer level index.
+ARL levels are selected by integer level index, counted from 0 at the surface,
+so ``levels=[0, 1, 2]`` keeps the surface fields and the first two upper-air
+levels (the Dataset's ``level`` coordinate is then 1 and 2).
 
 .. ipython:: python
 
@@ -160,4 +162,8 @@ Limitations
 
 If the selected domain is too small to hold the output index record,
 ``extract_subset()`` raises a ``ValueError`` explaining how many grid cells are
-required.
+required. The index record lists every level and variable, so the minimum grows
+with them. On a NAM 12 km file with all its levels and variables it is 2,012
+cells, and the 4 by 3 degree box used on this page is 33 by 26 = 858 cells
+there: pass ``levels=`` or ``variables=``, or use a larger box. On a GFS 0.25
+degree file with all levels it is 3,340 cells.
