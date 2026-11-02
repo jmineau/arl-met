@@ -105,6 +105,12 @@ Download files for a time range
 keys are removed automatically when the requested time range spans multiple
 hours within the same ARL file.
 
+Archive files are named by UTC. A time without a time zone is UTC, and a
+time-zone-aware one is converted to UTC, so
+``pd.Timestamp("2024-07-31 20:00", tz="America/Denver")`` selects the files
+of August 1, 02 UTC. ``paths_for_range()``, ``fetch()`` and ``sync()`` all
+work this way.
+
 Crop on download
 ----------------
 

@@ -817,6 +817,20 @@ class TestStartDate:
         with pytest.raises(ValueError, match="archive begins"):
             src.paths_for_range("2019-06-11 23:00+00:00", "2019-06-12 03:00+00:00")
 
+    def test_tz_aware_range_before_start_date_names_utc(self):
+        # 2019-06-11 20:00 in Denver is 2019-06-12 02:00 UTC, inside the archive.
+        src = HRRRArchive()
+        assert src.paths_for_range(
+            pd.Timestamp("2019-06-11 20:00", tz="America/Denver"),
+            pd.Timestamp("2019-06-11 21:00", tz="America/Denver"),
+        ) == ["hrrr/2019/06/20190612_00-05_hrrr"]
+        # 2019-06-12 04:00 Tokyo is 2019-06-11 19:00 UTC, before it.
+        with pytest.raises(ValueError, match="archive begins 2019-06-12"):
+            src.paths_for_range(
+                pd.Timestamp("2019-06-12 04:00", tz="Asia/Tokyo"),
+                pd.Timestamp("2019-06-12 05:00", tz="Asia/Tokyo"),
+            )
+
     def test_fetch_raises_before_downloading(self, tmp_path, monkeypatch):
         src = HRRRArchive()
         monkeypatch.setitem(
@@ -829,6 +843,101 @@ class TestStartDate:
         monkeypatch.setattr(src, "_download", no_download)
         with pytest.raises(ValueError, match="archive begins"):
             src.fetch("2019-06-01", "2019-06-13", dest_dir=tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# Time zones: aware times name files by UTC, as naive ones do
+# ---------------------------------------------------------------------------
+
+_DENVER_START = pd.Timestamp("2024-07-31 20:00", tz="America/Denver")  # 08-01 02Z
+_DENVER_END = pd.Timestamp("2024-07-31 21:00", tz="America/Denver")  # 08-01 03Z
+
+
+class TestTimeZones:
+    @pytest.mark.parametrize(
+        "archive, expected",
+        [
+            (HRRRArchive, ["hrrr/2024/08/20240801_00-05_hrrr"]),
+            (NAMArchive, ["nam12/2024/08/20240801_nam12"]),
+            (GDASArchive, ["gdas1/2024/gdas1.aug24.w1"]),
+        ],
+        ids=["hrrr", "nam12", "gdas1"],
+    )
+    def test_aware_times_name_the_utc_files(self, archive, expected):
+        src = archive()
+        assert src.paths_for_range(_DENVER_START, _DENVER_END) == expected
+
+    @pytest.mark.parametrize("archive", [HRRRArchive, NAMArchive, GDASArchive])
+    def test_aware_times_match_the_same_utc_instants_without_a_zone(self, archive):
+        src = archive()
+        assert src.paths_for_range(_DENVER_START, _DENVER_END) == src.paths_for_range(
+            "2024-08-01 02:00", "2024-08-01 03:00"
+        )
+
+    def test_times_without_a_zone_stay_utc(self):
+        src = HRRRArchive()
+        assert src.paths_for_range("2024-07-31 20:00", "2024-07-31 21:00") == [
+            "hrrr/2024/07/20240731_18-23_hrrr"
+        ]
+
+    def test_strings_with_an_offset_are_converted(self):
+        src = HRRRArchive()
+        assert src.paths_for_range(
+            "2024-07-31 20:00-06:00", "2024-07-31 21:00-06:00"
+        ) == ["hrrr/2024/08/20240801_00-05_hrrr"]
+
+    def test_a_backward_range_is_converted_too(self):
+        src = HRRRArchive()
+        assert src.paths_for_range(_DENVER_END, _DENVER_START) == [
+            "hrrr/2024/08/20240801_00-05_hrrr"
+        ]
+
+    def test_half_hour_offset_zone(self):
+        # 01:30 to 05:30 in India (UTC+5:30) is 20:00 UTC on July 31 to 00:00
+        # on August 1: two HRRR files. Flooring in local time first would
+        # start at 01:00 local and miss the July 31 file.
+        src = HRRRArchive()
+        assert src.paths_for_range(
+            pd.Timestamp("2024-08-01 01:30", tz="Asia/Kolkata"),
+            pd.Timestamp("2024-08-01 05:30", tz="Asia/Kolkata"),
+        ) == [
+            "hrrr/2024/07/20240731_18-23_hrrr",
+            "hrrr/2024/08/20240801_00-05_hrrr",
+        ]
+
+    def test_daylight_saving_day(self):
+        # Denver springs forward on 2024-03-10 at 02:00. 05:30 to 06:30 local
+        # (MDT, UTC-6) is 11:30 to 12:30 UTC, across the 06-11 and 12-17 blocks;
+        # local wall-clock fields would name the 00-05 and 06-11 blocks.
+        src = HRRRArchive()
+        assert src.paths_for_range(
+            pd.Timestamp("2024-03-10 05:30", tz="America/Denver"),
+            pd.Timestamp("2024-03-10 06:30", tz="America/Denver"),
+        ) == [
+            "hrrr/2024/03/20240310_06-11_hrrr",
+            "hrrr/2024/03/20240310_12-17_hrrr",
+        ]
+        # The day before is MST (UTC-7): 23:30 local is 06:30 UTC the next day.
+        assert src.paths_for_range(
+            pd.Timestamp("2024-03-09 23:30", tz="America/Denver"),
+            pd.Timestamp("2024-03-09 23:45", tz="America/Denver"),
+        ) == ["hrrr/2024/03/20240310_06-11_hrrr"]
+
+    def test_fetch_downloads_the_utc_files(self, tmp_path, monkeypatch):
+        src = HRRRArchive()
+        monkeypatch.setitem(
+            sys.modules, "fsspec", types.SimpleNamespace(open=lambda *a, **k: None)
+        )
+        urls = []
+
+        def fake_download(url, dest, opts):
+            urls.append(url)
+            Path(dest).write_bytes(b"x")
+
+        monkeypatch.setattr(src, "_download", fake_download)
+        files = src.fetch(_DENVER_START, _DENVER_END, dest_dir=tmp_path)
+        assert [f.name for f in files] == ["20240801_00-05_hrrr"]
+        assert len(urls) == 1 and urls[0].endswith("hrrr/2024/08/20240801_00-05_hrrr")
 
 
 # ---------------------------------------------------------------------------
