@@ -684,7 +684,9 @@ class Grid:
         that holds the whole grid). ``xtrct_grid`` uses only the south-west and
         north-east corners, on or off the grid, so its crop can leave out part
         of the box; for a box inside the grid this window holds that crop and
-        can be a few cells larger.
+        can be a few cells larger. Longitudes count modulo 360 (``(440, 0, 450,
+        10)`` is ``(80, 0, 90, 10)``), and a box 360 degrees wide or more holds
+        every longitude.
 
         Raises ``ValueError`` when no point of the box lies on the grid.
 
@@ -822,7 +824,16 @@ class Grid:
         edge). A segment longer than two cells jumps across the projection's
         cut or past a point it cannot map, so it is not followed across the
         grid; its ends still count.
+
+        Longitudes count modulo 360: the box moves so that ``west`` lies in
+        [-180, 180) and ``east`` is at most 360 degrees east of it (a wider box
+        holds every longitude). PROJ returns infinity for a longitude beyond
+        10 radians (573 degrees), so an outline left as given would lose the
+        part of the box past that.
         """
+        width = min(east - west, 360.0)
+        west = (west + 180.0) % 360.0 - 180.0
+        east = west + width
         dlon, dlat = self._outline_spacing
         edges = (
             (west, south, east, south, dlon),

@@ -643,6 +643,28 @@ class TestGrid:
         assert grid.window_from_bbox(bbox) == grid.full_window()
         assert largest[0] <= 4 * _OUTLINE_MAX_POINTS
 
+    @pytest.mark.parametrize("turns", [-3, -1, 1, 2, 3])
+    def test_window_from_bbox_longitudes_beyond_a_turn_count_modulo_360(self, turns):
+        """
+        A box whose longitudes pass 573 degrees is the same box shifted (#139 review).
+
+        PROJ maps no longitude beyond 10 radians (infinity), so sampling the
+        outline as given left the part past 573 degrees out and returned a
+        window too small, with no error.
+        """
+        grid = Grid(projection=_NAM12, nx=614, ny=428)
+        west, south, east, north = 445.0004 - 360, -50.2358, 608.6778 - 360, 59.9860
+        window = grid.window_from_bbox((west, south, east, north))
+        assert (window.x_start, window.x_stop) == (0, 254)
+        shifted = (west + 360 * turns, south, east + 360 * turns, north)
+        assert grid.window_from_bbox(shifted) == window
+
+    def test_window_from_bbox_box_wider_than_a_turn_holds_the_grid(self):
+        """A box 2000 degrees wide holds every longitude, wherever it starts (#139 review)."""
+        grid = Grid(projection=_NAM12, nx=614, ny=428)
+        assert grid.window_from_bbox((-1000, 0, 1000, 90)) == grid.full_window()
+        assert grid.window_from_bbox((-180, 0, 180, 90)) == grid.full_window()
+
     @pytest.mark.parametrize(
         ("projection", "nx", "ny", "bbox", "expected"),
         [
