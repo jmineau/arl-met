@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=fb6e35d5"></script>
+    <script src="../_static/documentation_options.js?v=195e5155"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev18+g1b8a2c59e" />
+  <meta name="docsearch:version" content="0.1.0b6.dev19+g8699fbc3a" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -634,6 +634,27 @@
 <dt class="sig sig-object py" id="arlmet.Grid.window_from_bbox">
 <span class="sig-prename descclassname"><span class="pre">Grid.</span></span><span class="sig-name descname"><span class="pre">window_from_bbox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bbox</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/grid.html#Grid.window_from_bbox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.Grid.window_from_bbox" title="Link to this definition">#</a></dt>
 <dd><p>Resolve a geographic bounding box to grid indices.</p>
+<p>On a lat/lon grid the window holds the cells whose centers lie inside
+the box, edges included, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> crops.</p>
+<p>On a projected grid the window is the smallest rectangle of cells
+that holds every point of the box that lies on the grid (in one of its
+cells). Its edges come from the box’s outline, sampled at most half a
+cell apart on the grid, where it lies on the grid or crosses the grid’s
+border, and from the grid’s own corners that lie inside the box; the
+lowest and highest index on each axis is rounded to the nearest cell,
+like Fortran <code class="docutils literal notranslate"><span class="pre">NINT</span></code>. Parallels and meridians curve on these grids, so
+an extreme is often the box’s south-east or north-west corner, or a
+point partway along an edge. Points off the grid do not widen the
+window, so a box that reaches past the grid, across the meridian
+opposite the projection’s center or to a pole the projection cannot
+map, gives the cells of its part on the grid (all of them, for a box
+that holds the whole grid). <code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> uses only the south-west and
+north-east corners, on or off the grid, so its crop can leave out part
+of the box; for a box inside the grid this window holds that crop and
+can be a few cells larger. Longitudes count modulo 360 (<code class="docutils literal notranslate"><span class="pre">(440,</span> <span class="pre">0,</span> <span class="pre">450,</span>
+<span class="pre">10)</span></code> is <code class="docutils literal notranslate"><span class="pre">(80,</span> <span class="pre">0,</span> <span class="pre">90,</span> <span class="pre">10)</span></code>), and a box 360 degrees wide or more holds
+every longitude.</p>
+<p>Raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> when no point of the box lies on the grid.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>bbox</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]</span>) – Bounding box as <code class="docutils literal notranslate"><span class="pre">(west,</span> <span class="pre">south,</span> <span class="pre">east,</span> <span class="pre">north)</span></code> in degrees.

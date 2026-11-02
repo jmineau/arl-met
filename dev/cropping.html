@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=fb6e35d5"></script>
+    <script src="_static/documentation_options.js?v=195e5155"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev18+g1b8a2c59e" />
+  <meta name="docsearch:version" content="0.1.0b6.dev19+g8699fbc3a" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -560,6 +560,33 @@ the selected records are copied byte for byte and only their level numbers
 and the index records are rewritten, so it runs at close to file-copy speed
 and the output values are exactly the input’s.</p>
 </section>
+<section id="which-cells-a-crop-keeps">
+<h2>Which cells a crop keeps<a class="headerlink" href="#which-cells-a-crop-keeps" title="Link to this heading">#</a></h2>
+<p>On a lat-lon grid a crop keeps the cells whose centers lie inside the box, edges
+included, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> does.</p>
+<p>On a projected grid (Lambert conformal, polar stereographic, Mercator) a crop is
+the smallest rectangle of the grid’s cells that holds the box’s part on the grid:
+every point inside the box that lies on the grid lies in one of the crop’s cells.
+Parallels and meridians curve on these grids, so the box is not a rectangle in
+grid cells. arl-met maps the box’s outline, points along its edges at most half a
+cell apart on the grid, to grid indices, and keeps the points inside the grid’s
+cells, the points where the outline crosses the grid’s border, and the grid’s
+corners that lie inside the box. It rounds the lowest and highest index on each
+axis to the nearest cell, as Fortran’s <code class="docutils literal notranslate"><span class="pre">NINT</span></code> rounds. Points of the box off the
+grid do not widen the crop: a box that reaches past the grid, across the meridian
+opposite the projection’s center or to a pole the projection cannot map, is cropped
+to its part on the grid (the whole grid, for <code class="docutils literal notranslate"><span class="pre">bbox=(-180.0,</span> <span class="pre">0.0,</span> <span class="pre">180.0,</span> <span class="pre">90.0)</span></code> on
+HRRR), and a box with no point on the grid raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+<p>This departs from <code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code>, which maps all four corners but keeps only the
+rectangle between the south-west and north-east ones, wherever they fall. Its crop
+can leave out the box’s south-east and north-west corners, so a point there, such
+as a receptor inside the box, can be off the cropped grid; and across the cut its
+corners’ indices mean nothing. For a box inside the grid, arl-met’s crop holds
+<code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code>’s and is often a few cells larger: for <code class="docutils literal notranslate"><span class="pre">bbox=(-113.5,</span> <span class="pre">39.5,</span> <span class="pre">-110.5,</span> <span class="pre">42.0)</span></code> on HRRR
+it is 99 x 106 cells where <code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code>’s is 99 x 79, with 14 more rows to the
+south and 13 to the north. Crops of lat-lon grids (GFS, GDAS) are the same as
+<code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code>’s.</p>
+</section>
 <section id="what-changes-in-the-output-file">
 <h2>What changes in the output file<a class="headerlink" href="#what-changes-in-the-output-file" title="Link to this heading">#</a></h2>
 <p>When levels are selected, the output file is renumbered from zero upward while
@@ -651,6 +678,7 @@ degree file with all levels it is 3,340 cells.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#select-levels-while-reading">Select levels while reading</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#write-a-smaller-arl-file">Write a smaller ARL file</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#keep-only-the-levels-and-variables-you-need">Keep only the levels and variables you need</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#which-cells-a-crop-keeps">Which cells a crop keeps</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-changes-in-the-output-file">What changes in the output file</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#limitations">Limitations</a></li>
 </ul>
