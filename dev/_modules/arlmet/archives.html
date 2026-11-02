@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=8c4c4232"></script>
+    <script src="../../_static/documentation_options.js?v=fb6e35d5"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev17+g3dd086c38" />
+  <meta name="docsearch:version" content="0.1.0b6.dev18+g1b8a2c59e" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -832,7 +832,8 @@
 <span class="sd">    :meth:`fetch`, or keep a whole local folder in step with NOAA's with</span>
 <span class="sd">    :meth:`sync`, choosing the ``mirror`` (server) to download from.</span>
 
-<span class="sd">    Subclasses set class-level metadata and implement ``_archive_path()`` to</span>
+<span class="sd">    Subclasses set class-level metadata (``name``, ``description``,</span>
+<span class="sd">    ``start_date``, ``source``, ``step``) and implement ``_archive_path()`` to</span>
 <span class="sd">    encode the filename convention for their product. A subclass that sets</span>
 <span class="sd">    ``name`` is registered in :data:`ARCHIVES` under that name.</span>
 
@@ -849,6 +850,10 @@
 <span class="sd">        such as ``"HRRR"``, so a caller can tell which product an archive</span>
 <span class="sd">        holds without downloading a file. Every file of an archive carries</span>
 <span class="sd">        the same id, except where a subclass says otherwise.</span>
+<span class="sd">    step : pandas.Timedelta</span>
+<span class="sd">        The time between one time step and the next inside a file (the</span>
+<span class="sd">        spacing of its index records), such as 3 hours for NAM 12 km. It is</span>
+<span class="sd">        not the span of one file, which is a separate fact of each archive.</span>
 
 <span class="sd">    Methods</span>
 <span class="sd">    -------</span>
@@ -867,6 +872,29 @@
     <span class="n">start_date</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">]</span>
     <span class="c1">#: The source id in the headers of the archive's files.</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="c1">#: The time between one time step and the next inside a file, as a</span>
+    <span class="c1">#: :class:`pandas.Timedelta`: the spacing of the file's index records, the</span>
+    <span class="c1">#: product's own time resolution. It is **not** how much time one file</span>
+    <span class="c1">#: covers (the *file span*). HRRR has a step of 1 hour and its files hold</span>
+    <span class="c1">#: 6 time steps, a 6-hour block. NAM 12 km has a step of 3 hours and its</span>
+    <span class="c1">#: files hold 8 time steps, 00:00 to 21:00 of a calendar day, so a file's</span>
+    <span class="c1">#: last time step is one step before the file's end, and a run that reaches</span>
+    <span class="c1">#: past 21:00 needs the next day's file.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: See Also</span>
+    <span class="c1">#: --------</span>
+    <span class="c1">#: arlmet.File.times : The valid times of the time steps in one file.</span>
+    <span class="c1">#: Archive.paths_for_range : The archive paths that cover a time range.</span>
+    <span class="c1">#: Archive.start_date : The earliest date in the archive.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: Examples</span>
+    <span class="c1">#: --------</span>
+    <span class="c1">#: &gt;&gt;&gt; from arlmet.archives import ARCHIVES, get_archive</span>
+    <span class="c1">#: &gt;&gt;&gt; ARCHIVES["nam12"].step</span>
+    <span class="c1">#: Timedelta('0 days 03:00:00')</span>
+    <span class="c1">#: &gt;&gt;&gt; get_archive("hrrr").step</span>
+    <span class="c1">#: Timedelta('0 days 01:00:00')</span>
+    <span class="n">step</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">]</span>
 
     <span class="n">S3_BUCKET</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"noaa-oar-arl-hysplit-pds"</span>
 
@@ -1458,6 +1486,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"HRRR 3 km analysis"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2019-06-12"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"HRRR"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="n">_HOURS_PER_FILE</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">6</span>
 
@@ -1489,6 +1518,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"NAM 12 km analysis"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2007-05-26"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"NAM"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the daily NAM archive filename for *time*."""</span>
@@ -1518,6 +1548,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"GDAS 1-degree global analysis"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2004-12-01"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"GDAS"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_week</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the 1-based archive week within the month for *time*."""</span>
@@ -1552,6 +1583,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"GFS 0.25-degree global analysis"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2019-06-13"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"GFSQ"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the daily GFS archive filename for *time*."""</span>
@@ -1585,6 +1617,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"NAMS hybrid sigma-pressure analysis"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2009-03-22"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"NAMS"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="n">_DOMAIN_SUFFIXES</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">"conus"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
@@ -1632,6 +1665,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"NCEP/NCAR Reanalysis 2.5-degree global"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"1948-01-01"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"CDC1"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the monthly reanalysis archive filename for *time*."""</span>
@@ -1660,6 +1694,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"HRRR 3 km analysis v1"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2015-06-15"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"HRRR"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="n">_HOURS_PER_FILE</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">6</span>
 
@@ -1692,6 +1727,7 @@
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2007-09-01"</span><span class="p">)</span>
     <span class="c1">#: Files before 2013-07-29 carry "GHDA", the id of the same product.</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"GFSG"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the daily GDAS 0.5-degree archive filename for *time*."""</span>
@@ -1721,6 +1757,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"NCEP North American Regional Reanalysis 32 km"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"1979-01-01"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"NARR"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the monthly NARR archive filename for *time*."""</span>
