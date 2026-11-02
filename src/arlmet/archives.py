@@ -454,8 +454,8 @@ class Archive(ABC):
     #: covers (the *file span*). HRRR has a step of 1 hour and its files hold
     #: 6 time steps, a 6-hour block. NAM 12 km has a step of 3 hours and its
     #: files hold 8 time steps, 00:00 to 21:00 of a calendar day, so a file's
-    #: last time step is one step before the file's end, and a run that needs
-    #: the time step at or after 22:00 needs the next day's file.
+    #: last time step is one step before the file's end, and a run that reaches
+    #: past 21:00 needs the next day's file.
     #:
     #: See Also
     #: --------

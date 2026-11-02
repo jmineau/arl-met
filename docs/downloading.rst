@@ -107,8 +107,8 @@ column above) is the time between one time step and the next *inside* a file, th
 spacing of its index records. A HRRR file spans 6 hours and holds 6 time steps an
 hour apart; a NAM 12 km file spans a day and holds 8, three hours apart, from
 00:00 to 21:00. So a file's last time step is one step before the file's end, and
-a run that needs the time step at or after 22:00 needs the next day's NAM file,
-although 22:00 lies in the first.
+a run that reaches past 21:00 needs the next day's NAM file, although 21:30, say,
+lies in the first.
 
 .. ipython:: python
 
