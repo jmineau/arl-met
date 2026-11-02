@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=0983d16f"></script>
+    <script src="../../_static/documentation_options.js?v=88764abe"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev14+g2502025d1" />
+  <meta name="docsearch:version" content="0.1.0b6.dev15+g569d998c7" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -705,6 +705,11 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_serialize_fixed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Serialize the fixed 108-byte portion of the index record."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">forecast</span> <span class="o">&gt;</span> <span class="mi">999</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Forecast hour </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">forecast</span><span class="si">}</span><span class="s2"> does not fit the index record's "</span>
+                <span class="s2">"three characters (the most is 999)."</span>
+            <span class="p">)</span>
         <span class="n">values</span> <span class="o">=</span> <span class="p">[</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pole_lat</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pole_lon</span><span class="p">,</span>

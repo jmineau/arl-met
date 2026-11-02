@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=0983d16f"></script>
+    <script src="../../_static/documentation_options.js?v=88764abe"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev14+g2502025d1" />
+  <meta name="docsearch:version" content="0.1.0b6.dev15+g569d998c7" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -540,7 +540,9 @@
 <span class="sd">    year, month, day, hour : int</span>
 <span class="sd">        Valid time components stored in the record header.</span>
 <span class="sd">    forecast : int</span>
-<span class="sd">        Forecast hour associated with the record.</span>
+<span class="sd">        Forecast hour associated with the record. The label holds two digits,</span>
+<span class="sd">        so :meth:`tobytes` writes ``min(forecast, 99)``, as HYSPLIT's ``pakrec``</span>
+<span class="sd">        does (an index record keeps the full hour, up to 999, in its own field).</span>
 <span class="sd">    level : int</span>
 <span class="sd">        ARL vertical level index.</span>
 <span class="sd">    grid : tuple[int, int]</span>
@@ -648,7 +650,12 @@
 <div class="viewcode-block" id="Header.tobytes">
 <a class="viewcode-back" href="../../_autosummary/arlmet.Header.tobytes.html#arlmet.Header.tobytes">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">tobytes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Serialize the header to its fixed-width ASCII representation."""</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Serialize the header to its fixed-width ASCII representation.</span>
+
+<span class="sd">        A forecast hour above 99 is written as 99, the most the two-character</span>
+<span class="sd">        label holds (HYSPLIT's ``pakrec`` writes ``MIN(hour, 99)``).</span>
+<span class="sd">        """</span>
         <span class="n">yy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">year</span> <span class="o">%</span> <span class="mi">100</span>
         <span class="n">grid</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">thousands_to_letter</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
         <span class="n">header</span> <span class="o">=</span> <span class="p">(</span>
@@ -656,7 +663,7 @@
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">month</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">"</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">day</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">"</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">hour</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">"</span>
-            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">forecast</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">forecast</span><span class="p">,</span><span class="w"> </span><span class="mi">99</span><span class="p">)</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">"</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">"</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">grid</span><span class="si">:</span><span class="s2">&gt;2</span><span class="si">}</span><span class="s2">"</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="si">:</span><span class="s2">&lt;4</span><span class="si">}</span><span class="s2">"</span>

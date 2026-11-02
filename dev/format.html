@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=0983d16f"></script>
+    <script src="_static/documentation_options.js?v=88764abe"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev14+g2502025d1" />
+  <meta name="docsearch:version" content="0.1.0b6.dev15+g569d998c7" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -632,6 +632,16 @@ data records, byte for byte. arl-met keeps the first copy, ignores the repeat,
 and emits an <a class="reference internal" href="_autosummary/arlmet.ARLFormatWarning.html#arlmet.ARLFormatWarning" title="arlmet.ARLFormatWarning"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.ARLFormatWarning</span></code></a>. Rewriting such a file (e.g. with
 <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a>) produces a clean file without the repeat.</p>
 </section>
+<section id="forecast-hours-above-99">
+<h3>Forecast hours above 99<a class="headerlink" href="#forecast-hours-above-99" title="Link to this heading">#</a></h3>
+<p>A record’s 50-byte label has two characters for the forecast hour, the index
+record three. HYSPLIT’s writer (<code class="docutils literal notranslate"><span class="pre">pakrec</span></code>) puts <code class="docutils literal notranslate"><span class="pre">MIN(hour,</span> <span class="pre">99)</span></code> in every
+label and the full hour, up to 999, in the index record, and arl-met does the
+same: a file whose index record says 100 holds records that say 99. Reading
+such a file gives <code class="xref py py-attr docutils literal notranslate"><span class="pre">arlmet.RecordSet.forecast</span></code> 100 and each
+<a class="reference internal" href="_autosummary/arlmet.DataRecord.forecast.html#arlmet.DataRecord.forecast" title="arlmet.DataRecord.forecast"><code class="xref py py-attr docutils literal notranslate"><span class="pre">arlmet.DataRecord.forecast</span></code></a> 99; copying, cropping or rewriting it keeps
+both. A forecast hour above 999 raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+</section>
 <section id="missing-records">
 <h3>Missing records<a class="headerlink" href="#missing-records" title="Link to this heading">#</a></h3>
 <p>A data record whose header has a negative forecast hour, or the name <code class="docutils literal notranslate"><span class="pre">NULL</span></code>,
@@ -782,6 +792,7 @@ source workflow that produced it.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#individual-data-record-structure">3. Individual Data Record Structure</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#packing-algorithm">4. Packing Algorithm</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#malformed-files">Malformed files</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#forecast-hours-above-99">Forecast hours above 99</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#missing-records">Missing records</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#checksums">Checksums</a></li>
 </ul>
