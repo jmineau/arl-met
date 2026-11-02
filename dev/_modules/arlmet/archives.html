@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=88764abe"></script>
+    <script src="../../_static/documentation_options.js?v=d6753010"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev15+g569d998c7" />
+  <meta name="docsearch:version" content="0.1.0b6.dev16+ga0f8dce66" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -918,7 +918,9 @@
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        start, end : pandas.Timestamp or str</span>
-<span class="sd">            Inclusive time range to cover.</span>
+<span class="sd">            Inclusive time range to cover. A time without a time zone is UTC;</span>
+<span class="sd">            a time-zone-aware one is converted to UTC, so ``2024-07-31 20:00``</span>
+<span class="sd">            in Denver names the files of August 1, 02 UTC.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -930,19 +932,17 @@
 <span class="sd">        ValueError</span>
 <span class="sd">            If the range begins before the archive's ``start_date``.</span>
 <span class="sd">        """</span>
-        <span class="n">t0</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">floor</span><span class="o">=</span><span class="s2">"h"</span><span class="p">)</span>
-        <span class="n">t1</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">floor</span><span class="o">=</span><span class="s2">"h"</span><span class="p">)</span>
+        <span class="c1"># Convert to UTC before flooring: a zone offset by half an hour</span>
+        <span class="c1"># (India, Newfoundland) has its hours at :30 UTC.</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">_utc_naive</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="s2">"h"</span><span class="p">)</span>
+        <span class="n">t1</span> <span class="o">=</span> <span class="n">_utc_naive</span><span class="p">(</span><span class="n">end</span><span class="p">)</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="s2">"h"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t0</span> <span class="o">&gt;</span> <span class="n">t1</span><span class="p">:</span>
             <span class="n">t0</span><span class="p">,</span> <span class="n">t1</span> <span class="o">=</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t0</span>
 
-        <span class="n">start_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span>
-        <span class="k">if</span> <span class="n">t0</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># start_date is naive UTC; match it to a tz-aware request.</span>
-            <span class="n">start_date</span> <span class="o">=</span> <span class="n">start_date</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s2">"UTC"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">t0</span> <span class="o">&lt;</span> <span class="n">start_date</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">t0</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> archive begins </span><span class="si">{</span><span class="n">start_date</span><span class="si">:</span><span class="s2">%Y-%m-%d</span><span class="si">}</span><span class="s2">, "</span>
-                <span class="sa">f</span><span class="s2">"but the requested range starts at </span><span class="si">{</span><span class="n">t0</span><span class="si">}</span><span class="s2">."</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> archive begins </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="si">:</span><span class="s2">%Y-%m-%d</span><span class="si">}</span><span class="s2">, "</span>
+                <span class="sa">f</span><span class="s2">"but the requested range starts at </span><span class="si">{</span><span class="n">t0</span><span class="si">}</span><span class="s2"> UTC."</span>
             <span class="p">)</span>
 
         <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
@@ -977,7 +977,8 @@
 <span class="sd">        ----------</span>
 <span class="sd">        start, end :</span>
 <span class="sd">            Time range (inclusive). Backward trajectories (start &gt; end)</span>
-<span class="sd">            are handled automatically.</span>
+<span class="sd">            are handled automatically. A time without a time zone is UTC;</span>
+<span class="sd">            a time-zone-aware one is converted to UTC.</span>
 <span class="sd">        dest_dir :</span>
 <span class="sd">            Directory to save downloaded files. Created if absent.</span>
 <span class="sd">        mirror :</span>
