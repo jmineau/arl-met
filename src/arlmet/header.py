@@ -122,7 +122,9 @@ class Header:
     year, month, day, hour : int
         Valid time components stored in the record header.
     forecast : int
-        Forecast hour associated with the record.
+        Forecast hour associated with the record. The label holds two digits,
+        so :meth:`tobytes` writes ``min(forecast, 99)``, as HYSPLIT's ``pakrec``
+        does (an index record keeps the full hour, up to 999, in its own field).
     level : int
         ARL vertical level index.
     grid : tuple[int, int]
@@ -225,7 +227,12 @@ class Header:
         )
 
     def tobytes(self) -> bytes:
-        """Serialize the header to its fixed-width ASCII representation."""
+        """
+        Serialize the header to its fixed-width ASCII representation.
+
+        A forecast hour above 99 is written as 99, the most the two-character
+        label holds (HYSPLIT's ``pakrec`` writes ``MIN(hour, 99)``).
+        """
         yy = self.year % 100
         grid = "".join(thousands_to_letter(value) for value in self.grid)
         header = (
@@ -233,7 +240,7 @@ class Header:
             f"{self.month:2d}"
             f"{self.day:2d}"
             f"{self.hour:2d}"
-            f"{self.forecast:2d}"
+            f"{min(self.forecast, 99):2d}"
             f"{self.level:2d}"
             f"{grid:>2}"
             f"{self.variable:<4}"

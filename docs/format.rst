@@ -191,6 +191,17 @@ data records, byte for byte. arl-met keeps the first copy, ignores the repeat,
 and emits an :class:`arlmet.ARLFormatWarning`. Rewriting such a file (e.g. with
 :func:`arlmet.extract_subset`) produces a clean file without the repeat.
 
+Forecast hours above 99
+~~~~~~~~~~~~~~~~~~~~~~~
+
+A record's 50-byte label has two characters for the forecast hour, the index
+record three. HYSPLIT's writer (``pakrec``) puts ``MIN(hour, 99)`` in every
+label and the full hour, up to 999, in the index record, and arl-met does the
+same: a file whose index record says 100 holds records that say 99. Reading
+such a file gives :attr:`arlmet.RecordSet.forecast` 100 and each
+:attr:`arlmet.DataRecord.forecast` 99; copying, cropping or rewriting it keeps
+both. A forecast hour above 999 raises ``ValueError``.
+
 Missing records
 ~~~~~~~~~~~~~~~
 
