@@ -17,6 +17,9 @@ from the NOAA ARL archives:
 
    pip install "arlmet[archives]"
 
+Dask is not installed with either. Install it (``pip install dask``) to read
+with ``chunks=`` through xarray, as in the :doc:`quickstart`.
+
 Development Installation
 ------------------------
 
