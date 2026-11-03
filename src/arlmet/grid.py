@@ -673,10 +673,12 @@ class Grid:
         Resolve a geographic bounding box to grid indices.
 
         On a lat/lon grid the window holds the cells whose centers lie inside
-        the box, edges included, as HYSPLIT's ``xtrct_grid`` crops. A column
-        within a millionth of a cell of an edge counts as on it, so rounding
-        in the arithmetic (an east edge of ``-110`` against a column stored as
-        250 degrees) never decides a column.
+        the box, edges included. A column within a millionth of a cell of an
+        edge counts as on it, so rounding in the arithmetic (an east edge of
+        ``-110`` against a column stored as 250 degrees) never decides a
+        column. HYSPLIT's ``xtrct_grid`` takes the column nearest each edge, so
+        it agrees for edges on columns and can keep one more column for edges
+        between them.
 
         On a projected grid the window is the smallest rectangle of cells
         that holds every point of the box that lies on the grid (in one of its
@@ -706,10 +708,18 @@ class Grid:
             Longitudes count modulo 360, so 180 and -180 are the same meridian
             and a box may reach past 180. On a lat/lon grid ``west > east``
             crosses the dateline, so ``(170, 190)`` and ``(170, -170)`` select
-            the same columns; on a projected grid ``(170, 190)`` is a window
-            and ``(170, -170)`` raises ``ValueError``.
+            the same columns; on a projected grid ``(170, -170)`` raises
+            ``ValueError`` and ``(170, 190)`` is a window where it reaches the
+            grid (Alaska) and raises where it does not (HRRR). On a lat/lon
+            grid an infinite width (``west=-inf`` or ``east=inf``) holds every
+            longitude; a NaN longitude raises ``ValueError``. Edges may be any
+            real numbers (NumPy scalars, ``Decimal``): they are converted to
+            ``float`` first.
         """
-        west, south, east, north = bbox
+        # Python floats from here on: a float32 edge would keep ``width`` at float32,
+        # whose rounding (~1e-6 degrees) swamps the tolerance below, and a Decimal
+        # cannot be subtracted from a float.
+        west, south, east, north = (float(v) for v in bbox)
         if south > north:
             raise ValueError("bbox south must be less than or equal to north.")
 
@@ -749,9 +759,17 @@ class Grid:
         # column exactly on an edge can miss it by ~1e-14 degrees: a column within
         # _EDGE_TOLERANCE cells of an edge counts as on it.
         tol = _EDGE_TOLERANCE * abs(self.projection.tangent_lon)
-        width = east - west if west <= east else (east - west) % 360.0
-        east_of_west = (lons - west) % 360.0
-        lon_mask = (east_of_west <= width + tol) | (east_of_west >= 360.0 - tol)
+        if east - west >= 360.0:  # every longitude, whatever the edges (inf included)
+            lon_mask = np.ones(lons.shape, dtype=bool)
+        elif not (math.isfinite(west) and math.isfinite(east)):
+            raise ValueError(
+                f"bbox {bbox}: longitudes must not be NaN, and west must not be "
+                "+inf nor east -inf."
+            )
+        else:
+            width = east - west if west <= east else (east - west) % 360.0
+            east_of_west = (lons - west) % 360.0
+            lon_mask = (east_of_west <= width + tol) | (east_of_west >= 360.0 - tol)
         lat_mask = (lats >= south) & (lats <= north)
 
         x_idx = np.flatnonzero(lon_mask)
