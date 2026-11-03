@@ -141,6 +141,10 @@ when it downloads, so it imports without the `archives` extra.
 9. **Outputs appear only when complete.** `extract_subset`, `write_dataset`, `concat`
    and archive downloads write a hidden `.partial` file and rename it on success
    (`_io.atomic_output`), and the first three refuse an output that is their input.
+   `Archive.fetch` also takes a `mkdir` lock `.<name>.lock` per file; waiters watch the temp files'
+   sizes on their own timer and take over a lock with no growth for 5 minutes. The lock only saves
+   work: every copy has its own temp file. A finished file is not replaced without `overwrite`,
+   because that gives a reader on another NFS client `ESTALE`.
 10. **Metadata types are immutable values**: `Projection`, `Grid`, `GridWindow`,
     `Header` and `IndexRecord` are frozen dataclasses, and `VerticalAxis` blocks
     assignment and keeps `levels` read-only. Hashing and `cached_property`

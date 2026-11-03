@@ -46,13 +46,15 @@ import hashlib
 import logging
 import math
 import os
+import random
 import re
 import shutil
 import socket
+import time
 import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator, Mapping
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -259,20 +261,38 @@ def _write_manifest(
         tmp.unlink(missing_ok=True)
 
 
+def _make_lock(lock: Path) -> bool:
+    """
+    Make the lock folder *lock* and return True, or False if it is already there.
+
+    ``mkdir`` is atomic, also on NFS, where a ``flock`` may not be seen by
+    another host. The folder holds a file naming the host, process and start
+    time. A caller killed without a chance to clean up (``kill -9``, a lost
+    node) leaves it behind.
+    """
+    try:
+        lock.mkdir()
+    except FileExistsError:
+        return False
+    started = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+    with suppress(OSError):  # the note only helps a person; the folder is the lock
+        (lock / "owner").write_text(
+            f"host {socket.gethostname()}, process {os.getpid()}, started {started}\n",
+            encoding="utf-8",
+        )
+    return True
+
+
 @contextmanager
 def _sync_lock(root: Path) -> Iterator[None]:
     """
     Hold the lock folder of *root* while a sync runs.
 
-    ``mkdir`` is atomic, also on NFS, where a ``flock`` may not be seen by
-    another host. The folder holds a file naming the host, process and start
-    time, and is removed on the way out, also after an error. A run killed
-    without a chance to clean up (``kill -9``, a lost node) leaves it behind.
+    It is removed on the way out, also after an error. A folder left by a killed
+    run stops the next sync.
     """
     lock = root / _LOCK_NAME
-    try:
-        lock.mkdir()
-    except FileExistsError:
+    if not _make_lock(lock):
         try:
             owner = (lock / "owner").read_text(encoding="utf-8").strip()
         except OSError:
@@ -282,14 +302,89 @@ def _sync_lock(root: Path) -> Iterator[None]:
             "delete that folder."
         ) from None
     try:
-        started = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
-        (lock / "owner").write_text(
-            f"host {socket.gethostname()}, process {os.getpid()}, started {started}\n",
-            encoding="utf-8",
-        )
         yield
     finally:
         shutil.rmtree(lock, ignore_errors=True)
+
+
+#: A caller waiting on another's download of a file looks every ``_FETCH_POLL``
+#: seconds. If nothing has changed for ``_FETCH_STALL`` seconds (up to a fifth
+#: longer, at random, so that waiters do not all act at once) it takes over. The
+#: limit must outlast what a download can look like while it is alive: another
+#: NFS client sees a file's size up to a minute late, and a slow network or a busy
+#: node can add as long again.
+_FETCH_POLL = 2.0
+_FETCH_STALL = 300.0
+
+
+def _temp_sizes(dest: Path) -> dict[str, int]:
+    """
+    Return the size of each temp file a fetch of *dest* is writing, by name.
+
+    Temp files can be nested (:func:`_partial_path` of a temp file, as a crop's
+    download is), which adds dots in front and parts behind.
+    """
+    pattern = re.compile(
+        rf"\.+{re.escape(dest.name)}(\.[0-9a-f]{{12}}\.partial)+", flags=re.ASCII
+    )
+    sizes = {}
+    with os.scandir(dest.parent) as entries:
+        for entry in entries:
+            if pattern.fullmatch(entry.name):
+                with suppress(OSError):  # it was renamed or removed just now
+                    sizes[entry.name] = os.stat(entry.path).st_size
+    return sizes
+
+
+@contextmanager
+def _fetch_turn(dest: Path, *, overwrite: bool) -> Iterator[bool]:
+    """
+    Yield whether this caller must download *dest*; one caller per file does.
+
+    The first caller makes the lock folder ``.<name>.lock``. The others wait for
+    *dest*, watching the lock and the temp files of the download, which grow while
+    it runs (and while it crops). A lock with nothing changing for the stall
+    limit belongs to a caller that died or whose download hung: remove it, try
+    for it again, and once *dest* is there remove the temp files that stood still.
+
+    Two waiters can do this at once, and a caller can be taken for dead while it
+    is only paused. Either costs a second download and nothing else: each copy
+    has its own temp file, and :meth:`Archive.fetch` keeps the first to finish.
+    Time is measured on this caller's own clock, so no two clocks have to agree.
+    """
+    lock = dest.with_name(f".{dest.name}.lock")
+    limit = _FETCH_STALL * random.uniform(1, 1.2)
+    seen, since = None, time.monotonic()
+    dead: list[str] = []
+    try:
+        while overwrite or not dest.exists():
+            if _make_lock(lock):
+                try:
+                    # Another caller may have finished before we made the lock.
+                    yield overwrite or not dest.exists()
+                finally:
+                    shutil.rmtree(lock, ignore_errors=True)
+                return
+            sizes = _temp_sizes(dest)
+            with suppress(OSError):  # the lock went while we looked: try for it
+                now = (lock.stat().st_ino, sum(sizes.values()))
+                if seen is None:
+                    logger.info("Waiting for another caller's %s", dest.name)
+                if now != seen:
+                    seen, since = now, time.monotonic()
+                elif time.monotonic() - since > limit:
+                    logger.warning("No progress on %s; taking it over", dest.name)
+                    dead = list(sizes)
+                    shutil.rmtree(lock, ignore_errors=True)
+                    since = time.monotonic()
+                    continue
+            time.sleep(_FETCH_POLL)
+        yield False
+    finally:
+        if dest.exists():
+            for name in dead:
+                with suppress(OSError):
+                    dest.with_name(name).unlink()
 
 
 def _utc_naive(value: pd.Timestamp | str) -> pd.Timestamp:
@@ -618,6 +713,14 @@ class Archive(ABC):
         would reuse. When cropping, the full download is also staged in
         *dest_dir* (not the system temp directory) and removed afterwards.
 
+        Concurrent calls (threads, processes, or jobs on other nodes sharing
+        *dest_dir*) download each file once: the first makes a hidden folder
+        ``.<name>.lock`` and the others wait for the finished file. If nothing
+        grows for about five minutes (the first was killed, or its download hung)
+        a waiter takes over and removes what the first left. A finished file is
+        replaced only with ``overwrite=True``, where each caller downloads again
+        in turn: replacing a file breaks a reader on another NFS client.
+
         Examples
         --------
         >>> from arlmet.archives import HRRRArchive
@@ -648,14 +751,29 @@ class Archive(ABC):
                 results.append(dest)
                 continue
 
-            url = self._url(archive_path, mirror)
-            opts = self._storage_options(mirror)
-            logger.info("Fetching %s → %s", url, dest.name)
-
-            if bbox is not None or keep is not None:
-                self._fetch_and_crop(url, dest, opts, bbox=bbox, levels=keep)
-            else:
-                self._download(url, dest, opts)
+            with _fetch_turn(dest, overwrite=overwrite) as download:
+                if download:
+                    url = self._url(archive_path, mirror)
+                    opts = self._storage_options(mirror)
+                    logger.info("Fetching %s → %s", url, dest.name)
+                    staged = _partial_path(dest)
+                    try:
+                        if bbox is not None or keep is not None:
+                            self._fetch_and_crop(
+                                url, staged, opts, bbox=bbox, levels=keep
+                            )
+                        else:
+                            self._download(url, staged, opts)
+                        # Replacing a file breaks a reader on another NFS client
+                        # (ESTALE), so another caller's finished copy stays.
+                        if overwrite or not dest.exists():
+                            os.replace(staged, dest)
+                    except OSError:
+                        # Taken for dead and our temp files removed: dest is good.
+                        if overwrite or not dest.exists():
+                            raise
+                    finally:
+                        staged.unlink(missing_ok=True)
 
             results.append(dest)
 
