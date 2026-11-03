@@ -1085,6 +1085,80 @@ class TestGrid:
             edge = lons[-1] if side == "east" else lons[0]
             assert edge % 360 == pytest.approx(expected % 360), (cells, bbox)
 
+    def test_latlon_bbox_keeps_a_row_on_its_north_edge_on_a_tenth_degree_grid(self):
+        """The grid of #147: 41.4 north of 25 is stored as 41.400000000000006."""
+        grid = self._latlon_grid(25.0, -125.0, 0.1, 650, 300)
+        assert grid.calculate_coords()["lat"][1][164] > 41.4
+        # rows 0 to 164 (25.0 to 41.4), then 165 (41.5)
+        assert grid.window_from_bbox((-120.0, 25.0, -110.0, 41.4)).y_stop == 165
+        assert grid.window_from_bbox((-120.0, 25.0, -110.0, 41.5)).y_stop == 166
+
+    @pytest.mark.parametrize("side", ["south", "north"])
+    @pytest.mark.parametrize(
+        ("spacing", "sync_lat"),
+        [
+            (0.1, 25.0),
+            (0.1, -25.0),
+            (0.05, -25.0),
+            (0.05, 0.0),
+            (0.3, -25.0),
+            (0.3, 25.0),
+        ],
+    )
+    def test_latlon_bbox_keeps_every_row_on_its_edge_when_the_spacing_is_inexact(
+        self, spacing, sync_lat, side
+    ):
+        """Each interior row, edge typed as the row's latitude, alone (#147)."""
+        ny = 300
+        grid = self._latlon_grid(sync_lat, -125.0, spacing, 650, ny)
+        for j in range(2, ny - 2):
+            edge = round(sync_lat + j * spacing, 10)  # the latitude as a user types it
+            if side == "south":  # the row is the box's southernmost
+                bbox = (-120.0, edge, -110.0, edge + 0.4 * spacing)
+            else:  # the row is the box's northernmost
+                bbox = (-120.0, edge - 0.4 * spacing, -110.0, edge)
+            win = grid.window_from_bbox(bbox)
+            assert (win.y_start, win.y_stop) == (j, j + 1), (j, bbox)
+
+    @pytest.mark.parametrize("spacing", [0.1, 0.05, 0.3])
+    def test_latlon_bbox_row_clearly_outside_an_edge_stays_out(self, spacing):
+        """The tolerance is rounding only: 1e-4 degrees past the row's latitude is past it."""
+        grid = self._latlon_grid(-25.0, -125.0, spacing, 650, 300)
+        j = 120
+        edge = round(-25.0 + j * spacing, 10)
+        # a south edge just north of row j drops it; a north edge just south drops it
+        south_out = grid.window_from_bbox(
+            (-120, edge + 1e-4, -110, edge + 1.5 * spacing)
+        )
+        north_out = grid.window_from_bbox(
+            (-120, edge - 1.5 * spacing, -110, edge - 1e-4)
+        )
+        assert (south_out.y_start, south_out.y_stop) == (j + 1, j + 2)
+        assert (north_out.y_start, north_out.y_stop) == (j - 1, j)
+        # and a box with nothing else in it raises
+        with pytest.raises(ValueError, match="does not intersect"):
+            grid.window_from_bbox((-120, edge + 1e-4, -110, edge + 0.4 * spacing))
+
+    @pytest.mark.parametrize("side", ["south", "north"])
+    @pytest.mark.parametrize("spacing", [0.1, 0.3])
+    def test_latlon_bbox_row_tolerance_is_a_millionth_of_a_cell(self, spacing, side):
+        """An edge 0.99e-6 cells past a row keeps it; 1.01e-6 cells past drops it."""
+        grid = self._latlon_grid(-25.0, -125.0, spacing, 650, 300)
+        j = 120
+        row = round(-25.0 + j * spacing, 10)
+        tol = 1e-6 * spacing
+        for cells, kept in [(0.99, True), (1.01, False)]:
+            if side == "south":  # the edge is north of the row
+                bbox = (-120, row + cells * tol, -110, row + 3.5 * spacing)
+                first = j if kept else j + 1
+                expected = (first, j + 4)
+            else:  # the edge is south of the row
+                bbox = (-120, row - 3.5 * spacing, -110, row - cells * tol)
+                last = j if kept else j - 1
+                expected = (j - 3, last + 1)
+            win = grid.window_from_bbox(bbox)
+            assert (win.y_start, win.y_stop) == expected, (cells, bbox)
+
     @pytest.mark.parametrize(
         "kind", [np.float32, np.float16, np.int32, np.float64, Decimal]
     )

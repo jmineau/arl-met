@@ -111,9 +111,11 @@ file, where arl-met returns the box's columns). A box 360 degrees wide or more
 holds every column. ``bbox=(170.0, 0.0, 190.0, 10.0)`` and ``(170.0, 0.0, -170.0, 10.0)``
 select the same columns. A box that reaches past the grid's own columns only
 crops to the ones it has (a regional grid from 160 E to 200 E holds
-``(170.0, 25.0, 190.0, 30.0)`` whole). A column within a millionth of a cell of
-an edge counts as on it, so ``bbox=(-112.3, 39.0, -110.0, 42.0)`` keeps the
-column at -110 whether the grid stores it as -110 or as 250.
+``(170.0, 25.0, 190.0, 30.0)`` whole). A column or row within a millionth of a cell
+of an edge counts as on it, so ``bbox=(-112.3, 39.0, -110.0, 42.0)`` keeps the
+column at -110 whether the grid stores it as -110 or as 250, and an edge at
+41.4 keeps the row at 41.4 on a 0.1 degree grid, where 0.1 is not exact in
+binary and the stored latitude is 41.400000000000006.
 
 Keep only the levels and variables you need
 -------------------------------------------
