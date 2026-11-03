@@ -108,7 +108,9 @@ when it downloads, so it imports without the `archives` extra.
 4. **Windowing.** On lat/lon grids a cell is kept when its center is inside the
    bbox, edges included, as HYSPLIT's `xtrct_grid`; `west > east` crosses the dateline,
    longitudes count modulo 360 (an edge at 180 keeps the 180 column; a box may reach
-   past 180), and a window across a global grid's seam has `x_stop > nx`. On projected
+   past 180; a column within 1e-6 cells of an edge counts as on it, so rounding in
+   the modulo never drops or adds an edge column), and a window across a global grid's
+   seam has `x_stop > nx`. On projected
    grids the window holds every point of the box that is on the grid: the outline
    (sampled at a fixed, capped spacing of at most half a cell on the grid, never
    refined) is kept where it is inside the cells or crosses their border, plus the grid

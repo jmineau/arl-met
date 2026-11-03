@@ -995,6 +995,69 @@ class TestGrid:
         with pytest.raises(ValueError, match="does not intersect"):
             grid.window_from_bbox((-150, 25, -140, 30))
 
+    @pytest.mark.parametrize("sync_lon", [0.0, -180.0], ids=["from_0E", "from_180W"])
+    @pytest.mark.parametrize(
+        ("bbox", "first", "last"),
+        [
+            # An east edge on a column keeps it, whichever way the arithmetic
+            # rounds: (250 - -112.3) % 360 is 2.3000000000000114 but
+            # -110 - -112.3 is 2.299999999999997 (#138 review).
+            ((-112.3, 39, -110, 42), -112.25, -110.0),
+            ((-105.3, 39, -104, 41), -105.25, -104.0),
+            ((-80.6, 25, -80, 27), -80.5, -80.0),
+            ((-114.1, 30, -100, 45), -114.0, -100.0),
+            # A west edge on a column keeps it.
+            ((-112.25, 39, -110.3, 42), -112.25, -110.5),
+        ],
+    )
+    def test_latlon_bbox_keeps_a_column_on_its_edge(self, sync_lon, bbox, first, last):
+        """GFS 0.25 degree layout: an edge typed to two decimals meets a column."""
+        grid = self._latlon_grid(-90.0, sync_lon, 0.25, 1440, 721)
+        win = grid.window_from_bbox(bbox)
+        lons = grid.subset(win).calculate_coords()["lon"][1]
+        assert lons[0] % 360 == pytest.approx(first % 360)
+        assert lons[-1] % 360 == pytest.approx(last % 360)
+
+    def test_latlon_bbox_keeps_a_column_on_its_edge_on_a_one_degree_grid(self):
+        """GDAS 1 degree layout (360 x 181 from 0 E): -80.6 to -80 holds -80."""
+        grid = self._latlon_grid(-90.0, 0.0, 1.0, 360, 181)
+        win = grid.window_from_bbox((-80.6, 25, -80, 27))
+        assert (win.x_start, win.x_stop) == (280, 281)
+        win = grid.window_from_bbox((-112.3, 39, -110, 42))
+        assert (win.x_start, win.x_stop) == (248, 251)
+
+    @pytest.mark.parametrize("sync_lon", [0.0, -180.0], ids=["from_0E", "from_180W"])
+    def test_latlon_bbox_edge_within_rounding_of_a_column_is_on_it(self, sync_lon):
+        """An edge a few ulps off a column counts as on it, on either side."""
+        grid = self._latlon_grid(-90.0, sync_lon, 0.25, 1440, 721)
+        on = grid.window_from_bbox((-2.0, 26.7, 163.5, 71.7))
+        for west in (np.nextafter(-2.0, 0), np.nextafter(-2.0, -9)):
+            assert grid.window_from_bbox((west, 26.7, 163.5, 71.7)) == on
+        for east in (np.nextafter(163.5, 0), np.nextafter(163.5, 999)):
+            assert grid.window_from_bbox((-2.0, 26.7, east, 71.7)) == on
+        assert on.nx == 663
+
+    def test_latlon_bbox_edge_within_rounding_of_a_column_on_a_regional_grid(self):
+        """A west edge a few ulps from the grid's last column counts as on it."""
+        grid = self._latlon_grid(20.0, 160.0, 0.5, 81, 41)
+        # -160 is the grid's last column (200 E): the box has columns at both ends,
+        # with the edge on the column or an ulp to either side of it.
+        for west in (-160.0, np.nextafter(-160.0, 0), np.nextafter(-160.0, -999)):
+            with pytest.raises(ValueError, match="both ends"):
+                grid.window_from_bbox((west, 21.5, 175.5, 34.5))
+        win = grid.window_from_bbox((-159.75, 21.5, 175.5, 34.5))
+        assert (win.x_start, win.x_stop) == (0, 32)
+
+    @pytest.mark.parametrize("sync_lon", [0.0, -180.0], ids=["from_0E", "from_180W"])
+    def test_latlon_bbox_column_clearly_outside_an_edge_stays_out(self, sync_lon):
+        """The tolerance is rounding only: 1e-4 degrees outside is outside, on either edge."""
+        grid = self._latlon_grid(-90.0, sync_lon, 0.25, 1440, 721)
+        edge = grid.window_from_bbox((-112.3, 39, -110, 42))
+        east_out = grid.window_from_bbox((-112.3, 39, -110.0001, 42))
+        west_out = grid.window_from_bbox((-112.2499, 39, -110, 42))
+        assert (east_out.x_start, east_out.nx) == (edge.x_start, edge.nx - 1)
+        assert (west_out.x_start, west_out.nx) == (edge.x_start + 1, edge.nx - 1)
+
     @pytest.mark.parametrize("source", [(0.0, 359.0), (-180.0, 179.0)])
     def test_latlon_subset_of_whole_grid_is_unchanged(self, source):
         grid = self._global_grid(*source)

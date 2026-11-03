@@ -107,7 +107,9 @@ the column at 180 whether the grid writes it as 180 or -180, and a box may reach
 past 180. ``bbox=(170.0, 0.0, 190.0, 10.0)`` and ``(170.0, 0.0, -170.0, 10.0)``
 select the same columns. A box that reaches past the grid's own columns only
 crops to the ones it has (a regional grid from 160 E to 200 E holds
-``(170.0, 25.0, 190.0, 30.0)`` whole).
+``(170.0, 25.0, 190.0, 30.0)`` whole). A column within a millionth of a cell of
+an edge counts as on it, so ``bbox=(-112.3, 39.0, -110.0, 42.0)`` keeps the
+column at -110 whether the grid stores it as -110 or as 250.
 
 Keep only the levels and variables you need
 -------------------------------------------
