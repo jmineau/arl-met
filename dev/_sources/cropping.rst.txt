@@ -101,6 +101,20 @@ crop, but its values east of the seam come from the column after the right one.
 A box with columns at both ends of a lat-lon grid that does not span 360 degrees
 raises ``ValueError``, since no single grid holds them.
 
+On a lat-lon grid longitudes in a ``bbox`` count modulo 360: 180 and -180 are
+the same meridian, so an east edge at 180 keeps the column at 180 whether the
+grid writes it as 180 or -180, and a box may reach past 180 (HYSPLIT's
+``xtrct_grid`` agrees for ``(-190, -170)``, ``(190, 200)`` and ``(-10, 10)``, but
+not for a box that wraps past 360 or spans 360 degrees: for ``(350, 370)``,
+``(-180, 180)`` and ``(10, 370)`` it writes a longer, a half or an unreadable
+file, where arl-met returns the box's columns). A box 360 degrees wide or more
+holds every column. ``bbox=(170.0, 0.0, 190.0, 10.0)`` and ``(170.0, 0.0, -170.0, 10.0)``
+select the same columns. A box that reaches past the grid's own columns only
+crops to the ones it has (a regional grid from 160 E to 200 E holds
+``(170.0, 25.0, 190.0, 30.0)`` whole). A column within a millionth of a cell of
+an edge counts as on it, so ``bbox=(-112.3, 39.0, -110.0, 42.0)`` keeps the
+column at -110 whether the grid stores it as -110 or as 250.
+
 Keep only the levels and variables you need
 -------------------------------------------
 
@@ -131,7 +145,9 @@ Which cells a crop keeps
 ------------------------
 
 On a lat-lon grid a crop keeps the cells whose centers lie inside the box, edges
-included, as HYSPLIT's ``xtrct_grid`` does.
+included. ``xtrct_grid`` takes the column nearest each edge, so it keeps the same
+columns when the edges are on columns and can keep one more at an edge between two
+(on GDAS 1, ``bbox=(-112.6, -70, -100.4, 70)`` is 14 columns there and 12 here).
 
 On a projected grid (Lambert conformal, polar stereographic, Mercator) a crop is
 the smallest rectangle of the grid's cells that holds the box's part on the grid:

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=195e5155"></script>
+    <script src="_static/documentation_options.js?v=a9a50f37"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev19+g8699fbc3a" />
+  <meta name="docsearch:version" content="0.1.0b6.dev20+g34cfe6b0e" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -537,6 +537,19 @@ wide, not all 1440. HYSPLIT’s <code class="docutils literal notranslate"><span
 crop, but its values east of the seam come from the column after the right one.
 A box with columns at both ends of a lat-lon grid that does not span 360 degrees
 raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>, since no single grid holds them.</p>
+<p>On a lat-lon grid longitudes in a <code class="docutils literal notranslate"><span class="pre">bbox</span></code> count modulo 360: 180 and -180 are
+the same meridian, so an east edge at 180 keeps the column at 180 whether the
+grid writes it as 180 or -180, and a box may reach past 180 (HYSPLIT’s
+<code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> agrees for <code class="docutils literal notranslate"><span class="pre">(-190,</span> <span class="pre">-170)</span></code>, <code class="docutils literal notranslate"><span class="pre">(190,</span> <span class="pre">200)</span></code> and <code class="docutils literal notranslate"><span class="pre">(-10,</span> <span class="pre">10)</span></code>, but
+not for a box that wraps past 360 or spans 360 degrees: for <code class="docutils literal notranslate"><span class="pre">(350,</span> <span class="pre">370)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">(-180,</span> <span class="pre">180)</span></code> and <code class="docutils literal notranslate"><span class="pre">(10,</span> <span class="pre">370)</span></code> it writes a longer, a half or an unreadable
+file, where arl-met returns the box’s columns). A box 360 degrees wide or more
+holds every column. <code class="docutils literal notranslate"><span class="pre">bbox=(170.0,</span> <span class="pre">0.0,</span> <span class="pre">190.0,</span> <span class="pre">10.0)</span></code> and <code class="docutils literal notranslate"><span class="pre">(170.0,</span> <span class="pre">0.0,</span> <span class="pre">-170.0,</span> <span class="pre">10.0)</span></code>
+select the same columns. A box that reaches past the grid’s own columns only
+crops to the ones it has (a regional grid from 160 E to 200 E holds
+<code class="docutils literal notranslate"><span class="pre">(170.0,</span> <span class="pre">25.0,</span> <span class="pre">190.0,</span> <span class="pre">30.0)</span></code> whole). A column within a millionth of a cell of
+an edge counts as on it, so <code class="docutils literal notranslate"><span class="pre">bbox=(-112.3,</span> <span class="pre">39.0,</span> <span class="pre">-110.0,</span> <span class="pre">42.0)</span></code> keeps the
+column at -110 whether the grid stores it as -110 or as 250.</p>
 </section>
 <section id="keep-only-the-levels-and-variables-you-need">
 <h2>Keep only the levels and variables you need<a class="headerlink" href="#keep-only-the-levels-and-variables-you-need" title="Link to this heading">#</a></h2>
@@ -563,7 +576,9 @@ and the output values are exactly the input’s.</p>
 <section id="which-cells-a-crop-keeps">
 <h2>Which cells a crop keeps<a class="headerlink" href="#which-cells-a-crop-keeps" title="Link to this heading">#</a></h2>
 <p>On a lat-lon grid a crop keeps the cells whose centers lie inside the box, edges
-included, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> does.</p>
+included. <code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> takes the column nearest each edge, so it keeps the same
+columns when the edges are on columns and can keep one more at an edge between two
+(on GDAS 1, <code class="docutils literal notranslate"><span class="pre">bbox=(-112.6,</span> <span class="pre">-70,</span> <span class="pre">-100.4,</span> <span class="pre">70)</span></code> is 14 columns there and 12 here).</p>
 <p>On a projected grid (Lambert conformal, polar stereographic, Mercator) a crop is
 the smallest rectangle of the grid’s cells that holds the box’s part on the grid:
 every point inside the box that lies on the grid lies in one of the crop’s cells.
