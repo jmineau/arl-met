@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=19314828"></script>
+    <script src="../../../_static/documentation_options.js?v=773a9d9c"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev21+g1d70bdbfc" />
+  <meta name="docsearch:version" content="0.1.0b6.dev23+g242aaed19" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -502,6 +502,9 @@
 
 <span class="c1">#: Vertical coordinate systems accepted for the ``z`` of sample points.</span>
 <span class="n">ZKind</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"native"</span><span class="p">,</span> <span class="s2">"pressure"</span><span class="p">,</span> <span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">]</span>
+<span class="c1">#: The vertical coordinates a column is interpolated in: ``"msl"`` targets are</span>
+<span class="c1">#: turned into heights above the ground at the point first.</span>
+<span class="n">_ColumnZKind</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"native"</span><span class="p">,</span> <span class="s2">"pressure"</span><span class="p">,</span> <span class="s2">"agl"</span><span class="p">]</span>
 <span class="c1">#: Horizontal interpolation methods for point sampling.</span>
 <span class="n">SampleMethod</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"nearest"</span><span class="p">]</span>
 
@@ -532,6 +535,22 @@
     <span class="n">y1</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
     <span class="n">wx</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
     <span class="n">wy</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_nearest</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        For ``"nearest"``: the inside points' rows and their row and column in the window.</span>
+
+<span class="sd">        Computed once and reused for every level read with this plan</span>
+<span class="sd">        (:func:`_sample_field`).</span>
+<span class="sd">        """</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inside</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">rows</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">y0</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">y_start</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x0</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">x_start</span><span class="p">,</span>
+        <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_points</span><span class="p">(</span>
@@ -794,16 +813,17 @@
     <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">window</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
         <span class="k">return</span> <span class="n">result</span>
 
+    <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">"nearest"</span><span class="p">:</span>
+        <span class="n">rows</span><span class="p">,</span> <span class="n">iy</span><span class="p">,</span> <span class="n">ix</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">_nearest</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">[</span><span class="n">iy</span><span class="p">,</span> <span class="n">ix</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">result</span>
+
     <span class="c1"># Indices are relative to the full grid; subtract window origin before indexing.</span>
     <span class="n">x0</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">x0</span> <span class="o">-</span> <span class="n">plan</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">x_start</span>
     <span class="n">x1</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">x1</span> <span class="o">-</span> <span class="n">plan</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">x_start</span>
     <span class="n">y0</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">y0</span> <span class="o">-</span> <span class="n">plan</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">y_start</span>
     <span class="n">y1</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">y1</span> <span class="o">-</span> <span class="n">plan</span><span class="o">.</span><span class="n">window</span><span class="o">.</span><span class="n">y_start</span>
-
     <span class="n">valid</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">inside</span>
-    <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">"nearest"</span><span class="p">:</span>
-        <span class="n">result</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">[</span><span class="n">y0</span><span class="p">[</span><span class="n">valid</span><span class="p">],</span> <span class="n">x0</span><span class="p">[</span><span class="n">valid</span><span class="p">]]</span>
-        <span class="k">return</span> <span class="n">result</span>
 
     <span class="n">v00</span> <span class="o">=</span> <span class="n">field</span><span class="p">[</span><span class="n">y0</span><span class="p">[</span><span class="n">valid</span><span class="p">],</span> <span class="n">x0</span><span class="p">[</span><span class="n">valid</span><span class="p">]]</span>
     <span class="n">v10</span> <span class="o">=</span> <span class="n">field</span><span class="p">[</span><span class="n">y0</span><span class="p">[</span><span class="n">valid</span><span class="p">],</span> <span class="n">x1</span><span class="p">[</span><span class="n">valid</span><span class="p">]]</span>
@@ -827,6 +847,67 @@
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">field</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">plan</span><span class="o">.</span><span class="n">window</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_sample_field</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">plan</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_node_plan</span><span class="p">(</span>
+    <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">each_level_first</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">HorizontalSamplePlan</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Return the grid points that each point of *plan* is blended from, and their weights.</span>
+
+<span class="sd">    Returns ``(nodes, weights)``: *nodes* samples, without interpolating, the</span>
+<span class="sd">    four grid points around each point (``(x0, y0)``, ``(x1, y0)``, ``(x0,</span>
+<span class="sd">    y1)``, ``(x1, y1)``, in that order, each a block of ``n_points`` rows), and</span>
+<span class="sd">    *weights* ``(4, n_points)`` are their bilinear weights. With ``"nearest"``,</span>
+<span class="sd">    or with *each_level_first*, *plan* is its own one grid point, weight 1:</span>
+<span class="sd">    each level is then blended first and the blended column interpolated. Each grid point's profile is</span>
+<span class="sd">    built and interpolated to the point's height first, then the values are</span>
+<span class="sd">    blended (:func:`_blend`), as HYSPLIT's ``prfcom`` builds a profile at each</span>
+<span class="sd">    grid point and ``adv3nt`` blends them.</span>
+<span class="sd">    """</span>
+    <span class="n">n_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">plan</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">"nearest"</span> <span class="ow">or</span> <span class="n">each_level_first</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">plan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_points</span><span class="p">))</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">plan</span><span class="o">.</span><span class="n">x0</span><span class="p">,</span> <span class="n">plan</span><span class="o">.</span><span class="n">x1</span><span class="p">,</span> <span class="n">plan</span><span class="o">.</span><span class="n">x0</span><span class="p">,</span> <span class="n">plan</span><span class="o">.</span><span class="n">x1</span><span class="p">])</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">plan</span><span class="o">.</span><span class="n">y0</span><span class="p">,</span> <span class="n">plan</span><span class="o">.</span><span class="n">y0</span><span class="p">,</span> <span class="n">plan</span><span class="o">.</span><span class="n">y1</span><span class="p">,</span> <span class="n">plan</span><span class="o">.</span><span class="n">y1</span><span class="p">])</span>
+    <span class="n">wx</span><span class="p">,</span> <span class="n">wy</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">wx</span><span class="p">,</span> <span class="n">plan</span><span class="o">.</span><span class="n">wy</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">wx</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">wy</span><span class="p">),</span> <span class="n">wx</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">wy</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">wx</span><span class="p">)</span> <span class="o">*</span> <span class="n">wy</span><span class="p">,</span> <span class="n">wx</span> <span class="o">*</span> <span class="n">wy</span><span class="p">])</span>
+    <span class="n">zeros</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">HorizontalSamplePlan</span><span class="p">(</span>
+        <span class="n">method</span><span class="o">=</span><span class="s2">"nearest"</span><span class="p">,</span>
+        <span class="n">window</span><span class="o">=</span><span class="n">plan</span><span class="o">.</span><span class="n">window</span><span class="p">,</span>
+        <span class="n">inside</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="n">x0</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+        <span class="n">x1</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+        <span class="n">y0</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
+        <span class="n">y1</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
+        <span class="n">wx</span><span class="o">=</span><span class="n">zeros</span><span class="p">,</span>
+        <span class="n">wy</span><span class="o">=</span><span class="n">zeros</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">weights</span>
+
+
+<span class="c1">#: A grid point whose weight is below this does not count: a point given by a</span>
+<span class="c1">#: grid point's own longitude and latitude comes back from the projection with</span>
+<span class="c1">#: weights of about 1e-12 toward its neighbors, not 0.</span>
+<span class="n">_NO_WEIGHT</span> <span class="o">=</span> <span class="mf">1e-6</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_blend</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">weights</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Blend the values at each point's grid points (:func:`_node_plan`) with their weights.</span>
+
+<span class="sd">    Only the grid points that have a value at the target count, and their</span>
+<span class="sd">    weights are rescaled to sum to 1: a neighbor whose top is below a height</span>
+<span class="sd">    does not make the point NaN. The point is NaN only where none of its grid points (with a weight of</span>
+<span class="sd">    at least :data:`_NO_WEIGHT`) has a value.</span>
+<span class="sd">    """</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">weights</span> <span class="o">&gt;=</span> <span class="n">_NO_WEIGHT</span><span class="p">),</span> <span class="n">weights</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">divide</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+        <span class="n">blended</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">w</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">v</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">total</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">total</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">blended</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_mass_coupled</span><span class="p">(</span><span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -905,63 +986,89 @@
     <span class="k">return</span> <span class="n">_sample_field</span><span class="p">(</span><span class="n">_read_field</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">plan</span><span class="o">.</span><span class="n">window</span><span class="p">),</span> <span class="n">plan</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_interp_profile</span><span class="p">(</span>
-    <span class="n">values</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">target</span><span class="p">:</span> <span class="nb">float</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""1-D linear interpolation of *values* at *target* along *coords*. Returns NaN outside range."""</span>
-    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+<span class="c1">#: Rows interpolated at once by :func:`_interp_profiles`, to bound its memory.</span>
+<span class="n">_INTERP_CHUNK</span> <span class="o">=</span> <span class="mi">65536</span>
 
-    <span class="n">profile_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">profile_coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">profile_coords</span><span class="p">)</span>
-    <span class="n">profile_coords</span> <span class="o">=</span> <span class="n">profile_coords</span><span class="p">[</span><span class="n">order</span><span class="p">]</span>
-    <span class="n">profile_values</span> <span class="o">=</span> <span class="n">profile_values</span><span class="p">[</span><span class="n">order</span><span class="p">]</span>
-    <span class="n">unique_coords</span><span class="p">,</span> <span class="n">unique_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">profile_coords</span><span class="p">,</span> <span class="n">return_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">unique_values</span> <span class="o">=</span> <span class="n">profile_values</span><span class="p">[</span><span class="n">unique_index</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span>
-            <span class="nb">float</span><span class="p">(</span><span class="n">target</span><span class="p">),</span>
-            <span class="n">unique_coords</span><span class="p">,</span>
-            <span class="n">unique_values</span><span class="p">,</span>
-            <span class="n">left</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="n">right</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_interp_profile</span><span class="p">(</span>
+    <span class="n">values</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">targets</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Interpolate each row of *values* linearly at its target, along that row's sorted *coords*.</span>
+
+<span class="sd">    Per row, the levels with a finite value and coordinate are taken in</span>
+<span class="sd">    increasing coordinate (of levels at one coordinate, the first in level</span>
+<span class="sd">    order), as :func:`numpy.interp` takes them. NaN outside their range or</span>
+<span class="sd">    where fewer than two levels have a value. *values* and *coords* are ``(rows,</span>
+<span class="sd">    levels)``, *targets* ``(rows,)``.</span>
+<span class="sd">    """</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">valid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"stable"</span><span class="p">)</span>  <span class="c1"># NaN last</span>
+    <span class="n">c</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">repeat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">repeat</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">c</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">==</span> <span class="n">c</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">repeat</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>  <span class="c1"># keep the first of levels at one coordinate</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">repeat</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"stable"</span><span class="p">)</span>
+        <span class="n">c</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
         <span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># distinct coordinates</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="p">(</span><span class="n">c</span> <span class="o">&lt;=</span> <span class="n">t</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># the last level at or below the target</span>
+    <span class="n">k1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span> <span class="n">c</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">k1</span><span class="p">]</span>
+    <span class="n">v_lo</span><span class="p">,</span> <span class="n">v_hi</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">k1</span><span class="p">]</span>
+    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+        <span class="n">slope</span> <span class="o">=</span> <span class="p">(</span><span class="n">v_hi</span> <span class="o">-</span> <span class="n">v_lo</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">slope</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span> <span class="o">+</span> <span class="n">v_lo</span>  <span class="c1"># numpy.interp's formula</span>
+    <span class="n">at_top</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span> <span class="o">==</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">lo</span> <span class="o">==</span> <span class="n">t</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">at_top</span><span class="p">,</span> <span class="n">v_lo</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+    <span class="n">out</span><span class="p">[(</span><span class="n">valid</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">k</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">((</span><span class="n">k</span> <span class="o">&gt;=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">at_top</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">return</span> <span class="n">out</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_interp_column</span><span class="p">(</span>
-    <span class="n">values</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">target</span><span class="p">:</span> <span class="nb">float</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+    <span class="n">values</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">targets</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Interpolate *values* at the height *target* along a column, in level order.</span>
+<span class="sd">    Interpolate each row of *values* at its target height, walking the row's column in level order.</span>
 
-<span class="sd">    *coords* are the column's heights from the ground (index 0) up. As</span>
-<span class="sd">    HYSPLIT's ``prfsig``/``prfprs``/``prfecm`` walk it, *target* falls in the</span>
-<span class="sd">    first layer, in level order, whose top is at or above it, and is</span>
-<span class="sd">    interpolated between that layer's bottom and top. Where heights increase</span>
-<span class="sd">    this is plain linear interpolation; where a level lies below the ground (a</span>
-<span class="sd">    sigma file whose first ``PRES`` exceeds ``PRSS``) the ground's value is</span>
-<span class="sd">    passed over and the column runs from that level up. NaN below the ground</span>
-<span class="sd">    or above the top.</span>
+<span class="sd">    *coords* are each column's heights from the ground (level 0) up. As</span>
+<span class="sd">    HYSPLIT's ``prfsig``/``prfprs``/``prfecm`` walk it, a target falls in the</span>
+<span class="sd">    first layer, in level order and between levels with a finite value and</span>
+<span class="sd">    height, whose top is at or above it, and is interpolated between that</span>
+<span class="sd">    layer's bottom and top. Where heights increase this is plain linear</span>
+<span class="sd">    interpolation; where a level lies below the ground (a sigma file whose</span>
+<span class="sd">    first ``PRES`` exceeds ``PRSS``) the ground's value is passed over and the</span>
+<span class="sd">    column runs from that level up. NaN below the first such level or above</span>
+<span class="sd">    the top. *values* and *coords* are ``(rows, levels)``, *targets* ``(rows,)``.</span>
 <span class="sd">    """</span>
-    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-    <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">target</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">target</span> <span class="o">&gt;=</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-    <span class="n">above</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">&gt;=</span> <span class="n">target</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">above</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-    <span class="n">k</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">above</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">hi</span> <span class="o">==</span> <span class="n">lo</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">target</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">v</span><span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]))</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">valid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+    <span class="n">level</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">first</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># the level below each level, among those with a value</span>
+    <span class="n">below</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">below</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">below</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="n">valid</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">level</span> <span class="o">&gt;</span> <span class="n">first</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">c</span> <span class="o">&gt;=</span> <span class="n">t</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">])</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">t</span> <span class="o">&gt;=</span> <span class="n">c</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">first</span><span class="p">])</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">k0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">below</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">k0</span><span class="p">],</span> <span class="n">c</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span>
+    <span class="n">v_lo</span><span class="p">,</span> <span class="n">v_hi</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">k0</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span>
+    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">hi</span> <span class="o">==</span> <span class="n">lo</span><span class="p">,</span> <span class="n">v_hi</span><span class="p">,</span> <span class="n">v_lo</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">v_hi</span> <span class="o">-</span> <span class="n">v_lo</span><span class="p">))</span>
+    <span class="n">out</span><span class="p">[</span><span class="o">~</span><span class="n">found</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">return</span> <span class="n">out</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_interp_profiles</span><span class="p">(</span>
@@ -972,7 +1079,7 @@
     <span class="n">column</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Vectorised _interp_profile over n_points rows.</span>
+<span class="sd">    Interpolate each row of *values* at its target: ``(n_points,)`` float32.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -980,14 +1087,14 @@
 <span class="sd">    coords : (n_levels,) shared across all points, or (n_points, n_levels) per-point</span>
 <span class="sd">    targets : (n_points,)</span>
 <span class="sd">    column : heights along a column from the ground up, walked in level order</span>
-<span class="sd">        (:func:`_interp_column`) instead of sorted</span>
+<span class="sd">        (:func:`_interp_column`) instead of sorted (:func:`_interp_profile`)</span>
 <span class="sd">    """</span>
-    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="n">shared_coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span>
     <span class="n">interp</span> <span class="o">=</span> <span class="n">_interp_column</span> <span class="k">if</span> <span class="n">column</span> <span class="k">else</span> <span class="n">_interp_profile</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-        <span class="n">profile_coords</span> <span class="o">=</span> <span class="n">coords</span> <span class="k">if</span> <span class="n">shared_coords</span> <span class="k">else</span> <span class="n">coords</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">interp</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">profile_coords</span><span class="p">,</span> <span class="n">targets</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">_INTERP_CHUNK</span><span class="p">):</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">start</span> <span class="o">+</span> <span class="n">_INTERP_CHUNK</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span> <span class="o">=</span> <span class="n">interp</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="n">rows</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">rows</span><span class="p">],</span> <span class="n">targets</span><span class="p">[</span><span class="n">rows</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">out</span>
 
 
@@ -1005,12 +1112,12 @@
     <span class="n">available</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">_levels</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">))</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">available</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">n_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">)</span>
-    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_points</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="c1"># Filled one level at a time, so held as (n_levels, n_points) and returned transposed.</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="n">level</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">levels</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">available</span><span class="p">:</span>
-            <span class="n">out</span><span class="p">[:,</span> <span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sample_level</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">out</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sample_level</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">T</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_variable_profiles</span><span class="p">(</span>
@@ -1024,26 +1131,27 @@
         <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"Variable '</span><span class="si">{</span><span class="n">variable</span><span class="si">}</span><span class="s2">' is not available at time </span><span class="si">{</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">."</span>
         <span class="p">)</span>
-    <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="n">level</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">levels</span><span class="p">):</span>
-        <span class="n">samples</span><span class="p">[:,</span> <span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sample_level</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">samples</span><span class="p">,</span> <span class="n">levels</span>
+        <span class="n">samples</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sample_level</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">samples</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">levels</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_vertical_coords</span><span class="p">(</span>
     <span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span>
     <span class="n">levels</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">z_kind</span><span class="p">:</span> <span class="n">ZKind</span><span class="p">,</span>
+    <span class="n">z_kind</span><span class="p">:</span> <span class="n">_ColumnZKind</span><span class="p">,</span>
     <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">,</span>
-    <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">column</span><span class="p">:</span> <span class="n">_Column</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Per-point vertical coordinate at each *level*, expressed in the *z_kind* system.</span>
 
 <span class="sd">    Returns an ``(n_points, n_levels)`` array giving the coordinate that a target</span>
-<span class="sd">    *z* (in the same *z_kind* units) is interpolated against.</span>
+<span class="sd">    *z* (in the same *z_kind* units) is interpolated against. A height above</span>
+<span class="sd">    sea level is turned into one above the ground before this</span>
+<span class="sd">    (:func:`_sample_points_from_file`).</span>
 
 <span class="sd">    Dispatches to the vertical axis subclass methods, matching HYSPLIT:</span>
 
@@ -1081,52 +1189,39 @@
             <span class="sa">f</span><span class="s2">"z_kind='pressure' not implemented for </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">."</span>
         <span class="p">)</span>
 
-    <span class="c1"># z_kind in {"agl", "msl"}</span>
+    <span class="c1"># z_kind == "agl"</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
-        <span class="n">coords</span> <span class="o">=</span> <span class="n">_broadcast</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">()[</span><span class="n">level_list</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"msl"</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">terrain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"terrain (SHGT) is required to sample z_kind='msl'."</span><span class="p">)</span>
-            <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span> <span class="o">+</span> <span class="n">terrain</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">coords</span>
+        <span class="k">return</span> <span class="n">_broadcast</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">()[</span><span class="n">level_list</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">PressureAxis</span><span class="p">,</span> <span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">)):</span>
         <span class="c1"># HYSPLIT PRFPRS: HGTS above the ground. PRFSIG/PRFECM: hypsometric from</span>
         <span class="c1"># the ground with virtual temperature; a WRF file without hybrid</span>
         <span class="c1"># coefficients goes to PRFSIG too.</span>
         <span class="k">assert</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">agl</span> <span class="o">=</span> <span class="n">column</span><span class="o">.</span><span class="n">z_agl</span><span class="p">[:,</span> <span class="n">level_list</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"agl"</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">agl</span>
-        <span class="k">return</span> <span class="n">agl</span> <span class="o">+</span> <span class="n">_resolve_terrain</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">plan</span><span class="p">,</span> <span class="n">terrain</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">column</span><span class="o">.</span><span class="n">z_agl</span><span class="p">[:,</span> <span class="n">level_list</span><span class="p">]</span>
 
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
         <span class="sa">f</span><span class="s2">"z_kind='</span><span class="si">{</span><span class="n">z_kind</span><span class="si">}</span><span class="s2">' not implemented for </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">."</span>
     <span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_terrain</span><span class="p">(</span>
-    <span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span>
-    <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">,</span>
-    <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Return per-point terrain height (SHGT, m); sample it if not precomputed."""</span>
-    <span class="k">if</span> <span class="n">terrain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">terrain</span>
-    <span class="n">shgt_records</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">recordset</span><span class="o">.</span><span class="n">records</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">variable</span> <span class="o">==</span> <span class="s2">"SHGT"</span><span class="p">]</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">shgt_records</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"terrain (SHGT) is required to compute AGL/MSL heights."</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">_sample_record</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">shgt_records</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">level</span><span class="p">),</span> <span class="n">plan</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_terrain</span><span class="p">(</span><span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span> <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Sample the terrain height ``SHGT`` [m] at each point of *plan*."""</span>
+    <span class="n">record</span> <span class="o">=</span> <span class="n">_surface_record</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="s2">"SHGT"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Terrain field SHGT is required at time </span><span class="si">{</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_sample_record</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    The vertical column of one sigma, pressure-level, hybrid or WRF time step.</span>
 
-<span class="sd">    Built at the sample points as HYSPLIT's ``prfsig`` (sigma, flag 1, and WRF,</span>
-<span class="sd">    flag 5, without WRF's hybrid coefficients), ``prfprs`` (pressure, flag 2)</span>
-<span class="sd">    and ``prfecm`` (hybrid, flag 4) build theirs, and shared by every variable</span>
-<span class="sd">    sampled at that time. Level 0 is the ground:</span>
+<span class="sd">    Built at the grid points of *plan* (:func:`_node_plan`) as HYSPLIT's</span>
+<span class="sd">    ``prfsig`` (sigma, flag 1, and WRF, flag 5, without WRF's hybrid</span>
+<span class="sd">    coefficients), ``prfprs`` (pressure, flag 2) and ``prfecm`` (hybrid, flag</span>
+<span class="sd">    4) build theirs at each grid point, and shared by every variable sampled</span>
+<span class="sd">    there at that time. Level 0 is the ground:</span>
 <span class="sd">    0 m above it, at the surface pressure ``PRSS``. On a pressure-level file a</span>
 <span class="sd">    level at or below the ground has no height (NaN), so a profile runs from</span>
 <span class="sd">    the ground to the first level above it, as ``prfprs`` skips such levels.</span>
@@ -1139,14 +1234,11 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span>
         <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">recordset</span> <span class="o">=</span> <span class="n">recordset</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">plan</span> <span class="o">=</span> <span class="n">plan</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">axis</span> <span class="o">=</span> <span class="n">recordset</span><span class="o">.</span><span class="n">vertical_axis</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">upper</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">terrain</span> <span class="o">=</span> <span class="n">terrain</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_surface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Sample the surface field *variable*, or None if the time step lacks it."""</span>
@@ -1233,7 +1325,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">"Pressure-level (flag=2) files require HGTS records for AGL/MSL sampling."</span>
             <span class="p">)</span>
-        <span class="n">terrain</span> <span class="o">=</span> <span class="n">_resolve_terrain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">terrain</span><span class="p">)</span>
+        <span class="n">terrain</span> <span class="o">=</span> <span class="n">_terrain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan</span><span class="p">)</span>
         <span class="n">agl</span> <span class="o">=</span> <span class="n">hgts</span> <span class="o">-</span> <span class="n">terrain</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">terrain</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
         <span class="n">z</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">agl</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">agl</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
@@ -1299,13 +1391,12 @@
     <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">targets</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">z_kind</span><span class="p">:</span> <span class="n">ZKind</span><span class="p">,</span>
+    <span class="n">z_kind</span><span class="p">:</span> <span class="n">_ColumnZKind</span><span class="p">,</span>
     <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">,</span>
-    <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">column</span><span class="p">:</span> <span class="n">_Column</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Interpolate *variable* to each point's target height.</span>
+<span class="sd">    Interpolate *variable* to each target height along the column of each row of *plan*.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1316,11 +1407,11 @@
 <span class="sd">    z_kind :</span>
 <span class="sd">        ``'native'`` — target is a level index (fractional);</span>
 <span class="sd">        ``'pressure'`` — target is pressure in hPa;</span>
-<span class="sd">        ``'agl'`` — target is meters above ground level;</span>
-<span class="sd">        ``'msl'`` — target is meters above mean sea level.</span>
-<span class="sd">    terrain :</span>
-<span class="sd">        (n_points,) SHGT in meters. Required for AGL sampling with non-terrain</span>
-<span class="sd">        vertical axes, and for MSL sampling with terrain-following (flag=3) axes.</span>
+<span class="sd">        ``'agl'`` — target is meters above ground level.</span>
+<span class="sd">    plan :</span>
+<span class="sd">        Where the columns are: in :func:`_sample_points_from_file`, the grid</span>
+<span class="sd">        points around each sample point (:func:`_node_plan`), whose values</span>
+<span class="sd">        are then blended.</span>
 <span class="sd">    column :</span>
 <span class="sd">        The column of this time step on sigma, hybrid and WRF files (flag</span>
 <span class="sd">        1/4/5), and on pressure-level files (flag 2) sampled at heights; else</span>
@@ -1340,7 +1431,7 @@
     <span class="n">axis</span> <span class="o">=</span> <span class="n">recordset</span><span class="o">.</span><span class="n">vertical_axis</span>
     <span class="n">log_p</span> <span class="o">=</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">_PRESSURE_VARIABLES</span>
     <span class="c1"># At heights a column is walked in level order, as HYSPLIT does (#106).</span>
-    <span class="n">walk</span> <span class="o">=</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">z_kind</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">)</span>
+    <span class="n">walk</span> <span class="o">=</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"agl"</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_interp</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Interpolate *values* to the targets, as ln p for pressure."""</span>
@@ -1367,7 +1458,6 @@
             <span class="n">all_levels</span><span class="p">,</span>
             <span class="n">z_kind</span><span class="o">=</span><span class="s2">"pressure"</span><span class="p">,</span>
             <span class="n">plan</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span>
-            <span class="n">terrain</span><span class="o">=</span><span class="n">terrain</span><span class="p">,</span>
             <span class="n">column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">coords</span> <span class="o">=</span> <span class="n">_vertical_coords</span><span class="p">(</span>
@@ -1375,7 +1465,6 @@
             <span class="n">all_levels</span><span class="p">,</span>
             <span class="n">z_kind</span><span class="o">=</span><span class="n">z_kind</span><span class="p">,</span>
             <span class="n">plan</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span>
-            <span class="n">terrain</span><span class="o">=</span><span class="n">terrain</span><span class="p">,</span>
             <span class="n">column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">_interp</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
@@ -1397,7 +1486,6 @@
         <span class="n">levels</span><span class="p">,</span>
         <span class="n">z_kind</span><span class="o">=</span><span class="n">z_kind</span><span class="p">,</span>
         <span class="n">plan</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span>
-        <span class="n">terrain</span><span class="o">=</span><span class="n">terrain</span><span class="p">,</span>
         <span class="n">column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">_interp</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
@@ -1443,10 +1531,15 @@
 <span class="sd">          HGTS - SHGT (both required) from the ground</span>
 <span class="sd">          up, leaving out the levels at or below the ground, as HYSPLIT's</span>
 <span class="sd">          ``prfprs`` does; terrain-following uses the stored levels.</span>
-<span class="sd">        - ``'msl'``: meters above mean sea level. Sigma/hybrid/WRF add SHGT to</span>
-<span class="sd">          the hypsometric AGL height; pressure uses HGTS, from the ground</span>
-<span class="sd">          (SHGT) up (both required); terrain-following adds SHGT to the stored</span>
-<span class="sd">          levels.</span>
+<span class="sd">        - ``'msl'``: meters above mean sea level, turned into meters above</span>
+<span class="sd">          the ground at the point (less SHGT there), then as ``'agl'``.</span>
+
+<span class="sd">        Between grid points at heights the order is HYSPLIT's: the column at</span>
+<span class="sd">        each of the four grid points around a point (each with its own</span>
+<span class="sd">        ground, heights and pressures) is interpolated to the point's *z*,</span>
+<span class="sd">        then the four values are blended bilinearly over those that have a</span>
+<span class="sd">        value (:func:`_blend`). At pressures (HYSPLIT has none) and native</span>
+<span class="sd">        levels each level is blended first.</span>
 <span class="sd">    method :</span>
 <span class="sd">        Horizontal interpolation: ``'linear'`` (bilinear) or ``'nearest'``.</span>
 <span class="sd">    wind_pairs :</span>
@@ -1461,8 +1554,8 @@
     <span class="n">recordset</span> <span class="o">=</span> <span class="n">file</span><span class="p">[</span><span class="n">time</span><span class="p">]</span>
     <span class="n">axis</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">vertical_axis</span>
     <span class="n">heights</span> <span class="o">=</span> <span class="n">z_kind</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">)</span>
-    <span class="c1"># flag=2 heights need terrain for the ground and HGTS - SHGT; flag=3 MSL</span>
-    <span class="c1"># needs terrain; flag=1/4/5 MSL needs terrain for hypsometric AGL + SHGT.</span>
+    <span class="c1"># flag=2 heights need terrain for the ground and HGTS - SHGT; MSL needs the</span>
+    <span class="c1"># terrain at the point on every axis.</span>
     <span class="n">need_terrain</span> <span class="o">=</span> <span class="p">(</span><span class="n">heights</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
         <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"msl"</span>
         <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">TerrainAxis</span><span class="p">,</span> <span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">))</span>
@@ -1472,14 +1565,19 @@
     <span class="n">lat</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">"lat"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="n">plan</span> <span class="o">=</span> <span class="n">_build_horizontal_plan</span><span class="p">(</span><span class="n">recordset</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
 
-    <span class="n">terrain</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="n">need_terrain</span><span class="p">:</span>
-        <span class="n">terrain_record</span> <span class="o">=</span> <span class="n">_surface_record</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="s2">"SHGT"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">terrain_record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"Terrain field SHGT is required at time </span><span class="si">{</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">."</span>
-            <span class="p">)</span>
-        <span class="n">terrain</span> <span class="o">=</span> <span class="n">_sample_record</span><span class="p">(</span><span class="n">terrain_record</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">need_terrain</span> <span class="ow">and</span> <span class="n">_surface_record</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="s2">"SHGT"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Terrain field SHGT is required at time </span><span class="si">{</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">column_z_kind</span><span class="p">:</span> <span class="n">_ColumnZKind</span>
+    <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"msl"</span><span class="p">:</span>
+        <span class="c1"># A height above sea level is the height above the ground at the</span>
+        <span class="c1"># point itself, as HYSPLIT places a particle above the terrain there;</span>
+        <span class="c1"># each grid point's column is then read at that height above its own</span>
+        <span class="c1"># ground.</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span> <span class="o">-</span> <span class="n">_terrain</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
+        <span class="n">column_z_kind</span> <span class="o">=</span> <span class="s2">"agl"</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">column_z_kind</span> <span class="o">=</span> <span class="n">z_kind</span>
 
     <span class="c1"># Sigma, hybrid and WRF files always start their column at the ground;</span>
     <span class="c1"># pressure files do when sampled at heights (at pressures the stored levels</span>
@@ -1487,32 +1585,39 @@
     <span class="n">has_column</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
         <span class="n">heights</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="n">column</span> <span class="o">=</span> <span class="n">_Column</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">plan</span><span class="p">,</span> <span class="n">terrain</span><span class="o">=</span><span class="n">terrain</span><span class="p">)</span> <span class="k">if</span> <span class="n">has_column</span> <span class="k">else</span> <span class="kc">None</span>
-    <span class="n">targets</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="c1"># HYSPLIT's order (#116): the column at each grid point around a point is</span>
+    <span class="c1"># interpolated to the point's height, then the grid points are blended.</span>
+    <span class="c1"># HYSPLIT has no pressure targets; for them each level is blended first, so</span>
+    <span class="c1"># a target near the ground is near the ground of the point's own column.</span>
+    <span class="n">level_first</span> <span class="o">=</span> <span class="n">column_z_kind</span> <span class="o">==</span> <span class="s2">"pressure"</span>
+    <span class="n">nodes</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="n">_node_plan</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">each_level_first</span><span class="o">=</span><span class="n">level_first</span><span class="p">)</span>
+    <span class="n">column</span> <span class="o">=</span> <span class="n">_Column</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">nodes</span><span class="p">)</span> <span class="k">if</span> <span class="n">has_column</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="c1"># On a WRF file UWND and VWND are on their own staggered grids: each is</span>
-    <span class="c1"># sampled, with its whole column (the ground's U10M/V10M, the levels'</span>
-    <span class="c1"># heights), at its own array position, as HYSPLIT builds each node's</span>
-    <span class="c1"># profile and then reads U and V half a cell away (#109). An MSL target</span>
-    <span class="c1"># stays relative to the terrain at the point itself.</span>
+    <span class="c1"># sampled at its own array position, from the columns of the grid points</span>
+    <span class="c1"># around it (the ground's U10M/V10M, the levels' heights), as HYSPLIT</span>
+    <span class="c1"># builds each node's profile and then reads U and V half a cell away (#109).</span>
     <span class="n">stagger</span> <span class="o">=</span> <span class="n">_WRF_STAGGER</span> <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">source</span> <span class="o">==</span> <span class="s2">"AWRF"</span> <span class="k">else</span> <span class="p">{}</span>
     <span class="n">sampled</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">variable_names</span><span class="p">:</span>
-        <span class="n">var_plan</span><span class="p">,</span> <span class="n">var_column</span> <span class="o">=</span> <span class="n">plan</span><span class="p">,</span> <span class="n">column</span>
+        <span class="n">var_nodes</span><span class="p">,</span> <span class="n">var_weights</span><span class="p">,</span> <span class="n">var_column</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">column</span>
         <span class="k">if</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">stagger</span><span class="p">:</span>
-            <span class="n">var_plan</span> <span class="o">=</span> <span class="n">_build_horizontal_plan</span><span class="p">(</span>
-                <span class="n">recordset</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">stagger</span><span class="o">=</span><span class="n">stagger</span><span class="p">[</span><span class="n">variable</span><span class="p">]</span>
+            <span class="n">var_nodes</span><span class="p">,</span> <span class="n">var_weights</span> <span class="o">=</span> <span class="n">_node_plan</span><span class="p">(</span>
+                <span class="n">_build_horizontal_plan</span><span class="p">(</span>
+                    <span class="n">recordset</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">stagger</span><span class="o">=</span><span class="n">stagger</span><span class="p">[</span><span class="n">variable</span><span class="p">]</span>
+                <span class="p">),</span>
+                <span class="n">each_level_first</span><span class="o">=</span><span class="n">level_first</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">has_column</span><span class="p">:</span>
-                <span class="n">var_column</span> <span class="o">=</span> <span class="n">_Column</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">var_plan</span><span class="p">,</span> <span class="n">terrain</span><span class="o">=</span><span class="n">terrain</span><span class="p">)</span>
-        <span class="n">sampled</span><span class="p">[</span><span class="n">variable</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sample_variable</span><span class="p">(</span>
+                <span class="n">var_column</span> <span class="o">=</span> <span class="n">_Column</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">var_nodes</span><span class="p">)</span>
+        <span class="n">at_nodes</span> <span class="o">=</span> <span class="n">_sample_variable</span><span class="p">(</span>
             <span class="n">recordset</span><span class="p">,</span>
             <span class="n">variable</span><span class="p">,</span>
-            <span class="n">targets</span><span class="p">,</span>
-            <span class="n">z_kind</span><span class="o">=</span><span class="n">z_kind</span><span class="p">,</span>
-            <span class="n">plan</span><span class="o">=</span><span class="n">var_plan</span><span class="p">,</span>
-            <span class="n">terrain</span><span class="o">=</span><span class="n">terrain</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_weights</span><span class="p">)),</span>
+            <span class="n">z_kind</span><span class="o">=</span><span class="n">column_z_kind</span><span class="p">,</span>
+            <span class="n">plan</span><span class="o">=</span><span class="n">var_nodes</span><span class="p">,</span>
             <span class="n">column</span><span class="o">=</span><span class="n">var_column</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="n">sampled</span><span class="p">[</span><span class="n">variable</span><span class="p">]</span> <span class="o">=</span> <span class="n">_blend</span><span class="p">(</span><span class="n">at_nodes</span><span class="p">,</span> <span class="n">var_weights</span><span class="p">)</span>
     <span class="n">_rotate_winds</span><span class="p">(</span><span class="n">sampled</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">wind_pairs</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">sampled</span>
 
@@ -1616,8 +1721,14 @@
 <span class="sd">        :meth:`arlmet.File.sample_points` for the method each vertical</span>
 <span class="sd">        coordinate system uses and the fields it requires.</span>
 <span class="sd">    method : {"linear", "nearest"}, default "linear"</span>
-<span class="sd">        Horizontal interpolation: bilinear or nearest grid point. On a WRF</span>
-<span class="sd">        file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's</span>
+<span class="sd">        Horizontal interpolation: bilinear or nearest grid point. At heights</span>
+<span class="sd">        (``"agl"``, ``"msl"``), as in HYSPLIT, the column at each of the four</span>
+<span class="sd">        grid points around a point is interpolated to the point's ``z`` first,</span>
+<span class="sd">        with that grid point's own ground and level heights, and the four</span>
+<span class="sd">        values are then blended; a grid point whose column ends below ``z``</span>
+<span class="sd">        does not count, and the others are reweighted. At pressures and native</span>
+<span class="sd">        levels each level is blended first, as before.</span>
+<span class="sd">        On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's</span>
 <span class="sd">        staggered grid holds them, half a cell east and north of each point,</span>
 <span class="sd">        as HYSPLIT reads them; "nearest" gives the winds at the nearest</span>
 <span class="sd">        cell's center. The *Sampling* guide has the details.</span>

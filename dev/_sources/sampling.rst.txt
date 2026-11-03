@@ -136,6 +136,24 @@ Horizontal interpolation
 - ``"linear"`` (default) — bilinear interpolation
 - ``"nearest"`` — nearest grid cell
 
+Between grid points at heights (``agl``, ``msl``) the order is HYSPLIT's: the
+column at each of the four grid points around a point, with that grid point's
+own ground and level heights, is interpolated to the point's ``z``, and the
+four values are then blended bilinearly. Where the levels' heights differ between neighboring
+grid points (over uneven ground, or wherever the pressure field varies) this
+differs from blending each level first and interpolating the blended column:
+by up to 2 K and 1 m/s in the lowest 50 m on a 27 km WRF grid, and less on
+finer grids and higher up. At a grid point the two are the same.
+
+A grid point whose column ends below the height does not count: the other
+grid points' weights are rescaled to sum to 1, and the point is NaN only where
+none of them has a value. At pressures, which HYSPLIT does not sample, and at
+native levels, each level is blended first and the blended column
+interpolated, so a pressure just above the ground at the point is read near
+the ground of the point's own column. An ``msl`` height is a height above the ground at the point itself
+(``z`` less the ``SHGT`` there), and each grid point's column is read at that
+height above its own ground.
+
 .. ipython:: python
 
    result = arlmet.sample_points("met.arl", points, ["TEMP"], method="nearest")
@@ -184,10 +202,11 @@ fields are: column ``i`` of ``UWND`` is the west face of cell ``i``, and row
 position and ``VWND`` half a cell north, and so does ``sample_points``: at the
 center of a cell, ``UWND`` is the mean of that cell's west and east faces.
 
-Each wind's whole column is taken there, its ground value (``U10M`` or
-``V10M``) and its levels' heights included, as HYSPLIT builds a profile at each
-grid point before interpolating; an ``msl`` height is still measured from the
-terrain at the point itself. With ``method="nearest"`` the winds are those at
+Each wind is blended from the columns of the four U (or V) grid points around
+that position, their ground values (``U10M`` or ``V10M``) and their levels'
+heights included, as HYSPLIT builds a profile at each grid point before
+interpolating; an ``msl`` height is still measured from the terrain at the
+point itself. With ``method="nearest"`` the winds are those at
 the nearest cell's center. The file holds no east face for the last column of
 cells and no north face for the last row, so ``UWND`` (``VWND``) is NaN there.
 Other sources are not affected, nor are the readers (:class:`arlmet.File`,

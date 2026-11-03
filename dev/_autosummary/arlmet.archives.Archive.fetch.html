@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=19314828"></script>
+    <script src="../_static/documentation_options.js?v=773a9d9c"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev21+g1d70bdbfc" />
+  <meta name="docsearch:version" content="0.1.0b6.dev23+g242aaed19" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -678,6 +678,13 @@ in chronological order.</p>
 interrupted fetch never leaves a truncated file that a later call
 would reuse. When cropping, the full download is also staged in
 <em>dest_dir</em> (not the system temp directory) and removed afterwards.</p>
+<p>Concurrent calls (threads, processes, or jobs on other nodes sharing
+<em>dest_dir</em>) download each file once: the first makes a hidden folder
+<code class="docutils literal notranslate"><span class="pre">.&lt;name&gt;.lock</span></code> and the others wait for the finished file. If nothing
+grows for about five minutes (the first was killed, or its download hung)
+a waiter takes over and removes what the first left. A finished file is
+replaced only with <code class="docutils literal notranslate"><span class="pre">overwrite=True</span></code>, where each caller downloads again
+in turn: replacing a file breaks a reader on another NFS client.</p>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.archives</span><span class="w"> </span><span class="kn">import</span> <span class="n">HRRRArchive</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">archive</span> <span class="o">=</span> <span class="n">HRRRArchive</span><span class="p">()</span>

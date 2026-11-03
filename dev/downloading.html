@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=19314828"></script>
+    <script src="_static/documentation_options.js?v=773a9d9c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev21+g1d70bdbfc" />
+  <meta name="docsearch:version" content="0.1.0b6.dev23+g242aaed19" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -671,6 +671,22 @@ the fastest choice.</p>
 renamed into place only once complete, so an interrupted fetch never leaves a
 truncated file that a later call would reuse. A <code class="docutils literal notranslate"><span class="pre">.partial</span></code> file left behind
 by a killed process is never used and can be deleted.</p>
+<p>Several callers can fetch into one folder at once: threads, processes such as
+PYSTILT’s workers, or jobs on other nodes that share the folder. Each file is
+downloaded once. The first caller to reach a file makes a hidden folder
+<code class="docutils literal notranslate"><span class="pre">.&lt;name&gt;.lock</span></code> beside it (with a note of its host and process) and the others
+wait for the finished file. While they wait they watch the download’s temp files
+grow. If nothing changes for about five minutes, because the first caller was
+killed or its download hung, one of them removes the lock, downloads the file
+itself, and removes what the first caller left. So a folder left by a killed
+job makes the next caller wait those five minutes once; you can also delete it
+yourself.</p>
+<p>The lock saves work only. Every copy has its own temp file, so a caller that was
+taken for dead while only paused costs a second download, never a damaged file.
+Once a file is there it is not replaced, even by a second copy finishing later:
+on NFS, replacing a file gives anyone reading it from another node a <code class="docutils literal notranslate"><span class="pre">Stale</span> <span class="pre">file</span>
+<span class="pre">handle</span></code> error. <code class="docutils literal notranslate"><span class="pre">overwrite=True</span></code> does replace it, one caller at a time, so use
+it only when nothing is reading the file.</p>
 <p>Requesting a time range that begins before an archive’s <code class="docutils literal notranslate"><span class="pre">start_date</span></code> (the
 start of its archive) raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">files</span> <span class="o">=</span> <span class="n">archive</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span>
