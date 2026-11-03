@@ -106,14 +106,20 @@ when it downloads, so it imports without the `archives` extra.
    each record's bytes (DIF records included), renumbers the header's level, and
    rebuilds the index records. Keep both paths writing the same index records.
 4. **Windowing.** On lat/lon grids a cell is kept when its center is inside the
-   bbox, edges included, as HYSPLIT's `xtrct_grid`; `west > east` crosses the dateline,
-   and a window across a global grid's seam has `x_stop > nx`. On projected grids the
-   window holds every point of the box that is on the grid: the outline (sampled at a
-   fixed, capped spacing of at most half a cell on the grid, never refined) is kept
-   where it is inside the cells or crosses their border, plus the grid corners in the
-   box, and each axis's extremes are rounded like Fortran `NINT`; a step over two cells
-   is a jump across the projection's cut. `xtrct_grid` uses only the SW and NE corners
-   (reference: `test_grid.py`). A bbox is `(west, south, east, north)` in degrees.
+   bbox, edges included (`xtrct_grid` rounds an edge to the nearest column, so it can
+   keep one more for an edge between columns); `west > east` crosses the dateline,
+   longitudes count modulo 360 (an edge at 180 keeps the 180 column; a box may reach
+   past 180; a width of 360 or more, infinite included, holds every column; edges are
+   converted to Python floats first; a column within 1e-6 cells of an edge counts as on
+   it, so rounding in the modulo never decides an edge column), and a window across a
+   global grid's seam has `x_stop > nx`. On projected
+   grids the window holds every point of the box that is on the grid: the outline
+   (sampled at a fixed, capped spacing of at most half a cell on the grid, never
+   refined) is kept where it is inside the cells or crosses their border, plus the grid
+   corners in the box, and each axis's extremes are rounded like Fortran `NINT`; a step
+   over two cells is a jump across the projection's cut. `xtrct_grid` uses only the SW
+   and NE corners (reference: `test_grid.py`). A bbox is `(west, south, east, north)`
+   in degrees.
 5. **`write_dataset` handles the common case only:** the flat Dataset that
    `open_dataset` returns, with DIF records written from `attrs["diff"] =
    "DIF..."` on the parent. The `forecast_hour(time)` coordinate is the index
