@@ -291,6 +291,7 @@ def test_a_finished_file_is_not_replaced(tmp_path, monkeypatch):
     assert _visible(tmp_path) == [NAME]
 
 
+@pytest.mark.skipif(os.name == "nt", reason="Windows cannot remove an open file")
 @pytest.mark.parametrize("finished", [True, False])
 def test_a_caller_whose_temp_file_was_removed_uses_the_finished_file(
     tmp_path, monkeypatch, finished
