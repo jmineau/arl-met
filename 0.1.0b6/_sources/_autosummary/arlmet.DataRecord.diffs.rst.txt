@@ -1,0 +1,6 @@
+arlmet.DataRecord.diffs
+=======================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: DataRecord.diffs

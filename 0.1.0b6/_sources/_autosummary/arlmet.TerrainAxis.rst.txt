@@ -1,0 +1,31 @@
+﻿arlmet.TerrainAxis
+==================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: TerrainAxis
+   :no-members:
+   :show-inheritance:
+
+
+
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~TerrainAxis.to_height_agl
+   ~TerrainAxis.to_pressure
+
+
+
+
+.. rubric:: Inherited
+
+
+From :class:`~.VerticalAxis`: :py:obj:`~.VerticalAxis.from_flag`
+
+

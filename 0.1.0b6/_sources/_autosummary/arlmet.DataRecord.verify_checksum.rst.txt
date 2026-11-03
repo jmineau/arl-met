@@ -1,0 +1,6 @@
+arlmet.DataRecord.verify\_checksum
+==================================
+
+.. currentmodule:: arlmet
+
+.. automethod:: DataRecord.verify_checksum

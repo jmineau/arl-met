@@ -1,0 +1,6 @@
+arlmet.SigmaAxis.to\_height\_agl
+================================
+
+.. currentmodule:: arlmet
+
+.. automethod:: SigmaAxis.to_height_agl

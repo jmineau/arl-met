@@ -1,0 +1,23 @@
+﻿arlmet.Projection
+=================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: Projection
+   :no-members:
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+
+   ~Projection.is_latlon
+   ~Projection.params
+
+
+
+
+

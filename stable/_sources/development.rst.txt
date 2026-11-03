@@ -49,6 +49,13 @@ for choice. The Fortran routines it matches:
    * - ``prfcom``
      - choose the vertical conversion from the vertical flag
      - :meth:`arlmet.VerticalAxis.from_flag` and its subclasses
+   * - ``prfcom`` / ``adv3nt``
+     - build the profile at every grid point, then read a value at a position
+       bilinearly from the four grid points around it
+     - :func:`arlmet.sample_points` interpolates each of the four grid points'
+       columns to the point's height, then blends them (``ops/sample.py``,
+       ``_node_plan``); on HRRR, WRF, GFS, GDAS and NAM files it agrees with the
+       compiled ``prfsig``/``prfprs``/``prfecm`` and ``adv3nt`` to float precision
    * - ``prfsig`` / ``prfecm``
      - the sigma (flag 1, and flag 5 without WRF's hybrid coefficients) and
        hybrid (flag 4) profiles: heights from the ground
@@ -75,9 +82,13 @@ for choice. The Fortran routines it matches:
      - crop a met file to a grid window
      - :meth:`arlmet.Grid.window_from_bbox`, :func:`arlmet.extract_subset`
        (``tests/test_subset_slow.py`` compares the two on real files). The same
-       cells, but a projected crop keeps the source's sync point, where
-       ``xtrct_grid`` writes the corner cell's latitude and longitude to 0.01
-       degree and so moves its crop by up to 0.15 cells (:meth:`arlmet.Grid.subset`)
+       cells on a lat/lon grid. On a projected grid ``xtrct_grid`` maps all four
+       corners of the box but keeps the window of the south-west and north-east
+       ones; arl-met keeps the window of the box's part on the grid, which,
+       for a box inside the grid, holds ``xtrct_grid``'s and can be larger. A projected crop also keeps the
+       source's sync point, where ``xtrct_grid`` writes the corner cell's
+       latitude and longitude to 0.01 degree and so moves its crop by up to 0.15
+       cells (:meth:`arlmet.Grid.subset`)
 
 Vertical-axis conversions
 -------------------------

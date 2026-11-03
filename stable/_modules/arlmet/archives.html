@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.archives &#8212; arl-met 0.1.0b5</title>
+    <title>arlmet.archives &#8212; arl-met 0.1.0b6</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=18948dd3"></script>
+    <script src="../../_static/documentation_options.js?v=2f6c07b9"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b5';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b6';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5" />
+  <meta name="docsearch:version" content="0.1.0b6" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -127,7 +127,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b5</p>
+    <p class="title logo__title">arl-met 0.1.0b6</p>
   
 </a></div>
     
@@ -462,13 +462,15 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">socket</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span><span class="p">,</span> <span class="n">suppress</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">UTC</span><span class="p">,</span> <span class="n">datetime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
@@ -675,20 +677,38 @@
         <span class="n">tmp</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_make_lock</span><span class="p">(</span><span class="n">lock</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Make the lock folder *lock* and return True, or False if it is already there.</span>
+
+<span class="sd">    ``mkdir`` is atomic, also on NFS, where a ``flock`` may not be seen by</span>
+<span class="sd">    another host. The folder holds a file naming the host, process and start</span>
+<span class="sd">    time. A caller killed without a chance to clean up (``kill -9``, a lost</span>
+<span class="sd">    node) leaves it behind.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">lock</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">FileExistsError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="n">started</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">UTC</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S UTC"</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="ne">OSError</span><span class="p">):</span>  <span class="c1"># the note only helps a person; the folder is the lock</span>
+        <span class="p">(</span><span class="n">lock</span> <span class="o">/</span> <span class="s2">"owner"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"host </span><span class="si">{</span><span class="n">socket</span><span class="o">.</span><span class="n">gethostname</span><span class="p">()</span><span class="si">}</span><span class="s2">, process </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span><span class="si">}</span><span class="s2">, started </span><span class="si">{</span><span class="n">started</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+            <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+
 <span class="nd">@contextmanager</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_sync_lock</span><span class="p">(</span><span class="n">root</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Hold the lock folder of *root* while a sync runs.</span>
 
-<span class="sd">    ``mkdir`` is atomic, also on NFS, where a ``flock`` may not be seen by</span>
-<span class="sd">    another host. The folder holds a file naming the host, process and start</span>
-<span class="sd">    time, and is removed on the way out, also after an error. A run killed</span>
-<span class="sd">    without a chance to clean up (``kill -9``, a lost node) leaves it behind.</span>
+<span class="sd">    It is removed on the way out, also after an error. A folder left by a killed</span>
+<span class="sd">    run stops the next sync.</span>
 <span class="sd">    """</span>
     <span class="n">lock</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="n">_LOCK_NAME</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">lock</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
-    <span class="k">except</span> <span class="ne">FileExistsError</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_make_lock</span><span class="p">(</span><span class="n">lock</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">owner</span> <span class="o">=</span> <span class="p">(</span><span class="n">lock</span> <span class="o">/</span> <span class="s2">"owner"</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
@@ -698,14 +718,89 @@
             <span class="s2">"delete that folder."</span>
         <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">started</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">UTC</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S UTC"</span><span class="p">)</span>
-        <span class="p">(</span><span class="n">lock</span> <span class="o">/</span> <span class="s2">"owner"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"host </span><span class="si">{</span><span class="n">socket</span><span class="o">.</span><span class="n">gethostname</span><span class="p">()</span><span class="si">}</span><span class="s2">, process </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span><span class="si">}</span><span class="s2">, started </span><span class="si">{</span><span class="n">started</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
-            <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span>
-        <span class="p">)</span>
         <span class="k">yield</span>
     <span class="k">finally</span><span class="p">:</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="c1">#: A caller waiting on another's download of a file looks every ``_FETCH_POLL``</span>
+<span class="c1">#: seconds. If nothing has changed for ``_FETCH_STALL`` seconds (up to a fifth</span>
+<span class="c1">#: longer, at random, so that waiters do not all act at once) it takes over. The</span>
+<span class="c1">#: limit must outlast what a download can look like while it is alive: another</span>
+<span class="c1">#: NFS client sees a file's size up to a minute late, and a slow network or a busy</span>
+<span class="c1">#: node can add as long again.</span>
+<span class="n">_FETCH_POLL</span> <span class="o">=</span> <span class="mf">2.0</span>
+<span class="n">_FETCH_STALL</span> <span class="o">=</span> <span class="mf">300.0</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_temp_sizes</span><span class="p">(</span><span class="n">dest</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Return the size of each temp file a fetch of *dest* is writing, by name.</span>
+
+<span class="sd">    Temp files can be nested (:func:`_partial_path` of a temp file, as a crop's</span>
+<span class="sd">    download is), which adds dots in front and parts behind.</span>
+<span class="sd">    """</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+        <span class="sa">rf</span><span class="s2">"\.+</span><span class="si">{</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">dest</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="si">}</span><span class="s2">(\.[0-9a-f]</span><span class="se">{{</span><span class="s2">12</span><span class="se">}}</span><span class="s2">\.partial)+"</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">ASCII</span>
+    <span class="p">)</span>
+    <span class="n">sizes</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">with</span> <span class="n">os</span><span class="o">.</span><span class="n">scandir</span><span class="p">(</span><span class="n">dest</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span> <span class="k">as</span> <span class="n">entries</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pattern</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+                <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="ne">OSError</span><span class="p">):</span>  <span class="c1"># it was renamed or removed just now</span>
+                    <span class="n">sizes</span><span class="p">[</span><span class="n">entry</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">st_size</span>
+    <span class="k">return</span> <span class="n">sizes</span>
+
+
+<span class="nd">@contextmanager</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_fetch_turn</span><span class="p">(</span><span class="n">dest</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Yield whether this caller must download *dest*; one caller per file does.</span>
+
+<span class="sd">    The first caller makes the lock folder ``.&lt;name&gt;.lock``. The others wait for</span>
+<span class="sd">    *dest*, watching the lock and the temp files of the download, which grow while</span>
+<span class="sd">    it runs (and while it crops). A lock with nothing changing for the stall</span>
+<span class="sd">    limit belongs to a caller that died or whose download hung: remove it, try</span>
+<span class="sd">    for it again, and once *dest* is there remove the temp files that stood still.</span>
+
+<span class="sd">    Two waiters can do this at once, and a caller can be taken for dead while it</span>
+<span class="sd">    is only paused. Either costs a second download and nothing else: each copy</span>
+<span class="sd">    has its own temp file, and :meth:`Archive.fetch` keeps the first to finish.</span>
+<span class="sd">    Time is measured on this caller's own clock, so no two clocks have to agree.</span>
+<span class="sd">    """</span>
+    <span class="n">lock</span> <span class="o">=</span> <span class="n">dest</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="sa">f</span><span class="s2">".</span><span class="si">{</span><span class="n">dest</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.lock"</span><span class="p">)</span>
+    <span class="n">limit</span> <span class="o">=</span> <span class="n">_FETCH_STALL</span> <span class="o">*</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">)</span>
+    <span class="n">seen</span><span class="p">,</span> <span class="n">since</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+    <span class="n">dead</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">while</span> <span class="n">overwrite</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">dest</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">_make_lock</span><span class="p">(</span><span class="n">lock</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Another caller may have finished before we made the lock.</span>
+                    <span class="k">yield</span> <span class="n">overwrite</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">dest</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+                <span class="k">finally</span><span class="p">:</span>
+                    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="n">sizes</span> <span class="o">=</span> <span class="n">_temp_sizes</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="ne">OSError</span><span class="p">):</span>  <span class="c1"># the lock went while we looked: try for it</span>
+                <span class="n">now</span> <span class="o">=</span> <span class="p">(</span><span class="n">lock</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_ino</span><span class="p">,</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sizes</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+                <span class="k">if</span> <span class="n">seen</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Waiting for another caller's </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">dest</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">now</span> <span class="o">!=</span> <span class="n">seen</span><span class="p">:</span>
+                    <span class="n">seen</span><span class="p">,</span> <span class="n">since</span> <span class="o">=</span> <span class="n">now</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">-</span> <span class="n">since</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"No progress on </span><span class="si">%s</span><span class="s2">; taking it over"</span><span class="p">,</span> <span class="n">dest</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="n">dead</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sizes</span><span class="p">)</span>
+                    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">since</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+                    <span class="k">continue</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">_FETCH_POLL</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="kc">False</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">dest</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">dead</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">suppress</span><span class="p">(</span><span class="ne">OSError</span><span class="p">):</span>
+                    <span class="n">dest</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_utc_naive</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">:</span>
@@ -832,7 +927,8 @@
 <span class="sd">    :meth:`fetch`, or keep a whole local folder in step with NOAA's with</span>
 <span class="sd">    :meth:`sync`, choosing the ``mirror`` (server) to download from.</span>
 
-<span class="sd">    Subclasses set class-level metadata and implement ``_archive_path()`` to</span>
+<span class="sd">    Subclasses set class-level metadata (``name``, ``description``,</span>
+<span class="sd">    ``start_date``, ``source``, ``step``) and implement ``_archive_path()`` to</span>
 <span class="sd">    encode the filename convention for their product. A subclass that sets</span>
 <span class="sd">    ``name`` is registered in :data:`ARCHIVES` under that name.</span>
 
@@ -849,6 +945,10 @@
 <span class="sd">        such as ``"HRRR"``, so a caller can tell which product an archive</span>
 <span class="sd">        holds without downloading a file. Every file of an archive carries</span>
 <span class="sd">        the same id, except where a subclass says otherwise.</span>
+<span class="sd">    step : pandas.Timedelta</span>
+<span class="sd">        The time between one time step and the next inside a file (the</span>
+<span class="sd">        spacing of its index records), such as 3 hours for NAM 12 km. It is</span>
+<span class="sd">        not the span of one file, which is a separate fact of each archive.</span>
 
 <span class="sd">    Methods</span>
 <span class="sd">    -------</span>
@@ -867,6 +967,29 @@
     <span class="n">start_date</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">]</span>
     <span class="c1">#: The source id in the headers of the archive's files.</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="c1">#: The time between one time step and the next inside a file, as a</span>
+    <span class="c1">#: :class:`pandas.Timedelta`: the spacing of the file's index records, the</span>
+    <span class="c1">#: product's own time resolution. It is **not** how much time one file</span>
+    <span class="c1">#: covers (the *file span*). HRRR has a step of 1 hour and its files hold</span>
+    <span class="c1">#: 6 time steps, a 6-hour block. NAM 12 km has a step of 3 hours and its</span>
+    <span class="c1">#: files hold 8 time steps, 00:00 to 21:00 of a calendar day, so a file's</span>
+    <span class="c1">#: last time step is one step before the file's end, and a run that reaches</span>
+    <span class="c1">#: past 21:00 needs the next day's file.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: See Also</span>
+    <span class="c1">#: --------</span>
+    <span class="c1">#: arlmet.File.times : The valid times of the time steps in one file.</span>
+    <span class="c1">#: Archive.paths_for_range : The archive paths that cover a time range.</span>
+    <span class="c1">#: Archive.start_date : The earliest date in the archive.</span>
+    <span class="c1">#:</span>
+    <span class="c1">#: Examples</span>
+    <span class="c1">#: --------</span>
+    <span class="c1">#: &gt;&gt;&gt; from arlmet.archives import ARCHIVES, get_archive</span>
+    <span class="c1">#: &gt;&gt;&gt; ARCHIVES["nam12"].step</span>
+    <span class="c1">#: Timedelta('0 days 03:00:00')</span>
+    <span class="c1">#: &gt;&gt;&gt; get_archive("hrrr").step</span>
+    <span class="c1">#: Timedelta('0 days 01:00:00')</span>
+    <span class="n">step</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">]</span>
 
     <span class="n">S3_BUCKET</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"noaa-oar-arl-hysplit-pds"</span>
 
@@ -918,7 +1041,9 @@
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        start, end : pandas.Timestamp or str</span>
-<span class="sd">            Inclusive time range to cover.</span>
+<span class="sd">            Inclusive time range to cover. A time without a time zone is UTC;</span>
+<span class="sd">            a time-zone-aware one is converted to UTC, so ``2024-07-31 20:00``</span>
+<span class="sd">            in Denver names the files of August 1, 02 UTC.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -930,19 +1055,17 @@
 <span class="sd">        ValueError</span>
 <span class="sd">            If the range begins before the archive's ``start_date``.</span>
 <span class="sd">        """</span>
-        <span class="n">t0</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">floor</span><span class="o">=</span><span class="s2">"h"</span><span class="p">)</span>
-        <span class="n">t1</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">floor</span><span class="o">=</span><span class="s2">"h"</span><span class="p">)</span>
+        <span class="c1"># Convert to UTC before flooring: a zone offset by half an hour</span>
+        <span class="c1"># (India, Newfoundland) has its hours at :30 UTC.</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">_utc_naive</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="s2">"h"</span><span class="p">)</span>
+        <span class="n">t1</span> <span class="o">=</span> <span class="n">_utc_naive</span><span class="p">(</span><span class="n">end</span><span class="p">)</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="s2">"h"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">t0</span> <span class="o">&gt;</span> <span class="n">t1</span><span class="p">:</span>
             <span class="n">t0</span><span class="p">,</span> <span class="n">t1</span> <span class="o">=</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t0</span>
 
-        <span class="n">start_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span>
-        <span class="k">if</span> <span class="n">t0</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># start_date is naive UTC; match it to a tz-aware request.</span>
-            <span class="n">start_date</span> <span class="o">=</span> <span class="n">start_date</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s2">"UTC"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">t0</span> <span class="o">&lt;</span> <span class="n">start_date</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">t0</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> archive begins </span><span class="si">{</span><span class="n">start_date</span><span class="si">:</span><span class="s2">%Y-%m-%d</span><span class="si">}</span><span class="s2">, "</span>
-                <span class="sa">f</span><span class="s2">"but the requested range starts at </span><span class="si">{</span><span class="n">t0</span><span class="si">}</span><span class="s2">."</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> archive begins </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="si">:</span><span class="s2">%Y-%m-%d</span><span class="si">}</span><span class="s2">, "</span>
+                <span class="sa">f</span><span class="s2">"but the requested range starts at </span><span class="si">{</span><span class="n">t0</span><span class="si">}</span><span class="s2"> UTC."</span>
             <span class="p">)</span>
 
         <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
@@ -977,7 +1100,8 @@
 <span class="sd">        ----------</span>
 <span class="sd">        start, end :</span>
 <span class="sd">            Time range (inclusive). Backward trajectories (start &gt; end)</span>
-<span class="sd">            are handled automatically.</span>
+<span class="sd">            are handled automatically. A time without a time zone is UTC;</span>
+<span class="sd">            a time-zone-aware one is converted to UTC.</span>
 <span class="sd">        dest_dir :</span>
 <span class="sd">            Directory to save downloaded files. Created if absent.</span>
 <span class="sd">        mirror :</span>
@@ -986,7 +1110,9 @@
 <span class="sd">        bbox :</span>
 <span class="sd">            ``(west, south, east, north)`` in degrees. When provided, each</span>
 <span class="sd">            file is cropped with :func:`arlmet.extract_subset` before</span>
-<span class="sd">            caching. Strongly recommended for global products (GFS, GDAS).</span>
+<span class="sd">            caching (on a projected grid, to the smallest rectangle of cells</span>
+<span class="sd">            that holds the box's part on the grid). Strongly recommended for global</span>
+<span class="sd">            products (GFS, GDAS).</span>
 <span class="sd">        levels :</span>
 <span class="sd">            ARL level indices to keep, counted from 0 at the surface. When</span>
 <span class="sd">            provided, each file keeps only these levels, cropped with</span>
@@ -1015,6 +1141,14 @@
 <span class="sd">        interrupted fetch never leaves a truncated file that a later call</span>
 <span class="sd">        would reuse. When cropping, the full download is also staged in</span>
 <span class="sd">        *dest_dir* (not the system temp directory) and removed afterwards.</span>
+
+<span class="sd">        Concurrent calls (threads, processes, or jobs on other nodes sharing</span>
+<span class="sd">        *dest_dir*) download each file once: the first makes a hidden folder</span>
+<span class="sd">        ``.&lt;name&gt;.lock`` and the others wait for the finished file. If nothing</span>
+<span class="sd">        grows for about five minutes (the first was killed, or its download hung)</span>
+<span class="sd">        a waiter takes over and removes what the first left. A finished file is</span>
+<span class="sd">        replaced only with ``overwrite=True``, where each caller downloads again</span>
+<span class="sd">        in turn: replacing a file breaks a reader on another NFS client.</span>
 
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
@@ -1046,14 +1180,29 @@
                 <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
                 <span class="k">continue</span>
 
-            <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_url</span><span class="p">(</span><span class="n">archive_path</span><span class="p">,</span> <span class="n">mirror</span><span class="p">)</span>
-            <span class="n">opts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage_options</span><span class="p">(</span><span class="n">mirror</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Fetching </span><span class="si">%s</span><span class="s2"> → </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">dest</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-
-            <span class="k">if</span> <span class="n">bbox</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">keep</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_fetch_and_crop</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">opts</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="n">bbox</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="n">keep</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_download</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="n">opts</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">_fetch_turn</span><span class="p">(</span><span class="n">dest</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">)</span> <span class="k">as</span> <span class="n">download</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">download</span><span class="p">:</span>
+                    <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_url</span><span class="p">(</span><span class="n">archive_path</span><span class="p">,</span> <span class="n">mirror</span><span class="p">)</span>
+                    <span class="n">opts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage_options</span><span class="p">(</span><span class="n">mirror</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Fetching </span><span class="si">%s</span><span class="s2"> → </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">dest</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="n">staged</span> <span class="o">=</span> <span class="n">_partial_path</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">bbox</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">keep</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_fetch_and_crop</span><span class="p">(</span>
+                                <span class="n">url</span><span class="p">,</span> <span class="n">staged</span><span class="p">,</span> <span class="n">opts</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="n">bbox</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="n">keep</span>
+                            <span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_download</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">staged</span><span class="p">,</span> <span class="n">opts</span><span class="p">)</span>
+                        <span class="c1"># Replacing a file breaks a reader on another NFS client</span>
+                        <span class="c1"># (ESTALE), so another caller's finished copy stays.</span>
+                        <span class="k">if</span> <span class="n">overwrite</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">dest</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                            <span class="n">os</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">staged</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                        <span class="c1"># Taken for dead and our temp files removed: dest is good.</span>
+                        <span class="k">if</span> <span class="n">overwrite</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">dest</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                            <span class="k">raise</span>
+                    <span class="k">finally</span><span class="p">:</span>
+                        <span class="n">staged</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
             <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
 
@@ -1457,6 +1606,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"HRRR 3 km analysis"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2019-06-12"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"HRRR"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="n">_HOURS_PER_FILE</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">6</span>
 
@@ -1488,6 +1638,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"NAM 12 km analysis"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2007-05-26"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"NAM"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the daily NAM archive filename for *time*."""</span>
@@ -1517,6 +1668,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"GDAS 1-degree global analysis"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2004-12-01"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"GDAS"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_week</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the 1-based archive week within the month for *time*."""</span>
@@ -1551,6 +1703,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"GFS 0.25-degree global analysis"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2019-06-13"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"GFSQ"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the daily GFS archive filename for *time*."""</span>
@@ -1584,6 +1737,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"NAMS hybrid sigma-pressure analysis"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2009-03-22"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"NAMS"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="n">_DOMAIN_SUFFIXES</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">"conus"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
@@ -1631,6 +1785,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"NCEP/NCAR Reanalysis 2.5-degree global"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"1948-01-01"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"CDC1"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the monthly reanalysis archive filename for *time*."""</span>
@@ -1659,6 +1814,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"HRRR 3 km analysis v1"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2015-06-15"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"HRRR"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="n">_HOURS_PER_FILE</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">6</span>
 
@@ -1691,6 +1847,7 @@
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"2007-09-01"</span><span class="p">)</span>
     <span class="c1">#: Files before 2013-07-29 carry "GHDA", the id of the same product.</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"GFSG"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the daily GDAS 0.5-degree archive filename for *time*."""</span>
@@ -1720,6 +1877,7 @@
     <span class="n">description</span> <span class="o">=</span> <span class="s2">"NCEP North American Regional Reanalysis 32 km"</span>
     <span class="n">start_date</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="s2">"1979-01-01"</span><span class="p">)</span>
     <span class="n">source</span> <span class="o">=</span> <span class="s2">"NARR"</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the monthly NARR archive filename for *time*."""</span>

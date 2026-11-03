@@ -42,7 +42,9 @@ only need a smaller region.
 Select levels while reading
 ---------------------------
 
-ARL levels are selected by integer level index.
+ARL levels are selected by integer level index, counted from 0 at the surface,
+so ``levels=[0, 1, 2]`` keeps the surface fields and the first two upper-air
+levels (the Dataset's ``level`` coordinate is then 1 and 2).
 
 .. ipython:: python
 
@@ -99,6 +101,22 @@ crop, but its values east of the seam come from the column after the right one.
 A box with columns at both ends of a lat-lon grid that does not span 360 degrees
 raises ``ValueError``, since no single grid holds them.
 
+On a lat-lon grid longitudes in a ``bbox`` count modulo 360: 180 and -180 are
+the same meridian, so an east edge at 180 keeps the column at 180 whether the
+grid writes it as 180 or -180, and a box may reach past 180 (HYSPLIT's
+``xtrct_grid`` agrees for ``(-190, -170)``, ``(190, 200)`` and ``(-10, 10)``, but
+not for a box that wraps past 360 or spans 360 degrees: for ``(350, 370)``,
+``(-180, 180)`` and ``(10, 370)`` it writes a longer, a half or an unreadable
+file, where arl-met returns the box's columns). A box 360 degrees wide or more
+holds every column. ``bbox=(170.0, 0.0, 190.0, 10.0)`` and ``(170.0, 0.0, -170.0, 10.0)``
+select the same columns. A box that reaches past the grid's own columns only
+crops to the ones it has (a regional grid from 160 E to 200 E holds
+``(170.0, 25.0, 190.0, 30.0)`` whole). A column or row within a millionth of a cell
+of an edge counts as on it, so ``bbox=(-112.3, 39.0, -110.0, 42.0)`` keeps the
+column at -110 whether the grid stores it as -110 or as 250, and an edge at
+41.4 keeps the row at 41.4 on a 0.1 degree grid, where 0.1 is not exact in
+binary and the stored latitude is 41.400000000000006.
+
 Keep only the levels and variables you need
 -------------------------------------------
 
@@ -120,10 +138,53 @@ the selected records are copied byte for byte and only their level numbers
 and the index records are rewritten, so it runs at close to file-copy speed
 and the output values are exactly the input's.
 
+Variable names must be spelled as the file spells them (``"TEMP"``, not
+``"temp"``); a single string such as ``variables="TEMP"`` is one name. A
+``DIF*`` name the file holds (``"DIFW"``) is accepted but selects nothing: that
+record is written with its parent (``"WWND"``) whenever the parent is selected.
+A name the file does not hold raises a ``ValueError`` that lists
+every unknown name and the variables the file has, also when the other names are
+fine, so a typo never gives a file that is missing a field. A selection that
+leaves no record in the file, such as ``variables=[]``, or a variable that is
+only on levels you left out, raises too: ``extract_subset()`` never writes an
+empty file.
+
 .. ipython:: python
    :suppress:
 
    os.chdir(docs_cwd)
+
+Which cells a crop keeps
+------------------------
+
+On a lat-lon grid a crop keeps the cells whose centers lie inside the box, edges
+included. ``xtrct_grid`` takes the column nearest each edge, so it keeps the same
+columns when the edges are on columns and can keep one more at an edge between two
+(on GDAS 1, ``bbox=(-112.6, -70, -100.4, 70)`` is 14 columns there and 12 here).
+
+On a projected grid (Lambert conformal, polar stereographic, Mercator) a crop is
+the smallest rectangle of the grid's cells that holds the box's part on the grid:
+every point inside the box that lies on the grid lies in one of the crop's cells.
+Parallels and meridians curve on these grids, so the box is not a rectangle in
+grid cells. arl-met maps the box's outline, points along its edges at most half a
+cell apart on the grid, to grid indices, and keeps the points inside the grid's
+cells, the points where the outline crosses the grid's border, and the grid's
+corners that lie inside the box. It rounds the lowest and highest index on each
+axis to the nearest cell, as Fortran's ``NINT`` rounds. Points of the box off the
+grid do not widen the crop: a box that reaches past the grid, across the meridian
+opposite the projection's center or to a pole the projection cannot map, is cropped
+to its part on the grid (the whole grid, for ``bbox=(-180.0, 0.0, 180.0, 90.0)`` on
+HRRR), and a box with no point on the grid raises ``ValueError``.
+
+This departs from ``xtrct_grid``, which maps all four corners but keeps only the
+rectangle between the south-west and north-east ones, wherever they fall. Its crop
+can leave out the box's south-east and north-west corners, so a point there, such
+as a receptor inside the box, can be off the cropped grid; and across the cut its
+corners' indices mean nothing. For a box inside the grid, arl-met's crop holds
+``xtrct_grid``'s and is often a few cells larger: for ``bbox=(-113.5, 39.5, -110.5, 42.0)`` on HRRR
+it is 99 x 106 cells where ``xtrct_grid``'s is 99 x 79, with 14 more rows to the
+south and 13 to the north. Crops of lat-lon grids (GFS, GDAS) are the same as
+``xtrct_grid``'s.
 
 What changes in the output file
 -------------------------------
@@ -160,4 +221,8 @@ Limitations
 
 If the selected domain is too small to hold the output index record,
 ``extract_subset()`` raises a ``ValueError`` explaining how many grid cells are
-required.
+required. The index record lists every level and variable, so the minimum grows
+with them. On a NAM 12 km file with all its levels and variables it is 2,012
+cells, and the 4 by 3 degree box used on this page is 33 by 26 = 858 cells
+there: pass ``levels=`` or ``variables=``, or use a larger box. On a GFS 0.25
+degree file with all levels it is 3,340 cells.

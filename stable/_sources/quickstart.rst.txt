@@ -8,7 +8,8 @@ back to disk.
 The examples run when the docs are built, on ``met.arl``, a small file of made-up
 values that the build writes with :func:`arlmet.write_dataset`: a July day over
 Utah, four time steps six hours apart, on a 61 by 51 grid of 0.1 degree cells
-and four pressure levels. Use your own file's name in its place.
+and four pressure levels. Use your own file's name in its place; if you have no
+ARL file yet, :doc:`downloading` shows how to fetch one.
 
 .. ipython:: python
    :suppress:
@@ -29,7 +30,9 @@ when you actually access them.
 
 Surface variables (e.g. ``PRSS``, ``SHGT``) have dimensions
 ``(time, lat, lon)`` and upper-air variables (e.g. ``UWND``, ``VWND``,
-``TEMP``) have dimensions ``(time, level, lat, lon)``. The ``level``
+``TEMP``) have dimensions ``(time, level, lat, lon)``. On a projected grid,
+such as HRRR's or NAM's, ``lat`` and ``lon`` are ``y`` and ``x`` (the
+``lat`` and ``lon`` coordinates are then 2D). The ``level``
 coordinate contains only the upper-air pressure levels. ``ds.isel(level=0)``
 selects the first upper-air level for upper-air variables and leaves surface
 variables unchanged.
@@ -46,7 +49,9 @@ variables unchanged.
 
 arlmet also registers itself as an xarray backend, so the same Dataset is
 available through :func:`xarray.open_dataset` with ``engine="arl"``. That route
-adds xarray's generic options, such as ``chunks=`` for dask-backed arrays:
+adds xarray's generic options, such as ``chunks=`` for dask-backed arrays.
+arl-met does not install dask: ``chunks=`` raises ``ImportError`` until you run
+``pip install dask``.
 
 .. ipython:: python
 

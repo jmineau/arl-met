@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>arlmet.Header.tobytes &#8212; arl-met 0.1.0b5</title>
+    <title>arlmet.Header.tobytes &#8212; arl-met 0.1.0b6</title>
   
   
   
@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=18948dd3"></script>
+    <script src="../_static/documentation_options.js?v=2f6c07b9"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -50,7 +50,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b5';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b6';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5" />
+  <meta name="docsearch:version" content="0.1.0b6" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -130,7 +130,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b5</p>
+    <p class="title logo__title">arl-met 0.1.0b6</p>
   
 </a></div>
     
@@ -546,6 +546,7 @@
 <li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.archives.Archive.html">arlmet.archives.Archive</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.source.html">arlmet.archives.Archive.source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.start_date.html">arlmet.archives.Archive.start_date</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.step.html">arlmet.archives.Archive.step</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.fetch.html">arlmet.archives.Archive.fetch</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.paths_for_range.html">arlmet.archives.Archive.paths_for_range</a></li>
 <li class="toctree-l2"><a class="reference internal" href="arlmet.archives.Archive.sync.html">arlmet.archives.Archive.sync</a></li>
@@ -633,6 +634,8 @@
 <dt class="sig sig-object py" id="arlmet.Header.tobytes">
 <span class="sig-prename descclassname"><span class="pre">Header.</span></span><span class="sig-name descname"><span class="pre">tobytes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/header.html#Header.tobytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.Header.tobytes" title="Link to this definition">#</a></dt>
 <dd><p>Serialize the header to its fixed-width ASCII representation.</p>
+<p>A forecast hour above 99 is written as 99, the most the two-character
+label holds (HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">pakrec</span></code> writes <code class="docutils literal notranslate"><span class="pre">MIN(hour,</span> <span class="pre">99)</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#bytes" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a></span></p>

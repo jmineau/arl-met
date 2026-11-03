@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.file &#8212; arl-met 0.1.0b5</title>
+    <title>arlmet.file &#8212; arl-met 0.1.0b6</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=18948dd3"></script>
+    <script src="../../_static/documentation_options.js?v=2f6c07b9"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b5';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b6';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5" />
+  <meta name="docsearch:version" content="0.1.0b6" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -127,7 +127,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b5</p>
+    <p class="title logo__title">arl-met 0.1.0b6</p>
   
 </a></div>
     
@@ -1270,7 +1270,11 @@
 <span class="sd">        variables : str or iterable of str</span>
 <span class="sd">            One or more ARL field names (e.g. ``"TEMP"``, ``"UWND"``), or</span>
 <span class="sd">            ``"pressure"`` for the virtual pressure variable. A name must not</span>
-<span class="sd">            collide with an existing column of ``points``.</span>
+<span class="sd">            collide with an existing column of ``points``. On a WRF file with</span>
+<span class="sd">            mass-coupled winds (``MUU0``, ``MUV0``) ``UWND``, ``VWND`` and ``WWND``</span>
+<span class="sd">            are decoupled as HYSPLIT does (``UWND * MSFU / MUU0``, ...), and on a</span>
+<span class="sd">            file with ``THET`` but no ``TEMP``, ``TEMP`` is ``THET * (PRES / 1000)</span>
+<span class="sd">            ** 0.286``.</span>
 <span class="sd">        time : pandas.Timestamp or str, optional</span>
 <span class="sd">            One valid time for every point, used when ``points`` has no</span>
 <span class="sd">            ``time`` column. Passing both raises ``ValueError``. When neither</span>
@@ -1291,10 +1295,9 @@
 <span class="sd">              HYSPLIT's ``prfsig`` and ``prfecm`` do; pressure files use</span>
 <span class="sd">              ``HGTS - SHGT`` from the ground up; terrain-following files use</span>
 <span class="sd">              the stored levels.</span>
-<span class="sd">            - ``"msl"``: meters above mean sea level. Sigma/hybrid/WRF files</span>
-<span class="sd">              add ``SHGT`` to the hypsometric AGL height; pressure files use</span>
-<span class="sd">              ``HGTS``; terrain-following files add ``SHGT`` to the stored</span>
-<span class="sd">              levels.</span>
+<span class="sd">            - ``"msl"``: meters above mean sea level, taken as the height</span>
+<span class="sd">              above the ground at the point (less ``SHGT`` there), then as</span>
+<span class="sd">              ``"agl"``. Every file needs ``SHGT``.</span>
 
 <span class="sd">            Each vertical coordinate system has exactly one method, as in</span>
 <span class="sd">            HYSPLIT; there is no fallback between them. On sigma, hybrid and</span>
@@ -1302,10 +1305,23 @@
 <span class="sd">            ground: a point between it and the first level is interpolated</span>
 <span class="sd">            from the ground values (``PRSS`` for ``PRES``, ``T02M`` for</span>
 <span class="sd">            ``TEMP``, ``U10M``/``V10M`` for winds), and pressure is</span>
-<span class="sd">            interpolated as ``ln p``, as HYSPLIT does. The *Vertical</span>
-<span class="sd">            Coordinates* guide has the details.</span>
+<span class="sd">            interpolated as ``ln p``, as HYSPLIT does. Where the first level</span>
+<span class="sd">            is below the ground (its ``PRES`` above ``PRSS``) the ground values</span>
+<span class="sd">            are passed over, as in HYSPLIT. The *Vertical Coordinates* guide</span>
+<span class="sd">            has the details.</span>
 <span class="sd">        method : {"linear", "nearest"}, default "linear"</span>
-<span class="sd">            Horizontal interpolation: bilinear or nearest grid point.</span>
+<span class="sd">            Horizontal interpolation: bilinear or nearest grid point. At</span>
+<span class="sd">            heights (``"agl"``, ``"msl"``), as in HYSPLIT, the column at each</span>
+<span class="sd">            of the four grid points around a point is interpolated to the</span>
+<span class="sd">            point's ``z`` first, with that grid point's own ground and level</span>
+<span class="sd">            heights, and the four values are then blended; a grid point whose</span>
+<span class="sd">            column ends below ``z`` does not count, and the others are</span>
+<span class="sd">            reweighted. At pressures and native levels each level is blended</span>
+<span class="sd">            first, as before. On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are</span>
+<span class="sd">            read where WRF's staggered grid holds them, half a cell east and</span>
+<span class="sd">            north of each point, as HYSPLIT reads them; "nearest" gives the</span>
+<span class="sd">            winds at the nearest cell's center. The *Sampling* guide has the</span>
+<span class="sd">            details.</span>
 <span class="sd">        earth_relative : bool, default False</span>
 <span class="sd">            Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``)</span>
 <span class="sd">            from the grid axes to east/north. Winds in ARL files on projected</span>
@@ -1372,6 +1388,8 @@
 <span class="sd">            Variable names to omit.</span>
 <span class="sd">        bbox : tuple[float, float, float, float], optional</span>
 <span class="sd">            Geographic bounding box ``(west, south, east, north)`` in degrees.</span>
+<span class="sd">            On a projected grid the crop is the smallest rectangle of cells</span>
+<span class="sd">            that holds the box's part on the grid (:meth:`arlmet.Grid.window_from_bbox`).</span>
 <span class="sd">        levels : iterable of int, optional</span>
 <span class="sd">            ARL level indices to keep.</span>
 
@@ -1398,7 +1416,7 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">levels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">variables</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">variables</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Write a spatial/vertical subset of this file to a new ARL file.</span>
@@ -1413,11 +1431,14 @@
 <span class="sd">            file.</span>
 <span class="sd">        bbox : tuple[float, float, float, float], optional</span>
 <span class="sd">            Geographic bounding box ``(west, south, east, north)`` in degrees.</span>
+<span class="sd">            On a projected grid the crop is the smallest rectangle of cells</span>
+<span class="sd">            that holds the box's part on the grid (:meth:`arlmet.Grid.window_from_bbox`).</span>
 <span class="sd">        levels : iterable of int, optional</span>
 <span class="sd">            ARL level indices to keep. Output levels are compacted and</span>
 <span class="sd">            renumbered from zero while preserving the selected level heights.</span>
-<span class="sd">        variables : iterable of str, optional</span>
-<span class="sd">            Variable names to keep. All variables are included by default.</span>
+<span class="sd">        variables : str or iterable of str, optional</span>
+<span class="sd">            Variable names to keep, as the file spells them; a single string</span>
+<span class="sd">            is one name. All variables are included by default.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>

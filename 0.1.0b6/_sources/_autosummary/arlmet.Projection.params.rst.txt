@@ -1,0 +1,6 @@
+arlmet.Projection.params
+========================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: Projection.params

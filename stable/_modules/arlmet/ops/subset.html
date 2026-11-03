@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.ops.subset &#8212; arl-met 0.1.0b5</title>
+    <title>arlmet.ops.subset &#8212; arl-met 0.1.0b6</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=18948dd3"></script>
+    <script src="../../../_static/documentation_options.js?v=2f6c07b9"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b5';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b6';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5" />
+  <meta name="docsearch:version" content="0.1.0b6" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -127,7 +127,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b5</p>
+    <p class="title logo__title">arl-met 0.1.0b6</p>
   
 </a></div>
     
@@ -486,6 +486,31 @@
     <span class="p">]</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_variables</span><span class="p">(</span><span class="n">variables</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">recordsets</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RecordSet</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Fail when a requested variable is not in the file, or none was requested.</span>
+
+<span class="sd">    A name the file does not hold would otherwise be dropped without a word,</span>
+<span class="sd">    and a selection of only such names would write an empty file.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">variables</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"variables must include at least one variable name."</span><span class="p">)</span>
+
+    <span class="c1"># A DIF record hangs off the record it corrects and is not in ``records``.</span>
+    <span class="n">in_file</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">variable</span>
+        <span class="k">for</span> <span class="n">recordset</span> <span class="ow">in</span> <span class="n">recordsets</span>
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">recordset</span><span class="o">.</span><span class="n">records</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="o">*</span><span class="n">record</span><span class="o">.</span><span class="n">diffs</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="n">unknown</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">variables</span> <span class="o">-</span> <span class="n">in_file</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">unknown</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"variables not in the file: </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">unknown</span><span class="p">)</span><span class="si">}</span><span class="s2">. "</span>
+            <span class="sa">f</span><span class="s2">"The file holds: </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">in_file</span><span class="p">))</span><span class="si">}</span><span class="s2">."</span>
+        <span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_source_index_entries</span><span class="p">(</span>
     <span class="n">selected_records</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">],</span> <span class="n">level_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">]]:</span>
@@ -774,7 +799,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">levels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">variables</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">variables</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Extract a spatial/vertical subset from an ARL file into a new ARL file.</span>
@@ -787,11 +812,17 @@
 <span class="sd">        Output ARL file. Overwrites any existing file. Must not be ``path``.</span>
 <span class="sd">    bbox : tuple[float, float, float, float], optional</span>
 <span class="sd">        Geographic bounding box ``(west, south, east, north)`` in degrees.</span>
+<span class="sd">        On a projected grid the crop is the smallest rectangle of cells</span>
+<span class="sd">        that holds the box's part on the grid (:meth:`arlmet.Grid.window_from_bbox`).</span>
 <span class="sd">    levels : iterable of int, optional</span>
 <span class="sd">        ARL level indices to keep. Output levels are compacted and renumbered</span>
 <span class="sd">        from zero while preserving the selected level heights.</span>
-<span class="sd">    variables : iterable of str, optional</span>
-<span class="sd">        Variable names to keep. All variables are included by default.</span>
+<span class="sd">    variables : str or iterable of str, optional</span>
+<span class="sd">        Variable names to keep, as the file spells them (``"TEMP"``, not</span>
+<span class="sd">        ``"temp"``); a single string is one name. A ``DIF*`` name the file</span>
+<span class="sd">        holds is accepted, but naming it selects nothing: a ``DIF*`` record is</span>
+<span class="sd">        written with its parent record, when the parent is selected. All</span>
+<span class="sd">        variables are included by default.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -803,9 +834,13 @@
 <span class="sd">    ------</span>
 <span class="sd">    ValueError</span>
 <span class="sd">        If ``dest`` is the same file as ``path``, the cropped grid is too</span>
-<span class="sd">        small to hold the ARL index record, or ``levels`` leaves out level 0</span>
+<span class="sd">        small to hold the ARL index record, ``levels`` leaves out level 0</span>
 <span class="sd">        and so moves a record with ``DIF*`` records to the surface, where</span>
-<span class="sd">        HYSPLIT's name table would not pair them with it.</span>
+<span class="sd">        HYSPLIT's name table would not pair them with it, ``variables`` is</span>
+<span class="sd">        empty or names a variable the file does not hold (every unknown name</span>
+<span class="sd">        is listed, also when others are known), or the selected levels and</span>
+<span class="sd">        variables leave no record in any time step, so there is nothing to</span>
+<span class="sd">        write.</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
@@ -832,6 +867,8 @@
 <span class="sd">    &gt;&gt;&gt; ds = arlmet.open_dataset(out)</span>
 <span class="sd">    """</span>
     <span class="n">reject_same_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="n">variables</span><span class="p">]</span>  <span class="c1"># one name, not its letters</span>
     <span class="n">variable_names</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">variables</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">set</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
@@ -848,9 +885,11 @@
             <span class="n">levels</span><span class="o">=</span><span class="n">src</span><span class="o">.</span><span class="n">vertical_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">selected_levels</span><span class="p">)]</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
             <span class="n">offset</span><span class="o">=</span><span class="n">src</span><span class="o">.</span><span class="n">vertical_axis</span><span class="o">.</span><span class="n">offset</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="n">source_recordsets</span> <span class="o">=</span> <span class="p">[</span><span class="n">src</span><span class="p">[</span><span class="n">time</span><span class="p">]</span> <span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">src</span><span class="o">.</span><span class="n">times</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">variable_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">validate_variables</span><span class="p">(</span><span class="n">variable_names</span><span class="p">,</span> <span class="n">source_recordsets</span><span class="p">)</span>
         <span class="n">selected_recordsets</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">src</span><span class="o">.</span><span class="n">times</span><span class="p">:</span>
-            <span class="n">src_recordset</span> <span class="o">=</span> <span class="n">src</span><span class="p">[</span><span class="n">time</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">src_recordset</span> <span class="ow">in</span> <span class="n">source_recordsets</span><span class="p">:</span>
             <span class="n">selected_records</span> <span class="o">=</span> <span class="n">select_records</span><span class="p">(</span>
                 <span class="n">src_recordset</span><span class="o">.</span><span class="n">records</span><span class="p">,</span>
                 <span class="n">levels</span><span class="o">=</span><span class="n">selected_level_set</span><span class="p">,</span>
@@ -858,6 +897,11 @@
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">selected_records</span><span class="p">:</span>
                 <span class="n">selected_recordsets</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">src_recordset</span><span class="p">,</span> <span class="n">selected_records</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">selected_recordsets</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"The selected levels and variables leave no record in the file, "</span>
+                <span class="s2">"so there is nothing to write."</span>
+            <span class="p">)</span>
 
         <span class="n">validate_subset_difs</span><span class="p">(</span><span class="n">selected_recordsets</span><span class="p">,</span> <span class="n">level_map</span><span class="o">=</span><span class="n">level_map</span><span class="p">)</span>
         <span class="n">validate_subset_record_length</span><span class="p">(</span>

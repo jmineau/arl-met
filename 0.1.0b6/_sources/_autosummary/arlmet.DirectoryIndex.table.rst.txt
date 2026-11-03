@@ -1,0 +1,6 @@
+arlmet.DirectoryIndex.table
+===========================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: DirectoryIndex.table

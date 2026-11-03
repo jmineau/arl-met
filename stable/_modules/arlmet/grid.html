@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.grid &#8212; arl-met 0.1.0b5</title>
+    <title>arlmet.grid &#8212; arl-met 0.1.0b6</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=18948dd3"></script>
+    <script src="../../_static/documentation_options.js?v=2f6c07b9"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b5';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b6';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b5" />
+  <meta name="docsearch:version" content="0.1.0b6" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -127,7 +127,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b5</p>
+    <p class="title logo__title">arl-met 0.1.0b6</p>
   
 </a></div>
     
@@ -436,6 +436,19 @@
 
 <span class="c1"># One coordinate variable: ``(dims, values)``, as accepted by ``xr.Dataset``.</span>
 <span class="n">_Coord</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span>
+
+
+<span class="c1">#: The most points a projected bbox's edge is sampled at (``Grid.window_from_bbox``).</span>
+<span class="c1">#: Half a cell apart, a 360-degree edge on HRRR's 3 km grid needs about 26,000.</span>
+<span class="n">_OUTLINE_MAX_POINTS</span> <span class="o">=</span> <span class="mi">100_000</span>
+
+<span class="c1">#: How far, in cells, a lat/lon column or row may lie from a bbox's edge and</span>
+<span class="c1">#: still count as on it. The modulo-360 test of longitudes rounds at the size of a</span>
+<span class="c1">#: number up to 360, about 6e-14 degrees, and a latitude ``lat_0 + j * dlat`` at</span>
+<span class="c1">#: the size of the product (~1e-14 degrees when ``dlat`` is not exact in binary,</span>
+<span class="c1">#: as 0.1 is not); 1e-6 cells (the same as ``ops/sample.py``'s ``_EDGE_TOLERANCE``)</span>
+<span class="c1">#: is far above both and a few centimeters on a 0.25-degree grid.</span>
+<span class="n">_EDGE_TOLERANCE</span> <span class="o">=</span> <span class="mf">1e-6</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">wrap_lons</span><span class="p">(</span><span class="n">lons</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
@@ -1108,13 +1121,55 @@
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Resolve a geographic bounding box to grid indices.</span>
 
+<span class="sd">        On a lat/lon grid the window holds the cells whose centers lie inside</span>
+<span class="sd">        the box, edges included. A column or row within a millionth of a cell of</span>
+<span class="sd">        an edge counts as on it, so rounding in the arithmetic (an east edge of</span>
+<span class="sd">        ``-110`` against a column stored as 250 degrees, a north edge of</span>
+<span class="sd">        ``41.4`` against a row stored as 41.400000000000006) never decides a</span>
+<span class="sd">        column or row. HYSPLIT's ``xtrct_grid`` takes the column nearest each</span>
+<span class="sd">        edge, so it agrees for edges on columns and can keep one more column for</span>
+<span class="sd">        edges between them.</span>
+
+<span class="sd">        On a projected grid the window is the smallest rectangle of cells</span>
+<span class="sd">        that holds every point of the box that lies on the grid (in one of its</span>
+<span class="sd">        cells). Its edges come from the box's outline, sampled at most half a</span>
+<span class="sd">        cell apart on the grid, where it lies on the grid or crosses the grid's</span>
+<span class="sd">        border, and from the grid's own corners that lie inside the box; the</span>
+<span class="sd">        lowest and highest index on each axis is rounded to the nearest cell,</span>
+<span class="sd">        like Fortran ``NINT``. Parallels and meridians curve on these grids, so</span>
+<span class="sd">        an extreme is often the box's south-east or north-west corner, or a</span>
+<span class="sd">        point partway along an edge. Points off the grid do not widen the</span>
+<span class="sd">        window, so a box that reaches past the grid, across the meridian</span>
+<span class="sd">        opposite the projection's center or to a pole the projection cannot</span>
+<span class="sd">        map, gives the cells of its part on the grid (all of them, for a box</span>
+<span class="sd">        that holds the whole grid). ``xtrct_grid`` uses only the south-west and</span>
+<span class="sd">        north-east corners, on or off the grid, so its crop can leave out part</span>
+<span class="sd">        of the box; for a box inside the grid this window holds that crop and</span>
+<span class="sd">        can be a few cells larger. Longitudes count modulo 360 (``(440, 0, 450,</span>
+<span class="sd">        10)`` is ``(80, 0, 90, 10)``), and a box 360 degrees wide or more holds</span>
+<span class="sd">        every longitude.</span>
+
+<span class="sd">        Raises ``ValueError`` when no point of the box lies on the grid.</span>
+
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        bbox : tuple[float, float, float, float]</span>
 <span class="sd">            Bounding box as ``(west, south, east, north)`` in degrees.</span>
-<span class="sd">            If ``west &gt; east``, the box is assumed to cross the dateline.</span>
+<span class="sd">            Longitudes count modulo 360, so 180 and -180 are the same meridian</span>
+<span class="sd">            and a box may reach past 180. On a lat/lon grid ``west &gt; east``</span>
+<span class="sd">            crosses the dateline, so ``(170, 190)`` and ``(170, -170)`` select</span>
+<span class="sd">            the same columns; on a projected grid ``(170, -170)`` raises</span>
+<span class="sd">            ``ValueError`` and ``(170, 190)`` is a window where it reaches the</span>
+<span class="sd">            grid (Alaska) and raises where it does not (HRRR). On a lat/lon</span>
+<span class="sd">            grid an infinite width (``west=-inf`` or ``east=inf``) holds every</span>
+<span class="sd">            longitude; a NaN longitude raises ``ValueError``. Edges may be any</span>
+<span class="sd">            real numbers (NumPy scalars, ``Decimal``): they are converted to</span>
+<span class="sd">            ``float`` first.</span>
 <span class="sd">        """</span>
-        <span class="n">west</span><span class="p">,</span> <span class="n">south</span><span class="p">,</span> <span class="n">east</span><span class="p">,</span> <span class="n">north</span> <span class="o">=</span> <span class="n">bbox</span>
+        <span class="c1"># Python floats from here on: a float32 edge would keep ``width`` at float32,</span>
+        <span class="c1"># whose rounding (~1e-6 degrees) swamps the tolerance below, and a Decimal</span>
+        <span class="c1"># cannot be subtracted from a float.</span>
+        <span class="n">west</span><span class="p">,</span> <span class="n">south</span><span class="p">,</span> <span class="n">east</span><span class="p">,</span> <span class="n">north</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">bbox</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">south</span> <span class="o">&gt;</span> <span class="n">north</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"bbox south must be less than or equal to north."</span><span class="p">)</span>
 
@@ -1124,43 +1179,20 @@
                     <span class="s2">"Projected-grid bboxes must not cross the dateline (west &lt;= east)."</span>
                 <span class="p">)</span>
 
-            <span class="n">x_sw</span><span class="p">,</span> <span class="n">y_sw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fractional_indices</span><span class="p">(</span><span class="n">west</span><span class="p">,</span> <span class="n">south</span><span class="p">)</span>
-            <span class="n">x_ne</span><span class="p">,</span> <span class="n">y_ne</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fractional_indices</span><span class="p">(</span><span class="n">east</span><span class="p">,</span> <span class="n">north</span><span class="p">)</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bbox_points_on_grid</span><span class="p">(</span><span class="n">west</span><span class="p">,</span> <span class="n">south</span><span class="p">,</span> <span class="n">east</span><span class="p">,</span> <span class="n">north</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"bbox does not intersect the grid."</span><span class="p">)</span>
 
             <span class="k">def</span><span class="w"> </span><span class="nf">nint</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">                </span><span class="sd">"""Round like Fortran NINT for HYSPLIT-compatible window bounds."""</span>
-                <span class="k">if</span> <span class="n">value</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">value</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">))</span>
-                <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">value</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">))</span>
+<span class="w">                </span><span class="sd">"""Round like Fortran NINT (the 1-based values here are &gt;= 0.5)."""</span>
+                <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">value</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">))</span>
 
-            <span class="n">x1</span> <span class="o">=</span> <span class="p">(</span><span class="n">nint</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x_sw</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">nint</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x_ne</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">))</span>
-            <span class="n">y1</span> <span class="o">=</span> <span class="p">(</span><span class="n">nint</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">y_sw</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">nint</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">y_ne</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">))</span>
-            <span class="n">xmin_1based</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
-            <span class="n">xmax_1based</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
-            <span class="n">ymin_1based</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">y1</span><span class="p">)</span>
-            <span class="n">ymax_1based</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">y1</span><span class="p">)</span>
-
-            <span class="k">if</span> <span class="p">(</span>
-                <span class="n">xmax_1based</span> <span class="o">&lt;</span> <span class="mi">1</span>
-                <span class="ow">or</span> <span class="n">xmin_1based</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span>
-                <span class="ow">or</span> <span class="n">ymax_1based</span> <span class="o">&lt;</span> <span class="mi">1</span>
-                <span class="ow">or</span> <span class="n">ymin_1based</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ny</span>
-            <span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"bbox does not intersect the grid."</span><span class="p">)</span>
-
-            <span class="n">x_start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">xmin_1based</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="n">x_stop</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span> <span class="n">xmax_1based</span><span class="p">)</span>
-            <span class="n">y_start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ymin_1based</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="n">y_stop</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">ymax_1based</span><span class="p">)</span>
-
-            <span class="k">if</span> <span class="n">x_stop</span> <span class="o">&lt;=</span> <span class="n">x_start</span> <span class="ow">or</span> <span class="n">y_stop</span> <span class="o">&lt;=</span> <span class="n">y_start</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"bbox does not intersect the grid."</span><span class="p">)</span>
-
+            <span class="c1"># Every point lies in [-0.5, n - 0.5], so the window is on the grid.</span>
             <span class="k">return</span> <span class="n">GridWindow</span><span class="p">(</span>
-                <span class="n">x_start</span><span class="o">=</span><span class="n">x_start</span><span class="p">,</span>
-                <span class="n">x_stop</span><span class="o">=</span><span class="n">x_stop</span><span class="p">,</span>
-                <span class="n">y_start</span><span class="o">=</span><span class="n">y_start</span><span class="p">,</span>
-                <span class="n">y_stop</span><span class="o">=</span><span class="n">y_stop</span><span class="p">,</span>
+                <span class="n">x_start</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nint</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="n">x_stop</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span> <span class="n">nint</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)),</span>
+                <span class="n">y_start</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nint</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="n">y_stop</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">nint</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)),</span>
             <span class="p">)</span>
 
         <span class="c1"># Lat/lon grids only reach here, so lon/lat are 1-D.</span>
@@ -1168,15 +1200,30 @@
         <span class="n">lons</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">"lon"</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">lats</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">"lat"</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
 
-        <span class="c1"># Normalize to [-180, 180] for comparison with bbox (which is always in</span>
-        <span class="c1"># EPSG:4326 degrees). Grid lons may be in [0, 360] for global files.</span>
-        <span class="n">lons_norm</span> <span class="o">=</span> <span class="n">wrap_lons</span><span class="p">(</span><span class="n">lons</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">west</span> <span class="o">&lt;=</span> <span class="n">east</span><span class="p">:</span>
-            <span class="n">lon_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">lons_norm</span> <span class="o">&gt;=</span> <span class="n">west</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">lons_norm</span> <span class="o">&lt;=</span> <span class="n">east</span><span class="p">)</span>
+        <span class="c1"># A column is inside when it lies between the box's west and east edges,</span>
+        <span class="c1"># measured east of the west edge. Longitudes count modulo 360, so 180 and</span>
+        <span class="c1"># -180 are one meridian (an edge there keeps the column, whichever way the</span>
+        <span class="c1"># grid writes it) and a box may reach past 180, as HYSPLIT's xtrct_grid</span>
+        <span class="c1"># allows. ``west &gt; east`` crosses the dateline. The modulo rounds at the</span>
+        <span class="c1"># size of a number up to 360 and the width at the size of the box, so a</span>
+        <span class="c1"># column exactly on an edge can miss it by ~1e-14 degrees: a column within</span>
+        <span class="c1"># _EDGE_TOLERANCE cells of an edge counts as on it. A row is the same:</span>
+        <span class="c1"># ``lat_0 + j * dlat`` rounds in the product, so a row at a latitude as</span>
+        <span class="c1"># typed (41.4) can lie a hair beyond it.</span>
+        <span class="n">tol</span> <span class="o">=</span> <span class="n">_EDGE_TOLERANCE</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">tangent_lon</span><span class="p">)</span>
+        <span class="n">lat_tol</span> <span class="o">=</span> <span class="n">_EDGE_TOLERANCE</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">tangent_lat</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">east</span> <span class="o">-</span> <span class="n">west</span> <span class="o">&gt;=</span> <span class="mf">360.0</span><span class="p">:</span>  <span class="c1"># every longitude, whatever the edges (inf included)</span>
+            <span class="n">lon_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">lons</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">west</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">east</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"bbox </span><span class="si">{</span><span class="n">bbox</span><span class="si">}</span><span class="s2">: longitudes must not be NaN, and west must not be "</span>
+                <span class="s2">"+inf nor east -inf."</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">lon_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">lons_norm</span> <span class="o">&gt;=</span> <span class="n">west</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">lons_norm</span> <span class="o">&lt;=</span> <span class="n">east</span><span class="p">)</span>
-        <span class="n">lat_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">lats</span> <span class="o">&gt;=</span> <span class="n">south</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">lats</span> <span class="o">&lt;=</span> <span class="n">north</span><span class="p">)</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="n">east</span> <span class="o">-</span> <span class="n">west</span> <span class="k">if</span> <span class="n">west</span> <span class="o">&lt;=</span> <span class="n">east</span> <span class="k">else</span> <span class="p">(</span><span class="n">east</span> <span class="o">-</span> <span class="n">west</span><span class="p">)</span> <span class="o">%</span> <span class="mf">360.0</span>
+            <span class="n">east_of_west</span> <span class="o">=</span> <span class="p">(</span><span class="n">lons</span> <span class="o">-</span> <span class="n">west</span><span class="p">)</span> <span class="o">%</span> <span class="mf">360.0</span>
+            <span class="n">lon_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">east_of_west</span> <span class="o">&lt;=</span> <span class="n">width</span> <span class="o">+</span> <span class="n">tol</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">east_of_west</span> <span class="o">&gt;=</span> <span class="mf">360.0</span> <span class="o">-</span> <span class="n">tol</span><span class="p">)</span>
+        <span class="n">lat_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">lats</span> <span class="o">&gt;=</span> <span class="n">south</span> <span class="o">-</span> <span class="n">lat_tol</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">lats</span> <span class="o">&lt;=</span> <span class="n">north</span> <span class="o">+</span> <span class="n">lat_tol</span><span class="p">)</span>
 
         <span class="n">x_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">lon_mask</span><span class="p">)</span>
         <span class="n">y_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">lat_mask</span><span class="p">)</span>
@@ -1207,6 +1254,127 @@
             <span class="n">y_stop</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">y_idx</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_lonlat_at</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">y</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Longitude and latitude of fractional grid indices (projected grids)."""</span>
+        <span class="n">transformer</span> <span class="o">=</span> <span class="n">pyproj</span><span class="o">.</span><span class="n">Transformer</span><span class="o">.</span><span class="n">from_crs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crs</span><span class="p">,</span> <span class="s2">"EPSG:4326"</span><span class="p">,</span> <span class="n">always_xy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">grid_size</span> <span class="o">*</span> <span class="mf">1000.0</span>
+        <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span> <span class="o">=</span> <span class="n">transformer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">step</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">*</span> <span class="n">step</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_outline_spacing</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Degrees of longitude and of latitude that move a point at most half a cell.</span>
+
+<span class="sd">        The rates (cells per degree) are measured at the grid's border nodes:</span>
+<span class="sd">        on a Lambert, polar stereographic or Mercator grid the scale grows</span>
+<span class="sd">        away from the standard parallel or the pole, so its largest value on</span>
+<span class="sd">        the grid is on the border.</span>
+<span class="sd">        """</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lonlat_at</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nx</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ny</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">j</span><span class="p">,</span> <span class="n">j</span><span class="p">]),</span>
+        <span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="mf">1e-3</span>
+        <span class="n">lat_lo</span><span class="p">,</span> <span class="n">lat_hi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">lat</span> <span class="o">-</span> <span class="n">d</span><span class="p">,</span> <span class="o">-</span><span class="mf">90.0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">lat</span> <span class="o">+</span> <span class="n">d</span><span class="p">,</span> <span class="mf">90.0</span><span class="p">)</span>
+
+        <span class="n">Arr</span> <span class="o">=</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">half_cell</span><span class="p">(</span><span class="n">lon0</span><span class="p">:</span> <span class="n">Arr</span><span class="p">,</span> <span class="n">lat0</span><span class="p">:</span> <span class="n">Arr</span><span class="p">,</span> <span class="n">lon1</span><span class="p">:</span> <span class="n">Arr</span><span class="p">,</span> <span class="n">lat1</span><span class="p">:</span> <span class="n">Arr</span><span class="p">,</span> <span class="n">span</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">"""Degrees that move at most half a cell, from the largest rate."""</span>
+            <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fractional_indices</span><span class="p">(</span><span class="n">lon0</span><span class="p">,</span> <span class="n">lat0</span><span class="p">)</span>
+            <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fractional_indices</span><span class="p">(</span><span class="n">lon1</span><span class="p">,</span> <span class="n">lat1</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+                <span class="n">rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">x1</span> <span class="o">-</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y1</span> <span class="o">-</span> <span class="n">y0</span><span class="p">)</span> <span class="o">/</span> <span class="n">span</span>
+            <span class="n">rate</span> <span class="o">=</span> <span class="n">rate</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">rate</span><span class="p">)]</span>
+            <span class="k">return</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">rate</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="k">if</span> <span class="n">rate</span><span class="o">.</span><span class="n">size</span> <span class="ow">and</span> <span class="n">rate</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.1</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">half_cell</span><span class="p">(</span><span class="n">lon</span> <span class="o">-</span> <span class="n">d</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span> <span class="o">+</span> <span class="n">d</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">d</span><span class="p">),</span>
+            <span class="n">half_cell</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="n">lat_lo</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat_hi</span><span class="p">,</span> <span class="n">lat_hi</span> <span class="o">-</span> <span class="n">lat_lo</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_bbox_points_on_grid</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">west</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">south</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">east</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">north</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Fractional indices that bound the part of a lon/lat box on a projected grid.</span>
+
+<span class="sd">        The grid's cells span ``[-0.5, n - 0.5]`` on each axis. Returned: the</span>
+<span class="sd">        points of the box's outline inside the cells, where each outline</span>
+<span class="sd">        segment enters and leaves them, and the cells' corners that lie inside</span>
+<span class="sd">        the box; empty when no point of the box is on the grid. The outline is</span>
+<span class="sd">        sampled at ``_outline_spacing`` (at most ``_OUTLINE_MAX_POINTS`` per</span>
+<span class="sd">        edge). A segment longer than two cells jumps across the projection's</span>
+<span class="sd">        cut or past a point it cannot map, so it is not followed across the</span>
+<span class="sd">        grid; its ends still count.</span>
+
+<span class="sd">        Longitudes count modulo 360: the box moves so that ``west`` lies in</span>
+<span class="sd">        [-180, 180) and ``east`` is at most 360 degrees east of it (a wider box</span>
+<span class="sd">        holds every longitude). PROJ returns infinity for a longitude beyond</span>
+<span class="sd">        10 radians (573 degrees), so an outline left as given would lose the</span>
+<span class="sd">        part of the box past that.</span>
+<span class="sd">        """</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">east</span> <span class="o">-</span> <span class="n">west</span><span class="p">,</span> <span class="mf">360.0</span><span class="p">)</span>
+        <span class="n">west</span> <span class="o">=</span> <span class="p">(</span><span class="n">west</span> <span class="o">+</span> <span class="mf">180.0</span><span class="p">)</span> <span class="o">%</span> <span class="mf">360.0</span> <span class="o">-</span> <span class="mf">180.0</span>
+        <span class="n">east</span> <span class="o">=</span> <span class="n">west</span> <span class="o">+</span> <span class="n">width</span>
+        <span class="n">dlon</span><span class="p">,</span> <span class="n">dlat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outline_spacing</span>
+        <span class="n">edges</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">west</span><span class="p">,</span> <span class="n">south</span><span class="p">,</span> <span class="n">east</span><span class="p">,</span> <span class="n">south</span><span class="p">,</span> <span class="n">dlon</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">east</span><span class="p">,</span> <span class="n">south</span><span class="p">,</span> <span class="n">east</span><span class="p">,</span> <span class="n">north</span><span class="p">,</span> <span class="n">dlat</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">east</span><span class="p">,</span> <span class="n">north</span><span class="p">,</span> <span class="n">west</span><span class="p">,</span> <span class="n">north</span><span class="p">,</span> <span class="n">dlon</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">west</span><span class="p">,</span> <span class="n">north</span><span class="p">,</span> <span class="n">west</span><span class="p">,</span> <span class="n">south</span><span class="p">,</span> <span class="n">dlat</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">lons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">lats</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">lon0</span><span class="p">,</span> <span class="n">lat0</span><span class="p">,</span> <span class="n">lon1</span><span class="p">,</span> <span class="n">lat1</span><span class="p">,</span> <span class="n">spacing</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">:</span>
+            <span class="n">span</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">lon1</span> <span class="o">-</span> <span class="n">lon0</span><span class="p">),</span> <span class="nb">abs</span><span class="p">(</span><span class="n">lat1</span> <span class="o">-</span> <span class="n">lat0</span><span class="p">))</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_OUTLINE_MAX_POINTS</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">span</span> <span class="o">/</span> <span class="n">spacing</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">lons</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">lon0</span><span class="p">,</span> <span class="n">lon1</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+            <span class="n">lats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">lat0</span><span class="p">,</span> <span class="n">lat1</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fractional_indices</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">lons</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">lats</span><span class="p">))</span>
+
+        <span class="n">lo</span><span class="p">,</span> <span class="n">x_hi</span><span class="p">,</span> <span class="n">y_hi</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nx</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ny</span> <span class="o">-</span> <span class="mf">0.5</span>
+        <span class="n">finite</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">on</span> <span class="o">=</span> <span class="n">finite</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="n">lo</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="n">x_hi</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">y</span> <span class="o">&gt;=</span> <span class="n">lo</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">y</span> <span class="o">&lt;=</span> <span class="n">y_hi</span><span class="p">)</span>
+        <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="n">on</span><span class="p">]],</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="n">on</span><span class="p">]]</span>
+
+        <span class="c1"># Where each segment enters and leaves the cells (Liang-Barsky clipping).</span>
+        <span class="c1"># Points the projection cannot map are dropped first (inf - inf).</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">finite</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">finite</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">y</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="n">finite</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">finite</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">2.0</span><span class="p">)</span>
+        <span class="n">t0</span><span class="p">,</span> <span class="n">t1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dx</span><span class="o">.</span><span class="n">size</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">dx</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">q</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="p">(</span><span class="o">-</span><span class="n">dx</span><span class="p">,</span> <span class="n">x0</span> <span class="o">-</span> <span class="n">lo</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">x_hi</span> <span class="o">-</span> <span class="n">x0</span><span class="p">),</span>
+                <span class="p">(</span><span class="o">-</span><span class="n">dy</span><span class="p">,</span> <span class="n">y0</span> <span class="o">-</span> <span class="n">lo</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">dy</span><span class="p">,</span> <span class="n">y_hi</span> <span class="o">-</span> <span class="n">y0</span><span class="p">),</span>
+            <span class="p">):</span>
+                <span class="n">keep</span> <span class="o">&amp;=</span> <span class="p">(</span><span class="n">p</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">q</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">q</span> <span class="o">/</span> <span class="n">p</span>
+                <span class="n">t0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">p</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">t0</span><span class="p">,</span> <span class="n">r</span><span class="p">),</span> <span class="n">t0</span><span class="p">)</span>
+                <span class="n">t1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">p</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">t1</span><span class="p">,</span> <span class="n">r</span><span class="p">),</span> <span class="n">t1</span><span class="p">)</span>
+        <span class="n">keep</span> <span class="o">&amp;=</span> <span class="n">t0</span> <span class="o">&lt;=</span> <span class="n">t1</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="n">t0</span><span class="p">[</span><span class="n">keep</span><span class="p">],</span> <span class="n">t1</span><span class="p">[</span><span class="n">keep</span><span class="p">]):</span>
+            <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">x0</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">dx</span><span class="p">[</span><span class="n">keep</span><span class="p">],</span> <span class="n">lo</span><span class="p">,</span> <span class="n">x_hi</span><span class="p">))</span>
+            <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">y0</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">dy</span><span class="p">[</span><span class="n">keep</span><span class="p">],</span> <span class="n">lo</span><span class="p">,</span> <span class="n">y_hi</span><span class="p">))</span>
+
+        <span class="c1"># The cells' corners inside the box (a box larger than the grid).</span>
+        <span class="n">cx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">lo</span><span class="p">,</span> <span class="n">x_hi</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">x_hi</span><span class="p">])</span>
+        <span class="n">cy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">lo</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">y_hi</span><span class="p">,</span> <span class="n">y_hi</span><span class="p">])</span>
+        <span class="n">clon</span><span class="p">,</span> <span class="n">clat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lonlat_at</span><span class="p">(</span><span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">)</span>
+        <span class="n">inside</span> <span class="o">=</span> <span class="p">(</span><span class="n">clat</span> <span class="o">&gt;=</span> <span class="n">south</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">clat</span> <span class="o">&lt;=</span> <span class="n">north</span><span class="p">)</span>
+        <span class="n">inside</span> <span class="o">&amp;=</span> <span class="p">(</span><span class="n">clon</span> <span class="o">-</span> <span class="n">west</span><span class="p">)</span> <span class="o">%</span> <span class="mf">360.0</span> <span class="o">&lt;=</span> <span class="n">east</span> <span class="o">-</span> <span class="n">west</span>
+        <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cx</span><span class="p">[</span><span class="n">inside</span><span class="p">])</span>
+        <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cy</span><span class="p">[</span><span class="n">inside</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Grid.subset">
 <a class="viewcode-back" href="../../_autosummary/arlmet.Grid.subset.html#arlmet.Grid.subset">[docs]</a>
