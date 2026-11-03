@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=a9a50f37"></script>
+    <script src="_static/documentation_options.js?v=19314828"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev20+g34cfe6b0e" />
+  <meta name="docsearch:version" content="0.1.0b6.dev21+g1d70bdbfc" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -572,6 +572,16 @@ column at -110 whether the grid stores it as -110 or as 250.</p>
 the selected records are copied byte for byte and only their level numbers
 and the index records are rewritten, so it runs at close to file-copy speed
 and the output values are exactly the input’s.</p>
+<p>Variable names must be spelled as the file spells them (<code class="docutils literal notranslate"><span class="pre">&quot;TEMP&quot;</span></code>, not
+<code class="docutils literal notranslate"><span class="pre">&quot;temp&quot;</span></code>); a single string such as <code class="docutils literal notranslate"><span class="pre">variables=&quot;TEMP&quot;</span></code> is one name. A
+<code class="docutils literal notranslate"><span class="pre">DIF*</span></code> name the file holds (<code class="docutils literal notranslate"><span class="pre">&quot;DIFW&quot;</span></code>) is accepted but selects nothing: that
+record is written with its parent (<code class="docutils literal notranslate"><span class="pre">&quot;WWND&quot;</span></code>) whenever the parent is selected.
+A name the file does not hold raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> that lists
+every unknown name and the variables the file has, also when the other names are
+fine, so a typo never gives a file that is missing a field. A selection that
+leaves no record in the file, such as <code class="docutils literal notranslate"><span class="pre">variables=[]</span></code>, or a variable that is
+only on levels you left out, raises too: <code class="docutils literal notranslate"><span class="pre">extract_subset()</span></code> never writes an
+empty file.</p>
 </section>
 <section id="which-cells-a-crop-keeps">
 <h2>Which cells a crop keeps<a class="headerlink" href="#which-cells-a-crop-keeps" title="Link to this heading">#</a></h2>

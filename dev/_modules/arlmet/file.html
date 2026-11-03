@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=a9a50f37"></script>
+    <script src="../../_static/documentation_options.js?v=19314828"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev20+g34cfe6b0e" />
+  <meta name="docsearch:version" content="0.1.0b6.dev21+g1d70bdbfc" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1410,7 +1410,7 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">levels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">variables</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">variables</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Write a spatial/vertical subset of this file to a new ARL file.</span>
@@ -1430,8 +1430,9 @@
 <span class="sd">        levels : iterable of int, optional</span>
 <span class="sd">            ARL level indices to keep. Output levels are compacted and</span>
 <span class="sd">            renumbered from zero while preserving the selected level heights.</span>
-<span class="sd">        variables : iterable of str, optional</span>
-<span class="sd">            Variable names to keep. All variables are included by default.</span>
+<span class="sd">        variables : str or iterable of str, optional</span>
+<span class="sd">            Variable names to keep, as the file spells them; a single string</span>
+<span class="sd">            is one name. All variables are included by default.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
