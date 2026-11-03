@@ -26,10 +26,12 @@ _Coord = tuple[tuple[str, ...], npt.NDArray[Any]]
 #: Half a cell apart, a 360-degree edge on HRRR's 3 km grid needs about 26,000.
 _OUTLINE_MAX_POINTS = 100_000
 
-#: How far, in cells, a lat/lon column may lie from a bbox's longitude edge and
-#: still count as on it. The modulo-360 test rounds at the size of a number up
-#: to 360, about 6e-14 degrees; 1e-6 cells (the same as ``ops/sample.py``'s
-#: ``_EDGE_TOLERANCE``) is far above that and a few centimeters on a 0.25-degree grid.
+#: How far, in cells, a lat/lon column or row may lie from a bbox's edge and
+#: still count as on it. The modulo-360 test of longitudes rounds at the size of a
+#: number up to 360, about 6e-14 degrees, and a latitude ``lat_0 + j * dlat`` at
+#: the size of the product (~1e-14 degrees when ``dlat`` is not exact in binary,
+#: as 0.1 is not); 1e-6 cells (the same as ``ops/sample.py``'s ``_EDGE_TOLERANCE``)
+#: is far above both and a few centimeters on a 0.25-degree grid.
 _EDGE_TOLERANCE = 1e-6
 
 
@@ -673,12 +675,13 @@ class Grid:
         Resolve a geographic bounding box to grid indices.
 
         On a lat/lon grid the window holds the cells whose centers lie inside
-        the box, edges included. A column within a millionth of a cell of an
-        edge counts as on it, so rounding in the arithmetic (an east edge of
-        ``-110`` against a column stored as 250 degrees) never decides a
-        column. HYSPLIT's ``xtrct_grid`` takes the column nearest each edge, so
-        it agrees for edges on columns and can keep one more column for edges
-        between them.
+        the box, edges included. A column or row within a millionth of a cell of
+        an edge counts as on it, so rounding in the arithmetic (an east edge of
+        ``-110`` against a column stored as 250 degrees, a north edge of
+        ``41.4`` against a row stored as 41.400000000000006) never decides a
+        column or row. HYSPLIT's ``xtrct_grid`` takes the column nearest each
+        edge, so it agrees for edges on columns and can keep one more column for
+        edges between them.
 
         On a projected grid the window is the smallest rectangle of cells
         that holds every point of the box that lies on the grid (in one of its
@@ -757,8 +760,11 @@ class Grid:
         # allows. ``west > east`` crosses the dateline. The modulo rounds at the
         # size of a number up to 360 and the width at the size of the box, so a
         # column exactly on an edge can miss it by ~1e-14 degrees: a column within
-        # _EDGE_TOLERANCE cells of an edge counts as on it.
+        # _EDGE_TOLERANCE cells of an edge counts as on it. A row is the same:
+        # ``lat_0 + j * dlat`` rounds in the product, so a row at a latitude as
+        # typed (41.4) can lie a hair beyond it.
         tol = _EDGE_TOLERANCE * abs(self.projection.tangent_lon)
+        lat_tol = _EDGE_TOLERANCE * abs(self.projection.tangent_lat)
         if east - west >= 360.0:  # every longitude, whatever the edges (inf included)
             lon_mask = np.ones(lons.shape, dtype=bool)
         elif not (math.isfinite(west) and math.isfinite(east)):
@@ -770,7 +776,7 @@ class Grid:
             width = east - west if west <= east else (east - west) % 360.0
             east_of_west = (lons - west) % 360.0
             lon_mask = (east_of_west <= width + tol) | (east_of_west >= 360.0 - tol)
-        lat_mask = (lats >= south) & (lats <= north)
+        lat_mask = (lats >= south - lat_tol) & (lats <= north + lat_tol)
 
         x_idx = np.flatnonzero(lon_mask)
         y_idx = np.flatnonzero(lat_mask)
