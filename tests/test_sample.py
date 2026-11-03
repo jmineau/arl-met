@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+import pyproj
 import pytest
 
 import arlmet
@@ -2266,3 +2267,176 @@ def test_sample_points_regional_latlon_grid_still_masks_outside(tmp_path):
     result = sample_points(path, points, ["TEMP"], z_kind="native")
 
     assert result["TEMP"].isna().all()
+
+
+def test_sample_points_global_grid_just_west_of_the_first_column(tmp_path):
+    """A longitude a rounding error west of 0 E is column 0, not off the grid (#134)."""
+    time = pd.Timestamp("2024-01-01 00:00")
+    path = write_global_file(tmp_path / "global.arl", time)
+    # (-1e-14 - 0) % 360 is 360.0 in float64: x = nx.
+    points = pd.DataFrame({"lon": [-1e-14], "lat": [0.0], "z": [1.0], "time": [time]})
+
+    for method in ("linear", "nearest"):
+        result = sample_points(path, points, ["TEMP"], z_kind="native", method=method)
+        np.testing.assert_allclose(result["TEMP"], [0.0], atol=1e-9)
+
+
+# --- a projected grid's edge nodes at their own lon/lat (#134) ---
+
+_P = {"pole_lat": 90.0, "pole_lon": 0.0, "orientation": 0.0, "sync_x": 1.0}
+_EDGE_GRIDS = {
+    # The corner of HRRR's grid, NAMS Alaska's polar stereographic grid and a
+    # coarse Lambert grid: mapping their node lon/lat back gives about half
+    # the edge nodes an index up to 1e-12 cells outside the grid.
+    "hrrr-corner": Grid(
+        projection=Projection(
+            **_P,
+            sync_y=1.0,
+            tangent_lat=38.5,
+            tangent_lon=262.5,
+            grid_size=3.0,
+            cone_angle=38.5,
+            sync_lat=21.1381,
+            sync_lon=237.281,
+        ),
+        nx=60,
+        ny=40,
+    ),
+    "polar-stereographic": Grid(
+        projection=Projection(
+            **_P,
+            sync_y=1.0,
+            tangent_lat=60.0,
+            tangent_lon=210.0,
+            grid_size=11.904,
+            cone_angle=90.0,
+            sync_lat=40.53,
+            sync_lon=181.429,
+        ),
+        nx=40,
+        ny=30,
+    ),
+    "lambert": make_lambert_grid(),
+}
+
+
+def _write_node_field(path, grid: Grid, time: pd.Timestamp) -> np.ndarray:
+    """Write T02M = 100 * row + column on *grid*; return the field as stored."""
+    rows, cols = np.mgrid[0 : grid.ny, 0 : grid.nx]
+    with File(
+        path,
+        mode="w",
+        source="TEST",
+        grid=grid,
+        vertical_axis=PressureAxis(levels=[0.0, 1000.0]),
+    ) as arl:
+        rs = arl.create_recordset(time, forecast=0)
+        rs.create_datarecord(
+            "T02M", level=0, forecast=0, data=(100.0 * rows + cols).astype(np.float32)
+        )
+    with File(path) as arl:
+        return arl[0][(0, "T02M")].read()
+
+
+def _edge_nodes(grid: Grid) -> tuple[np.ndarray, np.ndarray]:
+    edge = np.zeros((grid.ny, grid.nx), dtype=bool)
+    edge[0, :] = edge[-1, :] = edge[:, 0] = edge[:, -1] = True
+    return np.nonzero(edge)
+
+
+@pytest.mark.parametrize("name", list(_EDGE_GRIDS))
+@pytest.mark.parametrize("method", ["linear", "nearest"])
+def test_sample_points_projected_edge_nodes_at_their_own_lon_lat(
+    tmp_path, name, method
+):
+    """Every edge node sampled at its own lon/lat gives its own value (#134)."""
+    grid = _EDGE_GRIDS[name]
+    time = pd.Timestamp("2024-01-01 00:00")
+    stored = _write_node_field(tmp_path / "edge.arl", grid, time)
+    rows, cols = _edge_nodes(grid)
+    coords = grid.calculate_coords()
+    points = pd.DataFrame(
+        {
+            "lon": coords["lon"][1][rows, cols],
+            "lat": coords["lat"][1][rows, cols],
+            "z": 0.0,
+            "time": time,
+        }
+    )
+
+    result = sample_points(
+        tmp_path / "edge.arl", points, ["T02M"], z_kind="native", method=method
+    )
+
+    np.testing.assert_allclose(result["T02M"], stored[rows, cols], rtol=0, atol=1e-6)
+
+
+@pytest.mark.parametrize("name", list(_EDGE_GRIDS))
+def test_sample_points_projected_just_outside_the_edge_is_nan(tmp_path, name):
+    """A point 1e-3 cells outside the grid stays off it (#134)."""
+    grid = _EDGE_GRIDS[name]
+    time = pd.Timestamp("2024-01-01 00:00")
+    _write_node_field(tmp_path / "edge.arl", grid, time)
+    rows, cols = _edge_nodes(grid)
+    dx = np.where(cols == 0, -1e-3, np.where(cols == grid.nx - 1, 1e-3, 0.0))
+    dy = np.where(rows == 0, -1e-3, np.where(rows == grid.ny - 1, 1e-3, 0.0))
+    step = grid.projection.grid_size * 1000.0
+    to_lonlat = pyproj.Transformer.from_crs(grid.crs, "EPSG:4326", always_xy=True)
+    lon, lat = to_lonlat.transform((cols + dx) * step, (rows + dy) * step)
+    points = pd.DataFrame({"lon": lon, "lat": lat, "z": 0.0, "time": time})
+
+    for method in ("linear", "nearest"):
+        result = sample_points(
+            tmp_path / "edge.arl", points, ["T02M"], z_kind="native", method=method
+        )
+        assert result["T02M"].isna().all()
+
+
+@pytest.mark.parametrize("sync_lon", [12.7, 0.1])
+def test_sample_points_regional_latlon_first_column_at_its_own_lon(tmp_path, sync_lon):
+    """
+    A regional grid's first column at the longitude arl-met reports has values (#141).
+
+    On these 0.1-degree grids ``open_dataset`` reports the first column a
+    rounding error west of the origin (12.699999999999989), which modulo 360
+    is a full turn east.
+    """
+    grid = Grid(
+        projection=Projection(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=0.1,
+            tangent_lon=0.1,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=40.1,
+            sync_lon=sync_lon,
+        ),
+        nx=30,
+        ny=20,
+    )
+    time = pd.Timestamp("2024-01-01 00:00")
+    stored = _write_node_field(tmp_path / "regional.arl", grid, time)
+    ds = arlmet.open_dataset(tmp_path / "regional.arl")
+    lon0 = float(ds["lon"].values[0])
+    assert lon0 < sync_lon  # the case: a rounding error west
+    points = pd.DataFrame(
+        {"lon": lon0, "lat": ds["lat"].values, "z": 0.0, "time": time}
+    )
+    west = pd.DataFrame(
+        {"lon": sync_lon - 1e-3, "lat": ds["lat"].values, "z": 0.0, "time": time}
+    )
+
+    for method in ("linear", "nearest"):
+        result = sample_points(
+            tmp_path / "regional.arl", points, ["T02M"], z_kind="native", method=method
+        )
+        np.testing.assert_allclose(result["T02M"], stored[:, 0], rtol=0, atol=1e-6)
+        # 0.01 cells west of the first column is still off the grid
+        outside = sample_points(
+            tmp_path / "regional.arl", west, ["T02M"], z_kind="native", method=method
+        )
+        assert outside["T02M"].isna().all()

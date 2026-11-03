@@ -355,7 +355,7 @@ def test_extract_subset_projected_crop_keeps_source_cell_positions(tmp_path):
         rs.create_datarecord("PRSS", level=0, forecast=0, data=800.0 + lat)
         rs.create_datarecord("TEMP", level=1, forecast=0, data=250.0 + lat)
 
-    outer, inner = (-112.4, 40.1, -111.6, 40.8), (-112.3, 40.2, -111.8, 40.65)
+    outer, inner = (-112.4, 40.2, -111.6, 40.9), (-112.3, 40.3, -111.8, 40.75)
     crop = extract_subset(source, tmp_path / "crop.arl", bbox=outer)
     crop2 = extract_subset(crop, tmp_path / "crop2.arl", bbox=inner)
 

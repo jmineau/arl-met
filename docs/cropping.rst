@@ -42,7 +42,9 @@ only need a smaller region.
 Select levels while reading
 ---------------------------
 
-ARL levels are selected by integer level index.
+ARL levels are selected by integer level index, counted from 0 at the surface,
+so ``levels=[0, 1, 2]`` keeps the surface fields and the first two upper-air
+levels (the Dataset's ``level`` coordinate is then 1 and 2).
 
 .. ipython:: python
 
@@ -133,6 +135,36 @@ and the output values are exactly the input's.
 
    os.chdir(docs_cwd)
 
+Which cells a crop keeps
+------------------------
+
+On a lat-lon grid a crop keeps the cells whose centers lie inside the box, edges
+included, as HYSPLIT's ``xtrct_grid`` does.
+
+On a projected grid (Lambert conformal, polar stereographic, Mercator) a crop is
+the smallest rectangle of the grid's cells that holds the box's part on the grid:
+every point inside the box that lies on the grid lies in one of the crop's cells.
+Parallels and meridians curve on these grids, so the box is not a rectangle in
+grid cells. arl-met maps the box's outline, points along its edges at most half a
+cell apart on the grid, to grid indices, and keeps the points inside the grid's
+cells, the points where the outline crosses the grid's border, and the grid's
+corners that lie inside the box. It rounds the lowest and highest index on each
+axis to the nearest cell, as Fortran's ``NINT`` rounds. Points of the box off the
+grid do not widen the crop: a box that reaches past the grid, across the meridian
+opposite the projection's center or to a pole the projection cannot map, is cropped
+to its part on the grid (the whole grid, for ``bbox=(-180.0, 0.0, 180.0, 90.0)`` on
+HRRR), and a box with no point on the grid raises ``ValueError``.
+
+This departs from ``xtrct_grid``, which maps all four corners but keeps only the
+rectangle between the south-west and north-east ones, wherever they fall. Its crop
+can leave out the box's south-east and north-west corners, so a point there, such
+as a receptor inside the box, can be off the cropped grid; and across the cut its
+corners' indices mean nothing. For a box inside the grid, arl-met's crop holds
+``xtrct_grid``'s and is often a few cells larger: for ``bbox=(-113.5, 39.5, -110.5, 42.0)`` on HRRR
+it is 99 x 106 cells where ``xtrct_grid``'s is 99 x 79, with 14 more rows to the
+south and 13 to the north. Crops of lat-lon grids (GFS, GDAS) are the same as
+``xtrct_grid``'s.
+
 What changes in the output file
 -------------------------------
 
@@ -168,4 +200,8 @@ Limitations
 
 If the selected domain is too small to hold the output index record,
 ``extract_subset()`` raises a ``ValueError`` explaining how many grid cells are
-required.
+required. The index record lists every level and variable, so the minimum grows
+with them. On a NAM 12 km file with all its levels and variables it is 2,012
+cells, and the 4 by 3 degree box used on this page is 33 by 26 = 858 cells
+there: pass ``levels=`` or ``variables=``, or use a larger box. On a GFS 0.25
+degree file with all levels it is 3,340 cells.

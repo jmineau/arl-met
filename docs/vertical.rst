@@ -91,6 +91,10 @@ Height above ground level
    z = arlmet.z_agl(ds)
    z.isel(time=0, lat=0, lon=0).values
 
+The sample file is on a lat-lon grid. On a projected grid, such as HRRR's or
+NAM's, the horizontal dimensions are ``y`` and ``x``, so select with
+``z.isel(time=0, y=0, x=0)``.
+
 The method used depends on the vertical flag, matching HYSPLIT's ``prfcom``
 dispatcher — each coordinate system has exactly one correct method:
 

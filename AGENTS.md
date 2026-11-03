@@ -51,6 +51,9 @@ when it downloads, so it imports without the `archives` extra.
   step starts with an index record (`INDX`: grid, vertical axis, each level's
   variables), which must fit in one record; `validate_subset_record_length`
   (`ops/subset.py`) refuses a crop too small for it before writing anything.
+- **Forecast hours.** The 50-byte label has two characters for the hour, the index
+  record three: `Header.tobytes` writes `min(hour, 99)` (HYSPLIT's `pakrec`), the index
+  record keeps the full hour and raises above 999.
 - **Projection fields.** The 12 projection values are kept as stored (HYSPLIT reads
   them raw; to its `gbl2xy` a lat/lon `sync_lon` of -125 is not 235). `sync_x`/`sync_y`
   can lie off the grid: a projected crop keeps its source's sync point (`Grid.subset`).
@@ -102,12 +105,17 @@ when it downloads, so it imports without the `archives` extra.
    Without a horizontal crop it does not unpack: `_copy_subset_records` copies
    each record's bytes (DIF records included), renumbers the header's level, and
    rebuilds the index records. Keep both paths writing the same index records.
-4. **Windowing matches HYSPLIT's `xtrct_grid`.** On lat/lon grids a cell is kept
-   when its center is inside the bbox, edges included, `west > east` crosses the
-   dateline, longitudes count modulo 360 (an edge at 180 keeps the 180 column; a box may reach
+4. **Windowing.** On lat/lon grids a cell is kept when its center is inside the
+   bbox, edges included, as HYSPLIT's `xtrct_grid`; `west > east` crosses the dateline,
+   longitudes count modulo 360 (an edge at 180 keeps the 180 column; a box may reach
    past 180), and a window across a global grid's seam has `x_stop > nx`. On projected
-   grids the SW and NE corners are mapped to grid indices and rounded like Fortran
-   `NINT` (reference: `test_grid.py`). A bbox is `(west, south, east, north)` in degrees.
+   grids the window holds every point of the box that is on the grid: the outline
+   (sampled at a fixed, capped spacing of at most half a cell on the grid, never
+   refined) is kept where it is inside the cells or crosses their border, plus the grid
+   corners in the box, and each axis's extremes are rounded like Fortran `NINT`; a step
+   over two cells is a jump across the projection's cut. `xtrct_grid` uses only the SW
+   and NE corners (reference: `test_grid.py`). A bbox is `(west, south, east, north)`
+   in degrees.
 5. **`write_dataset` handles the common case only:** the flat Dataset that
    `open_dataset` returns, with DIF records written from `attrs["diff"] =
    "DIF..."` on the parent. The `forecast_hour(time)` coordinate is the index
