@@ -7,6 +7,31 @@ file alone: the entries are written at release (`just changelog` drafts them).
 
 ## [Unreleased]
 
+## [0.1.0b6] - 2026-11-03
+
+### Added
+
+- `Archive.step` gives the time between the time steps of an archive's files (one hour for HRRR, three for NAM12), so a caller can tell which met step a time falls on. (#129)
+
+### Changed
+
+- **Breaking:** `extract_subset(variables=[...])` and `File.extract_subset` raise `ValueError` when `variables=` names a variable the file does not hold. The message lists every unknown name and the variables the file holds. They used to drop an unknown name without a word, and a selection of only unknown names wrote a zero-byte file that `File.check()` called clean. Names are matched as the file spells them, so `"uwnd"` raises. A `DIF*` name the file holds is a valid name. (#128)
+- `sample_points` at heights (`z_kind="agl"` or `"msl"`) interpolates each of the four surrounding grid points' columns to the height first and then blends them, as HYSPLIT does. Values between grid points change, by up to 2 K and 1 m/s near the ground on a 27 km grid. A grid point whose column ends below the height is left out and the others' weights are rescaled. Sampling at pressures and native levels is unchanged. (#117)
+- `fetch` no longer replaces a file that is already there unless `overwrite=True`: on NFS, replacing it gave a reader on another node `Stale file handle`. Several `fetch` calls for one file download it once; the others wait for that download, and take over if it stops making progress for five to six minutes. (#146)
+
+### Fixed
+
+- A lat/lon bounding box counts longitudes modulo 360, so 180 and -180 are one meridian: an east edge at 180 keeps the 180 column, and a box may reach past 180 (`(170, 190)` and `(170, -170)` select the same columns). (#138)
+- A lat/lon row within a millionth of a cell of a bounding box's north or south edge counts as on it, as a column does at the east and west edges. When the grid spacing is not exact in binary (0.1, 0.05, 0.3 degrees), rounding used to decide whether the edge row was kept, and a box one cell high could raise "does not intersect" with its row inside it. (#148)
+- Cropping a projected grid to a bounding box keeps the whole box, not only the window between the box's south-west and north-east corners. (#139)
+- Sampling a projected grid's edge nodes at their own longitude and latitude gives their values. (#140)
+- `paths_for_range` and `fetch` name files by UTC when given time-zone-aware times. (#137)
+- A record's label holds `min(hour, 99)`, and the index record holds the full forecast hour. (#136)
+- Sampling walks a column in level order at heights, as HYSPLIT does, where the first level is below the ground. (#113)
+- Sampling reads WRF winds where the staggered grid holds them (#114), and decouples mass-coupled WRF winds and takes `TEMP` from `THET`, as HYSPLIT does. (#115)
+- Sampling raises the documented `ValueError` when a file has no `SHGT` and terrain is needed. (#110)
+- The pyproj, typing_extensions and xarray floors are raised so the package works on NumPy 1.x. (#112)
+
 ## [0.1.0b5] - 2026-10-28
 
 ### Added
