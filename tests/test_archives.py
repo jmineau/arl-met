@@ -721,12 +721,16 @@ class TestFetchHelpers:
         downloads = []
         crops = []
 
+        def final(staged):
+            # fetch hands these a hidden ``.<final name>.<random>.partial``.
+            return Path(staged).with_name(Path(staged).name[1:].rsplit(".", 2)[0])
+
         def fake_download(url, dest, opts):
-            downloads.append((url, Path(dest), opts))
+            downloads.append((url, final(dest), opts))
             Path(dest).write_text("downloaded")
 
         def fake_crop(url, dest, opts, *, bbox, levels):
-            crops.append((url, Path(dest), bbox, levels, opts))
+            crops.append((url, final(dest), bbox, levels, opts))
             Path(dest).write_text("cropped")
 
         monkeypatch.setattr(self.src, "_download", fake_download)

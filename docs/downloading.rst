@@ -221,6 +221,24 @@ renamed into place only once complete, so an interrupted fetch never leaves a
 truncated file that a later call would reuse. A ``.partial`` file left behind
 by a killed process is never used and can be deleted.
 
+Several callers can fetch into one folder at once: threads, processes such as
+PYSTILT's workers, or jobs on other nodes that share the folder. Each file is
+downloaded once. The first caller to reach a file makes a hidden folder
+``.<name>.lock`` beside it (with a note of its host and process) and the others
+wait for the finished file. While they wait they watch the download's temp files
+grow. If nothing changes for about five minutes, because the first caller was
+killed or its download hung, one of them removes the lock, downloads the file
+itself, and removes what the first caller left. So a folder left by a killed
+job makes the next caller wait those five minutes once; you can also delete it
+yourself.
+
+The lock saves work only. Every copy has its own temp file, so a caller that was
+taken for dead while only paused costs a second download, never a damaged file.
+Once a file is there it is not replaced, even by a second copy finishing later:
+on NFS, replacing a file gives anyone reading it from another node a ``Stale file
+handle`` error. ``overwrite=True`` does replace it, one caller at a time, so use
+it only when nothing is reading the file.
+
 Requesting a time range that begins before an archive's ``start_date`` (the
 start of its archive) raises ``ValueError``.
 
