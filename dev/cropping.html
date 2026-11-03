@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=773a9d9c"></script>
+    <script src="_static/documentation_options.js?v=f0ea4bf1"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6.dev23+g242aaed19" />
+  <meta name="docsearch:version" content="0.1.0b6.dev24+g11d38b377" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -547,9 +547,11 @@ file, where arl-met returns the box’s columns). A box 360 degrees wide or more
 holds every column. <code class="docutils literal notranslate"><span class="pre">bbox=(170.0,</span> <span class="pre">0.0,</span> <span class="pre">190.0,</span> <span class="pre">10.0)</span></code> and <code class="docutils literal notranslate"><span class="pre">(170.0,</span> <span class="pre">0.0,</span> <span class="pre">-170.0,</span> <span class="pre">10.0)</span></code>
 select the same columns. A box that reaches past the grid’s own columns only
 crops to the ones it has (a regional grid from 160 E to 200 E holds
-<code class="docutils literal notranslate"><span class="pre">(170.0,</span> <span class="pre">25.0,</span> <span class="pre">190.0,</span> <span class="pre">30.0)</span></code> whole). A column within a millionth of a cell of
-an edge counts as on it, so <code class="docutils literal notranslate"><span class="pre">bbox=(-112.3,</span> <span class="pre">39.0,</span> <span class="pre">-110.0,</span> <span class="pre">42.0)</span></code> keeps the
-column at -110 whether the grid stores it as -110 or as 250.</p>
+<code class="docutils literal notranslate"><span class="pre">(170.0,</span> <span class="pre">25.0,</span> <span class="pre">190.0,</span> <span class="pre">30.0)</span></code> whole). A column or row within a millionth of a cell
+of an edge counts as on it, so <code class="docutils literal notranslate"><span class="pre">bbox=(-112.3,</span> <span class="pre">39.0,</span> <span class="pre">-110.0,</span> <span class="pre">42.0)</span></code> keeps the
+column at -110 whether the grid stores it as -110 or as 250, and an edge at
+41.4 keeps the row at 41.4 on a 0.1 degree grid, where 0.1 is not exact in
+binary and the stored latitude is 41.400000000000006.</p>
 </section>
 <section id="keep-only-the-levels-and-variables-you-need">
 <h2>Keep only the levels and variables you need<a class="headerlink" href="#keep-only-the-levels-and-variables-you-need" title="Link to this heading">#</a></h2>
