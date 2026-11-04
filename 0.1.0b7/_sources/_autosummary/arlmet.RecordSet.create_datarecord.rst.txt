@@ -1,0 +1,6 @@
+arlmet.RecordSet.create\_datarecord
+===================================
+
+.. currentmodule:: arlmet
+
+.. automethod:: RecordSet.create_datarecord

@@ -1,0 +1,6 @@
+arlmet.DirectoryIndex.cache
+===========================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: DirectoryIndex.cache

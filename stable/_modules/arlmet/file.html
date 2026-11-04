@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.file &#8212; arl-met 0.1.0b6</title>
+    <title>arlmet.file &#8212; arl-met 0.1.0b7</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=2f6c07b9"></script>
+    <script src="../../_static/documentation_options.js?v=8b1483a0"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b6';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b7';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6" />
+  <meta name="docsearch:version" content="0.1.0b7" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -127,7 +127,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b6</p>
+    <p class="title logo__title">arl-met 0.1.0b7</p>
   
 </a></div>
     
@@ -441,7 +441,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.indexrecord</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span><span class="p">,</span> <span class="n">_corrects</span><span class="p">,</span> <span class="n">_is_missing</span><span class="p">,</span> <span class="n">_require_mode</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.recordset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordSet</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerticalAxis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">_DEFAULT_MODEL_TOP</span><span class="p">,</span> <span class="n">VerticalAxis</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
@@ -1254,6 +1254,7 @@
         <span class="n">z_kind</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"native"</span><span class="p">,</span> <span class="s2">"pressure"</span><span class="p">,</span> <span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"pressure"</span><span class="p">,</span>
         <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"nearest"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"linear"</span><span class="p">,</span>
         <span class="n">earth_relative</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_DEFAULT_MODEL_TOP</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Sample fields from this file at arbitrary lon/lat/z points.</span>
@@ -1327,6 +1328,13 @@
 <span class="sd">            from the grid axes to east/north. Winds in ARL files on projected</span>
 <span class="sd">            grids are stored grid-relative, as HYSPLIT expects. Both components</span>
 <span class="sd">            of a pair must be requested. No effect on lat/lon grids.</span>
+<span class="sd">        model_top : float or None, default 25000</span>
+<span class="sd">            The HYSPLIT run's top of model domain [m] (the ``CONTROL`` file's,</span>
+<span class="sd">            PYSTILT's ``z_top``). At heights the values are the ones a HYSPLIT</span>
+<span class="sd">            run with that top uses, on its internal levels; the default is</span>
+<span class="sd">            PYSTILT's default top. ``None`` reads each grid point's column at</span>
+<span class="sd">            the point's own height instead, which is not HYSPLIT's value. See</span>
+<span class="sd">            :func:`arlmet.sample_points`.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1341,8 +1349,10 @@
 <span class="sd">            If a required column is missing, ``time`` is given alongside a</span>
 <span class="sd">            ``time`` column, no time is given for a multi-time file, a point</span>
 <span class="sd">            time is not in the file, a variable name collides with a column</span>
-<span class="sd">            of ``points``, ``z_kind`` or ``method`` is invalid, or a field</span>
-<span class="sd">            that ``z_kind`` requires is missing.</span>
+<span class="sd">            of ``points``, ``z_kind`` or ``method`` is invalid, a field</span>
+<span class="sd">            that ``z_kind`` requires is missing, or ``model_top`` is passed</span>
+<span class="sd">            with ``z_kind`` ``"pressure"`` or ``"native"``, is not a positive</span>
+<span class="sd">            number, or is passed for a terrain-following (flag 3) file.</span>
 
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
@@ -1367,6 +1377,7 @@
             <span class="n">z_kind</span><span class="o">=</span><span class="n">z_kind</span><span class="p">,</span>
             <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
             <span class="n">earth_relative</span><span class="o">=</span><span class="n">earth_relative</span><span class="p">,</span>
+            <span class="n">model_top</span><span class="o">=</span><span class="n">model_top</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 

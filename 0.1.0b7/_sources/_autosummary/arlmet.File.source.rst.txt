@@ -1,0 +1,6 @@
+arlmet.File.source
+==================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: File.source

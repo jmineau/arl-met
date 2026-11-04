@@ -1,0 +1,6 @@
+﻿arlmet.concat\_by\_time
+=======================
+
+.. currentmodule:: arlmet
+
+.. autofunction:: concat_by_time

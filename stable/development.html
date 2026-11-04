@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Developer notes &#8212; arl-met 0.1.0b6</title>
+    <title>Developer notes &#8212; arl-met 0.1.0b7</title>
   
   
   
@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=2f6c07b9"></script>
+    <script src="_static/documentation_options.js?v=8b1483a0"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -50,7 +50,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b6';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b7';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -60,7 +60,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6" />
+  <meta name="docsearch:version" content="0.1.0b7" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -128,7 +128,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b6</p>
+    <p class="title logo__title">arl-met 0.1.0b7</p>
   
 </a></div>
     
@@ -477,7 +477,24 @@ columns to the point’s height, then blends them (<code class="docutils literal
 <code class="docutils literal notranslate"><span class="pre">_node_plan</span></code>); on HRRR, WRF, GFS, GDAS and NAM files it agrees with the
 compiled <code class="docutils literal notranslate"><span class="pre">prfsig</span></code>/<code class="docutils literal notranslate"><span class="pre">prfprs</span></code>/<code class="docutils literal notranslate"><span class="pre">prfecm</span></code> and <code class="docutils literal notranslate"><span class="pre">adv3nt</span></code> to float precision</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prfsig</span></code> / <code class="docutils literal notranslate"><span class="pre">prfecm</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">metlvl</span></code> / <code class="docutils literal notranslate"><span class="pre">zindex</span></code> / <code class="docutils literal notranslate"><span class="pre">prfend</span></code></p></td>
+<td><p>the run’s internal vertical grid: <code class="docutils literal notranslate"><span class="pre">metlvl</span></code> picks one of six grids
+<code class="docutils literal notranslate"><span class="pre">a</span> <span class="pre">k**2</span> <span class="pre">+</span> <span class="pre">b</span> <span class="pre">k</span> <span class="pre">+</span> <span class="pre">c</span></code> from the <code class="docutils literal notranslate"><span class="pre">CONTROL</span></code> top and the met’s levels, and
+the levels follow the terrain with <code class="docutils literal notranslate"><span class="pre">ZMDL</span> <span class="pre">=</span> <span class="pre">max(top,</span> <span class="pre">25000)</span></code>
+(<code class="docutils literal notranslate"><span class="pre">runset.f</span></code>); a particle is read linear in sigma between two levels
+(<code class="docutils literal notranslate"><span class="pre">zindex</span></code>; <code class="docutils literal notranslate"><span class="pre">hymodelc</span></code>’s particle output), at the first level below
+it; above a column’s top <code class="docutils literal notranslate"><span class="pre">prfend</span></code> (and <code class="docutils literal notranslate"><span class="pre">prfsig</span></code>’s tail) keeps
+temperature and winds and steps pressure down hydrostatically; without
+<code class="docutils literal notranslate"><span class="pre">SHGT</span></code>, <code class="docutils literal notranslate"><span class="pre">prfa</span></code>’s terrain from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> goes back into the terrain array</p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> at heights (<code class="docutils literal notranslate"><span class="pre">model_top</span></code>, default 25000; <code class="docutils literal notranslate"><span class="pre">ops/sample.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_InternalLevels</span></code>, <code class="docutils literal notranslate"><span class="pre">_sample_on_internal_levels</span></code>); the grid matches
+<code class="docutils literal notranslate"><span class="pre">metlvl</span></code> on 16 made-up axes and 11 real files, and the values agree
+with the compiled routines (<code class="docutils literal notranslate"><span class="pre">zindex</span></code> and <code class="docutils literal notranslate"><span class="pre">adv3nt</span></code> included) to float
+precision on HRRR, WRF, GFS, GDAS, NAM and NAMS files with tops of 10,
+25 and 40 km, except where an internal level lies within 0.1 m of a
+column’s top (arl-met’s gas constant and gravity, #150)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prfsig</span></code> / <code class="docutils literal notranslate"><span class="pre">prfecm</span></code></p></td>
 <td><p>the sigma (flag 1, and flag 5 without WRF’s hybrid coefficients) and
 hybrid (flag 4) profiles: heights from the ground
 (<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code>) with the virtual temperature; <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> takes each
@@ -487,22 +504,23 @@ always from the levels; <code class="docutils literal notranslate"><span class="
 <code class="docutils literal notranslate"><span class="pre">vertical._hysplit_z_agl</span></code>; on two HRRR columns it agrees with the
 compiled <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> within 0.006 hPa</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prfprs</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prfprs</span></code></p></td>
 <td><p>the pressure-level (flag 2) profile: heights from <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>, the ground
 (<code class="docutils literal notranslate"><span class="pre">SHGT</span></code>, <code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code>, <code class="docutils literal notranslate"><span class="pre">U10M</span></code>) at the bottom, levels at or
-below the ground skipped; <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code> linear in height</p></td>
+below the ground skipped, and with the internal levels also a level
+below the first of them (<code class="docutils literal notranslate"><span class="pre">IF(KL.GT.1)</span></code>); <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code> linear in height</p></td>
 <td><p>the column in <code class="docutils literal notranslate"><span class="pre">ops/sample.py</span></code>; <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> and winds agree with the
 compiled <code class="docutils literal notranslate"><span class="pre">prfprs</span></code> within 0.001 on NAM12 and GDAS columns, pressure
 within 0.0006 hPa (float32 rounding of <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code>)</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prfwrf</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prfwrf</span></code></p></td>
 <td><p>the WRF (flag 5) profile: pressure from the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field, heights from
 WRF’s hybrid coefficients (read from a side file, <code class="docutils literal notranslate"><span class="pre">hybrid_wrfvcoords.txt</span></code>)</p></td>
 <td><p>not used: the coefficients are not in the ARL file, so
 <a class="reference internal" href="_autosummary/arlmet.WrfAxis.html#arlmet.WrfAxis" title="arlmet.WrfAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.WrfAxis</span></code></a> files take the <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> path, pressure from
 <code class="docutils literal notranslate"><span class="pre">PRES</span></code></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xtrct_grid.f</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xtrct_grid.f</span></code></p></td>
 <td><p>crop a met file to a grid window</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.Grid.window_from_bbox.html#arlmet.Grid.window_from_bbox" title="arlmet.Grid.window_from_bbox"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.Grid.window_from_bbox()</span></code></a>, <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a>
 (<code class="docutils literal notranslate"><span class="pre">tests/test_subset_slow.py</span></code> compares the two on real files). The same

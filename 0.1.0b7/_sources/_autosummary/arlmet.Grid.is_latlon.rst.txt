@@ -1,0 +1,6 @@
+arlmet.Grid.is\_latlon
+======================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: Grid.is_latlon

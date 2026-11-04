@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Vertical Coordinates &#8212; arl-met 0.1.0b6</title>
+    <title>Vertical Coordinates &#8212; arl-met 0.1.0b7</title>
   
   
   
@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=2f6c07b9"></script>
+    <script src="_static/documentation_options.js?v=8b1483a0"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -50,7 +50,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b6';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b7';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b6" />
+  <meta name="docsearch:version" content="0.1.0b7" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -130,7 +130,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b6</p>
+    <p class="title logo__title">arl-met 0.1.0b7</p>
   
 </a></div>
     
@@ -382,6 +382,7 @@
 <li class="toctree-l1"><a class="reference internal" href="writing.html">Writing ARL Files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="concatenating.html">Concatenating ARL Files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="indexing.html">Indexing a Directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="probing.html">Probing a File</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sampling.html">Sampling Points</a></li>
 <li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Vertical Coordinates</a></li>
 <li class="toctree-l1"><a class="reference internal" href="checking.html">Checking Files</a></li>
@@ -716,7 +717,7 @@ coordinate system needs; a missing one raises <code class="docutils literal notr
 <span class="gh">Out[17]: </span><span class="go">array([1000.,  980.,  950.])</span>
 
 <span class="gp">In [18]: </span><span class="n">vaxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temp</span><span class="p">)</span>
-<span class="gh">Out[18]: </span><span class="go">array([  0.        , 170.90087667, 432.08555403])</span>
+<span class="gh">Out[18]: </span><span class="go">array([  0.        , 170.90346235, 432.09209136])</span>
 </pre></div>
 </div>
 <p>For a sigma or hybrid axis, <code class="docutils literal notranslate"><span class="pre">temperature</span></code> covers every level, the ground
@@ -727,7 +728,7 @@ at level 0, and <code class="docutils literal notranslate"><span class="pre">PRE
 <span class="gp">In [20]: </span><span class="n">pres</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1000.0</span><span class="p">,</span> <span class="mf">979.0</span><span class="p">,</span> <span class="mf">948.0</span><span class="p">])</span>  <span class="c1"># the PRES field, hPa</span>
 
 <span class="gp">In [21]: </span><span class="n">vaxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">tv</span><span class="p">,</span> <span class="n">pressure</span><span class="o">=</span><span class="n">pres</span><span class="p">)</span>
-<span class="gh">Out[21]: </span><span class="go">array([  0.        , 179.6614755 , 450.39786468])</span>
+<span class="gh">Out[21]: </span><span class="go">array([  0.        , 179.66419373, 450.40467907])</span>
 </pre></div>
 </div>
 <p>A pressure axis takes the geopotential height and the terrain, a WRF axis the
@@ -749,7 +750,7 @@ temperature and pressure of each level above the ground:</p>
 <span class="gp">   ....: </span>    <span class="n">pressure</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">845.0</span><span class="p">,</span> <span class="mf">832.0</span><span class="p">]),</span>  <span class="c1"># PRES there, hPa</span>
 <span class="gp">   ....: </span><span class="p">)</span>
 <span class="gp">   ....: </span>
-<span class="gh">Out[27]: </span><span class="go">array([ 49.25209447, 178.36454714])</span>
+<span class="gh">Out[27]: </span><span class="go">array([ 49.25283964, 178.36724575])</span>
 </pre></div>
 </div>
 <p>For a WRF axis <code class="docutils literal notranslate"><span class="pre">temperature</span></code> and <code class="docutils literal notranslate"><span class="pre">pressure</span></code> hold the levels above the
