@@ -24,8 +24,10 @@ __all__ = [
     "hypsometric_z_agl",
 ]
 
-R_D = 287.05  # dry air gas constant [J/(kg·K)]
-G = 9.80665  # standard gravity [m/s²]
+# HYSPLIT's prfmod.f values (rdry, grav), not CODATA/ISO's 287.05 and 9.80665:
+# matching them keeps every height within float32 noise of HYSPLIT's own (#150).
+R_D = 287.04  # dry air gas constant [J/(kg·K)]
+G = 9.80616  # standard gravity [m/s²]
 
 
 class _DefaultModelTop(float):
