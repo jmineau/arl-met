@@ -784,10 +784,16 @@ class TestWrfFile:
         with File(path) as f:
             by_p = f.sample_points({**point, "z": [812.5]}, ["TEMP"], z_kind="pressure")
             agl = f.sample_points(
-                {**point, "z": [z_quarter]}, ["TEMP", "pressure"], z_kind="agl"
+                {**point, "z": [z_quarter]},
+                ["TEMP", "pressure"],
+                z_kind="agl",
+                model_top=None,
             )
             msl = f.sample_points(
-                {**point, "z": [z_quarter + 1300.0]}, ["TEMP", "pressure"], z_kind="msl"
+                {**point, "z": [z_quarter + 1300.0]},
+                ["TEMP", "pressure"],
+                z_kind="msl",
+                model_top=None,
             )
         np.testing.assert_allclose(by_p["TEMP"].iloc[0], 278.75, atol=1e-4)
         for result in (agl, msl):
@@ -801,7 +807,7 @@ class TestWrfFile:
         # halfway to level 1 it is the geometric mean of 850 and 820 hPa.
         point = {"lon": [-105.0], "lat": [45.0], "z": [0.5 * _WRF_Z[0]]}
         with File(path) as f:
-            agl = f.sample_points(point, ["pressure"], z_kind="agl")
+            agl = f.sample_points(point, ["pressure"], z_kind="agl", model_top=None)
         np.testing.assert_allclose(
             agl["pressure"].iloc[0], np.sqrt(850.0 * 820.0), rtol=1e-5
         )
@@ -813,4 +819,4 @@ class TestWrfFile:
         with File(path) as f:
             for z_kind in ("pressure", "agl"):
                 with pytest.raises(ValueError, match="PRES"):
-                    f.sample_points(point, ["TEMP"], z_kind=z_kind)
+                    f.sample_points(point, ["TEMP"], z_kind=z_kind, model_top=None)
