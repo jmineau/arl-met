@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=db47bfd5"></script>
+    <script src="../../../_static/documentation_options.js?v=cf08a466"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b7.dev1+ge4c275434" />
+  <meta name="docsearch:version" content="0.1.0b7.dev2+gbe61cfe85" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -432,11 +432,14 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._time</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_timestamp</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span><span class="p">,</span> <span class="n">GridWindow</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_DEFAULT_MODEL_TOP</span><span class="p">,</span>
     <span class="n">HybridAxis</span><span class="p">,</span>
     <span class="n">PressureAxis</span><span class="p">,</span>
     <span class="n">SigmaAxis</span><span class="p">,</span>
     <span class="n">TerrainAxis</span><span class="p">,</span>
+    <span class="n">VerticalAxis</span><span class="p">,</span>
     <span class="n">WrfAxis</span><span class="p">,</span>
+    <span class="n">_hysplit_virtual_temperature</span><span class="p">,</span>
     <span class="n">_hysplit_z_agl</span><span class="p">,</span>
 <span class="p">)</span>
 
@@ -1225,6 +1228,9 @@
 <span class="sd">    0 m above it, at the surface pressure ``PRSS``. On a pressure-level file a</span>
 <span class="sd">    level at or below the ground has no height (NaN), so a profile runs from</span>
 <span class="sd">    the ground to the first level above it, as ``prfprs`` skips such levels.</span>
+<span class="sd">    Given HYSPLIT's internal *levels* (:class:`_InternalLevels`), ``prfprs``</span>
+<span class="sd">    also skips a level between the ground and the first internal level above</span>
+<span class="sd">    it, and so does this.</span>
 <span class="sd">    Each field is read only when first needed, and every array is</span>
 <span class="sd">    ``(n_points, n_levels)`` over all the axis's levels, or ``(n_points,)`` for</span>
 <span class="sd">    the ground.</span>
@@ -1234,9 +1240,12 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span>
         <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">levels</span><span class="p">:</span> <span class="n">_InternalLevels</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">recordset</span> <span class="o">=</span> <span class="n">recordset</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">plan</span> <span class="o">=</span> <span class="n">plan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">levels</span> <span class="o">=</span> <span class="n">levels</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">axis</span> <span class="o">=</span> <span class="n">recordset</span><span class="o">.</span><span class="n">vertical_axis</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">upper</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)))</span>
 
@@ -1313,23 +1322,69 @@
         <span class="k">return</span> <span class="n">z</span>
 
     <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">terrain</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Terrain height [m] at each point: ``SHGT``.</span>
+
+<span class="sd">        A sigma, hybrid or WRF time step without ``SHGT`` gets HYSPLIT's</span>
+<span class="sd">        estimate from the surface pressure and the first level's temperature</span>
+<span class="sd">        (``prfmod``'s ``PRFA``: ``ln(1013 / PRSS) R T1 / g``, 0 where ``PRSS``</span>
+<span class="sd">        is above 1013 hPa), which ``prfsig`` and ``prfecm`` write back into</span>
+<span class="sd">        HYSPLIT's terrain array.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"SHGT"</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_terrain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan</span><span class="p">)</span>
+        <span class="n">p0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">surface_pressure</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">t1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_temperature</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+            <span class="n">estimate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">_SFCP</span> <span class="o">/</span> <span class="n">p0</span><span class="p">)</span> <span class="o">*</span> <span class="n">_HYSPLIT_RDRY</span> <span class="o">*</span> <span class="n">t1</span> <span class="o">/</span> <span class="n">_HYSPLIT_GRAV</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">p0</span> <span class="o">&lt;=</span> <span class="n">_SFCP</span><span class="p">,</span> <span class="n">estimate</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_hgts_agl</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        ``HGTS - SHGT`` [m] of each level of a pressure-level file, 0 at the ground.</span>
 
 <span class="sd">        A level at or below the ground is NaN: HYSPLIT's ``prfprs`` puts no</span>
 <span class="sd">        output level there and keeps the ground as the bottom of the profile.</span>
+<span class="sd">        With internal *levels* so is a level below the first of them:</span>
+<span class="sd">        ``prfprs`` moves the bottom of its profile up only after filling its</span>
+<span class="sd">        first output level (``IF(KL.GT.1)``).</span>
 <span class="sd">        """</span>
         <span class="n">hgts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">"HGTS"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">hgts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">"Pressure-level (flag=2) files require HGTS records for AGL/MSL sampling."</span>
             <span class="p">)</span>
-        <span class="n">terrain</span> <span class="o">=</span> <span class="n">_terrain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan</span><span class="p">)</span>
+        <span class="n">terrain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">terrain</span>
         <span class="n">agl</span> <span class="o">=</span> <span class="n">hgts</span> <span class="o">-</span> <span class="n">terrain</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">terrain</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-        <span class="n">z</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">agl</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">agl</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">z</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">agl</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">agl</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">first</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="o">.</span><span class="n">heights</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">terrain</span><span class="p">)</span>
+            <span class="n">z</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">agl</span> <span class="o">&gt;=</span> <span class="n">first</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">agl</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">z</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">virtual_temperature</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Virtual temperature [K] of each level, the ground's at level 0.</span>
+
+<span class="sd">        HYSPLIT's ``CALCTV`` at each level's pressure, and at the ground's</span>
+<span class="sd">        temperature and pressure for the ground, as ``prfsig``, ``prfprs`` and</span>
+<span class="sd">        ``prfecm`` find the air's density from it.</span>
+<span class="sd">        """</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pressure</span>
+        <span class="n">tv</span><span class="p">,</span> <span class="n">tv_ground</span> <span class="o">=</span> <span class="n">_hysplit_virtual_temperature</span><span class="p">(</span>
+            <span class="n">p</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:],</span>
+            <span class="n">p</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_temperature</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ground_temperature</span><span class="p">,</span>
+            <span class="n">specific_humidity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">"SPHU"</span><span class="p">),</span>
+            <span class="n">relative_humidity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">"RELH"</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">tv_ground</span><span class="p">,</span> <span class="n">tv</span><span class="p">])</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">ground_temperature</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
@@ -1386,6 +1441,40 @@
         <span class="k">return</span> <span class="n">first_level</span> <span class="k">if</span> <span class="n">values</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">values</span>
 
 
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_Profile</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    One variable's profile at each row of a plan, to be read at any target.</span>
+
+<span class="sd">    *values* and *coords* are ``(rows, levels)``; pressure is held as ln p</span>
+<span class="sd">    (*log_p*) and read back as p. *walk*: a column from the ground up, walked</span>
+<span class="sd">    in level order (:func:`_interp_column`). *fixed*: a field with one value</span>
+<span class="sd">    per row (a surface or single-level field), the same at every target.</span>
+<span class="sd">    """</span>
+
+    <span class="n">values</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">log_p</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">walk</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">fixed</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">at</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return the value at each row's target: ``(rows,)`` float32, NaN outside the profile."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fixed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fixed</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">_interp_profiles</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">walk</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_p</span> <span class="k">else</span> <span class="n">out</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">top</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return each row's highest coordinate with a value (NaN where none)."""</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">top</span><span class="p">),</span> <span class="n">top</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_sample_variable</span><span class="p">(</span>
     <span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span>
     <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1396,14 +1485,38 @@
     <span class="n">column</span><span class="p">:</span> <span class="n">_Column</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Interpolate *variable* to each target height along the column of each row of *plan*.</span>
+<span class="sd">    Interpolate *variable* to each target along the column of each row of *plan*.</span>
+
+<span class="sd">    *targets* are in the coordinate system of *z_kind*; the profile is</span>
+<span class="sd">    :func:`_variable_profile`'s. Returns ``(n_points,)`` float32, NaN for</span>
+<span class="sd">    out-of-range or off-grid points.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">variable</span> <span class="o">==</span> <span class="s2">"pressure"</span> <span class="ow">and</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"pressure"</span><span class="p">:</span>
+        <span class="c1"># Pressure sampled in pressure space is the requested target itself.</span>
+        <span class="k">return</span> <span class="n">targets</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">profile</span> <span class="o">=</span> <span class="n">_variable_profile</span><span class="p">(</span>
+        <span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">z_kind</span><span class="o">=</span><span class="n">z_kind</span><span class="p">,</span> <span class="n">plan</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="n">column</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">profile</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_variable_profile</span><span class="p">(</span>
+    <span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span>
+    <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">z_kind</span><span class="p">:</span> <span class="n">_ColumnZKind</span><span class="p">,</span>
+    <span class="n">plan</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">,</span>
+    <span class="n">column</span><span class="p">:</span> <span class="n">_Column</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_Profile</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Build *variable*'s profile along the column of each row of *plan*.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    variable :</span>
-<span class="sd">        ARL field name, or ``'pressure'`` for the virtual pressure variable.</span>
-<span class="sd">    targets :</span>
-<span class="sd">        Target z values in the coordinate system specified by *z_kind*.</span>
+<span class="sd">        ARL field name, or ``'pressure'`` for the virtual pressure variable</span>
+<span class="sd">        (at ``z_kind='pressure'`` that is the target itself:</span>
+<span class="sd">        :func:`_sample_variable`).</span>
 <span class="sd">    z_kind :</span>
 <span class="sd">        ``'native'`` — target is a level index (fractional);</span>
 <span class="sd">        ``'pressure'`` — target is pressure in hPa;</span>
@@ -1421,34 +1534,30 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    np.ndarray of shape (n_points,) float32, NaN for out-of-range or off-grid points.</span>
-<span class="sd">    Along a *column* pressure (``PRES`` or the virtual pressure) is</span>
-<span class="sd">    interpolated as ln p, as HYSPLIT's ``prfsig``, ``prfprs`` and ``prfecm``</span>
-<span class="sd">    do; otherwise (terrain-following files, whose ``prfter`` is linear, and</span>
-<span class="sd">    the native levels of pressure-level files, whose level 0 holds no</span>
-<span class="sd">    pressure) linearly.</span>
+<span class="sd">    _Profile</span>
+<span class="sd">        Along a *column* pressure (``PRES`` or the virtual pressure) is</span>
+<span class="sd">        interpolated as ln p, as HYSPLIT's ``prfsig``, ``prfprs`` and ``prfecm``</span>
+<span class="sd">        do; otherwise (terrain-following files, whose ``prfter`` is linear, and</span>
+<span class="sd">        the native levels of pressure-level files, whose level 0 holds no</span>
+<span class="sd">        pressure) linearly.</span>
 <span class="sd">    """</span>
     <span class="n">axis</span> <span class="o">=</span> <span class="n">recordset</span><span class="o">.</span><span class="n">vertical_axis</span>
     <span class="n">log_p</span> <span class="o">=</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">_PRESSURE_VARIABLES</span>
     <span class="c1"># At heights a column is walked in level order, as HYSPLIT does (#106).</span>
     <span class="n">walk</span> <span class="o">=</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"agl"</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_interp</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Interpolate *values* to the targets, as ln p for pressure."""</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">log_p</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">_interp_profiles</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="n">walk</span><span class="p">)</span>
-        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
-            <span class="n">log_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">_interp_profiles</span><span class="p">(</span><span class="n">log_values</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="n">walk</span><span class="p">))</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_profile</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">_Profile</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Hold *values* along *coords*, as ln p for pressure."""</span>
+        <span class="k">if</span> <span class="n">log_p</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_Profile</span><span class="p">(</span><span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span> <span class="n">log_p</span><span class="o">=</span><span class="n">log_p</span><span class="p">,</span> <span class="n">walk</span><span class="o">=</span><span class="n">walk</span><span class="p">)</span>
 
     <span class="c1"># --- virtual "pressure" variable ---</span>
     <span class="k">if</span> <span class="n">variable</span> <span class="o">==</span> <span class="s2">"pressure"</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"pressure"</span><span class="p">:</span>
-            <span class="c1"># Pressure sampled in pressure space is the requested target itself.</span>
-            <span class="k">return</span> <span class="n">targets</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
             <span class="c1"># Terrain-following files have no pressure coordinate.</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">targets</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">_Profile</span><span class="p">(</span><span class="n">fixed</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
 
         <span class="c1"># Treat pressure as a virtual field whose per-level values are the</span>
         <span class="c1"># pressures themselves, interpolated over the requested z system.</span>
@@ -1467,13 +1576,13 @@
             <span class="n">plan</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span>
             <span class="n">column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">_interp</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_profile</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
 
     <span class="c1"># --- data variable ---</span>
     <span class="n">samples</span><span class="p">,</span> <span class="n">levels</span> <span class="o">=</span> <span class="n">_variable_profiles</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">SURFACE_VARIABLES</span><span class="p">:</span>
-        <span class="c1"># Single-level or surface field — return directly without vertical interpolation.</span>
-        <span class="k">return</span> <span class="n">samples</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># Single-level or surface field — the same at every target.</span>
+        <span class="k">return</span> <span class="n">_Profile</span><span class="p">(</span><span class="n">fixed</span><span class="o">=</span><span class="n">samples</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">levels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="c1"># Level 0 is the ground: start the profile there, as HYSPLIT does.</span>
@@ -1488,7 +1597,234 @@
         <span class="n">plan</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span>
         <span class="n">column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="n">_interp</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_profile</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+
+
+<span class="c1">#: HYSPLIT's ``prfmod`` constants, for the pressure it extrapolates above a file's top.</span>
+<span class="n">_HYSPLIT_GRAV</span> <span class="o">=</span> <span class="mf">9.80616</span>  <span class="c1"># m/s2</span>
+<span class="n">_HYSPLIT_RDRY</span> <span class="o">=</span> <span class="mf">287.04</span>  <span class="c1"># J/(kg K)</span>
+
+<span class="c1">#: The quadratic internal grids HYSPLIT's ``metlvl.f`` chooses from, finest</span>
+<span class="c1">#: last: level ``k`` (from 1) is ``a k**2 + b k + c`` meters above the ground</span>
+<span class="c1">#: at zero terrain.</span>
+<span class="n">_HYSPLIT_GRIDS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="mf">30.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">25.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="mf">20.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="mf">15.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="mf">10.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+    <span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="c1">#: ``metlvl.f``'s meters per hPa by 100 hPa (100 to 900) and by 10 hPa (10 to 90).</span>
+<span class="n">_ZPH1</span> <span class="o">=</span> <span class="p">(</span><span class="mf">17.98</span><span class="p">,</span> <span class="mf">14.73</span><span class="p">,</span> <span class="mf">13.09</span><span class="p">,</span> <span class="mf">11.98</span><span class="p">,</span> <span class="mf">11.15</span><span class="p">,</span> <span class="mf">10.52</span><span class="p">,</span> <span class="mf">10.04</span><span class="p">,</span> <span class="mf">9.75</span><span class="p">,</span> <span class="mf">9.88</span><span class="p">)</span>
+<span class="n">_ZPH2</span> <span class="o">=</span> <span class="p">(</span><span class="mf">31.37</span><span class="p">,</span> <span class="mf">27.02</span><span class="p">,</span> <span class="mf">24.59</span><span class="p">,</span> <span class="mf">22.92</span><span class="p">,</span> <span class="mf">21.65</span><span class="p">,</span> <span class="mf">20.66</span><span class="p">,</span> <span class="mf">19.83</span><span class="p">,</span> <span class="mf">19.13</span><span class="p">,</span> <span class="mf">18.51</span><span class="p">)</span>
+<span class="c1">#: HYSPLIT's 1013 hPa: ``metlvl.f``'s assumed surface pressure and ``prfmod``'s</span>
+<span class="c1">#: mean sea-level pressure.</span>
+<span class="n">_SFCP</span> <span class="o">=</span> <span class="mf">1013.0</span>
+
+<span class="c1">#: Variables HYSPLIT carries above a file's top on its internal levels at the</span>
+<span class="c1">#: value of the last internal level below the top (``prfsig``'s tail, ``prfend``).</span>
+<span class="n">_HELD_ABOVE_TOP</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"TEMP"</span><span class="p">,</span> <span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">})</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_InternalLevels</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    HYSPLIT's internal vertical grid for a run, as ``hymodelc`` sets it up.</span>
+
+<span class="sd">    *zmdl* is ``ZMDL``, the height at which the terrain-following sigma</span>
+<span class="sd">    surfaces go flat: ``max(model_top, 25000)`` (``runset.f``). *heights* are</span>
+<span class="sd">    the internal levels' heights above the ground where the terrain is 0 m,</span>
+<span class="sd">    ``a k**2 + b k + c`` (``1 - ZSG`` times ``ZMDL``); above a grid point with</span>
+<span class="sd">    terrain ``zsfc`` each is ``(ZMDL - zsfc) / ZMDL`` times as high.</span>
+<span class="sd">    """</span>
+
+    <span class="n">zmdl</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">heights</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">for_axis</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">,</span> <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_InternalLevels</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Return the internal grid HYSPLIT's ``metlvl.f`` sets up for a run on *axis*.</span>
+
+<span class="sd">        ``metlvl`` counts the file's levels up to *model_top* (each level's</span>
+<span class="sd">        pressure turned into a rough height with a fixed table) and takes the</span>
+<span class="sd">        first of six quadratic grids that has more levels than that up to</span>
+<span class="sd">        *model_top*. Computed in single precision, as HYSPLIT does. A WRF</span>
+<span class="sd">        (flag 5) file counts as sigma: without WRF's hybrid coefficients</span>
+<span class="sd">        HYSPLIT reads it as flag 1.</span>
+<span class="sd">        """</span>
+        <span class="n">f32</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+        <span class="n">zdata</span> <span class="o">=</span> <span class="n">f32</span><span class="p">(</span><span class="n">model_top</span><span class="p">)</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="n">f32</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">offset</span><span class="p">)</span>
+        <span class="n">levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">n_data</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">zlevel</span> <span class="o">=</span> <span class="n">f32</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">zlevel</span> <span class="o">&lt;=</span> <span class="n">zdata</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">n_data</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">height</span> <span class="o">=</span> <span class="n">levels</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">)):</span>
+                <span class="n">plevel</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">f32</span><span class="p">(</span><span class="n">_SFCP</span><span class="p">)</span> <span class="o">-</span> <span class="n">offset</span><span class="p">)</span> <span class="o">*</span> <span class="n">height</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">):</span>
+                <span class="n">plevel</span> <span class="o">=</span> <span class="n">height</span> <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">f32</span><span class="p">(</span><span class="n">_SFCP</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># HybridAxis</span>
+                <span class="n">floor</span> <span class="o">=</span> <span class="n">f32</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">height</span><span class="p">))</span>
+                <span class="n">plevel</span> <span class="o">=</span> <span class="n">f32</span><span class="p">(</span><span class="n">_SFCP</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">height</span> <span class="o">-</span> <span class="n">floor</span><span class="p">)</span> <span class="o">+</span> <span class="n">floor</span> <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">f32</span><span class="p">(</span><span class="n">_SFCP</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">plevel</span> <span class="o">&gt;=</span> <span class="mf">100.0</span><span class="p">:</span>
+                <span class="n">delz</span> <span class="o">=</span> <span class="n">f32</span><span class="p">(</span><span class="n">_ZPH1</span><span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">plevel</span> <span class="o">/</span> <span class="n">f32</span><span class="p">(</span><span class="mf">100.0</span><span class="p">)))</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">delz</span> <span class="o">=</span> <span class="n">f32</span><span class="p">(</span><span class="n">_ZPH2</span><span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">plevel</span> <span class="o">/</span> <span class="n">f32</span><span class="p">(</span><span class="mf">10.0</span><span class="p">))))</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="n">zlevel</span> <span class="o">=</span> <span class="p">(</span><span class="n">f32</span><span class="p">(</span><span class="n">_SFCP</span><span class="p">)</span> <span class="o">-</span> <span class="n">plevel</span><span class="p">)</span> <span class="o">*</span> <span class="n">delz</span>
+        <span class="n">needed</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_data</span><span class="p">)</span>
+
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">b</span> <span class="o">=</span> <span class="n">c</span> <span class="o">=</span> <span class="n">f32</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">grid</span> <span class="ow">in</span> <span class="n">_HYSPLIT_GRIDS</span><span class="p">:</span>
+            <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="n">f32</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">grid</span><span class="p">)</span>
+            <span class="n">dist</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="n">f32</span><span class="p">(</span><span class="mf">4.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="p">(</span><span class="n">c</span> <span class="o">-</span> <span class="n">zdata</span><span class="p">)</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="o">-</span><span class="n">b</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">f32</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">a</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">dist</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="n">needed</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">heights</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">k</span> <span class="o">*</span> <span class="n">k</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">*</span> <span class="n">k</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">zmdl</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">model_top</span><span class="p">)),</span> <span class="mf">25000.0</span><span class="p">),</span> <span class="n">heights</span><span class="o">=</span><span class="n">heights</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return how much higher the levels are above *terrain* than at 0 m: ``(ZMDL - zsfc) / ZMDL``."""</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">zmdl</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">terrain</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">))</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">zmdl</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">position</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Return the internal layer of each height *z* above its *terrain*, and the fraction up it.</span>
+
+<span class="sd">        Returns ``(k, f)``: the value is the one at level ``k`` (0-based)</span>
+<span class="sd">        plus ``f`` of the way to level ``k + 1``, linear in sigma, as</span>
+<span class="sd">        ``hymodelc`` reads a particle's ``PRES``, ``TEMP`` and ``DENS`` and</span>
+<span class="sd">        ``zindex.f`` places it for ``adv3nt``. The particle's sigma is ``1 -</span>
+<span class="sd">        z / (ZMDL - zsfc)``. Below the first level the first level's value</span>
+<span class="sd">        (``f = 0``), above the last the last's (``f = 1``). ``f`` is NaN for a</span>
+<span class="sd">        NaN or negative *z*.</span>
+<span class="sd">        """</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">heights</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+            <span class="n">internal</span> <span class="o">=</span> <span class="n">z</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">terrain</span><span class="p">)</span>  <span class="c1"># the height at 0 m terrain</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">internal</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">"right"</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">internal</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">((</span><span class="n">internal</span> <span class="o">-</span> <span class="n">h</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">h</span><span class="p">[</span><span class="n">k</span><span class="p">]),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">z</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">f</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">k</span><span class="p">,</span> <span class="n">f</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_pressure_above_top</span><span class="p">(</span>
+    <span class="n">p_top</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">t_top</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">tv_top</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">k_top</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">k</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">heights</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Pressure at internal level *k*, above level *k_top*, the last below a column's top.</span>
+
+<span class="sd">    HYSPLIT's ``prfend`` (and ``prfsig``'s tail) steps it up level by level</span>
+<span class="sd">    hydrostatically with the level below's density: ``p_k = p_{k-1} (1 - g dz</span>
+<span class="sd">    / (R T))``, where ``T`` is *tv_top*, the virtual temperature at level</span>
+<span class="sd">    *k_top*, for the first step and the temperature *t_top* (dry) after.</span>
+<span class="sd">    *heights* ``(rows, levels)`` are the levels' heights above each row's</span>
+<span class="sd">    ground; every other array is ``(rows,)``.</span>
+<span class="sd">    """</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+    <span class="n">dz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">heights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># dz[:, i] from level i to level i + 1</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="o">-</span><span class="n">_HYSPLIT_GRAV</span> <span class="o">*</span> <span class="n">dz</span> <span class="o">/</span> <span class="p">(</span><span class="n">_HYSPLIT_RDRY</span> <span class="o">*</span> <span class="n">t_top</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]))</span>
+    <span class="n">cum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># the first step uses tv_top; the steps after it, from k_top + 1 to k, t_top</span>
+    <span class="n">first</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="o">-</span><span class="n">_HYSPLIT_GRAV</span> <span class="o">*</span> <span class="n">dz</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">k_top</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">_HYSPLIT_RDRY</span> <span class="o">*</span> <span class="n">tv_top</span><span class="p">))</span>
+    <span class="n">log_p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p_top</span><span class="p">)</span> <span class="o">+</span> <span class="n">first</span> <span class="o">+</span> <span class="n">cum</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">cum</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">k_top</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_p</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_sample_on_internal_levels</span><span class="p">(</span>
+    <span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span>
+    <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">k</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">f</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">levels</span><span class="p">:</span> <span class="n">_InternalLevels</span><span class="p">,</span>
+    <span class="n">nodes</span><span class="p">:</span> <span class="n">HorizontalSamplePlan</span><span class="p">,</span>
+    <span class="n">weights</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">column</span><span class="p">:</span> <span class="n">_Column</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Sample *variable* at each point as HYSPLIT does on its internal levels.</span>
+
+<span class="sd">    At each grid point around a point (*nodes*, *weights*) the profile is read</span>
+<span class="sd">    at the internal levels ``k`` and ``k + 1`` (:meth:`_InternalLevels.position`)</span>
+<span class="sd">    above that grid point's own ground, and the value is ``f`` of the way</span>
+<span class="sd">    between them; the grid points are then blended. Above a column's top</span>
+<span class="sd">    ``TEMP``, ``UWND`` and ``VWND`` keep the value of the last internal level</span>
+<span class="sd">    below it and pressure falls hydrostatically from there</span>
+<span class="sd">    (:func:`_pressure_above_top`), as HYSPLIT fills its internal levels;</span>
+<span class="sd">    another variable is NaN there.</span>
+<span class="sd">    """</span>
+    <span class="n">blocks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+    <span class="n">kk</span><span class="p">,</span> <span class="n">ff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">blocks</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">blocks</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">levels</span><span class="o">.</span><span class="n">heights</span>
+    <span class="n">scale</span> <span class="o">=</span> <span class="n">levels</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">terrain</span><span class="p">)</span>
+    <span class="n">top_k</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">k_lo</span><span class="p">,</span> <span class="n">k_hi</span> <span class="o">=</span> <span class="n">kk</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">kk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">top_k</span><span class="p">)</span>
+    <span class="n">h_lo</span><span class="p">,</span> <span class="n">h_hi</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="n">k_lo</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale</span><span class="p">,</span> <span class="n">h</span><span class="p">[</span><span class="n">k_hi</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale</span>
+    <span class="n">profile</span> <span class="o">=</span> <span class="n">_variable_profile</span><span class="p">(</span>
+        <span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">z_kind</span><span class="o">=</span><span class="s2">"agl"</span><span class="p">,</span> <span class="n">plan</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="n">column</span>
+    <span class="p">)</span>
+    <span class="n">lo</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">h_lo</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">hi</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">h_hi</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="n">extrapolates</span> <span class="o">=</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">_HELD_ABOVE_TOP</span> <span class="ow">or</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">_PRESSURE_VARIABLES</span>
+    <span class="k">if</span> <span class="n">extrapolates</span> <span class="ow">and</span> <span class="n">profile</span><span class="o">.</span><span class="n">fixed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">top</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+            <span class="c1"># the last internal level at or below each column's top</span>
+            <span class="n">k_top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">top</span> <span class="o">/</span> <span class="n">scale</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">"right"</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">above</span> <span class="o">=</span> <span class="p">(</span><span class="n">h_hi</span> <span class="o">&gt;</span> <span class="n">top</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">k_top</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">above</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">above</span><span class="p">)</span>
+            <span class="n">k_top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_top</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">h_top</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="n">k_top</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">h_top</span><span class="p">)[</span><span class="n">rows</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">_HELD_ABOVE_TOP</span><span class="p">:</span>
+                <span class="n">held_lo</span> <span class="o">=</span> <span class="n">held_hi</span> <span class="o">=</span> <span class="n">base</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">t_top</span> <span class="o">=</span> <span class="n">_variable_profile</span><span class="p">(</span>
+                    <span class="n">recordset</span><span class="p">,</span> <span class="s2">"TEMP"</span><span class="p">,</span> <span class="n">z_kind</span><span class="o">=</span><span class="s2">"agl"</span><span class="p">,</span> <span class="n">plan</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="n">column</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">h_top</span><span class="p">)[</span><span class="n">rows</span><span class="p">]</span>
+                <span class="n">tv_top</span> <span class="o">=</span> <span class="n">_interp_profiles</span><span class="p">(</span>
+                    <span class="n">column</span><span class="o">.</span><span class="n">virtual_temperature</span><span class="p">,</span> <span class="n">column</span><span class="o">.</span><span class="n">z_agl</span><span class="p">,</span> <span class="n">h_top</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)[</span><span class="n">rows</span><span class="p">]</span>
+                <span class="n">held_lo</span><span class="p">,</span> <span class="n">held_hi</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">_pressure_above_top</span><span class="p">(</span>
+                        <span class="n">base</span><span class="p">,</span>
+                        <span class="n">t_top</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">),</span>
+                        <span class="n">tv_top</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">),</span>
+                        <span class="n">k_top</span><span class="p">[</span><span class="n">rows</span><span class="p">],</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_at</span><span class="p">[</span><span class="n">rows</span><span class="p">],</span> <span class="n">k_top</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                        <span class="n">h</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">scale</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">k_at</span> <span class="ow">in</span> <span class="p">(</span><span class="n">k_lo</span><span class="p">,</span> <span class="n">k_hi</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">for</span> <span class="n">values</span><span class="p">,</span> <span class="n">k_at</span><span class="p">,</span> <span class="n">held</span> <span class="ow">in</span> <span class="p">((</span><span class="n">lo</span><span class="p">,</span> <span class="n">k_lo</span><span class="p">,</span> <span class="n">held_lo</span><span class="p">),</span> <span class="p">(</span><span class="n">hi</span><span class="p">,</span> <span class="n">k_hi</span><span class="p">,</span> <span class="n">held_hi</span><span class="p">)):</span>
+                <span class="n">past</span> <span class="o">=</span> <span class="n">k_at</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">k_top</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span>
+                <span class="n">values</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">past</span><span class="p">,</span> <span class="n">held</span><span class="p">,</span> <span class="n">values</span><span class="p">[</span><span class="n">rows</span><span class="p">])</span>
+
+    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
+        <span class="n">at_nodes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ff</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">lo</span> <span class="o">+</span> <span class="n">ff</span> <span class="o">*</span> <span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">_blend</span><span class="p">(</span><span class="n">at_nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_sample_points_from_file</span><span class="p">(</span>
@@ -1500,6 +1836,7 @@
     <span class="n">z_kind</span><span class="p">:</span> <span class="n">ZKind</span><span class="p">,</span>
     <span class="n">method</span><span class="p">:</span> <span class="n">SampleMethod</span><span class="p">,</span>
     <span class="n">wind_pairs</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_DEFAULT_MODEL_TOP</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Sample variables at points that all share one valid time in one file.</span>
@@ -1545,6 +1882,14 @@
 <span class="sd">    wind_pairs :</span>
 <span class="sd">        Wind component pairs to rotate from grid- to earth-relative (see</span>
 <span class="sd">        :func:`_check_wind_pairs`); empty to leave winds grid-relative.</span>
+<span class="sd">    model_top :</span>
+<span class="sd">        The HYSPLIT run's top of model domain, at heights only: sample on the</span>
+<span class="sd">        run's internal levels (:class:`_InternalLevels`,</span>
+<span class="sd">        :func:`_sample_on_internal_levels`). None: at the point's height</span>
+<span class="sd">        above each grid point's ground. The default (``_DEFAULT_MODEL_TOP``,</span>
+<span class="sd">        told by identity) is 25000 at heights, except on a terrain-following</span>
+<span class="sd">        (flag 3) file, where it reads the file's own levels; any other value</span>
+<span class="sd">        raises on a flag 3 file.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1554,6 +1899,14 @@
     <span class="n">recordset</span> <span class="o">=</span> <span class="n">file</span><span class="p">[</span><span class="n">time</span><span class="p">]</span>
     <span class="n">axis</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">vertical_axis</span>
     <span class="n">heights</span> <span class="o">=</span> <span class="n">z_kind</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">)</span>
+    <span class="n">levels</span><span class="p">:</span> <span class="n">_InternalLevels</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">model_top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">heights</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
+            <span class="n">levels</span> <span class="o">=</span> <span class="n">_InternalLevels</span><span class="o">.</span><span class="n">for_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">model_top</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">model_top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">_DEFAULT_MODEL_TOP</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"model_top is not supported for terrain-following (flag=3) files."</span>
+            <span class="p">)</span>
     <span class="c1"># flag=2 heights need terrain for the ground and HGTS - SHGT; MSL needs the</span>
     <span class="c1"># terrain at the point on every axis.</span>
     <span class="n">need_terrain</span> <span class="o">=</span> <span class="p">(</span><span class="n">heights</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
@@ -1591,7 +1944,13 @@
     <span class="c1"># a target near the ground is near the ground of the point's own column.</span>
     <span class="n">level_first</span> <span class="o">=</span> <span class="n">column_z_kind</span> <span class="o">==</span> <span class="s2">"pressure"</span>
     <span class="n">nodes</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="n">_node_plan</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">each_level_first</span><span class="o">=</span><span class="n">level_first</span><span class="p">)</span>
-    <span class="n">column</span> <span class="o">=</span> <span class="n">_Column</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">nodes</span><span class="p">)</span> <span class="k">if</span> <span class="n">has_column</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">column</span> <span class="o">=</span> <span class="n">_Column</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">)</span> <span class="k">if</span> <span class="n">has_column</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">place</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">levels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># The particle's terrain, interpolated from the grid points' as HYSPLIT</span>
+        <span class="c1"># interpolates its terrain array, places it among the internal levels.</span>
+        <span class="k">assert</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">place</span> <span class="o">=</span> <span class="n">levels</span><span class="o">.</span><span class="n">position</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">_blend</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">terrain</span><span class="p">,</span> <span class="n">weights</span><span class="p">))</span>
     <span class="c1"># On a WRF file UWND and VWND are on their own staggered grids: each is</span>
     <span class="c1"># sampled at its own array position, from the columns of the grid points</span>
     <span class="c1"># around it (the ground's U10M/V10M, the levels' heights), as HYSPLIT</span>
@@ -1608,7 +1967,13 @@
                 <span class="n">each_level_first</span><span class="o">=</span><span class="n">level_first</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">has_column</span><span class="p">:</span>
-                <span class="n">var_column</span> <span class="o">=</span> <span class="n">_Column</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">var_nodes</span><span class="p">)</span>
+                <span class="n">var_column</span> <span class="o">=</span> <span class="n">_Column</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">var_nodes</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">levels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">var_column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">place</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">sampled</span><span class="p">[</span><span class="n">variable</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sample_on_internal_levels</span><span class="p">(</span>
+                <span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="o">*</span><span class="n">place</span><span class="p">,</span> <span class="n">levels</span><span class="p">,</span> <span class="n">var_nodes</span><span class="p">,</span> <span class="n">var_weights</span><span class="p">,</span> <span class="n">var_column</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
         <span class="n">at_nodes</span> <span class="o">=</span> <span class="n">_sample_variable</span><span class="p">(</span>
             <span class="n">recordset</span><span class="p">,</span>
             <span class="n">variable</span><span class="p">,</span>
@@ -1685,6 +2050,7 @@
     <span class="n">z_kind</span><span class="p">:</span> <span class="n">ZKind</span> <span class="o">=</span> <span class="s2">"pressure"</span><span class="p">,</span>
     <span class="n">method</span><span class="p">:</span> <span class="n">SampleMethod</span> <span class="o">=</span> <span class="s2">"linear"</span><span class="p">,</span>
     <span class="n">earth_relative</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_DEFAULT_MODEL_TOP</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Sample meteorological variables at arbitrary (lon, lat, z, time) points.</span>
@@ -1737,6 +2103,28 @@
 <span class="sd">        the grid axes to east/north, using the meridian convergence of each</span>
 <span class="sd">        file's grid. Both components of a pair must be requested. No effect on</span>
 <span class="sd">        lat/lon grids.</span>
+<span class="sd">    model_top : float or None, default 25000</span>
+<span class="sd">        The HYSPLIT run's top of model domain [m], the ``CONTROL`` file's</span>
+<span class="sd">        line after the vertical motion option (PYSTILT's ``z_top``, 25000 by</span>
+<span class="sd">        default). At heights (``"agl"``, ``"msl"``) the values are the ones a</span>
+<span class="sd">        HYSPLIT run with that top uses: on HYSPLIT's own internal levels</span>
+<span class="sd">        (those its ``metlvl`` picks for this file's vertical grid), which</span>
+<span class="sd">        follow the terrain as sigma surfaces that go flat at</span>
+<span class="sd">        ``max(model_top, 25000)`` m, linear between those levels, the first</span>
+<span class="sd">        level's value below it (10 m, or 5 m on the finest grid), and above a</span>
+<span class="sd">        file's top ``TEMP``, ``UWND``, ``VWND`` and pressure extrapolated as</span>
+<span class="sd">        HYSPLIT does (other variables NaN there). A sigma, hybrid or WRF file</span>
+<span class="sd">        without ``SHGT`` takes HYSPLIT's terrain estimate from ``PRSS``. The</span>
+<span class="sd">        default matches a run with PYSTILT's default top; a run with another</span>
+<span class="sd">        top needs its value, because below 25 km the internal levels depend on</span>
+<span class="sd">        it (the *Sampling* guide says how far). ``None`` reads each grid</span>
+<span class="sd">        point's column at the point's own height above that grid point's</span>
+<span class="sd">        ground, between the file's own levels, which is not what HYSPLIT does</span>
+<span class="sd">        (differences of up to 4.6 K, 3.5 m/s and 1.9 hPa below 5 km) and gives</span>
+<span class="sd">        NaN above a file's top. The default applies at heights only: at</span>
+<span class="sd">        ``"pressure"`` and ``"native"`` it is ignored, and on a</span>
+<span class="sd">        terrain-following (flag 3) file it is ignored too, the file's own</span>
+<span class="sd">        levels being read; a value passed with any of these raises.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1754,8 +2142,10 @@
 <span class="sd">        ``time`` column, no time is given and the inputs hold more than one</span>
 <span class="sd">        time, a point time is in none of the files, a time is in more than one</span>
 <span class="sd">        file, a variable name collides with a column of ``points``, ``z_kind``</span>
-<span class="sd">        or ``method`` is invalid, or a field that ``z_kind`` requires is</span>
-<span class="sd">        missing.</span>
+<span class="sd">        or ``method`` is invalid, a field that ``z_kind`` requires is</span>
+<span class="sd">        missing, or ``model_top`` is passed with ``z_kind`` ``"pressure"`` or</span>
+<span class="sd">        ``"native"``, is not a positive number, or is passed for a</span>
+<span class="sd">        terrain-following (flag 3) file.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -1780,6 +2170,15 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"z_kind must be one of 'native', 'pressure', 'agl', or 'msl'."</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_METHODS</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"method must be 'linear' or 'nearest'."</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">model_top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">model_top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">_DEFAULT_MODEL_TOP</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">z_kind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"model_top applies to heights: z_kind must be 'agl' or 'msl'."</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">model_top</span><span class="p">)</span> <span class="ow">and</span> <span class="n">model_top</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"model_top must be a positive number of meters, got </span><span class="si">{</span><span class="n">model_top</span><span class="si">!r}</span><span class="s2">."</span>
+            <span class="p">)</span>
     <span class="n">variable_names</span> <span class="o">=</span> <span class="n">_normalize_variables</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
     <span class="n">wind_pairs</span> <span class="o">=</span> <span class="n">_check_wind_pairs</span><span class="p">(</span><span class="n">variable_names</span><span class="p">)</span> <span class="k">if</span> <span class="n">earth_relative</span> <span class="k">else</span> <span class="p">[]</span>
 
@@ -1816,6 +2215,7 @@
                 <span class="n">z_kind</span><span class="o">=</span><span class="n">z_kind</span><span class="p">,</span>
                 <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
                 <span class="n">wind_pairs</span><span class="o">=</span><span class="n">wind_pairs</span><span class="p">,</span>
+                <span class="n">model_top</span><span class="o">=</span><span class="n">model_top</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">sampled</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">rows</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span>

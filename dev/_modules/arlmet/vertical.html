@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=db47bfd5"></script>
+    <script src="../../_static/documentation_options.js?v=cf08a466"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b7.dev1+ge4c275434" />
+  <meta name="docsearch:version" content="0.1.0b7.dev2+gbe61cfe85" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -424,7 +424,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">FrozenInstanceError</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">Final</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">npt</span>
@@ -442,6 +442,19 @@
 
 <span class="n">R_D</span> <span class="o">=</span> <span class="mf">287.05</span>  <span class="c1"># dry air gas constant [J/(kg·K)]</span>
 <span class="n">G</span> <span class="o">=</span> <span class="mf">9.80665</span>  <span class="c1"># standard gravity [m/s²]</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_DefaultModelTop</span><span class="p">(</span><span class="nb">float</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    The top of model domain ``sample_points`` uses when ``model_top`` is not passed.</span>
+
+<span class="sd">    It is 25000 m, PYSTILT's ``HysplitConfig.z_top`` default. It is its own</span>
+<span class="sd">    object so a caller's explicit ``model_top=25000.0`` can be told from no</span>
+<span class="sd">    argument (``is``): the default is ignored where an explicit value raises.</span>
+<span class="sd">    """</span>
+
+
+<span class="n">_DEFAULT_MODEL_TOP</span><span class="p">:</span> <span class="n">Final</span> <span class="o">=</span> <span class="n">_DefaultModelTop</span><span class="p">(</span><span class="mf">25000.0</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">hypsometric_z_agl</span><span class="p">(</span>
@@ -588,15 +601,56 @@
 <span class="sd">    humidity is the first level's.</span>
 <span class="sd">    """</span>
     <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">temperature</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">pressure</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">p0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">surface_pressure</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="n">ax</span> <span class="o">=</span> <span class="n">level_axis</span> <span class="o">%</span> <span class="n">t</span><span class="o">.</span><span class="n">ndim</span>
-    <span class="n">t1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">surface_temperature</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">t_ground</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">surface_temperature</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">t_ground</span> <span class="o">=</span> <span class="n">t1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">first_sigma</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">**</span> <span class="o">-</span><span class="mf">0.286</span>
+        <span class="n">t_ground</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">first_sigma</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">**</span> <span class="o">-</span><span class="mf">0.286</span>
+        <span class="p">)</span>
+    <span class="n">tv</span><span class="p">,</span> <span class="n">tv_ground</span> <span class="o">=</span> <span class="n">_hysplit_virtual_temperature</span><span class="p">(</span>
+        <span class="n">pressure</span><span class="p">,</span>
+        <span class="n">surface_pressure</span><span class="p">,</span>
+        <span class="n">t</span><span class="p">,</span>
+        <span class="n">t_ground</span><span class="p">,</span>
+        <span class="n">specific_humidity</span><span class="o">=</span><span class="n">specific_humidity</span><span class="p">,</span>
+        <span class="n">relative_humidity</span><span class="o">=</span><span class="n">relative_humidity</span><span class="p">,</span>
+        <span class="n">level_axis</span><span class="o">=</span><span class="n">level_axis</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">hypsometric_z_agl</span><span class="p">(</span>
+        <span class="n">pressure</span><span class="p">,</span>
+        <span class="n">surface_pressure</span><span class="p">,</span>
+        <span class="n">tv</span><span class="p">,</span>
+        <span class="n">surface_temperature</span><span class="o">=</span><span class="n">tv_ground</span><span class="p">,</span>
+        <span class="n">level_axis</span><span class="o">=</span><span class="n">level_axis</span><span class="p">,</span>
+    <span class="p">)</span>
 
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_hysplit_virtual_temperature</span><span class="p">(</span>
+    <span class="n">pressure</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">,</span>
+    <span class="n">surface_pressure</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">,</span>
+    <span class="n">temperature</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">,</span>
+    <span class="n">ground_temperature</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">specific_humidity</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">relative_humidity</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">level_axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Virtual temperature [K] of the levels above ground and of the ground, as HYSPLIT's ``CALCTV``.</span>
+
+<span class="sd">    ``T (1 + 0.61 q)``, with ``q`` the ``SPHU``, else ``RELH`` converted with</span>
+<span class="sd">    ``CALCSP`` at each level's pressure, else 0 (a NaN humidity counts as</span>
+<span class="sd">    none). The ground's humidity is the first level's (``RELH`` converted at</span>
+<span class="sd">    the ground's temperature and *surface_pressure*). Returns ``(levels,</span>
+<span class="sd">    ground)``; *pressure*, *temperature* and the humidity hold the levels above</span>
+<span class="sd">    ground along *level_axis*.</span>
+<span class="sd">    """</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">temperature</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">pressure</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">p0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">surface_pressure</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">t_ground</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ground_temperature</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">level_axis</span> <span class="o">%</span> <span class="n">t</span><span class="o">.</span><span class="n">ndim</span>
     <span class="k">if</span> <span class="n">specific_humidity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">specific_humidity</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
         <span class="n">q_ground</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
@@ -606,15 +660,8 @@
         <span class="n">q_ground</span> <span class="o">=</span> <span class="n">_specific_humidity_from_relh</span><span class="p">(</span><span class="n">t_ground</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">rh</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">ax</span><span class="p">),</span> <span class="n">p0</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
-        <span class="n">q_ground</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">hypsometric_z_agl</span><span class="p">(</span>
-        <span class="n">p</span><span class="p">,</span>
-        <span class="n">p0</span><span class="p">,</span>
-        <span class="n">t</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.61</span> <span class="o">*</span> <span class="n">q</span><span class="p">),</span>
-        <span class="n">surface_temperature</span><span class="o">=</span><span class="n">t_ground</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.61</span> <span class="o">*</span> <span class="n">q_ground</span><span class="p">),</span>
-        <span class="n">level_axis</span><span class="o">=</span><span class="n">level_axis</span><span class="p">,</span>
-    <span class="p">)</span>
+        <span class="n">q_ground</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t_ground</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">t</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.61</span> <span class="o">*</span> <span class="n">q</span><span class="p">),</span> <span class="n">t_ground</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.61</span> <span class="o">*</span> <span class="n">q_ground</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_require</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="s2">"VerticalAxis"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

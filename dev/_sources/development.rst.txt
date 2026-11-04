@@ -56,6 +56,22 @@ for choice. The Fortran routines it matches:
        columns to the point's height, then blends them (``ops/sample.py``,
        ``_node_plan``); on HRRR, WRF, GFS, GDAS and NAM files it agrees with the
        compiled ``prfsig``/``prfprs``/``prfecm`` and ``adv3nt`` to float precision
+   * - ``metlvl`` / ``zindex`` / ``prfend``
+     - the run's internal vertical grid: ``metlvl`` picks one of six grids
+       ``a k**2 + b k + c`` from the ``CONTROL`` top and the met's levels, and
+       the levels follow the terrain with ``ZMDL = max(top, 25000)``
+       (``runset.f``); a particle is read linear in sigma between two levels
+       (``zindex``; ``hymodelc``'s particle output), at the first level below
+       it; above a column's top ``prfend`` (and ``prfsig``'s tail) keeps
+       temperature and winds and steps pressure down hydrostatically; without
+       ``SHGT``, ``prfa``'s terrain from ``PRSS`` goes back into the terrain array
+     - :func:`arlmet.sample_points` at heights (``model_top``, default 25000; ``ops/sample.py``,
+       ``_InternalLevels``, ``_sample_on_internal_levels``); the grid matches
+       ``metlvl`` on 16 made-up axes and 11 real files, and the values agree
+       with the compiled routines (``zindex`` and ``adv3nt`` included) to float
+       precision on HRRR, WRF, GFS, GDAS, NAM and NAMS files with tops of 10,
+       25 and 40 km, except where an internal level lies within 0.1 m of a
+       column's top (arl-met's gas constant and gravity, #150)
    * - ``prfsig`` / ``prfecm``
      - the sigma (flag 1, and flag 5 without WRF's hybrid coefficients) and
        hybrid (flag 4) profiles: heights from the ground
@@ -68,7 +84,8 @@ for choice. The Fortran routines it matches:
    * - ``prfprs``
      - the pressure-level (flag 2) profile: heights from ``HGTS``, the ground
        (``SHGT``, ``PRSS``, ``T02M``, ``U10M``) at the bottom, levels at or
-       below the ground skipped; ``ln p`` linear in height
+       below the ground skipped, and with the internal levels also a level
+       below the first of them (``IF(KL.GT.1)``); ``ln p`` linear in height
      - the column in ``ops/sample.py``; ``TEMP`` and winds agree with the
        compiled ``prfprs`` within 0.001 on NAM12 and GDAS columns, pressure
        within 0.0006 hPa (float32 rounding of ``ln p``)
