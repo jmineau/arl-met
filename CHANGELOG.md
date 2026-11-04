@@ -7,9 +7,16 @@ file alone: the entries are written at release (`just changelog` drafts them).
 
 ## [Unreleased]
 
+## [0.1.0b7] - 2026-11-04
+
+### Added
+
+- `probe(path)` summarizes an ARL file from its first two index records and its size: the first time, the step, the number of steps, the grid, the source, the forecast hour, and whether the size is a whole number of time steps. It is cheap enough to run on every file of an archive, and assumes every time step is as long as the first, so `File.check` is still what finds damage further in. (#149)
+
 ### Changed
 
 - **Existing `agl` and `msl` results change to follow HYSPLIT.** `sample_points` at heights (`z_kind="agl"` or `"msl"`) now reads HYSPLIT's own internal levels, with a new keyword `model_top` (the run's top of model domain, default 25000 m, PYSTILT's `z_top`): terrain-following sigma levels, linear between them, the first level's value below 10 m (5 m on the finest grid), and `TEMP`, `UWND`, `VWND` and pressure extrapolated above a file's top (they were NaN). On the files checked the values move by up to 4.6 K, 3.5 m/s and 1.9 hPa below 5 km, the largest below 10 m: about 1 hPa lower pressure and `TEMP` up to 4.6 K (HRRR); the means are 0.6 K, 0.3 m/s and 0.8 hPa at most. A run with a top other than 25000 m passes it as `model_top`. `model_top=None` gives the previous values (each grid point's column read at the point's own height, between the file's own levels). `"pressure"` and `"native"` and terrain-following (flag 3) files are unchanged; passing `model_top` for them raises `ValueError`. (#144, #151)
+- Heights use HYSPLIT's constants, R = 287.04 and g = 9.80616, where they used 287.05 and 9.80665, so every height from `hypsometric_z_agl` moves by 1.5e-5 of itself. `arlmet.vertical.R_D` and `G` change with them. (#152)
 
 ## [0.1.0b6] - 2026-11-03
 
