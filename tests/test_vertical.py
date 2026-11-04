@@ -216,25 +216,26 @@ class TestToHeightAgl:
     def test_wrf_hypsometric_from_pres_by_hand(self):
         # As HYSPLIT's prfsig, which HYSPLIT uses for a flag-5 file without WRF's
         # hybrid coefficients: dz = (R_D / G) * T * ln(p_below / p_above), with
-        # R_D / G = 287.05 / 9.80665 = 29.27095 m/K and T the mean of the two
-        # levels. The ground (PRSS 850) has no T02M, so its temperature is level
-        # 1's brought down adiabatically (PRFSFCT): 279 * 0.99 ** -0.286 = 279.8031.
-        #   z1 = 29.27095 * (279.8031 + 279) / 2 * ln(850 / 820) = 293.8645
-        #   z2 = z1 + 29.27095 * 278.5 * ln(820 / 790) = 597.6995
-        #   z3 = z2 + 29.27095 * 277.5 * ln(790 / 760) = 912.1655
+        # R_D / G = 287.04 / 9.80616 = 29.27140 m/K (HYSPLIT's prfmod constants,
+        # #150) and T the mean of the two levels. The ground (PRSS 850) has no
+        # T02M, so its temperature is level 1's brought down adiabatically
+        # (PRFSFCT): 279 * 0.99 ** -0.286 = 279.8031.
+        #   z1 = 29.27140 * (279.8031 + 279) / 2 * ln(850 / 820) = 293.8690
+        #   z2 = z1 + 29.27140 * 278.5 * ln(820 / 790) = 597.7085
+        #   z3 = z2 + 29.27140 * 277.5 * ln(790 / 760) = 912.1793
         ax = WrfAxis(levels=[1.0, 0.99, 0.95, 0.9], offset=50.0)
         z = ax.to_height_agl(
             surface_pressure=850.0,
             temperature=np.array([279.0, 278.0, 277.0]),
             pressure=np.array([820.0, 790.0, 760.0]),
         )
-        np.testing.assert_allclose(z, [293.8645, 597.6995, 912.1655], atol=1e-3)
+        np.testing.assert_allclose(z, [293.8690, 597.7085, 912.1793], atol=1e-3)
 
     def test_wrf_height_per_point(self):
         # Two points, levels on the last axis; the class docstring's example is
         # the first row. The ground is 285 * 0.995 ** -0.286 = 285.4089 K:
-        #   29.27095 * (285.4089 + 285) / 2 * ln(850 / 845) = 49.2521
-        #   49.2521 + 29.27095 * 284.5 * ln(845 / 832) = 178.3645
+        #   29.27140 * (285.4089 + 285) / 2 * ln(850 / 845) = 49.2528
+        #   49.2528 + 29.27140 * 284.5 * ln(845 / 832) = 178.3672
         # and the second row's ground 279 * 0.995 ** -0.286 = 279.4003 K.
         ax = WrfAxis(levels=[1.0, 0.995, 0.98], offset=50.0)
         z = ax.to_height_agl(
@@ -243,13 +244,13 @@ class TestToHeightAgl:
             pressure=np.array([[845.0, 832.0], [820.0, 790.0]]),
         )
         np.testing.assert_allclose(
-            z, [[49.2521, 178.3645], [293.6527, 597.4876]], atol=1e-3
+            z, [[49.2528, 178.3672], [293.6571, 597.4967]], atol=1e-3
         )
 
     def test_sigma_uses_pres_when_given_by_hand(self):
         # HYSPLIT's prfsig with PRES: level 0 is the ground (PRSS, its temperature);
-        #   z1 = 29.27095 * (290 + 288) / 2 * ln(1000 / 988) = 102.1257
-        #   z2 = z1 + 29.27095 * (288 + 286) / 2 * ln(988 / 945) = 475.9409
+        #   z1 = 29.27140 * (290 + 288) / 2 * ln(1000 / 988) = 102.1272
+        #   z2 = z1 + 29.27140 * (288 + 286) / 2 * ln(988 / 945) = 475.9481
         # The nominal sigma pressures (990, 950) would give 85.0 and 431.5.
         ax = SigmaAxis(levels=[1.0, 0.99, 0.95])
         z = ax.to_height_agl(
@@ -257,7 +258,7 @@ class TestToHeightAgl:
             temperature=np.array([290.0, 288.0, 286.0]),
             pressure=np.array([np.nan, 988.0, 945.0]),
         )
-        np.testing.assert_allclose(z, [0.0, 102.1257, 475.9409], atol=1e-3)
+        np.testing.assert_allclose(z, [0.0, 102.1272, 475.9481], atol=1e-3)
 
     def test_hybrid_ignores_pres(self):
         # HYSPLIT's prfecm takes a hybrid level's pressure from the levels only.
@@ -380,17 +381,17 @@ def _write_terrain_file(
 
 def test_hypsometric_z_agl_surface_temperature_by_hand():
     # The first layer takes the mean of the ground and level-1 temperatures:
-    #   z1 = 29.27095 * (290 + 288) / 2 * ln(1000 / 990) = 85.0189
-    #   z2 = z1 + 29.27095 * (288 + 286) / 2 * ln(990 / 950) = 431.4912
-    # Without it the first layer uses 288 alone: z1 = 84.7247.
+    #   z1 = 29.27140 * (290 + 288) / 2 * ln(1000 / 990) = 85.0201
+    #   z2 = z1 + 29.27140 * (288 + 286) / 2 * ln(990 / 950) = 431.4977
+    # Without it the first layer uses 288 alone: z1 = 84.7260.
     from arlmet.vertical import hypsometric_z_agl
 
     z = hypsometric_z_agl(
         [990.0, 950.0], 1000.0, [288.0, 286.0], surface_temperature=290.0
     )
-    np.testing.assert_allclose(z, [85.0189, 431.4912], atol=1e-3)
+    np.testing.assert_allclose(z, [85.0201, 431.4977], atol=1e-3)
     z_dry = hypsometric_z_agl([990.0, 950.0], 1000.0, [288.0, 286.0])
-    np.testing.assert_allclose(z_dry[0], 84.7247, atol=1e-3)
+    np.testing.assert_allclose(z_dry[0], 84.7260, atol=1e-3)
 
 
 def _write_column_file(path, *, axis, pres=True):
@@ -681,7 +682,7 @@ _WRF_PRES = [820.0, 790.0, 760.0]
 _WRF_TEMP = [279.0, 278.0, 277.0]
 # Hand-worked heights for PRSS 850 hPa, no T02M and no humidity (see
 # test_wrf_hypsometric_from_pres_by_hand)
-_WRF_Z = [293.8645, 597.6995, 912.1655]
+_WRF_Z = [293.8690, 597.7085, 912.1793]
 
 
 def _write_wrf_file(path, *, with_pres: bool = True):

@@ -393,7 +393,8 @@ def write_terrain_sampling_file(path, *, time: pd.Timestamp):
     }
 
 
-_RD_OVER_G = 287.05 / 9.80665  # arl-met's R_d / g, m/K
+# arl-met's R_d / g (HYSPLIT's prfmod constants, #150), m/K
+_RD_OVER_G = 287.04 / 9.80616
 
 
 def _ground_up_agl(pressures, temps):
