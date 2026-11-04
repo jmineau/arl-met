@@ -46,6 +46,19 @@ Find the files that cover a time window by their headers. See the
    index
    DirectoryIndex
 
+Probing One File
+----------------
+
+A cheap summary of one file, from two index records and a ``stat``. See the
+:doc:`probing` guide.
+
+.. autosummary::
+   :toctree: _autosummary
+   :nosignatures:
+
+   probe
+   Probe
+
 Vertical Coordinates
 --------------------
 
