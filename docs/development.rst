@@ -65,7 +65,7 @@ for choice. The Fortran routines it matches:
        it; above a column's top ``prfend`` (and ``prfsig``'s tail) keeps
        temperature and winds and steps pressure down hydrostatically; without
        ``SHGT``, ``prfa``'s terrain from ``PRSS`` goes back into the terrain array
-     - :func:`arlmet.sample_points` with ``model_top`` (``ops/sample.py``,
+     - :func:`arlmet.sample_points` at heights (``model_top``, default 25000; ``ops/sample.py``,
        ``_InternalLevels``, ``_sample_on_internal_levels``); the grid matches
        ``metlvl`` on 16 made-up axes and 11 real files, and the values agree
        with the compiled routines (``zindex`` and ``adv3nt`` included) to float

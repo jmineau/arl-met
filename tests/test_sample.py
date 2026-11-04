@@ -208,12 +208,14 @@ class TestPointSampling:
                 ["TEMP", "pressure"],
                 time=time,
                 z_kind="agl",
+                model_top=None,
             )
             msl = arl.sample_points(
                 points.iloc[[1]],
                 ["TEMP", "pressure"],
                 time=time,
                 z_kind="msl",
+                model_top=None,
             )
 
         np.testing.assert_allclose(agl["TEMP"].iloc[0], 290.5, atol=0.01)
@@ -308,10 +310,7 @@ class TestPointSampling:
 
         with File(path) as arl:
             sampled = arl.sample_points(
-                points,
-                ["TEMP", "pressure"],
-                time=time,
-                z_kind="agl",
+                points, ["TEMP", "pressure"], time=time, z_kind="agl", model_top=None
             )
 
         assert len(sampled) == 1000
@@ -461,7 +460,9 @@ class TestSigmaSampling:
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(z_mid)]})
         with File(path) as arl:
-            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="agl")
+            result = arl.sample_points(
+                points, ["TEMP"], time=time, z_kind="agl", model_top=None
+            )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-3)
 
@@ -476,7 +477,9 @@ class TestSigmaSampling:
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(z_mid_msl)]})
         with File(path) as arl:
-            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
+            result = arl.sample_points(
+                points, ["TEMP"], time=time, z_kind="msl", model_top=None
+            )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-3)
 
@@ -562,7 +565,9 @@ class TestHybridSampling:
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(z_mid)]})
         with File(path) as arl:
-            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="agl")
+            result = arl.sample_points(
+                points, ["TEMP"], time=time, z_kind="agl", model_top=None
+            )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-3)
 
@@ -576,7 +581,9 @@ class TestHybridSampling:
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(z_mid_msl)]})
         with File(path) as arl:
-            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
+            result = arl.sample_points(
+                points, ["TEMP"], time=time, z_kind="msl", model_top=None
+            )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-3)
 
@@ -636,7 +643,7 @@ class TestHgtsBasedSampling:
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
         with File(path) as arl:
             result = arl.sample_points(
-                points, ["TEMP", "pressure"], time=time, z_kind="agl"
+                points, ["TEMP", "pressure"], time=time, z_kind="agl", model_top=None
             )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
@@ -654,7 +661,7 @@ class TestHgtsBasedSampling:
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [700.0]})
         with File(path) as arl:
             result = arl.sample_points(
-                points, ["TEMP", "pressure"], time=time, z_kind="msl"
+                points, ["TEMP", "pressure"], time=time, z_kind="msl", model_top=None
             )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
@@ -670,7 +677,9 @@ class TestHgtsBasedSampling:
         # 1000m AGL = exact level 1 in HGTS space → pressure = 900 hPa
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [1000.0]})
         with File(path) as arl:
-            result = arl.sample_points(points, ["pressure"], time=time, z_kind="agl")
+            result = arl.sample_points(
+                points, ["pressure"], time=time, z_kind="agl", model_top=None
+            )
 
         np.testing.assert_allclose(result["pressure"].iloc[0], 900.0, atol=1e-4)
 
@@ -702,7 +711,9 @@ class TestTerrainFollowingSampling:
         # 50m AGL is midpoint between level 0 (0m) and level 1 (100m) → TEMP = 285
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [50.0]})
         with File(path) as arl:
-            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="agl")
+            result = arl.sample_points(
+                points, ["TEMP"], time=time, z_kind="agl", model_top=None
+            )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
 
@@ -714,7 +725,9 @@ class TestTerrainFollowingSampling:
         # terrain = 200m; 250m MSL = 50m AGL → midpoint between levels 0 and 1
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [250.0]})
         with File(path) as arl:
-            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
+            result = arl.sample_points(
+                points, ["TEMP"], time=time, z_kind="msl", model_top=None
+            )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
 
@@ -747,7 +760,7 @@ class TestFlag2RequiresHgts:
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
         with File(path) as arl, pytest.raises(ValueError, match="HGTS"):
-            arl.sample_points(points, ["TEMP"], time=time, z_kind="agl")
+            arl.sample_points(points, ["TEMP"], time=time, z_kind="agl", model_top=None)
 
     def test_missing_hgts_raises_for_msl(self, tmp_path):
         path = tmp_path / "no_hgts.arl"
@@ -765,7 +778,7 @@ class TestFlag2RequiresHgts:
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
         with File(path) as arl, pytest.raises(ValueError, match="HGTS"):
-            arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
+            arl.sample_points(points, ["TEMP"], time=time, z_kind="msl", model_top=None)
 
 
 class TestTerrainRequired:
@@ -788,7 +801,9 @@ class TestTerrainRequired:
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
         for z_kind in ("agl", "msl"):
             with File(path) as arl, pytest.raises(ValueError, match="SHGT"):
-                arl.sample_points(points, ["TEMP"], time=time, z_kind=z_kind)
+                arl.sample_points(
+                    points, ["TEMP"], time=time, z_kind=z_kind, model_top=None
+                )
 
     def test_sigma_at_msl(self, tmp_path):
         path = tmp_path / "no_shgt.arl"
@@ -805,7 +820,7 @@ class TestTerrainRequired:
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [1500.0]})
         with File(path) as arl, pytest.raises(ValueError, match="SHGT"):
-            arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
+            arl.sample_points(points, ["TEMP"], time=time, z_kind="msl", model_top=None)
 
 
 class TestSigmaHypsometricSampling:
@@ -821,7 +836,9 @@ class TestSigmaHypsometricSampling:
         # Sample at the second level's AGL height → should return that level's TEMP
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [float(agl[1])]})
         with File(path) as arl:
-            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="agl")
+            result = arl.sample_points(
+                points, ["TEMP"], time=time, z_kind="agl", model_top=None
+            )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 290.0, atol=1e-3)
 
@@ -836,7 +853,9 @@ class TestSigmaHypsometricSampling:
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [z_msl]})
         with File(path) as arl:
-            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="msl")
+            result = arl.sample_points(
+                points, ["TEMP"], time=time, z_kind="msl", model_top=None
+            )
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 290.0, atol=1e-3)
 
@@ -902,7 +921,7 @@ def _sample_column(path, variables, z, z_kind="agl"):
     points = pd.DataFrame(
         {**{k: [v] * len(z) for k, v in _COLUMN_POINT.items()}, "z": z}
     )
-    return sample_points(path, points, variables, z_kind=z_kind)
+    return sample_points(path, points, variables, z_kind=z_kind, model_top=None)
 
 
 def _esat(t):
@@ -1306,11 +1325,17 @@ class TestWrfStaggeredWinds:
         write_varying_wrf_file(test, source="TEST", axis=axis)
         heights = [z, 0.3 * z] if z_kind == "agl" else [z, z]
         points = _cell_points(self.XY[:2], heights)
-        result = sample_points(wrf, points, ["UWND", "VWND"], z_kind=z_kind)
+        result = sample_points(
+            wrf, points, ["UWND", "VWND"], z_kind=z_kind, model_top=None
+        )
         for name, (dx, dy) in (("UWND", (0.5, 0.0)), ("VWND", (0.0, 0.5))):
             moved = [(x + dx, y + dy) for x, y in self.XY[:2]]
             expected = sample_points(
-                test, _cell_points(moved, heights), [name], z_kind=z_kind
+                test,
+                _cell_points(moved, heights),
+                [name],
+                z_kind=z_kind,
+                model_top=None,
             )
             np.testing.assert_allclose(result[name], expected[name], rtol=1e-6)
             assert np.isfinite(result[name]).all()
@@ -1321,10 +1346,14 @@ class TestWrfStaggeredWinds:
         xy = self.XY[:3]
         shgt = 1300.0 + 20.0 * np.asarray(xy)[:, 0]
         agl = sample_points(
-            path, _cell_points(xy, 40.0), ["UWND", "VWND"], z_kind="agl"
+            path, _cell_points(xy, 40.0), ["UWND", "VWND"], z_kind="agl", model_top=None
         )
         msl = sample_points(
-            path, _cell_points(xy, 40.0 + shgt), ["UWND", "VWND"], z_kind="msl"
+            path,
+            _cell_points(xy, 40.0 + shgt),
+            ["UWND", "VWND"],
+            z_kind="msl",
+            model_top=None,
         )
         np.testing.assert_allclose(msl["UWND"], agl["UWND"], rtol=1e-5)
         np.testing.assert_allclose(msl["VWND"], agl["VWND"], rtol=1e-5)
@@ -1534,8 +1563,12 @@ class TestWrfMassCoupled:
                     name, level=record.level, forecast=0, data=np.float32(data)
                 )
         points = _cell_points(self.XY[:2], [30.0, 300.0])
-        got = sample_points(coupled, points, ["TEMP", "pressure"], z_kind="agl")
-        want = sample_points(plain, points, ["TEMP", "pressure"], z_kind="agl")
+        got = sample_points(
+            coupled, points, ["TEMP", "pressure"], z_kind="agl", model_top=None
+        )
+        want = sample_points(
+            plain, points, ["TEMP", "pressure"], z_kind="agl", model_top=None
+        )
         np.testing.assert_allclose(got["TEMP"], want["TEMP"], atol=2e-3)
         np.testing.assert_allclose(got["pressure"], want["pressure"], atol=2e-3)
 
@@ -1544,7 +1577,7 @@ class TestWrfMassCoupled:
         path = tmp_path / "wrf.arl"
         write_coupled_wrf_file(path)
         result = sample_points(
-            path, _cell_points(self.XY[:2], 0.0), ["UWND"], z_kind="agl"
+            path, _cell_points(self.XY[:2], 0.0), ["UWND"], z_kind="agl", model_top=None
         )
         expected = [
             _bilinear(_stored(path, 0, "U10M"), x + 0.5, y) for x, y in self.XY[:2]
@@ -1887,7 +1920,9 @@ class TestBetweenGridPointsAsHysplit:
             nodes = [(i, j), (i + 1, j), (i, j + 1), (i + 1, j + 1)]
             weights = [(1 - wx) * (1 - wy), wx * (1 - wy), (1 - wx) * wy, wx * wy]
             at = [(a - stagger[0], b - stagger[1]) for a, b in nodes]
-            values = sample_points(path, _cell_points(at, z), variables, z_kind=z_kind)
+            values = sample_points(
+                path, _cell_points(at, z), variables, z_kind=z_kind, model_top=None
+            )
             for name in variables:
                 # a grid point with no value at z does not count; the rest are reweighted
                 has = [
@@ -1904,7 +1939,7 @@ class TestBetweenGridPointsAsHysplit:
     def _check(self, path, variables, targets, z_kind, *, stagger=(0.0, 0.0)):
         for z in targets:
             result = sample_points(
-                path, _cell_points(self.XY, z), variables, z_kind=z_kind
+                path, _cell_points(self.XY, z), variables, z_kind=z_kind, model_top=None
             )
             expected = self._by_hand(path, variables, z, z_kind, stagger=stagger)
             for name in variables:
@@ -1998,7 +2033,7 @@ class TestBetweenGridPointsAsHysplit:
         z = float(corners[:, j, i].min()) + 0.25 * float(spread[j, i])
         xy = [(i + 0.5, j + 0.5)]
         result = sample_points(
-            path, _cell_points(xy, z), ["TEMP", "UWND"], z_kind="agl"
+            path, _cell_points(xy, z), ["TEMP", "UWND"], z_kind="agl", model_top=None
         )
         expected = self._by_hand(path, ["TEMP", "UWND"], z, "agl", xy=xy)
         assert np.isfinite(result[["TEMP", "UWND"]].to_numpy()).all()
@@ -2029,9 +2064,11 @@ class TestBetweenGridPointsAsHysplit:
                     "z": [top[j, i] + dz for i, j in cells],
                 }
             )
-            linear = sample_points(path, points, variables, z_kind="agl")
+            linear = sample_points(
+                path, points, variables, z_kind="agl", model_top=None
+            )
             nearest = sample_points(
-                path, points, variables, z_kind="agl", method="nearest"
+                path, points, variables, z_kind="agl", method="nearest", model_top=None
             )
             np.testing.assert_allclose(linear[variables], nearest[variables], rtol=1e-5)
         assert np.isnan(linear[variables].to_numpy()).all()
@@ -2051,7 +2088,11 @@ class TestBetweenGridPointsAsHysplit:
         for z_agl in self.HEIGHTS:
             z_msl = (terrain + z_agl).to_numpy()
             result = sample_points(
-                path, _cell_points(self.XY, z_msl), self.VARIABLES, z_kind="msl"
+                path,
+                _cell_points(self.XY, z_msl),
+                self.VARIABLES,
+                z_kind="msl",
+                model_top=None,
             )
             expected = self._by_hand(path, self.VARIABLES, z_agl, "agl")
             for name in self.VARIABLES:
@@ -2073,8 +2114,10 @@ class TestBetweenGridPointsAsHysplit:
         write_hilly_file(path, flag=flag)
         variables = ["TEMP", "UWND", "pressure"]
         points = _cell_points([(4.0, 7.0), (11.0, 2.0)], 150.0)
-        linear = sample_points(path, points, variables, z_kind="agl")
-        nearest = sample_points(path, points, variables, z_kind="agl", method="nearest")
+        linear = sample_points(path, points, variables, z_kind="agl", model_top=None)
+        nearest = sample_points(
+            path, points, variables, z_kind="agl", method="nearest", model_top=None
+        )
         pd.testing.assert_frame_equal(linear, nearest)
 
     def test_a_grid_point_with_no_weight_does_not_count(self, tmp_path):
@@ -2088,10 +2131,16 @@ class TestBetweenGridPointsAsHysplit:
         j, i = np.argwhere(top[:, :-1] - top[:, 1:] > 50.0)[0]
         z = 0.5 * (top[j, i] + top[j, i + 1])
         points = _cell_points([(float(i), float(j))], z)
-        linear = sample_points(path, points, ["TEMP"], z_kind="agl")
-        nearest = sample_points(path, points, ["TEMP"], z_kind="agl", method="nearest")
+        linear = sample_points(path, points, ["TEMP"], z_kind="agl", model_top=None)
+        nearest = sample_points(
+            path, points, ["TEMP"], z_kind="agl", method="nearest", model_top=None
+        )
         east = sample_points(
-            path, _cell_points([(i + 1.0, float(j))], z), ["TEMP"], z_kind="agl"
+            path,
+            _cell_points([(i + 1.0, float(j))], z),
+            ["TEMP"],
+            z_kind="agl",
+            model_top=None,
         )
         assert np.isnan(east["TEMP"]).all()
         assert np.isfinite(linear["TEMP"]).all()
@@ -2121,7 +2170,9 @@ class TestSamplingErrors:
         # -100 m AGL is below the lowest level
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [-100.0]})
         with File(path) as arl:
-            result = arl.sample_points(points, ["TEMP"], time=time, z_kind="agl")
+            result = arl.sample_points(
+                points, ["TEMP"], time=time, z_kind="agl", model_top=None
+            )
 
         assert np.isnan(result["TEMP"].iloc[0])
 
@@ -2840,10 +2891,18 @@ class TestHysplitInternalLevels:
             ]
             scale = (zmdl - node_terrain.to_numpy(dtype=float)) / zmdl
             lo = sample_points(
-                path, _cell_points(at, h[k] * scale), variables, z_kind="agl"
+                path,
+                _cell_points(at, h[k] * scale),
+                variables,
+                z_kind="agl",
+                model_top=None,
             )
             hi = sample_points(
-                path, _cell_points(at, h[k + 1] * scale), variables, z_kind="agl"
+                path,
+                _cell_points(at, h[k + 1] * scale),
+                variables,
+                z_kind="agl",
+                model_top=None,
             )
             for name in variables:
                 values = (1 - f) * lo[name].to_numpy() + f * hi[name].to_numpy()
@@ -2896,7 +2955,7 @@ class TestHysplitInternalLevels:
         path = tmp_path / "hilly.arl"
         write_hilly_file(path)
         points = _cell_points(self.XY, 400.0)
-        plain = sample_points(path, points, ["TEMP"], z_kind="agl")
+        plain = sample_points(path, points, ["TEMP"], z_kind="agl", model_top=None)
         hysplit = sample_points(path, points, ["TEMP"], z_kind="agl", model_top=25000)
         assert np.abs(plain["TEMP"] - hysplit["TEMP"]).max() > 1e-3
 
@@ -2993,7 +3052,7 @@ class TestHysplitInternalLevels:
             result["UWND"], _U10M + at / z_800 * (_PRS_UWND[4] - _U10M), rtol=1e-5
         )
         # without model_top the 850 hPa level counts
-        plain = sample_points(path, points, ["TEMP"], z_kind="agl")
+        plain = sample_points(path, points, ["TEMP"], z_kind="agl", model_top=None)
         assert abs(plain["TEMP"].iloc[1] - result["TEMP"].iloc[1]) > 1.0
 
     def test_above_the_top(self, tmp_path):
@@ -3132,3 +3191,49 @@ class TestHysplitInternalLevels:
         write_terrain_sampling_file(terrain, time=_COLUMN_TIME)
         with pytest.raises(ValueError, match="terrain-following"):
             sample_points(terrain, points, ["TEMP"], z_kind="agl", model_top=25000)
+
+    def test_the_default_is_25000_at_heights(self, tmp_path):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        points = _cell_points(self.XY, 400.0)
+        names = ["TEMP", "UWND", "pressure"]
+        for z_kind in ("agl", "msl"):
+            default = sample_points(path, points, names, z_kind=z_kind)
+            given = sample_points(path, points, names, z_kind=z_kind, model_top=25000)
+            pd.testing.assert_frame_equal(default, given)
+            own = sample_points(path, points, names, z_kind=z_kind, model_top=None)
+            assert not np.allclose(default["TEMP"], own["TEMP"], atol=1e-6)
+        with File(path) as met:
+            pd.testing.assert_frame_equal(
+                met.sample_points(points, names, z_kind="agl"),
+                sample_points(path, points, names, z_kind="agl"),
+            )
+
+    def test_the_default_leaves_pressure_and_native_as_they_were(self, tmp_path):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        for z_kind, z in (("pressure", 900.0), ("native", 1.5)):
+            points = _cell_points(self.XY, z)
+            default = sample_points(path, points, ["TEMP"], z_kind=z_kind)
+            none = sample_points(path, points, ["TEMP"], z_kind=z_kind, model_top=None)
+            pd.testing.assert_frame_equal(default, none)
+            # the default's value is no stand-in for a given one: 25000 raises
+            with pytest.raises(ValueError, match="model_top applies to heights"):
+                sample_points(path, points, ["TEMP"], z_kind=z_kind, model_top=25000.0)
+
+    def test_the_default_on_a_terrain_following_file_reads_its_own_levels(
+        self, tmp_path
+    ):
+        terrain = tmp_path / "terrain.arl"
+        write_terrain_sampling_file(terrain, time=_COLUMN_TIME)
+        points = _cell_points(self.XY, 400.0)
+        for z_kind in ("agl", "msl"):
+            default = sample_points(terrain, points, ["TEMP"], z_kind=z_kind)
+            none = sample_points(
+                terrain, points, ["TEMP"], z_kind=z_kind, model_top=None
+            )
+            pd.testing.assert_frame_equal(default, none)
+            with pytest.raises(ValueError, match="terrain-following"):
+                sample_points(
+                    terrain, points, ["TEMP"], z_kind=z_kind, model_top=25000.0
+                )

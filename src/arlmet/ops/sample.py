@@ -16,6 +16,7 @@ import pandas as pd
 from arlmet._time import ensure_timestamp
 from arlmet.grid import Grid, GridWindow
 from arlmet.vertical import (
+    _DEFAULT_MODEL_TOP,
     HybridAxis,
     PressureAxis,
     SigmaAxis,
@@ -1419,7 +1420,7 @@ def _sample_points_from_file(
     z_kind: ZKind,
     method: SampleMethod,
     wind_pairs: Sequence[tuple[str, str]],
-    model_top: float | None = None,
+    model_top: float | None = _DEFAULT_MODEL_TOP,
 ) -> dict[str, npt.NDArray[Any]]:
     """
     Sample variables at points that all share one valid time in one file.
@@ -1469,7 +1470,10 @@ def _sample_points_from_file(
         The HYSPLIT run's top of model domain, at heights only: sample on the
         run's internal levels (:class:`_InternalLevels`,
         :func:`_sample_on_internal_levels`). None: at the point's height
-        above each grid point's ground.
+        above each grid point's ground. The default (``_DEFAULT_MODEL_TOP``,
+        told by identity) is 25000 at heights, except on a terrain-following
+        (flag 3) file, where it reads the file's own levels; any other value
+        raises on a flag 3 file.
 
     Returns
     -------
@@ -1480,12 +1484,13 @@ def _sample_points_from_file(
     axis = file.vertical_axis
     heights = z_kind in ("agl", "msl")
     levels: _InternalLevels | None = None
-    if model_top is not None:
-        if isinstance(axis, TerrainAxis):
+    if model_top is not None and heights:
+        if not isinstance(axis, TerrainAxis):
+            levels = _InternalLevels.for_axis(axis, model_top)
+        elif model_top is not _DEFAULT_MODEL_TOP:
             raise ValueError(
                 "model_top is not supported for terrain-following (flag=3) files."
             )
-        levels = _InternalLevels.for_axis(axis, model_top)
     # flag=2 heights need terrain for the ground and HGTS - SHGT; MSL needs the
     # terrain at the point on every axis.
     need_terrain = (heights and isinstance(axis, PressureAxis)) or (
@@ -1627,7 +1632,7 @@ def sample_points(
     z_kind: ZKind = "pressure",
     method: SampleMethod = "linear",
     earth_relative: bool = False,
-    model_top: float | None = None,
+    model_top: float | None = _DEFAULT_MODEL_TOP,
 ) -> pd.DataFrame:
     """
     Sample meteorological variables at arbitrary (lon, lat, z, time) points.
@@ -1680,25 +1685,28 @@ def sample_points(
         the grid axes to east/north, using the meridian convergence of each
         file's grid. Both components of a pair must be requested. No effect on
         lat/lon grids.
-    model_top : float, optional
+    model_top : float or None, default 25000
         The HYSPLIT run's top of model domain [m], the ``CONTROL`` file's
         line after the vertical motion option (PYSTILT's ``z_top``, 25000 by
-        default). With it, at heights (``"agl"``, ``"msl"``), the values are
-        the ones a HYSPLIT run with that top uses: on HYSPLIT's own internal
-        levels (those its ``metlvl`` picks for this file's vertical grid),
-        which follow the terrain as sigma surfaces that go flat at
+        default). At heights (``"agl"``, ``"msl"``) the values are the ones a
+        HYSPLIT run with that top uses: on HYSPLIT's own internal levels
+        (those its ``metlvl`` picks for this file's vertical grid), which
+        follow the terrain as sigma surfaces that go flat at
         ``max(model_top, 25000)`` m, linear between those levels, the first
         level's value below it (10 m, or 5 m on the finest grid), and above a
         file's top ``TEMP``, ``UWND``, ``VWND`` and pressure extrapolated as
         HYSPLIT does (other variables NaN there). A sigma, hybrid or WRF file
-        without ``SHGT`` takes HYSPLIT's terrain estimate from ``PRSS``;
-        terrain-following (flag 3) files are not supported. Without it (the
-        default) each grid point's column is read at the point's own height
-        above that grid point's ground, between the file's own levels: on the
-        files checked that differs from HYSPLIT's value by up to 4.6 K, 3.5
-        m/s and 1.9 hPa below 5 km (means up to 0.6 K, 0.3 m/s and 0.8 hPa,
-        the largest below 10 m), and above a file's top it is NaN. The *Sampling*
-        guide has the details.
+        without ``SHGT`` takes HYSPLIT's terrain estimate from ``PRSS``. The
+        default matches a run with PYSTILT's default top; a run with another
+        top needs its value, because below 25 km the internal levels depend on
+        it (the *Sampling* guide says how far). ``None`` reads each grid
+        point's column at the point's own height above that grid point's
+        ground, between the file's own levels, which is not what HYSPLIT does
+        (differences of up to 4.6 K, 3.5 m/s and 1.9 hPa below 5 km) and gives
+        NaN above a file's top. The default applies at heights only: at
+        ``"pressure"`` and ``"native"`` it is ignored, and on a
+        terrain-following (flag 3) file it is ignored too, the file's own
+        levels being read; a value passed with any of these raises.
 
     Returns
     -------
@@ -1717,8 +1725,8 @@ def sample_points(
         time, a point time is in none of the files, a time is in more than one
         file, a variable name collides with a column of ``points``, ``z_kind``
         or ``method`` is invalid, a field that ``z_kind`` requires is
-        missing, or ``model_top`` is given with ``z_kind`` ``"pressure"`` or
-        ``"native"``, is not a positive number, or is given for a
+        missing, or ``model_top`` is passed with ``z_kind`` ``"pressure"`` or
+        ``"native"``, is not a positive number, or is passed for a
         terrain-following (flag 3) file.
 
     Examples
@@ -1744,7 +1752,7 @@ def sample_points(
         raise ValueError("z_kind must be one of 'native', 'pressure', 'agl', or 'msl'.")
     if method not in _METHODS:
         raise ValueError("method must be 'linear' or 'nearest'.")
-    if model_top is not None:
+    if model_top is not None and model_top is not _DEFAULT_MODEL_TOP:
         if z_kind not in ("agl", "msl"):
             raise ValueError(
                 "model_top applies to heights: z_kind must be 'agl' or 'msl'."

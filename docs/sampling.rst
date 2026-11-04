@@ -139,7 +139,9 @@ Horizontal interpolation
 Between grid points at heights (``agl``, ``msl``) the order is HYSPLIT's: the
 column at each of the four grid points around a point, with that grid point's
 own ground and level heights, is interpolated to the point's ``z``, and the
-four values are then blended bilinearly. Where the levels' heights differ between neighboring
+four values are then blended bilinearly. (The column is the one on HYSPLIT's
+internal levels by default and the file's own levels with ``model_top=None``;
+the section below says which is which.) Where the levels' heights differ between neighboring
 grid points (over uneven ground, or wherever the pressure field varies) this
 differs from blending each level first and interpolating the blended column:
 by up to 2 K and 1 m/s in the lowest 50 m on a 27 km WRF grid, and less on
@@ -166,9 +168,10 @@ HYSPLIT does not read the met at a particle's own height. It first fills its
 own internal levels at every grid point, then reads the particle between two
 of them. Its value at a point therefore depends on a setting of the run: the
 top of the model domain, the line of the ``CONTROL`` file after the vertical
-motion option (PYSTILT's ``z_top``, 25000 m by default). Pass it as
-``model_top`` and, at heights (``agl``, ``msl``), ``sample_points`` gives the
-value that run uses:
+motion option (PYSTILT's ``z_top``, 25000 m by default). At heights (``agl``,
+``msl``) ``sample_points`` gives the value a run with that top uses, and
+``model_top`` defaults to 25000, so a run with PYSTILT's default top needs no
+argument. A run with another top passes it as ``model_top``:
 
 - **Internal levels.** For the run's top and the file's vertical grid,
   HYSPLIT's ``metlvl`` picks one of six grids of heights ``a k**2 + b k + c``
@@ -196,15 +199,36 @@ value that run uses:
    low = points.assign(z=[5.0, 300.0])  # meters above ground level
    arlmet.sample_points("met.arl", low, ["TEMP", "pressure"], z_kind="agl")
    arlmet.sample_points(
-       "met.arl", low, ["TEMP", "pressure"], z_kind="agl", model_top=25000
+       "met.arl", low, ["TEMP", "pressure"], z_kind="agl", model_top=10000
    )
 
-Without ``model_top`` (the default) there is no single value HYSPLIT would
-give, so ``sample_points`` reads each grid point's column at the point's own
-height above that grid point's ground, between the file's own levels, and
-above a file's top gives NaN. Against HYSPLIT's own routines run on real files
-with a 25 km top (200 points between grid points of one time step, at heights
-from 2 m up), the largest differences are:
+The default applies at heights only. At pressures and native levels
+``model_top`` plays no part and the default is ignored; passing a value there
+raises ``ValueError``. On a terrain-following (flag 3) file the default is
+ignored too and the file's own levels are read; passing a value raises.
+
+**The default matches a run whose top is 25000 m, not one with a lower top.**
+``ZMDL``, where the sigma surfaces go flat, is 25000 m for every top up to
+25 km, but the internal levels are not the same: ``metlvl`` counts the file's
+levels up to the run's top and picks the first grid with more levels than that,
+so a lower top usually gives a different grid (other heights, not just fewer
+levels). On 11 real files (200 points between grid points, compared with
+HYSPLIT's routines run with that top), a 10 km or 3 km top picks a different
+grid than 25 km on 9 of them; HRRR, for example, has levels at 10, 30, 70, 130
+m, ... rather than 10, 50, 120, 220 m, ..., and the default then differs from
+that run's value by up to 3.4 K, 3.4 m/s and 0.7 hPa (the largest of
+the 9 files, below the run's top layer). On the other 2 (GDAS 0.5° and GFS 0.25°,
+whose grid is the same at every top), the lower top's levels are the first of the 25 km
+grid, and the default agrees with that run to 0.007 (K, m/s, hPa) below the
+top layer. A run whose top is not 25000 m should pass it as ``model_top``.
+
+``model_top=None`` reads each grid point's column at the point's own height
+above that grid point's ground, between the file's own levels, and above a
+file's top gives NaN. That was what ``sample_points`` did at heights before it
+followed HYSPLIT's internal levels, and it is no value HYSPLIT would give.
+Against HYSPLIT's own routines run on real files with a 25 km top (200 points
+between grid points of one time step, at heights from 2 m up), the largest
+differences of ``model_top=None`` are:
 
 .. list-table::
    :header-rows: 1
@@ -242,10 +266,10 @@ to 0.1 K and 0.01 to 0.1 m/s from 10 m to 5 km. Pressure below 10 m is off by 0.
 on average, because HYSPLIT's value there is the one at 10 m. Most of the
 difference comes from the internal levels; below 5 km the terrain-following
 sigma adds at most 0.07 K and 0.57 m/s (on the 1° GDAS grid) and less on finer
-grids. With ``model_top`` the same points agree with HYSPLIT's routines to
+grids. With the default the same points agree with HYSPLIT's routines to
 about 0.01 K, 0.01 m/s and 0.01 hPa on most files.
 
-What ``model_top`` does not cover:
+What the default does not cover:
 
 - The internal levels come from the sampled file's vertical grid. A run on
   several met grids takes them from the grid with the most levels, and a run
@@ -256,7 +280,8 @@ What ``model_top`` does not cover:
 - In HYSPLIT's top internal layer (from about 24 km up with a 25 km top) its
   advection takes the top level's value while its particle output
   interpolates; ``sample_points`` interpolates.
-- Terrain-following (flag 3) files raise ``ValueError``.
+- Terrain-following (flag 3) files have no internal levels here: the default reads
+  their own levels, and passing ``model_top`` raises ``ValueError``.
 
 Earth-relative winds
 --------------------
