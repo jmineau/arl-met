@@ -1,0 +1,6 @@
+﻿arlmet.probe
+============
+
+.. currentmodule:: arlmet
+
+.. autofunction:: probe
