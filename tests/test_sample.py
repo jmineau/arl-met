@@ -2735,3 +2735,400 @@ def test_sample_points_regional_latlon_first_column_at_its_own_lon(tmp_path, syn
             tmp_path / "regional.arl", west, ["T02M"], z_kind="native", method=method
         )
         assert outside["T02M"].isna().all()
+
+
+# --- HYSPLIT's internal levels: sample_points(..., model_top=) (#144) ---
+
+#: The axes HYSPLIT's metlvl.f was run on (written to small ARL files and read
+#: by HYSPLIT's own METINI and METLVL).
+_METLVL_AXES = {
+    "sigma5": SigmaAxis(levels=[1.0, 0.99, 0.95, 0.9, 0.8]),
+    "sigma41": SigmaAxis(levels=[round(1.0 - 0.0245 * k, 4) for k in range(41)]),
+    "pressure40": PressureAxis(levels=[0.0] + [1000.0 - 25.0 * k for k in range(39)]),
+    "hybrid30": HybridAxis(
+        levels=[1.0] + [2 * k + round(1.0 - k / 30.0, 4) for k in range(1, 30)]
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    ("axis", "model_top", "n", "abc", "zmdl"),
+    [
+        # HYSPLIT's levels.txt for each: NLVL, the grid's AA BB CC, ZMDL
+        ("sigma5", 25000, 30, (30, -25, 5), 25000),
+        ("sigma5", 10000, 19, (30, -25, 5), 25000),
+        ("sigma5", 40000, 37, (30, -25, 5), 40000),
+        ("sigma5", 3000, 11, (30, -25, 5), 25000),
+        ("sigma41", 25000, 51, (10, -10, 10), 25000),
+        ("sigma41", 10000, 33, (10, -10, 10), 25000),
+        ("sigma41", 40000, 46, (20, -15, 5), 40000),
+        ("sigma41", 3000, 18, (10, -10, 10), 25000),
+        ("pressure40", 25000, 41, (15, -5, 0), 25000),
+        ("pressure40", 10000, 33, (10, -10, 10), 25000),
+        ("pressure40", 40000, 46, (20, -15, 5), 40000),
+        ("pressure40", 3000, 18, (10, -10, 10), 25000),
+        ("hybrid30", 25000, 36, (20, -15, 5), 25000),
+        ("hybrid30", 10000, 26, (15, -5, 0), 25000),
+        ("hybrid30", 40000, 37, (30, -25, 5), 40000),
+        ("hybrid30", 3000, 13, (20, -15, 5), 25000),
+    ],
+)
+def test_internal_levels_are_hysplits(axis, model_top, n, abc, zmdl):
+    from arlmet.ops.sample import _InternalLevels
+
+    levels = _InternalLevels.for_axis(_METLVL_AXES[axis], model_top)
+    a, b, c = abc
+    k = np.arange(1, n + 1)
+    np.testing.assert_allclose(levels.heights, a * k * k + b * k + c)
+    assert levels.zmdl == zmdl
+
+
+def test_internal_level_position():
+    from arlmet.ops.sample import _InternalLevels
+
+    levels = _InternalLevels(zmdl=25000.0, heights=np.array([10.0, 75.0, 200.0, 385.0]))
+    z = np.array([0.0, 5.0, 10.0, 42.5, 75.0, 300.0, 385.0, 1000.0, -1.0, np.nan])
+    k, f = levels.position(z, np.zeros_like(z))
+    np.testing.assert_array_equal(k[:8], [0, 0, 0, 0, 1, 2, 2, 2])
+    np.testing.assert_allclose(f[:8], [0, 0, 0, 0.5, 0, 100 / 185, 1, 1])
+    assert np.isnan(f[8:]).all()  # below the ground, or no height
+    # Over 5 km of terrain the levels are 0.8 times as high: 60 m is 75 m at 0 m.
+    k, f = levels.position(np.array([60.0]), np.array([5000.0]))
+    assert (k[0], f[0]) == (1, 0.0)
+
+
+class TestHysplitInternalLevels:
+    """
+    With model_top, sample_points gives HYSPLIT's values on its internal levels (#144).
+
+    HYSPLIT fills its internal levels (heights ``a k**2 + b k + c`` at 0 m
+    terrain, ``(ZMDL - zsfc) / ZMDL`` times that above a grid point's terrain)
+    at every grid point and reads a particle linearly between the two levels
+    around its sigma, ``1 - z / (ZMDL - zsfc)``. By hand here: the same from
+    sample_points without model_top, which reads a grid point's own column at
+    a height.
+    """
+
+    XY = [(4.3, 7.6), (10.75, 2.2), (15.5, 15.5)]
+    VARIABLES = ["TEMP", "UWND", "VWND", "PRES", "SPHU", "pressure"]
+    HEIGHTS = [3.0, 40.0, 150.0, 400.0, 900.0]
+
+    @staticmethod
+    def _by_hand(path, variables, z, *, model_top=25000.0, stagger=(0.0, 0.0), xy=XY):
+        from arlmet.ops.sample import _InternalLevels
+
+        with File(path) as met:
+            levels = _InternalLevels.for_axis(met.vertical_axis, model_top)
+        h, zmdl = levels.heights, levels.zmdl
+        out = {name: [] for name in variables}
+        for x, y in xy:
+            terrain = sample_points(path, _cell_points([(x, y)], 0.0), ["SHGT"])
+            internal = z * zmdl / (zmdl - float(terrain["SHGT"].iloc[0]))
+            k = int(
+                np.clip(np.searchsorted(h, internal, side="right") - 1, 0, len(h) - 2)
+            )
+            f = float(np.clip((internal - h[k]) / (h[k + 1] - h[k]), 0.0, 1.0))
+            xs, ys = x + stagger[0], y + stagger[1]
+            i, j = int(np.floor(xs)), int(np.floor(ys))
+            wx, wy = xs - i, ys - j
+            nodes = [(i, j), (i + 1, j), (i, j + 1), (i + 1, j + 1)]
+            weights = [(1 - wx) * (1 - wy), wx * (1 - wy), (1 - wx) * wy, wx * wy]
+            at = [(a - stagger[0], b - stagger[1]) for a, b in nodes]
+            # the terrain at each grid point (a staggered one's own, at its own column)
+            node_terrain = sample_points(path, _cell_points(nodes, 0.0), ["SHGT"])[
+                "SHGT"
+            ]
+            scale = (zmdl - node_terrain.to_numpy(dtype=float)) / zmdl
+            lo = sample_points(
+                path, _cell_points(at, h[k] * scale), variables, z_kind="agl"
+            )
+            hi = sample_points(
+                path, _cell_points(at, h[k + 1] * scale), variables, z_kind="agl"
+            )
+            for name in variables:
+                values = (1 - f) * lo[name].to_numpy() + f * hi[name].to_numpy()
+                out[name].append(float(np.dot(weights, values)))
+        return pd.DataFrame(out)
+
+    def _check(self, path, variables, *, stagger=(0.0, 0.0), model_top=25000.0):
+        for z in self.HEIGHTS:
+            result = sample_points(
+                path,
+                _cell_points(self.XY, z),
+                variables,
+                z_kind="agl",
+                model_top=model_top,
+            )
+            expected = self._by_hand(
+                path, variables, z, model_top=model_top, stagger=stagger
+            )
+            for name in variables:
+                np.testing.assert_allclose(
+                    result[name], expected[name], rtol=1e-6, atol=1e-5, err_msg=name
+                )
+
+    def test_sigma_heights(self, tmp_path):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        self._check(path, self.VARIABLES)
+
+    def test_a_higher_model_top_scales_the_levels_less(self, tmp_path):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        self._check(path, ["TEMP", "UWND"], model_top=40000.0)
+        low = sample_points(
+            path, _cell_points(self.XY, 400.0), ["TEMP"], z_kind="agl", model_top=25000
+        )
+        high = sample_points(
+            path, _cell_points(self.XY, 400.0), ["TEMP"], z_kind="agl", model_top=40000
+        )
+        assert not np.allclose(low["TEMP"], high["TEMP"], rtol=0, atol=1e-6)
+
+    def test_wrf_winds_use_their_own_grid_points_terrain(self, tmp_path):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path, source="AWRF")
+        self._check(path, ["UWND"], stagger=(0.5, 0.0))
+        self._check(path, ["VWND"], stagger=(0.0, 0.5))
+
+    def test_differs_from_the_height_at_each_grid_point(self, tmp_path):
+        # Over uneven terrain the sigma surfaces and the internal levels move the
+        # values away from reading every grid point at the point's own height.
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        points = _cell_points(self.XY, 400.0)
+        plain = sample_points(path, points, ["TEMP"], z_kind="agl")
+        hysplit = sample_points(path, points, ["TEMP"], z_kind="agl", model_top=25000)
+        assert np.abs(plain["TEMP"] - hysplit["TEMP"]).max() > 1e-3
+
+    def test_below_the_first_internal_level_is_its_value(self, tmp_path):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        terrain = sample_points(path, _cell_points(self.XY, 0.0), ["SHGT"])["SHGT"]
+        first = 10.0 * (25000.0 - terrain.to_numpy(dtype=float)) / 25000.0
+        at_first = sample_points(
+            path,
+            _cell_points(self.XY, first),
+            ["TEMP", "UWND"],
+            z_kind="agl",
+            model_top=25000,
+        )
+        for z in (0.0, 2.0, 5.0):
+            low = sample_points(
+                path,
+                _cell_points(self.XY, z),
+                ["TEMP", "UWND"],
+                z_kind="agl",
+                model_top=25000,
+            )
+            np.testing.assert_allclose(
+                low[["TEMP", "UWND"]], at_first[["TEMP", "UWND"]], rtol=1e-6
+            )
+
+    def test_msl_is_above_the_ground_at_the_point(self, tmp_path):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        terrain = sample_points(path, _cell_points(self.XY, 0.0), ["SHGT"])["SHGT"]
+        for z in self.HEIGHTS:
+            agl = sample_points(
+                path,
+                _cell_points(self.XY, z),
+                self.VARIABLES,
+                z_kind="agl",
+                model_top=25000,
+            )
+            msl = sample_points(
+                path,
+                _cell_points(self.XY, (terrain + z).to_numpy()),
+                self.VARIABLES,
+                z_kind="msl",
+                model_top=25000,
+            )
+            np.testing.assert_allclose(
+                msl[self.VARIABLES], agl[self.VARIABLES], rtol=1e-5
+            )
+
+    @pytest.mark.parametrize("flag", [1, 2])
+    def test_at_a_grid_point_the_value_is_its_own_column(self, tmp_path, flag):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path, flag=flag)
+        variables = ["TEMP", "UWND", "pressure"]
+        points = _cell_points([(4.0, 7.0), (11.0, 2.0)], 150.0)
+        linear = sample_points(path, points, variables, z_kind="agl", model_top=25000)
+        nearest = sample_points(
+            path, points, variables, z_kind="agl", method="nearest", model_top=25000
+        )
+        pd.testing.assert_frame_equal(linear, nearest)
+
+    def test_file_method_passes_model_top(self, tmp_path):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        points = _cell_points(self.XY, 400.0)
+        expected = sample_points(path, points, ["TEMP"], z_kind="agl", model_top=25000)
+        with File(path) as met:
+            result = met.sample_points(points, ["TEMP"], z_kind="agl", model_top=25000)
+        pd.testing.assert_frame_equal(result, expected)
+
+    def test_pressure_levels_skip_a_level_below_the_first_internal_level(
+        self, tmp_path
+    ):
+        # The 850 hPa level is 5 m above the 1455 m ground, below the first internal
+        # level (10 m at 0 m terrain, 9.42 m here): prfprs skips it, so up to the
+        # 800 hPa level (495 m) the profile is linear from the ground's values.
+        path = tmp_path / "prs.arl"
+        write_pressure_column_file(path, shgt=1455.0)
+        z_800 = _PRS_HGTS[4] - 1455.0
+        z = [2.0, 40.0, 300.0]
+        points = pd.DataFrame(
+            {**{k: [v] * 3 for k, v in _COLUMN_POINT.items()}, "z": z}
+        )
+        result = sample_points(
+            path, points, ["TEMP", "UWND"], z_kind="agl", model_top=25000
+        )
+        first = 10.0 * (25000.0 - 1455.0) / 25000.0
+        at = np.array([first, 40.0, 300.0])  # below the first level, its value
+        np.testing.assert_allclose(
+            result["TEMP"], _T02M + at / z_800 * (_PRS_TEMP[4] - _T02M), rtol=1e-6
+        )
+        np.testing.assert_allclose(
+            result["UWND"], _U10M + at / z_800 * (_PRS_UWND[4] - _U10M), rtol=1e-5
+        )
+        # without model_top the 850 hPa level counts
+        plain = sample_points(path, points, ["TEMP"], z_kind="agl")
+        assert abs(plain["TEMP"].iloc[1] - result["TEMP"].iloc[1]) > 1.0
+
+    def test_above_the_top(self, tmp_path):
+        # The column of write_column_file ends near 924 m. HYSPLIT's internal
+        # levels over its 1300 m ground: (30 k**2 - 25 k + 5) * 0.948 m, so the
+        # last below the top is the 6th, at 886 m.
+        path = tmp_path / "column.arl"
+        write_column_file(path)
+        scale = (25000.0 - _SHGT) / 25000.0
+        k = np.arange(1, 31)
+        heights = (30.0 * k * k - 25.0 * k + 5.0) * scale
+        dense = np.arange(0.0, 1500.0, 0.5)
+        plain = _sample_column(path, ["TEMP"], list(dense))
+        top = dense[np.isfinite(plain["TEMP"].to_numpy())].max()
+        k_top = np.searchsorted(heights, top, side="right") - 1
+        assert k_top == 5 and heights[k_top + 1] > top + 1.0
+
+        names = ["TEMP", "UWND", "SPHU", "WWND", "pressure"]
+        z = [float(heights[k_top]), 3000.0, 5000.0, 20000.0]
+        points = pd.DataFrame(
+            {**{key: [v] * 4 for key, v in _COLUMN_POINT.items()}, "z": z}
+        )
+        result = sample_points(path, points, names, z_kind="agl", model_top=25000)
+        last = _sample_column(path, ["TEMP", "UWND"], [float(heights[k_top])])
+        for name in ("TEMP", "UWND"):  # the last internal level's value, held
+            np.testing.assert_allclose(result[name], last[name].iloc[0], rtol=1e-6)
+        for name in ("SPHU", "WWND"):  # not carried above the top
+            assert result[name].iloc[1:].isna().all()
+        # pressure falls hydrostatically from level to level, dry above the first step
+        on_levels = sample_points(
+            path,
+            pd.DataFrame(
+                {
+                    **{key: [v] * 4 for key, v in _COLUMN_POINT.items()},
+                    "z": heights[k_top + 1 : k_top + 5],
+                }
+            ),
+            ["pressure", "TEMP"],
+            z_kind="agl",
+            model_top=25000,
+        )
+        p = on_levels["pressure"].to_numpy(dtype=float)
+        dz = np.diff(heights[k_top + 1 : k_top + 5])
+        t = float(last["TEMP"].iloc[0])
+        np.testing.assert_allclose(
+            p[1:] / p[:-1], 1.0 - 9.80616 * dz / (287.04 * t), rtol=1e-6
+        )
+        # the first step, from the last internal level below the top, takes the
+        # density there, from the virtual temperature (linear in height, CALCTV)
+        from arlmet.ops.sample import _build_horizontal_plan, _Column
+
+        with File(path) as met:
+            rs = met[_COLUMN_TIME]
+            plan = _build_horizontal_plan(
+                rs.grid,
+                np.array([_COLUMN_POINT["lon"]]),
+                np.array([_COLUMN_POINT["lat"]]),
+                method="nearest",
+            )
+            column = _Column(rs, plan)
+            tv = np.interp(
+                heights[k_top], column.z_agl[0], column.virtual_temperature[0]
+            )
+        assert tv > t + 0.5  # the column is moist
+        p_last = _sample_column(path, ["pressure"], [heights[k_top]])["pressure"]
+        dz_first = heights[k_top + 1] - heights[k_top]
+        np.testing.assert_allclose(
+            p[0] / float(p_last.iloc[0]),
+            1.0 - 9.80616 * dz_first / (287.04 * tv),
+            rtol=1e-6,
+        )
+        # without model_top, above the top is NaN
+        assert _sample_column(path, names, [3000.0]).loc[0, names].isna().all()
+
+    def test_without_shgt_the_terrain_is_hysplits_estimate(self, tmp_path):
+        # prfsig estimates the terrain from PRSS and the first level's temperature.
+        def write(path, shgt):
+            grid = make_test_grid()
+            axis = SigmaAxis(levels=[1.0, 0.99, 0.95, 0.9])
+            prss = np.linspace(800.0, 1020.0, grid.nx * grid.ny).reshape(
+                grid.ny, grid.nx
+            )
+            temp1 = 283.0 + np.linspace(0.0, 5.0, grid.nx * grid.ny).reshape(
+                grid.ny, grid.nx
+            )
+            with File(
+                path, mode="w", source="TEST", grid=grid, vertical_axis=axis
+            ) as arl:
+                rs = arl.create_recordset(_COLUMN_TIME)
+                f32 = np.float32
+                if shgt is not None:
+                    rs.create_datarecord(
+                        "SHGT", level=0, forecast=0, data=shgt.astype(f32)
+                    )
+                rs.create_datarecord("PRSS", level=0, forecast=0, data=prss.astype(f32))
+                rs.create_datarecord(
+                    "T02M", level=0, forecast=0, data=(temp1 + 2).astype(f32)
+                )
+                for level in range(1, 4):
+                    data = {
+                        "PRES": prss * axis.levels[level],
+                        "TEMP": temp1 - 3.0 * (level - 1),
+                        "UWND": np.full_like(prss, 3.0 * level),
+                    }
+                    for name, values in data.items():
+                        rs.create_datarecord(
+                            name, level=level, forecast=0, data=values.astype(f32)
+                        )
+            return prss.astype(f32).astype(float), temp1.astype(f32).astype(float)
+
+        prss, temp1 = write(tmp_path / "none.arl", None)
+        estimate = np.where(
+            prss <= 1013.0, np.log(1013.0 / prss) * 287.04 * temp1 / 9.80616, 0.0
+        )
+        write(tmp_path / "shgt.arl", estimate)
+        points = _cell_points([(4.3, 7.6), (15.5, 15.5), (19.0, 19.0)], 300.0)
+        for path in ("none.arl", "shgt.arl"):
+            result = sample_points(
+                tmp_path / path, points, ["TEMP", "UWND"], z_kind="agl", model_top=25000
+            )
+            if path == "none.arl":
+                without = result
+        pd.testing.assert_frame_equal(without, result, rtol=1e-5)
+
+    def test_bad_arguments_raise(self, tmp_path):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        points = _cell_points(self.XY, 400.0)
+        for z_kind in ("pressure", "native"):
+            with pytest.raises(ValueError, match="model_top applies to heights"):
+                sample_points(path, points, ["TEMP"], z_kind=z_kind, model_top=25000)
+        for top in (0.0, -10.0, np.nan):
+            with pytest.raises(ValueError, match="model_top must be a positive"):
+                sample_points(path, points, ["TEMP"], z_kind="agl", model_top=top)
+        terrain = tmp_path / "terrain.arl"
+        write_terrain_sampling_file(terrain, time=_COLUMN_TIME)
+        with pytest.raises(ValueError, match="terrain-following"):
+            sample_points(terrain, points, ["TEMP"], z_kind="agl", model_top=25000)

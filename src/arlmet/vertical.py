@@ -172,15 +172,56 @@ def _hysplit_z_agl(
     humidity is the first level's.
     """
     t = np.asarray(temperature, dtype=float)
-    p = np.asarray(pressure, dtype=float)
-    p0 = np.asarray(surface_pressure, dtype=float)
     ax = level_axis % t.ndim
-    t1 = np.take(t, 0, axis=ax)
     if surface_temperature is not None:
         t_ground = np.asarray(surface_temperature, dtype=float)
     else:
-        t_ground = t1 * np.asarray(first_sigma, dtype=float) ** -0.286
+        t_ground = (
+            np.take(t, 0, axis=ax) * np.asarray(first_sigma, dtype=float) ** -0.286
+        )
+    tv, tv_ground = _hysplit_virtual_temperature(
+        pressure,
+        surface_pressure,
+        t,
+        t_ground,
+        specific_humidity=specific_humidity,
+        relative_humidity=relative_humidity,
+        level_axis=level_axis,
+    )
+    return hypsometric_z_agl(
+        pressure,
+        surface_pressure,
+        tv,
+        surface_temperature=tv_ground,
+        level_axis=level_axis,
+    )
 
+
+def _hysplit_virtual_temperature(
+    pressure: npt.ArrayLike,
+    surface_pressure: npt.ArrayLike,
+    temperature: npt.ArrayLike,
+    ground_temperature: npt.ArrayLike,
+    *,
+    specific_humidity: npt.ArrayLike | None = None,
+    relative_humidity: npt.ArrayLike | None = None,
+    level_axis: int = -1,
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+    """
+    Virtual temperature [K] of the levels above ground and of the ground, as HYSPLIT's ``CALCTV``.
+
+    ``T (1 + 0.61 q)``, with ``q`` the ``SPHU``, else ``RELH`` converted with
+    ``CALCSP`` at each level's pressure, else 0 (a NaN humidity counts as
+    none). The ground's humidity is the first level's (``RELH`` converted at
+    the ground's temperature and *surface_pressure*). Returns ``(levels,
+    ground)``; *pressure*, *temperature* and the humidity hold the levels above
+    ground along *level_axis*.
+    """
+    t = np.asarray(temperature, dtype=float)
+    p = np.asarray(pressure, dtype=float)
+    p0 = np.asarray(surface_pressure, dtype=float)
+    t_ground = np.asarray(ground_temperature, dtype=float)
+    ax = level_axis % t.ndim
     if specific_humidity is not None:
         q = np.nan_to_num(np.asarray(specific_humidity, dtype=float), nan=0.0)
         q_ground = np.take(q, 0, axis=ax)
@@ -190,15 +231,8 @@ def _hysplit_z_agl(
         q_ground = _specific_humidity_from_relh(t_ground, np.take(rh, 0, axis=ax), p0)
     else:
         q = np.zeros_like(t)
-        q_ground = np.zeros_like(t1)
-
-    return hypsometric_z_agl(
-        p,
-        p0,
-        t * (1.0 + 0.61 * q),
-        surface_temperature=t_ground * (1.0 + 0.61 * q_ground),
-        level_axis=level_axis,
-    )
+        q_ground = np.zeros_like(t_ground)
+    return t * (1.0 + 0.61 * q), t_ground * (1.0 + 0.61 * q_ground)
 
 
 def _require(name: str, value: npt.ArrayLike | None, axis: "VerticalAxis") -> None:

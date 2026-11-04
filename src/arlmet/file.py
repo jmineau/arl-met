@@ -816,6 +816,7 @@ class File:
         z_kind: Literal["native", "pressure", "agl", "msl"] = "pressure",
         method: Literal["linear", "nearest"] = "linear",
         earth_relative: bool = False,
+        model_top: float | None = None,
     ) -> pd.DataFrame:
         """
         Sample fields from this file at arbitrary lon/lat/z points.
@@ -889,6 +890,11 @@ class File:
             from the grid axes to east/north. Winds in ARL files on projected
             grids are stored grid-relative, as HYSPLIT expects. Both components
             of a pair must be requested. No effect on lat/lon grids.
+        model_top : float, optional
+            The HYSPLIT run's top of model domain [m] (the ``CONTROL`` file's,
+            PYSTILT's ``z_top``). With it, at heights, the values are the ones
+            HYSPLIT uses on its internal levels for that run, as
+            :func:`arlmet.sample_points` describes.
 
         Returns
         -------
@@ -903,8 +909,10 @@ class File:
             If a required column is missing, ``time`` is given alongside a
             ``time`` column, no time is given for a multi-time file, a point
             time is not in the file, a variable name collides with a column
-            of ``points``, ``z_kind`` or ``method`` is invalid, or a field
-            that ``z_kind`` requires is missing.
+            of ``points``, ``z_kind`` or ``method`` is invalid, a field
+            that ``z_kind`` requires is missing, or ``model_top`` is given
+            with ``z_kind`` ``"pressure"`` or ``"native"``, is not a positive
+            number, or is given for a terrain-following (flag 3) file.
 
         Examples
         --------
@@ -929,6 +937,7 @@ class File:
             z_kind=z_kind,
             method=method,
             earth_relative=earth_relative,
+            model_top=model_top,
         )
 
     def to_dataset(

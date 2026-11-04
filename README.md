@@ -36,7 +36,7 @@ Strengths:
 
 - low-level ARL fidelity, including preservation of trailing `DIF*` records
 - xarray-native analysis workflow for common ARL files
-- direct subset extraction and point sampling, with sigma, hybrid and pressure-level heights found as HYSPLIT finds them (the `PRES` field when a sigma file has it, the virtual temperature, from the ground up, pressure levels below the ground left out)
+- direct subset extraction and point sampling, with sigma, hybrid and pressure-level heights found as HYSPLIT finds them (the `PRES` field when a sigma file has it, the virtual temperature, from the ground up, pressure levels below the ground left out), and with a HYSPLIT run's `model_top` the values that run uses on its own internal levels
 - tested support for Python 3.11 through 3.14
 
 Known limitations:

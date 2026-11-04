@@ -20,7 +20,9 @@ from arlmet.vertical import (
     PressureAxis,
     SigmaAxis,
     TerrainAxis,
+    VerticalAxis,
     WrfAxis,
+    _hysplit_virtual_temperature,
     _hysplit_z_agl,
 )
 
@@ -809,6 +811,9 @@ class _Column:
     0 m above it, at the surface pressure ``PRSS``. On a pressure-level file a
     level at or below the ground has no height (NaN), so a profile runs from
     the ground to the first level above it, as ``prfprs`` skips such levels.
+    Given HYSPLIT's internal *levels* (:class:`_InternalLevels`), ``prfprs``
+    also skips a level between the ground and the first internal level above
+    it, and so does this.
     Each field is read only when first needed, and every array is
     ``(n_points, n_levels)`` over all the axis's levels, or ``(n_points,)`` for
     the ground.
@@ -818,9 +823,12 @@ class _Column:
         self,
         recordset: RecordSet,
         plan: HorizontalSamplePlan,
+        *,
+        levels: _InternalLevels | None = None,
     ) -> None:
         self.recordset = recordset
         self.plan = plan
+        self.levels = levels
         self.axis = recordset.vertical_axis
         self.upper = list(range(1, len(self.axis.levels)))
 
@@ -897,23 +905,69 @@ class _Column:
         return z
 
     @cached_property
+    def terrain(self) -> npt.NDArray[Any]:
+        """
+        Terrain height [m] at each point: ``SHGT``.
+
+        A sigma, hybrid or WRF time step without ``SHGT`` gets HYSPLIT's
+        estimate from the surface pressure and the first level's temperature
+        (``prfmod``'s ``PRFA``: ``ln(1013 / PRSS) R T1 / g``, 0 where ``PRSS``
+        is above 1013 hPa), which ``prfsig`` and ``prfecm`` write back into
+        HYSPLIT's terrain array.
+        """
+        if isinstance(self.axis, PressureAxis) or (0, "SHGT") in self.recordset:
+            return _terrain(self.recordset, self.plan)
+        p0 = self.surface_pressure.astype(float)
+        t1 = self._temperature[:, 0].astype(float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            estimate = np.log(_SFCP / p0) * _HYSPLIT_RDRY * t1 / _HYSPLIT_GRAV
+        return np.where(p0 <= _SFCP, estimate, 0.0)
+
+    @cached_property
     def _hgts_agl(self) -> npt.NDArray[Any]:
         """
         ``HGTS - SHGT`` [m] of each level of a pressure-level file, 0 at the ground.
 
         A level at or below the ground is NaN: HYSPLIT's ``prfprs`` puts no
         output level there and keeps the ground as the bottom of the profile.
+        With internal *levels* so is a level below the first of them:
+        ``prfprs`` moves the bottom of its profile up only after filling its
+        first output level (``IF(KL.GT.1)``).
         """
         hgts = self._upper("HGTS")
         if hgts is None:
             raise ValueError(
                 "Pressure-level (flag=2) files require HGTS records for AGL/MSL sampling."
             )
-        terrain = _terrain(self.recordset, self.plan)
+        terrain = self.terrain
         agl = hgts - terrain[:, None]
         z = np.zeros((len(terrain), len(self.axis.levels)), dtype=np.float32)
-        z[:, 1:] = np.where(agl > 0.0, agl, np.nan)
+        if self.levels is None:
+            z[:, 1:] = np.where(agl > 0.0, agl, np.nan)
+        else:
+            first = self.levels.heights[0] * self.levels.scale(terrain)
+            z[:, 1:] = np.where(agl >= first[:, None], agl, np.nan)
         return z
+
+    @cached_property
+    def virtual_temperature(self) -> npt.NDArray[Any]:
+        """
+        Virtual temperature [K] of each level, the ground's at level 0.
+
+        HYSPLIT's ``CALCTV`` at each level's pressure, and at the ground's
+        temperature and pressure for the ground, as ``prfsig``, ``prfprs`` and
+        ``prfecm`` find the air's density from it.
+        """
+        p = self.pressure
+        tv, tv_ground = _hysplit_virtual_temperature(
+            p[:, 1:],
+            p[:, 0],
+            self._temperature,
+            self.ground_temperature,
+            specific_humidity=self._upper("SPHU"),
+            relative_humidity=self._upper("RELH"),
+        )
+        return np.column_stack([tv_ground, tv])
 
     @cached_property
     def ground_temperature(self) -> npt.NDArray[Any]:
@@ -970,6 +1024,40 @@ class _Column:
         return first_level if values is None else values
 
 
+@dataclass(frozen=True)
+class _Profile:
+    """
+    One variable's profile at each row of a plan, to be read at any target.
+
+    *values* and *coords* are ``(rows, levels)``; pressure is held as ln p
+    (*log_p*) and read back as p. *walk*: a column from the ground up, walked
+    in level order (:func:`_interp_column`). *fixed*: a field with one value
+    per row (a surface or single-level field), the same at every target.
+    """
+
+    values: npt.NDArray[Any] | None = None
+    coords: npt.NDArray[Any] | None = None
+    log_p: bool = False
+    walk: bool = False
+    fixed: npt.NDArray[Any] | None = None
+
+    def at(self, targets: npt.NDArray[Any]) -> npt.NDArray[Any]:
+        """Return the value at each row's target: ``(rows,)`` float32, NaN outside the profile."""
+        if self.fixed is not None:
+            return self.fixed
+        assert self.values is not None and self.coords is not None
+        out = _interp_profiles(self.values, self.coords, targets, column=self.walk)
+        return np.exp(out) if self.log_p else out
+
+    def top(self) -> npt.NDArray[Any]:
+        """Return each row's highest coordinate with a value (NaN where none)."""
+        assert self.values is not None and self.coords is not None
+        coords = np.broadcast_to(self.coords, self.values.shape)
+        valid = np.isfinite(self.values) & np.isfinite(coords)
+        top = np.where(valid, coords, -np.inf).max(axis=1)
+        return np.where(np.isfinite(top), top, np.nan)
+
+
 def _sample_variable(
     recordset: RecordSet,
     variable: str,
@@ -980,14 +1068,38 @@ def _sample_variable(
     column: _Column | None,
 ) -> npt.NDArray[Any]:
     """
-    Interpolate *variable* to each target height along the column of each row of *plan*.
+    Interpolate *variable* to each target along the column of each row of *plan*.
+
+    *targets* are in the coordinate system of *z_kind*; the profile is
+    :func:`_variable_profile`'s. Returns ``(n_points,)`` float32, NaN for
+    out-of-range or off-grid points.
+    """
+    if variable == "pressure" and z_kind == "pressure":
+        # Pressure sampled in pressure space is the requested target itself.
+        return targets.astype(np.float32, copy=False)
+    profile = _variable_profile(
+        recordset, variable, z_kind=z_kind, plan=plan, column=column
+    )
+    return profile.at(targets)
+
+
+def _variable_profile(
+    recordset: RecordSet,
+    variable: str,
+    *,
+    z_kind: _ColumnZKind,
+    plan: HorizontalSamplePlan,
+    column: _Column | None,
+) -> _Profile:
+    """
+    Build *variable*'s profile along the column of each row of *plan*.
 
     Parameters
     ----------
     variable :
-        ARL field name, or ``'pressure'`` for the virtual pressure variable.
-    targets :
-        Target z values in the coordinate system specified by *z_kind*.
+        ARL field name, or ``'pressure'`` for the virtual pressure variable
+        (at ``z_kind='pressure'`` that is the target itself:
+        :func:`_sample_variable`).
     z_kind :
         ``'native'`` — target is a level index (fractional);
         ``'pressure'`` — target is pressure in hPa;
@@ -1005,34 +1117,30 @@ def _sample_variable(
 
     Returns
     -------
-    np.ndarray of shape (n_points,) float32, NaN for out-of-range or off-grid points.
-    Along a *column* pressure (``PRES`` or the virtual pressure) is
-    interpolated as ln p, as HYSPLIT's ``prfsig``, ``prfprs`` and ``prfecm``
-    do; otherwise (terrain-following files, whose ``prfter`` is linear, and
-    the native levels of pressure-level files, whose level 0 holds no
-    pressure) linearly.
+    _Profile
+        Along a *column* pressure (``PRES`` or the virtual pressure) is
+        interpolated as ln p, as HYSPLIT's ``prfsig``, ``prfprs`` and ``prfecm``
+        do; otherwise (terrain-following files, whose ``prfter`` is linear, and
+        the native levels of pressure-level files, whose level 0 holds no
+        pressure) linearly.
     """
     axis = recordset.vertical_axis
     log_p = column is not None and variable in _PRESSURE_VARIABLES
     # At heights a column is walked in level order, as HYSPLIT does (#106).
     walk = column is not None and z_kind == "agl"
 
-    def _interp(values: npt.NDArray[Any], coords: npt.NDArray[Any]) -> npt.NDArray[Any]:
-        """Interpolate *values* to the targets, as ln p for pressure."""
-        if not log_p:
-            return _interp_profiles(values, coords, targets, column=walk)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            log_values = np.log(values)
-        return np.exp(_interp_profiles(log_values, coords, targets, column=walk))
+    def _profile(values: npt.NDArray[Any], coords: npt.NDArray[Any]) -> _Profile:
+        """Hold *values* along *coords*, as ln p for pressure."""
+        if log_p:
+            with np.errstate(divide="ignore", invalid="ignore"):
+                values = np.log(values)
+        return _Profile(values=values, coords=coords, log_p=log_p, walk=walk)
 
     # --- virtual "pressure" variable ---
     if variable == "pressure":
-        if z_kind == "pressure":
-            # Pressure sampled in pressure space is the requested target itself.
-            return targets.astype(np.float32, copy=False)
         if isinstance(axis, TerrainAxis):
             # Terrain-following files have no pressure coordinate.
-            return np.full(len(targets), np.nan, dtype=np.float32)
+            return _Profile(fixed=np.full(len(plan.inside), np.nan, dtype=np.float32))
 
         # Treat pressure as a virtual field whose per-level values are the
         # pressures themselves, interpolated over the requested z system.
@@ -1051,13 +1159,13 @@ def _sample_variable(
             plan=plan,
             column=column,
         )
-        return _interp(values, coords)
+        return _profile(values, coords)
 
     # --- data variable ---
     samples, levels = _variable_profiles(recordset, variable, plan)
     if len(levels) == 1 or variable in SURFACE_VARIABLES:
-        # Single-level or surface field — return directly without vertical interpolation.
-        return samples[:, 0]
+        # Single-level or surface field — the same at every target.
+        return _Profile(fixed=samples[:, 0])
 
     if column is not None and levels[0] != 0:
         # Level 0 is the ground: start the profile there, as HYSPLIT does.
@@ -1072,7 +1180,234 @@ def _sample_variable(
         plan=plan,
         column=column,
     )
-    return _interp(samples, coords)
+    return _profile(samples, coords)
+
+
+#: HYSPLIT's ``prfmod`` constants, for the pressure it extrapolates above a file's top.
+_HYSPLIT_GRAV = 9.80616  # m/s2
+_HYSPLIT_RDRY = 287.04  # J/(kg K)
+
+#: The quadratic internal grids HYSPLIT's ``metlvl.f`` chooses from, finest
+#: last: level ``k`` (from 1) is ``a k**2 + b k + c`` meters above the ground
+#: at zero terrain.
+_HYSPLIT_GRIDS = (
+    (30.0, -25.0, 5.0),
+    (20.0, -15.0, 5.0),
+    (15.0, -5.0, 0.0),
+    (10.0, -10.0, 10.0),
+    (5.0, 5.0, 0.0),
+    (2.5, 2.5, 0.0),
+)
+#: ``metlvl.f``'s meters per hPa by 100 hPa (100 to 900) and by 10 hPa (10 to 90).
+_ZPH1 = (17.98, 14.73, 13.09, 11.98, 11.15, 10.52, 10.04, 9.75, 9.88)
+_ZPH2 = (31.37, 27.02, 24.59, 22.92, 21.65, 20.66, 19.83, 19.13, 18.51)
+#: HYSPLIT's 1013 hPa: ``metlvl.f``'s assumed surface pressure and ``prfmod``'s
+#: mean sea-level pressure.
+_SFCP = 1013.0
+
+#: Variables HYSPLIT carries above a file's top on its internal levels at the
+#: value of the last internal level below the top (``prfsig``'s tail, ``prfend``).
+_HELD_ABOVE_TOP = frozenset({"TEMP", "UWND", "VWND"})
+
+
+@dataclass(frozen=True)
+class _InternalLevels:
+    """
+    HYSPLIT's internal vertical grid for a run, as ``hymodelc`` sets it up.
+
+    *zmdl* is ``ZMDL``, the height at which the terrain-following sigma
+    surfaces go flat: ``max(model_top, 25000)`` (``runset.f``). *heights* are
+    the internal levels' heights above the ground where the terrain is 0 m,
+    ``a k**2 + b k + c`` (``1 - ZSG`` times ``ZMDL``); above a grid point with
+    terrain ``zsfc`` each is ``(ZMDL - zsfc) / ZMDL`` times as high.
+    """
+
+    zmdl: float
+    heights: npt.NDArray[Any]
+
+    @classmethod
+    def for_axis(cls, axis: VerticalAxis, model_top: float) -> _InternalLevels:
+        """
+        Return the internal grid HYSPLIT's ``metlvl.f`` sets up for a run on *axis*.
+
+        ``metlvl`` counts the file's levels up to *model_top* (each level's
+        pressure turned into a rough height with a fixed table) and takes the
+        first of six quadratic grids that has more levels than that up to
+        *model_top*. Computed in single precision, as HYSPLIT does. A WRF
+        (flag 5) file counts as sigma: without WRF's hybrid coefficients
+        HYSPLIT reads it as flag 1.
+        """
+        f32 = np.float32
+        zdata = f32(model_top)
+        offset = f32(axis.offset)
+        levels = np.asarray(axis.levels, dtype=np.float32)
+        n_data = len(levels)
+        n = 0
+        zlevel = f32(0.0)
+        while zlevel <= zdata and n < n_data:
+            n += 1
+            height = levels[n - 1]
+            if isinstance(axis, (SigmaAxis, WrfAxis)):
+                plevel = offset + (f32(_SFCP) - offset) * height
+            elif isinstance(axis, PressureAxis):
+                plevel = height if n > 1 else f32(_SFCP)
+            else:  # HybridAxis
+                floor = f32(int(height))
+                plevel = f32(_SFCP) * (height - floor) + floor if n > 1 else f32(_SFCP)
+            if plevel >= 100.0:
+                delz = f32(_ZPH1[min(9, int(plevel / f32(100.0))) - 1])
+            else:
+                delz = f32(_ZPH2[max(1, min(9, int(plevel / f32(10.0)))) - 1])
+            zlevel = (f32(_SFCP) - plevel) * delz
+        needed = min(n + 1, n_data)
+
+        count = 0
+        a = b = c = f32(0.0)
+        for grid in _HYSPLIT_GRIDS:
+            a, b, c = (f32(v) for v in grid)
+            dist = b * b - f32(4.0) * a * (c - zdata)
+            count = int((-b + np.sqrt(dist)) / (f32(2.0) * a)) + 1 if dist >= 0 else 1
+            if count > needed:
+                break
+        k = np.arange(1, count + 1, dtype=float)
+        heights = float(a) * k * k + float(b) * k + float(c)
+        return cls(zmdl=max(abs(float(model_top)), 25000.0), heights=heights)
+
+    def scale(self, terrain: npt.NDArray[Any]) -> npt.NDArray[Any]:
+        """Return how much higher the levels are above *terrain* than at 0 m: ``(ZMDL - zsfc) / ZMDL``."""
+        return (self.zmdl - np.asarray(terrain, dtype=float)) / self.zmdl
+
+    def position(
+        self, z: npt.NDArray[Any], terrain: npt.NDArray[Any]
+    ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+        """
+        Return the internal layer of each height *z* above its *terrain*, and the fraction up it.
+
+        Returns ``(k, f)``: the value is the one at level ``k`` (0-based)
+        plus ``f`` of the way to level ``k + 1``, linear in sigma, as
+        ``hymodelc`` reads a particle's ``PRES``, ``TEMP`` and ``DENS`` and
+        ``zindex.f`` places it for ``adv3nt``. The particle's sigma is ``1 -
+        z / (ZMDL - zsfc)``. Below the first level the first level's value
+        (``f = 0``), above the last the last's (``f = 1``). ``f`` is NaN for a
+        NaN or negative *z*.
+        """
+        h = self.heights
+        z = np.asarray(z, dtype=float)
+        with np.errstate(invalid="ignore"):
+            internal = z / self.scale(terrain)  # the height at 0 m terrain
+            k = np.clip(
+                np.searchsorted(h, internal, side="right") - 1, 0, max(len(h) - 2, 0)
+            )
+            if len(h) < 2:
+                f = np.zeros_like(internal)
+            else:
+                f = np.clip((internal - h[k]) / (h[k + 1] - h[k]), 0.0, 1.0)
+            f = np.where(np.isfinite(z) & (z >= 0.0), f, np.nan)
+        return k, f
+
+
+def _pressure_above_top(
+    p_top: npt.NDArray[Any],
+    t_top: npt.NDArray[Any],
+    tv_top: npt.NDArray[Any],
+    k_top: npt.NDArray[Any],
+    k: npt.NDArray[Any],
+    heights: npt.NDArray[Any],
+) -> npt.NDArray[Any]:
+    """
+    Pressure at internal level *k*, above level *k_top*, the last below a column's top.
+
+    HYSPLIT's ``prfend`` (and ``prfsig``'s tail) steps it up level by level
+    hydrostatically with the level below's density: ``p_k = p_{k-1} (1 - g dz
+    / (R T))``, where ``T`` is *tv_top*, the virtual temperature at level
+    *k_top*, for the first step and the temperature *t_top* (dry) after.
+    *heights* ``(rows, levels)`` are the levels' heights above each row's
+    ground; every other array is ``(rows,)``.
+    """
+    rows = np.arange(len(k))
+    dz = np.diff(heights, axis=1)  # dz[:, i] from level i to level i + 1
+    step = np.log1p(-_HYSPLIT_GRAV * dz / (_HYSPLIT_RDRY * t_top[:, None]))
+    cum = np.concatenate([np.zeros((len(k), 1)), np.cumsum(step, axis=1)], axis=1)
+    # the first step uses tv_top; the steps after it, from k_top + 1 to k, t_top
+    first = np.log1p(-_HYSPLIT_GRAV * dz[rows, k_top] / (_HYSPLIT_RDRY * tv_top))
+    log_p = np.log(p_top) + first + cum[rows, k] - cum[rows, k_top + 1]
+    return np.exp(log_p)
+
+
+def _sample_on_internal_levels(
+    recordset: RecordSet,
+    variable: str,
+    k: npt.NDArray[Any],
+    f: npt.NDArray[Any],
+    levels: _InternalLevels,
+    nodes: HorizontalSamplePlan,
+    weights: npt.NDArray[Any],
+    column: _Column,
+) -> npt.NDArray[Any]:
+    """
+    Sample *variable* at each point as HYSPLIT does on its internal levels.
+
+    At each grid point around a point (*nodes*, *weights*) the profile is read
+    at the internal levels ``k`` and ``k + 1`` (:meth:`_InternalLevels.position`)
+    above that grid point's own ground, and the value is ``f`` of the way
+    between them; the grid points are then blended. Above a column's top
+    ``TEMP``, ``UWND`` and ``VWND`` keep the value of the last internal level
+    below it and pressure falls hydrostatically from there
+    (:func:`_pressure_above_top`), as HYSPLIT fills its internal levels;
+    another variable is NaN there.
+    """
+    blocks = len(weights)
+    kk, ff = np.tile(k, blocks), np.tile(f, blocks)
+    h = levels.heights
+    scale = levels.scale(column.terrain)
+    top_k = len(h) - 1
+    k_lo, k_hi = kk, np.minimum(kk + 1, top_k)
+    h_lo, h_hi = h[k_lo] * scale, h[k_hi] * scale
+    profile = _variable_profile(
+        recordset, variable, z_kind="agl", plan=nodes, column=column
+    )
+    lo = profile.at(h_lo).astype(float)
+    hi = profile.at(h_hi).astype(float)
+
+    extrapolates = variable in _HELD_ABOVE_TOP or variable in _PRESSURE_VARIABLES
+    if extrapolates and profile.fixed is None:
+        top = profile.top()
+        with np.errstate(invalid="ignore"):
+            # the last internal level at or below each column's top
+            k_top = np.searchsorted(h, top / scale, side="right") - 1
+            above = (h_hi > top) & (k_top >= 0)
+        if above.any():
+            rows = np.flatnonzero(above)
+            k_top = np.maximum(k_top, 0)
+            h_top = h[k_top] * scale
+            base = profile.at(h_top)[rows].astype(float)
+            if variable in _HELD_ABOVE_TOP:
+                held_lo = held_hi = base
+            else:
+                t_top = _variable_profile(
+                    recordset, "TEMP", z_kind="agl", plan=nodes, column=column
+                ).at(h_top)[rows]
+                tv_top = _interp_profiles(
+                    column.virtual_temperature, column.z_agl, h_top, column=True
+                )[rows]
+                held_lo, held_hi = (
+                    _pressure_above_top(
+                        base,
+                        t_top.astype(float),
+                        tv_top.astype(float),
+                        k_top[rows],
+                        np.maximum(k_at[rows], k_top[rows] + 1),
+                        h[None, :] * scale[rows, None],
+                    )
+                    for k_at in (k_lo, k_hi)
+                )
+            for values, k_at, held in ((lo, k_lo, held_lo), (hi, k_hi, held_hi)):
+                past = k_at[rows] > k_top[rows]
+                values[rows] = np.where(past, held, values[rows])
+
+    with np.errstate(invalid="ignore"):
+        at_nodes = np.where(ff == 0.0, lo, lo + ff * (hi - lo))
+    return _blend(at_nodes, weights)
 
 
 def _sample_points_from_file(
@@ -1084,6 +1419,7 @@ def _sample_points_from_file(
     z_kind: ZKind,
     method: SampleMethod,
     wind_pairs: Sequence[tuple[str, str]],
+    model_top: float | None = None,
 ) -> dict[str, npt.NDArray[Any]]:
     """
     Sample variables at points that all share one valid time in one file.
@@ -1129,6 +1465,11 @@ def _sample_points_from_file(
     wind_pairs :
         Wind component pairs to rotate from grid- to earth-relative (see
         :func:`_check_wind_pairs`); empty to leave winds grid-relative.
+    model_top :
+        The HYSPLIT run's top of model domain, at heights only: sample on the
+        run's internal levels (:class:`_InternalLevels`,
+        :func:`_sample_on_internal_levels`). None: at the point's height
+        above each grid point's ground.
 
     Returns
     -------
@@ -1138,6 +1479,13 @@ def _sample_points_from_file(
     recordset = file[time]
     axis = file.vertical_axis
     heights = z_kind in ("agl", "msl")
+    levels: _InternalLevels | None = None
+    if model_top is not None:
+        if isinstance(axis, TerrainAxis):
+            raise ValueError(
+                "model_top is not supported for terrain-following (flag=3) files."
+            )
+        levels = _InternalLevels.for_axis(axis, model_top)
     # flag=2 heights need terrain for the ground and HGTS - SHGT; MSL needs the
     # terrain at the point on every axis.
     need_terrain = (heights and isinstance(axis, PressureAxis)) or (
@@ -1175,7 +1523,13 @@ def _sample_points_from_file(
     # a target near the ground is near the ground of the point's own column.
     level_first = column_z_kind == "pressure"
     nodes, weights = _node_plan(plan, each_level_first=level_first)
-    column = _Column(recordset, nodes) if has_column else None
+    column = _Column(recordset, nodes, levels=levels) if has_column else None
+    place = None
+    if levels is not None:
+        # The particle's terrain, interpolated from the grid points' as HYSPLIT
+        # interpolates its terrain array, places it among the internal levels.
+        assert column is not None
+        place = levels.position(targets, _blend(column.terrain, weights))
     # On a WRF file UWND and VWND are on their own staggered grids: each is
     # sampled at its own array position, from the columns of the grid points
     # around it (the ground's U10M/V10M, the levels' heights), as HYSPLIT
@@ -1192,7 +1546,13 @@ def _sample_points_from_file(
                 each_level_first=level_first,
             )
             if has_column:
-                var_column = _Column(recordset, var_nodes)
+                var_column = _Column(recordset, var_nodes, levels=levels)
+        if levels is not None:
+            assert var_column is not None and place is not None
+            sampled[variable] = _sample_on_internal_levels(
+                recordset, variable, *place, levels, var_nodes, var_weights, var_column
+            )
+            continue
         at_nodes = _sample_variable(
             recordset,
             variable,
@@ -1267,6 +1627,7 @@ def sample_points(
     z_kind: ZKind = "pressure",
     method: SampleMethod = "linear",
     earth_relative: bool = False,
+    model_top: float | None = None,
 ) -> pd.DataFrame:
     """
     Sample meteorological variables at arbitrary (lon, lat, z, time) points.
@@ -1319,6 +1680,25 @@ def sample_points(
         the grid axes to east/north, using the meridian convergence of each
         file's grid. Both components of a pair must be requested. No effect on
         lat/lon grids.
+    model_top : float, optional
+        The HYSPLIT run's top of model domain [m], the ``CONTROL`` file's
+        line after the vertical motion option (PYSTILT's ``z_top``, 25000 by
+        default). With it, at heights (``"agl"``, ``"msl"``), the values are
+        the ones a HYSPLIT run with that top uses: on HYSPLIT's own internal
+        levels (those its ``metlvl`` picks for this file's vertical grid),
+        which follow the terrain as sigma surfaces that go flat at
+        ``max(model_top, 25000)`` m, linear between those levels, the first
+        level's value below it (10 m, or 5 m on the finest grid), and above a
+        file's top ``TEMP``, ``UWND``, ``VWND`` and pressure extrapolated as
+        HYSPLIT does (other variables NaN there). A sigma, hybrid or WRF file
+        without ``SHGT`` takes HYSPLIT's terrain estimate from ``PRSS``;
+        terrain-following (flag 3) files are not supported. Without it (the
+        default) each grid point's column is read at the point's own height
+        above that grid point's ground, between the file's own levels: on the
+        files checked that differs from HYSPLIT's value by up to 4.6 K, 3.5
+        m/s and 1.9 hPa below 5 km (means up to 0.6 K, 0.3 m/s and 0.8 hPa,
+        the largest below 10 m), and above a file's top it is NaN. The *Sampling*
+        guide has the details.
 
     Returns
     -------
@@ -1336,8 +1716,10 @@ def sample_points(
         ``time`` column, no time is given and the inputs hold more than one
         time, a point time is in none of the files, a time is in more than one
         file, a variable name collides with a column of ``points``, ``z_kind``
-        or ``method`` is invalid, or a field that ``z_kind`` requires is
-        missing.
+        or ``method`` is invalid, a field that ``z_kind`` requires is
+        missing, or ``model_top`` is given with ``z_kind`` ``"pressure"`` or
+        ``"native"``, is not a positive number, or is given for a
+        terrain-following (flag 3) file.
 
     Examples
     --------
@@ -1362,6 +1744,15 @@ def sample_points(
         raise ValueError("z_kind must be one of 'native', 'pressure', 'agl', or 'msl'.")
     if method not in _METHODS:
         raise ValueError("method must be 'linear' or 'nearest'.")
+    if model_top is not None:
+        if z_kind not in ("agl", "msl"):
+            raise ValueError(
+                "model_top applies to heights: z_kind must be 'agl' or 'msl'."
+            )
+        if not (np.isfinite(model_top) and model_top > 0):
+            raise ValueError(
+                f"model_top must be a positive number of meters, got {model_top!r}."
+            )
     variable_names = _normalize_variables(variables)
     wind_pairs = _check_wind_pairs(variable_names) if earth_relative else []
 
@@ -1398,6 +1789,7 @@ def sample_points(
                 z_kind=z_kind,
                 method=method,
                 wind_pairs=wind_pairs,
+                model_top=model_top,
             )
             for name, values in sampled.items():
                 columns[name][rows] = values
