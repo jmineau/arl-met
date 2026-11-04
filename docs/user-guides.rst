@@ -3,8 +3,8 @@ User Guides
 
 Use these guides for the most common workflows: downloading meteorology,
 cropping domains, writing ARL files, concatenating files, finding the files for
-a time window, sampling points, deriving vertical coordinates, checking files
-for damage, and understanding the file format.
+a time window, probing one file cheaply, sampling points, deriving vertical
+coordinates, checking files for damage, and understanding the file format.
 
 .. toctree::
    :maxdepth: 1
@@ -14,6 +14,7 @@ for damage, and understanding the file format.
    writing
    concatenating
    indexing
+   probing
    sampling
    vertical
    checking

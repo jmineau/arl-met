@@ -15,6 +15,7 @@ from .header import Header
 from .indexrecord import IndexRecord
 from .ops import concat, concat_by_time, extract_subset, sample_points
 from .packing import calculate_checksum, pack, unpack
+from .probe import Probe, probe
 from .record import DataRecord
 from .recordset import RecordSet
 from .vertical import (
@@ -60,6 +61,8 @@ __all__ = [
     "concat_by_time",
     "index",
     "DirectoryIndex",
+    "probe",
+    "Probe",
     "ARLFormatError",
     "ARLFormatWarning",
 ]

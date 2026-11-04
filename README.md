@@ -25,6 +25,7 @@ format used by HYSPLIT and related workflows. It supports:
 - joining files with `concat()` and `concat_by_time()` (e.g. 6-hourly into daily)
 - finding damage that does not stop a file from opening (a time step written partway, a missing time step) with `File.check()`
 - finding the files that cover a time window by their headers, not their names, with `index()`
+- a cheap summary of one file (first time, time step, number of steps, grid, source, forecast hour, whether it is whole or truncated) from two index records and a `stat`, with `probe()`
 
 ## Status
 
@@ -141,6 +142,16 @@ idx = arlmet.index("hrrr/")  # reads each file's index records once, then caches
 # arlmet.index("hrrr/", recursive=True) for a copy of NOAA's hrrr/YYYY/MM/ folders
 idx.covering("2021-01-14 06:00", "2021-01-15 06:00")  # the files, in time order
 idx.missing("2021-01-14 06:00", "2021-01-15 06:00")  # the hours no file holds
+```
+
+Cheaply learn what a single file holds, without reading every index record:
+
+```python
+import arlmet
+
+arlmet.probe("20210226_18-23_hrrr")
+# Probe(path=..., first=Timestamp('2021-02-26 18:00:00'), step=Timedelta('0 days 01:00:00'),
+#       n_steps=6, grid=Grid(...), source='HRRA', forecast=0, whole=True)
 ```
 
 Use the low-level writer for irregular layouts:
