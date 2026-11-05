@@ -59,11 +59,12 @@ def _build_dataset_from_file(
     *,
     drop_variables: Sequence[str] | None = None,
     bbox: tuple[float, float, float, float] | None = None,
+    bbox_crs: Any = None,
     levels: Iterable[int] | None = None,
 ) -> xr.Dataset:
     """Build an xarray Dataset from an open ARL File handle."""
     drop_variables_set: set[str] = set(drop_variables or [])
-    window = resolve_window(met, bbox)
+    window = resolve_window(met, bbox, bbox_crs)
     read_window = None if bbox is None else window
     selected_grid = met.grid if bbox is None else met.grid.subset(window)
     requested_levels = (
@@ -205,6 +206,7 @@ def open_dataset(
     *,
     drop_variables: Sequence[str] | None = None,
     bbox: tuple[float, float, float, float] | None = None,
+    bbox_crs: Any = None,
     levels: Iterable[int] | None = None,
 ) -> xr.Dataset:
     """
@@ -253,6 +255,11 @@ def open_dataset(
         Geographic bounding box ``(west, south, east, north)`` in degrees.
         On a projected grid the crop is the smallest rectangle of cells
         that holds the box's part on the grid (:meth:`arlmet.Grid.window_from_bbox`).
+    bbox_crs : pyproj.CRS or str, optional
+        The coordinate reference system ``bbox`` is in (``"EPSG:32612"``,
+        anything :meth:`pyproj.CRS.from_user_input` takes), making the box
+        ``(xmin, ymin, xmax, ymax)`` in its units; the default is degrees
+        (:meth:`arlmet.Grid.window_from_bbox`).
     levels : iterable of int, optional
         ARL level indices to keep.
 
@@ -266,6 +273,7 @@ def open_dataset(
         ds = met.to_dataset(
             drop_variables=drop_variables,
             bbox=bbox,
+            bbox_crs=bbox_crs,
             levels=levels,
         )
     # xarray convention: remember where the data came from (write_dataset uses

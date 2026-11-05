@@ -66,6 +66,17 @@ def test_engine_passes_bbox_levels_and_drop_variables(tmp_path):
     assert "PRSS" not in via_xarray
 
 
+def test_engine_passes_bbox_crs(tmp_path):
+    path = write_arl(tmp_path / "met.arl")
+    kwargs = {"bbox": (300_000, 9_220_000, 700_000, 9_900_000), "bbox_crs": 32735}
+
+    via_xarray = xr.open_dataset(path, engine="arl", **kwargs)
+    direct = arlmet.open_dataset(path, **kwargs)
+
+    xr.testing.assert_identical(via_xarray, direct)
+    assert (direct.sizes["lon"], direct.sizes["lat"]) == (5, 7)
+
+
 def test_engine_supports_dask_chunks(tmp_path):
     pytest.importorskip("dask")
     path = write_arl(tmp_path / "met.arl")

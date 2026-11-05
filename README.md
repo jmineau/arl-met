@@ -110,6 +110,8 @@ arlmet.extract_subset(
 )  # returns the output path (a pathlib.Path)
 ```
 
+A `bbox` is in degrees unless `bbox_crs=` names its coordinate system (`bbox_crs="EPSG:32612"` for UTM 12N meters).
+
 Join short files into longer ones (HYSPLIT accepts at most 128 met files for one grid, and 12 when each file is its own grid):
 
 ```python

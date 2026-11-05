@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, BinaryIO
+from typing import TYPE_CHECKING, Any, BinaryIO
 
 from arlmet._io import atomic_output, reject_same_file
 from arlmet.exceptions import ARLFormatError
@@ -43,14 +43,16 @@ def normalize_levels(
 
 
 def resolve_window(
-    file: File, bbox: tuple[float, float, float, float] | None
+    file: File, bbox: tuple[float, float, float, float] | None, bbox_crs: Any = None
 ) -> GridWindow:
     """
     Resolve a bbox selection to a grid window.
     """
     if bbox is None:
+        if bbox_crs is not None:
+            raise ValueError("bbox_crs is given without a bbox.")
         return file.grid.full_window()
-    return file.grid.window_from_bbox(bbox)
+    return file.grid.window_from_bbox(bbox, bbox_crs=bbox_crs)
 
 
 def select_records(
@@ -380,6 +382,7 @@ def extract_subset(
     dest: str | os.PathLike[str],
     *,
     bbox: tuple[float, float, float, float] | None = None,
+    bbox_crs: Any = None,
     levels: Iterable[int] | None = None,
     variables: str | Iterable[str] | None = None,
 ) -> Path:
@@ -396,6 +399,11 @@ def extract_subset(
         Geographic bounding box ``(west, south, east, north)`` in degrees.
         On a projected grid the crop is the smallest rectangle of cells
         that holds the box's part on the grid (:meth:`arlmet.Grid.window_from_bbox`).
+    bbox_crs : pyproj.CRS or str, optional
+        The coordinate reference system ``bbox`` is in (``"EPSG:32612"``,
+        anything :meth:`pyproj.CRS.from_user_input` takes), making the box
+        ``(xmin, ymin, xmax, ymax)`` in its units; the default is degrees
+        (:meth:`arlmet.Grid.window_from_bbox`).
     levels : iterable of int, optional
         ARL level indices to keep. Output levels are compacted and renumbered
         from zero while preserving the selected level heights.
@@ -454,7 +462,7 @@ def extract_subset(
     variable_names = None if variables is None else set(variables)
 
     with File(path) as src:
-        window = resolve_window(src, bbox)
+        window = resolve_window(src, bbox, bbox_crs)
         selected_levels = normalize_levels(src.vertical_axis, levels)
         selected_level_set = set(selected_levels)
         level_map = {

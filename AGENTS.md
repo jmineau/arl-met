@@ -123,7 +123,9 @@ when it downloads, so it imports without the `archives` extra.
    corners in the box, and each axis's extremes are rounded like Fortran `NINT`; a step
    over two cells is a jump across the projection's cut. `xtrct_grid` uses only the SW
    and NE corners (reference: `test_grid.py`). A bbox is `(west, south, east, north)`
-   in degrees; on any grid `west > east` crosses the dateline (east moves a turn east).
+   in degrees; on any grid `west > east` crosses the dateline (east moves a turn east). With
+   `bbox_crs` it is a rectangle in that CRS, windowed by the projected rule on either kind of
+   grid, each edge's fixed spacing measured from a first 1,001 points.
 5. **`write_dataset` handles the common case only:** the flat Dataset that
    `open_dataset` returns, with DIF records written from `attrs["diff"] =
    "DIF..."` on the parent. The `forecast_hour(time)` coordinate is the index

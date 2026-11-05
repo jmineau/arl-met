@@ -26,6 +26,10 @@ _Coord = tuple[tuple[str, ...], npt.NDArray[Any]]
 #: Half a cell apart, a 360-degree edge on HRRR's 3 km grid needs about 26,000.
 _OUTLINE_MAX_POINTS = 100_000
 
+#: How many points first sample each edge of a bbox given in a CRS, to measure its
+#: spacing on the grid (``Grid._crs_box_points_on_grid``).
+_OUTLINE_FIRST_POINTS = 1_001
+
 #: How far, in cells, a lat/lon column or row may lie from a bbox's edge and
 #: still count as on it. The modulo-360 test of longitudes rounds at the size of a
 #: number up to 360, about 6e-14 degrees, and a latitude ``lat_0 + j * dlat`` at
@@ -55,6 +59,19 @@ def wrap_lons(lons: npt.NDArray[Any]) -> npt.NDArray[Any]:
 def _wrap_lon(lon: float) -> float:
     """Wrap one longitude to [-180, 180)."""
     return (lon + 180.0) % 360.0 - 180.0
+
+
+def _bbox_crs(bbox_crs: Any) -> pyproj.CRS | None:
+    """
+    Return the CRS a bbox is given in, or None for degrees of EPSG:4326.
+
+    A system equal to EPSG:4326 apart from its axis order (``"OGC:CRS84"``) is
+    None too: a bbox is always x before y.
+    """
+    if bbox_crs is None:
+        return None
+    crs = pyproj.CRS.from_user_input(bbox_crs)
+    return None if crs.equals("EPSG:4326", ignore_axis_order=True) else crs
 
 
 def _lambert_scale_factor(cone_lat: float, ref_lat: float) -> float:
@@ -727,9 +744,14 @@ class Grid:
         """
         return GridWindow(x_start=0, x_stop=self.nx, y_start=0, y_stop=self.ny)
 
-    def window_from_bbox(self, bbox: tuple[float, float, float, float]) -> GridWindow:
+    def window_from_bbox(
+        self, bbox: tuple[float, float, float, float], *, bbox_crs: Any = None
+    ) -> GridWindow:
         """
-        Resolve a geographic bounding box to grid indices.
+        Resolve a bounding box to grid indices.
+
+        Without ``bbox_crs`` the box is in degrees of longitude and latitude,
+        as described next; with it, see ``bbox_crs`` below.
 
         On a lat/lon grid the window holds the cells whose centers lie inside
         the box, edges included. A column or row within a millionth of a cell of
@@ -773,6 +795,23 @@ class Grid:
             every longitude; a NaN longitude raises ``ValueError``. Edges may be any
             real numbers (NumPy scalars, ``Decimal``): they are converted to
             ``float`` first.
+        bbox_crs : pyproj.CRS or str, optional
+            The coordinate reference system of ``bbox``, as anything
+            :meth:`pyproj.CRS.from_user_input` takes (``"EPSG:32612"``, a PROJ
+            string, :attr:`crs`). The box is then ``(xmin, ymin, xmax, ymax)``
+            in that system's units, easting before northing (longitude before
+            latitude), whatever order the system names its axes in; the edges
+            must be finite, with ``xmin <= xmax``. On either kind of grid the
+            window is then the smallest rectangle of cells that holds every
+            point of the box on the grid, found as on a projected grid above:
+            from the box's outline, sampled about half a cell apart on the
+            grid, and the grid's corners inside the box. A global lat/lon grid
+            is cut at its seam, so a box across the seam gets every column. The
+            default, None, and any system equal to EPSG:4326 (in either axis
+            order, so ``"OGC:CRS84"`` too) mean degrees, as above. On a
+            projected grid, ``bbox_crs=grid.crs`` gives the box in meters from
+            the first cell's center, so cell ``(i, j)`` is at ``(i, j) *
+            grid_size * 1000``.
         """
         # Python floats from here on: a float32 edge would keep ``width`` at float32,
         # whose rounding (~1e-6 degrees) swamps the tolerance below, and a Decimal
@@ -780,6 +819,19 @@ class Grid:
         west, south, east, north = (float(v) for v in bbox)
         if south > north:
             raise ValueError("bbox south must be less than or equal to north.")
+
+        crs = _bbox_crs(bbox_crs)
+        if crs is not None:
+            if not all(math.isfinite(v) for v in (west, south, east, north)):
+                raise ValueError(f"bbox {bbox}: edges must be finite.")
+            if west > east:
+                raise ValueError(
+                    f"bbox {bbox}: west must be less than or equal to east in bbox_crs."
+                )
+            return self._window_around(
+                *self._crs_box_points_on_grid(crs, west, south, east, north)
+            )
+
         # From here on west <= east: ``west > east`` crosses the dateline, so the
         # box's east edge moves a turn east of where it was given.
         if east - west >= 360.0:  # every longitude, whatever the edges (inf included)
@@ -793,20 +845,8 @@ class Grid:
             east = west + (east - west) % 360.0
 
         if not self.is_latlon:
-            x, y = self._bbox_points_on_grid(west, south, east, north)
-            if x.size == 0:
-                raise ValueError("bbox does not intersect the grid.")
-
-            def nint(value: float) -> int:
-                """Round like Fortran NINT (the 1-based values here are >= 0.5)."""
-                return int(np.floor(value + 0.5))
-
-            # Every point lies in [-0.5, n - 0.5], so the window is on the grid.
-            return GridWindow(
-                x_start=max(0, nint(float(x.min()) + 1.0) - 1),
-                x_stop=min(self.nx, nint(float(x.max()) + 1.0)),
-                y_start=max(0, nint(float(y.min()) + 1.0) - 1),
-                y_stop=min(self.ny, nint(float(y.max()) + 1.0)),
+            return self._window_around(
+                *self._bbox_points_on_grid(west, south, east, north)
             )
 
         # Lat/lon grids only reach here, so lon/lat are 1-D.
@@ -959,7 +999,32 @@ class Grid:
             lons.append(np.linspace(lon0, lon1, n))
             lats.append(np.linspace(lat0, lat1, n))
         x, y = self.fractional_indices(np.concatenate(lons), np.concatenate(lats))
+        xs, ys = self._outline_on_grid(x, y)
 
+        # The cells' corners inside the box (a box larger than the grid).
+        cx, cy = self._cell_corners()
+        clon, clat = self._lonlat_at(cx, cy)
+        inside = (clat >= south) & (clat <= north)
+        inside &= (clon - west) % 360.0 <= east - west
+        return np.concatenate([xs, cx[inside]]), np.concatenate([ys, cy[inside]])
+
+    def _cell_corners(self) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+        """Fractional indices of the four outer corners of the grid's cells."""
+        lo, x_hi, y_hi = -0.5, self.nx - 0.5, self.ny - 0.5
+        return np.array([lo, x_hi, lo, x_hi]), np.array([lo, lo, y_hi, y_hi])
+
+    def _outline_on_grid(
+        self, x: npt.NDArray[Any], y: npt.NDArray[Any]
+    ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+        """
+        Return the points of an outline (fractional indices) that bound its part on the grid.
+
+        Returned: the outline's points inside the cells (``[-0.5, n - 0.5]``
+        on each axis) and where each segment between two points enters and
+        leaves them. A segment longer than two cells jumps across the
+        projection's cut or past a point it cannot map, so it is not followed
+        across the grid; its ends still count.
+        """
         lo, x_hi, y_hi = -0.5, self.nx - 0.5, self.ny - 0.5
         finite = np.isfinite(x) & np.isfinite(y)
         on = finite & (x >= lo) & (x <= x_hi) & (y >= lo) & (y <= y_hi)
@@ -986,16 +1051,125 @@ class Grid:
         for t in (t0[keep], t1[keep]):
             xs.append(np.clip(x0[keep] + t * dx[keep], lo, x_hi))
             ys.append(np.clip(y0[keep] + t * dy[keep], lo, y_hi))
+        return np.concatenate(xs), np.concatenate(ys)
+
+    def _window_around(self, x: npt.NDArray[Any], y: npt.NDArray[Any]) -> GridWindow:
+        """
+        Return the smallest window of cells that holds points on the grid.
+
+        The points are fractional indices in ``[-0.5, n - 0.5]``; the lowest
+        and highest on each axis are rounded to a cell like Fortran ``NINT``.
+        Raises ``ValueError`` when there are none (the box missed the grid).
+        """
+        if x.size == 0:
+            raise ValueError("bbox does not intersect the grid.")
+
+        def nint(value: float) -> int:
+            """Round like Fortran NINT (the 1-based values here are >= 0.5)."""
+            return int(np.floor(value + 0.5))
+
+        return GridWindow(
+            x_start=max(0, nint(float(x.min()) + 1.0) - 1),
+            x_stop=min(self.nx, nint(float(x.max()) + 1.0)),
+            y_start=max(0, nint(float(y.min()) + 1.0) - 1),
+            y_stop=min(self.ny, nint(float(y.max()) + 1.0)),
+        )
+
+    def _crs_box_points_on_grid(
+        self, crs: pyproj.CRS, west: float, south: float, east: float, north: float
+    ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+        """
+        Fractional indices that bound the part of a box in ``crs`` on the grid.
+
+        :meth:`_bbox_points_on_grid` for a rectangle in ``crs``'s own
+        coordinates (x before y), on either kind of grid. The spacing of a
+        system's units on the grid is not known ahead, so each edge is first
+        sampled at ``_OUTLINE_FIRST_POINTS`` points; its longest step that can
+        reach the grid (both ends mapped, not both past the same border of
+        the cells) sets how many points the edge gets, to put them about half
+        a cell apart (at most ``_OUTLINE_MAX_POINTS``). A step across a cut
+        counts too, which costs points but not accuracy.
+
+        A lat/lon grid's longitudes are measured within 180 degrees of its
+        middle column, so a box over its west border is not split onto the far
+        east (as :meth:`fractional_indices`, which counts east of the first
+        column, would split it); a global grid is cut at its seam.
+        """
+        to_crs = pyproj.Transformer.from_crs("EPSG:4326", crs, always_xy=True)
+        proj = self.projection
+        mid_x = (self.nx - 1) / 2.0
+
+        def indices(
+            bx: npt.NDArray[Any], by: npt.NDArray[Any]
+        ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+            """Fractional indices of points in ``crs``."""
+            lon, lat = to_crs.transform(bx, by, direction="INVERSE")
+            lon, lat = np.asarray(lon, dtype=float), np.asarray(lat, dtype=float)
+            if not self.is_latlon:
+                return self.fractional_indices(lon, lat)
+            lon_0, lat_0 = self.origin
+            mid_lon = lon_0 + mid_x * proj.tangent_lon
+            east_of_mid = (lon - mid_lon + 180.0) % 360.0 - 180.0
+            return (
+                mid_x + east_of_mid / proj.tangent_lon,
+                (lat - lat_0) / proj.tangent_lat,
+            )
+
+        lo, x_hi, y_hi = -0.5, self.nx - 0.5, self.ny - 0.5
+
+        def half_cell_points(x: npt.NDArray[Any], y: npt.NDArray[Any]) -> int:
+            """Points that put an edge sampled as ``x, y`` about half a cell apart."""
+            finite = np.isfinite(x) & np.isfinite(y)
+            x, y = np.where(finite, x, 0.0), np.where(finite, y, 0.0)
+            reach = finite[:-1] & finite[1:]
+            for v, hi in ((x, x_hi), (y, y_hi)):
+                reach &= ~((v[:-1] < lo) & (v[1:] < lo))
+                reach &= ~((v[:-1] > hi) & (v[1:] > hi))
+            steps = np.hypot(np.diff(x), np.diff(y))[reach]
+            cells = float(steps.max()) * (x.size - 1) if steps.size else 0.0
+            return min(_OUTLINE_MAX_POINTS, max(2, math.ceil(2.0 * cells) + 1))
+
+        def outline(
+            counts: list[int],
+        ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
+            """Fractional indices of the outline, ``counts[k]`` points along edge k."""
+            corners = [(west, south), (east, south), (east, north), (west, north)]
+            bx: list[npt.NDArray[Any]] = []
+            by: list[npt.NDArray[Any]] = []
+            for (x0, y0), (x1, y1), n in zip(
+                corners, corners[1:] + corners[:1], counts, strict=True
+            ):
+                t = np.linspace(0.0, 1.0, n)
+                bx.append(x0 + t * (x1 - x0))
+                by.append(y0 + t * (y1 - y0))
+            return indices(np.concatenate(bx), np.concatenate(by))
+
+        # One transform per pass: building a transformer costs more than the points.
+        first = _OUTLINE_FIRST_POINTS
+        x, y = outline([first] * 4)
+        counts = [
+            half_cell_points(
+                x[k * first : (k + 1) * first], y[k * first : (k + 1) * first]
+            )
+            for k in range(4)
+        ]
+        x, y = outline(counts)
+        on_x, on_y = self._outline_on_grid(x, y)
 
         # The cells' corners inside the box (a box larger than the grid).
-        cx = np.array([lo, x_hi, lo, x_hi])
-        cy = np.array([lo, lo, y_hi, y_hi])
-        clon, clat = self._lonlat_at(cx, cy)
-        inside = (clat >= south) & (clat <= north)
-        inside &= (clon - west) % 360.0 <= east - west
-        xs.append(cx[inside])
-        ys.append(cy[inside])
-        return np.concatenate(xs), np.concatenate(ys)
+        cx, cy = self._cell_corners()
+        if self.is_latlon:
+            lon_0, lat_0 = self.origin
+            clon, clat = lon_0 + cx * proj.tangent_lon, lat_0 + cy * proj.tangent_lat
+        else:
+            clon, clat = self._lonlat_at(cx, cy)
+        bx, by = to_crs.transform(clon, clat)
+        bx, by = np.asarray(bx, dtype=float), np.asarray(by, dtype=float)
+        inside = (bx >= west) & (bx <= east) & (by >= south) & (by <= north)
+        return (
+            np.concatenate([on_x, cx[inside]]),
+            np.concatenate([on_y, cy[inside]]),
+        )
 
     def subset(self, window: GridWindow) -> "Grid":
         """
