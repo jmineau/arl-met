@@ -1257,6 +1257,175 @@ class TestGrid:
         assert grid.subset(grid.full_window()) is grid
 
 
+def _crs_reference_window(grid: Grid, crs, bbox, n: int = 801) -> GridWindow | None:
+    """
+    The window of the part of *bbox*, in *crs*, on *grid*, by brute force, or None.
+
+    An *n* by *n* lattice of the box's points, those inside the grid's cells
+    rounded with NINT. The lattice falls inside the box's true extremes, so the
+    window can be a cell smaller than the exact one, never larger.
+    """
+    west, south, east, north = bbox
+    bx, by = np.meshgrid(np.linspace(west, east, n), np.linspace(south, north, n))
+    to_lonlat = pyproj.Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
+    lon, lat = to_lonlat.transform(bx.ravel(), by.ravel())
+    x, y = grid.fractional_indices(np.asarray(lon), np.asarray(lat))
+    if grid.is_latlon:
+        # fractional_indices counts east of the first column, in [0, 360): put
+        # the points west of the grid west of it, not far east.
+        turn = 360.0 / grid.projection.tangent_lon
+        x = np.where(x > grid.nx - 0.5 + (turn - grid.nx) / 2, x - turn, x)
+    on = np.isfinite(x) & np.isfinite(y)
+    on &= (x >= -0.5) & (x <= grid.nx - 0.5) & (y >= -0.5) & (y <= grid.ny - 0.5)
+    x, y = x[on], y[on]
+    if not x.size:
+        return None
+    return GridWindow(
+        x_start=max(0, _nint(x.min() + 1.0) - 1),
+        x_stop=min(grid.nx, _nint(x.max() + 1.0)),
+        y_start=max(0, _nint(y.min() + 1.0) - 1),
+        y_stop=min(grid.ny, _nint(y.max() + 1.0)),
+    )
+
+
+def _latlon_grid(sync_lat, sync_lon, spacing, nx, ny) -> Grid:
+    """A lat/lon grid from its first cell, as HYSPLIT writes one."""
+    return TestGrid._latlon_grid(sync_lat, sync_lon, spacing, nx, ny)
+
+
+class TestWindowFromBboxCrs:
+    """``Grid.window_from_bbox(bbox, bbox_crs=...)``: a box in another CRS (#21)."""
+
+    @pytest.mark.parametrize(
+        ("grid", "crs", "bbox"),
+        [
+            pytest.param(
+                Grid(projection=_HRRR, nx=1799, ny=1059),
+                "EPSG:32612",
+                (380_000, 4_400_000, 460_000, 4_560_000),
+                id="hrrr-utm12",
+            ),
+            pytest.param(
+                Grid(projection=_HRRR, nx=1799, ny=1059),
+                "EPSG:4269",
+                (-113.5, 39.5, -110.5, 42.0),
+                id="hrrr-nad83",
+            ),
+            pytest.param(
+                Grid(projection=_HRRR, nx=1799, ny=1059),
+                "EPSG:5070",
+                (-2_500_000, 2_500_000, -1_000_000, 4_000_000),
+                id="hrrr-albers-past-the-north-west-corner",
+            ),
+            pytest.param(
+                Grid(projection=_NAMS_AK, nx=387, ny=276),
+                "EPSG:3338",
+                (-600_000, 600_000, 400_000, 1_600_000),
+                id="polar-stereographic-alaska-albers",
+            ),
+            pytest.param(
+                Grid(projection=_NAMS_HI, nx=321, ny=225),
+                "EPSG:32604",
+                (500_000, 2_200_000, 700_000, 2_400_000),
+                id="mercator-utm4",
+            ),
+            pytest.param(
+                _latlon_grid(30.0, -120.0, 0.25, 100, 60),
+                "EPSG:32611",
+                (200_000, 3_500_000, 400_000, 3_700_000),
+                id="latlon-over-the-west-border",
+            ),
+            pytest.param(
+                _latlon_grid(-90.0, 0.0, 1.0, 360, 181),
+                "EPSG:32612",
+                (300_000, 4_500_000, 700_000, 4_900_000),
+                id="global-latlon-utm12",
+            ),
+        ],
+    )
+    def test_window_matches_a_dense_lattice_of_the_box(self, grid, crs, bbox):
+        """The window holds every lattice point of the box on the grid, a cell at most more."""
+        window = grid.window_from_bbox(bbox, bbox_crs=crs)
+        reference = _crs_reference_window(grid, crs, bbox)
+        assert reference is not None
+        assert (
+            window.x_start <= reference.x_start and window.y_start <= reference.y_start
+        )
+        assert window.x_stop >= reference.x_stop and window.y_stop >= reference.y_stop
+        _assert_close_windows(window, reference)
+
+    def test_hrrr_utm_box(self):
+        """A UTM 12N box over the Salt Lake Valley on the HRRR grid."""
+        grid = Grid(projection=_HRRR, nx=1799, ny=1059)
+        window = grid.window_from_bbox(
+            (380_000, 4_400_000, 460_000, 4_560_000), bbox_crs="EPSG:32612"
+        )
+        assert window == GridWindow(x_start=476, x_stop=511, y_start=606, y_stop=663)
+
+    def test_grid_crs_is_meters_from_the_first_cell(self):
+        """With the grid's own CRS, cell (i, j) is at (i, j) * grid_size meters."""
+        grid = Grid(projection=_HRRR, nx=1799, ny=1059)
+        step = _HRRR.grid_size * 1000.0
+        bbox = (10 * step, 20 * step, 13 * step, 22 * step)
+        window = grid.window_from_bbox(bbox, bbox_crs=grid.crs)
+        assert window == GridWindow(x_start=10, x_stop=14, y_start=20, y_stop=23)
+
+    @pytest.mark.parametrize("crs", ["EPSG:4326", "OGC:CRS84", 4326, pyproj.CRS(4326)])
+    @pytest.mark.parametrize(
+        ("grid", "bbox"),
+        [
+            pytest.param(
+                Grid(projection=_HRRR, nx=1799, ny=1059),
+                (-113.5, 39.5, -110.5, 42.0),
+                id="hrrr",
+            ),
+            pytest.param(
+                _latlon_grid(-90.0, 0.0, 1.0, 360, 181),
+                (170.0, 0.0, -170.0, 10.0),
+                id="global-across-the-dateline",
+            ),
+        ],
+    )
+    def test_epsg_4326_is_the_default(self, grid, bbox, crs):
+        """EPSG:4326 in either axis order keeps the degree rules (dateline included)."""
+        assert grid.window_from_bbox(bbox, bbox_crs=crs) == grid.window_from_bbox(bbox)
+
+    def test_box_larger_than_the_grid_holds_the_grid(self):
+        grid = Grid(projection=_HRRR, nx=1799, ny=1059)
+        window = grid.window_from_bbox((-5e6, -2e6, 5e6, 5e6), bbox_crs="EPSG:5070")
+        assert window == grid.full_window()
+
+    def test_box_across_a_global_grids_seam_gets_every_column(self):
+        """A global lat/lon grid is cut at its seam (here 0 E): no wrapped window."""
+        grid = _latlon_grid(-90.0, 0.0, 1.0, 360, 181)
+        # UTM 31N from about 1.7 W to 5.4 E at 40-44 N.
+        window = grid.window_from_bbox(
+            (100_000, 4_500_000, 700_000, 4_900_000), bbox_crs="EPSG:32631"
+        )
+        assert (window.x_start, window.x_stop) == (0, 360)
+        assert (window.y_start, window.y_stop) == (131, 135)
+
+    @pytest.mark.parametrize(
+        ("bbox", "match"),
+        [
+            ((460_000, 4_400_000, 380_000, 4_560_000), "west must be"),
+            ((380_000, 4_560_000, 460_000, 4_400_000), "south must be"),
+            ((380_000, 4_400_000, float("nan"), 4_560_000), "finite"),
+            ((380_000, 4_400_000, float("inf"), 4_560_000), "finite"),
+            ((380_000, 1_000_000, 460_000, 1_100_000), "does not intersect"),
+        ],
+    )
+    def test_bad_boxes_raise(self, bbox, match):
+        grid = Grid(projection=_HRRR, nx=1799, ny=1059)
+        with pytest.raises(ValueError, match=match):
+            grid.window_from_bbox(bbox, bbox_crs="EPSG:32612")
+
+    def test_unknown_crs_raises(self):
+        grid = Grid(projection=_HRRR, nx=1799, ny=1059)
+        with pytest.raises(pyproj.exceptions.CRSError):
+            grid.window_from_bbox((0, 0, 1, 1), bbox_crs="EPSG:0")
+
+
 class TestVerticalAxis:
     """Tests for VerticalAxis class."""
 

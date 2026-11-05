@@ -25,16 +25,22 @@ class ARLBackendEntrypoint(BackendEntrypoint):
         ds = xr.open_dataset("met.arl", engine="arl")
         ds = xr.open_dataset("met.arl", engine="arl", bbox=(-114, 39, -110, 42))
 
-    The result matches :func:`arlmet.open_dataset`, with the same ``bbox`` and
-    ``levels`` options. Going through xarray adds its generic options, such as
-    ``chunks=`` for dask. Without ``engine=``, xarray recognizes ARL files by
-    their first record, so ``xr.open_dataset("met.arl")`` also works when no
-    other backend claims the file first.
+    The result matches :func:`arlmet.open_dataset`, with the same ``bbox``,
+    ``bbox_crs`` and ``levels`` options. Going through xarray adds its generic
+    options, such as ``chunks=`` for dask. Without ``engine=``, xarray
+    recognizes ARL files by their first record, so ``xr.open_dataset("met.arl")``
+    also works when no other backend claims the file first.
     """
 
     description = "Open NOAA ARL packed meteorology files (HYSPLIT/STILT input)"
     url = "https://jmineau.github.io/arl-met/"
-    open_dataset_parameters = ("filename_or_obj", "drop_variables", "bbox", "levels")
+    open_dataset_parameters = (
+        "filename_or_obj",
+        "drop_variables",
+        "bbox",
+        "bbox_crs",
+        "levels",
+    )
 
     @override
     def open_dataset(  # type: ignore[override]
@@ -43,6 +49,7 @@ class ARLBackendEntrypoint(BackendEntrypoint):
         *,
         drop_variables: str | Iterable[str] | None = None,
         bbox: tuple[float, float, float, float] | None = None,
+        bbox_crs: Any = None,
         levels: list[int] | tuple[int, ...] | None = None,
     ) -> xr.Dataset:
         """Open an ARL file; see :func:`arlmet.open_dataset`."""
@@ -59,6 +66,7 @@ class ARLBackendEntrypoint(BackendEntrypoint):
             filename_or_obj,
             drop_variables=None if drop_variables is None else list(drop_variables),
             bbox=bbox,
+            bbox_crs=bbox_crs,
             levels=levels,
         )
 

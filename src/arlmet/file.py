@@ -948,6 +948,7 @@ class File:
         *,
         drop_variables: Sequence[str] | None = None,
         bbox: tuple[float, float, float, float] | None = None,
+        bbox_crs: Any = None,
         levels: Iterable[int] | None = None,
     ) -> xr.Dataset:
         """
@@ -961,6 +962,11 @@ class File:
             Geographic bounding box ``(west, south, east, north)`` in degrees.
             On a projected grid the crop is the smallest rectangle of cells
             that holds the box's part on the grid (:meth:`arlmet.Grid.window_from_bbox`).
+        bbox_crs : pyproj.CRS or str, optional
+            The coordinate reference system ``bbox`` is in (``"EPSG:32612"``,
+            anything :meth:`pyproj.CRS.from_user_input` takes), making the box
+            ``(xmin, ymin, xmax, ymax)`` in its units; the default is degrees
+            (:meth:`arlmet.Grid.window_from_bbox`).
         levels : iterable of int, optional
             ARL level indices to keep.
 
@@ -975,6 +981,7 @@ class File:
             self,
             drop_variables=drop_variables,
             bbox=bbox,
+            bbox_crs=bbox_crs,
             levels=levels,
         )
 
@@ -983,6 +990,7 @@ class File:
         dest: str | os.PathLike[str],
         *,
         bbox: tuple[float, float, float, float] | None = None,
+        bbox_crs: Any = None,
         levels: Iterable[int] | None = None,
         variables: str | Iterable[str] | None = None,
     ) -> Path:
@@ -1001,6 +1009,11 @@ class File:
             Geographic bounding box ``(west, south, east, north)`` in degrees.
             On a projected grid the crop is the smallest rectangle of cells
             that holds the box's part on the grid (:meth:`arlmet.Grid.window_from_bbox`).
+        bbox_crs : pyproj.CRS or str, optional
+            The coordinate reference system ``bbox`` is in (``"EPSG:32612"``,
+            anything :meth:`pyproj.CRS.from_user_input` takes), making the box
+            ``(xmin, ymin, xmax, ymax)`` in its units; the default is degrees
+            (:meth:`arlmet.Grid.window_from_bbox`).
         levels : iterable of int, optional
             ARL level indices to keep. Output levels are compacted and
             renumbered from zero while preserving the selected level heights.
@@ -1026,6 +1039,7 @@ class File:
             self.path,
             dest,
             bbox=bbox,
+            bbox_crs=bbox_crs,
             levels=levels,
             variables=variables,
         )

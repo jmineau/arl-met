@@ -280,6 +280,40 @@ def test_extract_subset_recomputes_diff_records_no_systematic_bias(tmp_path):
         )
 
 
+# A UTM 35S box (central meridian 27 E), large enough for the index record.
+_UTM_BBOX = (-200_000.0, 8_900_000.0, 1_400_000.0, 10_500_000.0)
+
+
+def test_extract_subset_and_open_dataset_take_a_bbox_crs(tmp_path):
+    """A bbox in another CRS crops to Grid.window_from_bbox's window (#21)."""
+    source = tmp_path / "source.arl"
+    write_subset_source(source)
+
+    with File(source) as original:
+        window = original.grid.window_from_bbox(_UTM_BBOX, bbox_crs="EPSG:32735")
+        expected = original[0][(0, "PRSS")].read(window=window)
+    assert (window.nx, window.ny) == (15, 16)
+
+    out = extract_subset(
+        source, tmp_path / "subset.arl", bbox=_UTM_BBOX, bbox_crs="EPSG:32735"
+    )
+    with File(out) as subset:
+        np.testing.assert_array_equal(subset[0][(0, "PRSS")].read(), expected)
+
+    ds = open_dataset(source, bbox=_UTM_BBOX, bbox_crs="EPSG:32735")
+    np.testing.assert_array_equal(ds["PRSS"].isel(time=0).values, expected)
+
+
+def test_bbox_crs_without_a_bbox_raises(tmp_path):
+    source = tmp_path / "source.arl"
+    write_subset_source(source)
+
+    with pytest.raises(ValueError, match="bbox_crs is given without a bbox"):
+        extract_subset(source, tmp_path / "subset.arl", bbox_crs="EPSG:32735")
+    with pytest.raises(ValueError, match="bbox_crs is given without a bbox"):
+        open_dataset(source, bbox_crs="EPSG:32735")
+
+
 def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
     source = tmp_path / "source.arl"
     write_subset_source(source)
