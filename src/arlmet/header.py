@@ -68,7 +68,14 @@ def format_fortran_float(value: float) -> str:
 
 
 def format_fixed_width_float(value: float, width: int) -> str:
-    """Format a float into a fixed-width decimal field for index records."""
+    """
+    Format a float into a fixed-width decimal field for index records.
+
+    The field always holds a decimal point (``11000.``, as HYSPLIT's own
+    ``F6.0`` writes it): HYSPLIT reads level heights with ``F6.2``, which takes
+    a field without one as having two implied decimals (``" 11000"`` is
+    110.00). A value too large to fit with a point raises ``ValueError``.
+    """
     if width < 2:
         raise ValueError("width must be at least 2")
 
@@ -76,7 +83,7 @@ def format_fixed_width_float(value: float, width: int) -> str:
         return "." + ("0" * (width - 1))
 
     for decimals in range(width, -1, -1):
-        text = f"{value:.{decimals}f}"
+        text = f"{value:.{decimals}f}" + ("." if decimals == 0 else "")
         if text.startswith("0.") and len(text) - 1 <= width:
             text = text[1:]
         elif text.startswith("-0.") and len(text) - 1 <= width:

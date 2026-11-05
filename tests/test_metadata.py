@@ -3,9 +3,17 @@
 import io
 from dataclasses import FrozenInstanceError
 
+import numpy as np
+import pandas as pd
 import pytest
 
-from arlmet.header import Header, letter_to_thousands, restore_year
+from arlmet import File, Grid, Projection, TerrainAxis
+from arlmet.header import (
+    Header,
+    format_fixed_width_float,
+    letter_to_thousands,
+    restore_year,
+)
 from arlmet.indexrecord import IndexRecord, LvlInfo, VarInfo
 
 
@@ -195,3 +203,64 @@ class TestIndexRecordGridSize:
             index.nx = 30  # type: ignore[misc]
         with pytest.raises(FrozenInstanceError):
             index.header.forecast = 3  # type: ignore[misc]
+
+
+def _read_fortran_f(text: str, decimals: int) -> float:
+    """Read *text* as Fortran's ``Fw.d`` does: without a decimal point, *decimals* are implied."""
+    field = text.strip()
+    return float(field) if "." in field else int(field) / 10**decimals
+
+
+class TestFixedWidthFloat:
+    """Level heights are read by HYSPLIT's ``metset.f`` with ``F6.2`` (#154)."""
+
+    @pytest.mark.parametrize(
+        "value",
+        [0.0, 0.25, 10.0, 100.0, 1000.0, 9500.0, 10000.0, 11000.0, 34800.0, 99999.0],
+    )
+    def test_heights_read_back_as_f6_2(self, value):
+        text = format_fixed_width_float(value, 6)
+        assert len(text) == 6
+        assert "." in text
+        assert _read_fortran_f(text, 2) == value
+
+    def test_a_height_too_large_for_a_point_raises(self):
+        with pytest.raises(ValueError, match="cannot be represented"):
+            format_fixed_width_float(100000.0, 6)
+
+    def test_terrain_following_file_writes_heights_with_a_point(self, tmp_path):
+        projection = Projection(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=1.0,
+            tangent_lon=1.0,
+            grid_size=0.0,
+            orientation=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=-10.0,
+            sync_lon=20.0,
+        )
+        grid = Grid(projection=projection, nx=20, ny=20)
+        levels = [0.0, 500.0, 11000.0, 30000.0]
+        path = tmp_path / "flag3.arl"
+        with File(
+            path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=TerrainAxis(levels=levels),
+        ) as met:
+            rs = met.create_recordset(pd.Timestamp("2024-07-18 00:00"))
+            for level in range(len(levels)):
+                rs.create_datarecord(
+                    "TEMP",
+                    level=level,
+                    forecast=0,
+                    data=np.full((20, 20), 280.0, dtype=np.float32),
+                )
+        index = path.read_bytes()[50:600].decode()
+        assert "11000." in index and "30000." in index
+        with File(path) as met:
+            assert list(met.vertical_axis.levels) == levels
