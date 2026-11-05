@@ -766,13 +766,11 @@ class Grid:
         bbox : tuple[float, float, float, float]
             Bounding box as ``(west, south, east, north)`` in degrees.
             Longitudes count modulo 360, so 180 and -180 are the same meridian
-            and a box may reach past 180. On a lat/lon grid ``west > east``
-            crosses the dateline, so ``(170, 190)`` and ``(170, -170)`` select
-            the same columns; on a projected grid ``(170, -170)`` raises
-            ``ValueError`` and ``(170, 190)`` is a window where it reaches the
-            grid (Alaska) and raises where it does not (HRRR). On a lat/lon
-            grid an infinite width (``west=-inf`` or ``east=inf``) holds every
-            longitude; a NaN longitude raises ``ValueError``. Edges may be any
+            and a box may reach past 180. ``west > east`` crosses the dateline,
+            so ``(170, -170)`` is the box ``(170, 190)``: a window where it
+            reaches the grid (GFS, Alaska) and ``ValueError`` where it does not
+            (HRRR). An infinite width (``west=-inf`` or ``east=inf``) holds
+            every longitude; a NaN longitude raises ``ValueError``. Edges may be any
             real numbers (NumPy scalars, ``Decimal``): they are converted to
             ``float`` first.
         """
@@ -782,13 +780,19 @@ class Grid:
         west, south, east, north = (float(v) for v in bbox)
         if south > north:
             raise ValueError("bbox south must be less than or equal to north.")
+        # From here on west <= east: ``west > east`` crosses the dateline, so the
+        # box's east edge moves a turn east of where it was given.
+        if east - west >= 360.0:  # every longitude, whatever the edges (inf included)
+            west, east = -180.0, 180.0
+        elif not (math.isfinite(west) and math.isfinite(east)):
+            raise ValueError(
+                f"bbox {bbox}: longitudes must not be NaN, and west must not be "
+                "+inf nor east -inf."
+            )
+        elif west > east:
+            east = west + (east - west) % 360.0
 
         if not self.is_latlon:
-            if west > east:
-                raise ValueError(
-                    "Projected-grid bboxes must not cross the dateline (west <= east)."
-                )
-
             x, y = self._bbox_points_on_grid(west, south, east, north)
             if x.size == 0:
                 raise ValueError("bbox does not intersect the grid.")
@@ -814,23 +818,17 @@ class Grid:
         # measured east of the west edge. Longitudes count modulo 360, so 180 and
         # -180 are one meridian (an edge there keeps the column, whichever way the
         # grid writes it) and a box may reach past 180, as HYSPLIT's xtrct_grid
-        # allows. ``west > east`` crosses the dateline. The modulo rounds at the
-        # size of a number up to 360 and the width at the size of the box, so a
-        # column exactly on an edge can miss it by ~1e-14 degrees: a column within
-        # _EDGE_TOLERANCE cells of an edge counts as on it. A row is the same:
-        # ``lat_0 + j * dlat`` rounds in the product, so a row at a latitude as
-        # typed (41.4) can lie a hair beyond it.
+        # allows. The modulo rounds at the size of a number up to 360 and the
+        # width at the size of the box, so a column exactly on an edge can miss it
+        # by ~1e-14 degrees: a column within _EDGE_TOLERANCE cells of an edge
+        # counts as on it. A row is the same: ``lat_0 + j * dlat`` rounds in the
+        # product, so a row at a latitude as typed (41.4) can lie a hair beyond it.
         tol = _EDGE_TOLERANCE * abs(self.projection.tangent_lon)
         lat_tol = _EDGE_TOLERANCE * abs(self.projection.tangent_lat)
-        if east - west >= 360.0:  # every longitude, whatever the edges (inf included)
+        width = east - west
+        if width >= 360.0:
             lon_mask = np.ones(lons.shape, dtype=bool)
-        elif not (math.isfinite(west) and math.isfinite(east)):
-            raise ValueError(
-                f"bbox {bbox}: longitudes must not be NaN, and west must not be "
-                "+inf nor east -inf."
-            )
         else:
-            width = east - west if west <= east else (east - west) % 360.0
             east_of_west = (lons - west) % 360.0
             lon_mask = (east_of_west <= width + tol) | (east_of_west >= 360.0 - tol)
         lat_mask = (lats >= south - lat_tol) & (lats <= north + lat_tol)
