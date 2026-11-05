@@ -44,7 +44,7 @@ Known limitations:
 
 - `write_dataset()` is intentionally conservative and targets the flat common-case Dataset contract
 - `DIF*` records are paired with their parent by HYSPLIT's name table only (`DIFW` with `WWND` or `DZDT`, `DIFT` with `TKEN` or `TKEU`, any surface `DIF*` with `TPP*` or `PRT*`); any other `DIF*` record is applied to nothing, with a warning, and the writers refuse other pairs
-- rotated grids are not implemented
+- rotated Mercator grids (a nonzero `orientation` with `cone_angle` 0) are not implemented; rotated Lambert and polar stereographic grids are read as HYSPLIT reads them
 - on WRF hybrid files (vertical flag 5), pressure is the `PRES` field and heights are found from it as on a sigma file, as HYSPLIT does without WRF's hybrid coefficients, which the ARL file does not hold
 
 ## Installation

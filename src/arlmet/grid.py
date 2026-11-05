@@ -52,6 +52,11 @@ def wrap_lons(lons: npt.NDArray[Any]) -> npt.NDArray[Any]:
     return ((lons + 180) % 360) - 180
 
 
+def _wrap_lon(lon: float) -> float:
+    """Wrap one longitude to [-180, 180)."""
+    return (lon + 180.0) % 360.0 - 180.0
+
+
 def _lambert_scale_factor(cone_lat: float, ref_lat: float) -> float:
     """
     Scale factor that makes a tangent Lambert cone true to scale at ``ref_lat``.
@@ -102,8 +107,11 @@ class Projection:
         Grid spacing in km at the reference position. For lat-lon grids: value of zero
         signals that the grid is a lat-lon grid.
     orientation : float
-        Grid orientation or the angle at the reference point made by the y-axis and the
-        local direction of north. For lat-lon grids: value always = 0.
+        Angle, in degrees clockwise from north, of the grid's y-axis at the reference
+        longitude (``tangent_lon``); a nonzero value rotates a Lambert conformal or polar
+        stereographic grid, as HYSPLIT's ``stcm1p`` does. A rotated Mercator grid raises
+        ``NotImplementedError``. For lat-lon grids: ignored, as HYSPLIT ignores it
+        (normally 0).
     cone_angle : float
         Angle between the axis and the surface of the cone. For regular projections it
         equals the latitude at which the grid is tangent to the earth's surface. Polar
@@ -174,9 +182,11 @@ class Projection:
 
     def __post_init__(self):
         """Reject projections arlmet cannot represent."""
-        if self.orientation != 0.0:
+        if self.orientation != 0.0 and not self.is_latlon and self.cone_angle == 0.0:
+            # PROJ has no Mercator turned about a point; a cone can be turned by
+            # moving its central meridian (``_rotation``).
             raise NotImplementedError(
-                "Rotated grids with non-zero orientation are not supported."
+                "Rotated Mercator grids (orientation != 0) are not supported."
             )
 
     @property
@@ -225,6 +235,7 @@ class Projection:
                     "lat_ts": self.tangent_lat,
                 }
             )
+            params.update(self._rotation())
         elif self.cone_angle == 0.0:  # Mercator
             params.update(
                 {
@@ -245,8 +256,33 @@ class Projection:
                     "k_0": _lambert_scale_factor(self.cone_angle, self.tangent_lat),
                 }
             )
+            params.update(self._rotation())
 
         return params
+
+    def _rotation(self) -> dict[str, Any]:
+        """
+        Return the pyproj parameters that turn a cone's grid by ``orientation``.
+
+        HYSPLIT's ``stcm1p`` turns the projected plane by ``orientation``
+        degrees about the reference point. On a cone (Lambert, or polar
+        stereographic with a cone constant of +-1) a turn of the plane is a
+        turn about the cone's apex plus a shift, and a turn about the apex is
+        a move of the central meridian by ``orientation / sin(cone_angle)``
+        degrees; the shift is taken up by the sync point (:attr:`Grid.origin`).
+        HYSPLIT still cuts the cone at 180 degrees from ``tangent_lon``, so
+        PROJ's own wrap about the moved meridian is turned off (``over``);
+        :meth:`Grid._crs_lons` and :meth:`Grid._lonlat_at` put longitudes on
+        HYSPLIT's side of that cut. Empty when not rotated.
+        """
+        if self.orientation == 0.0:
+            return {}
+        # The turn as the smallest angle; HYSPLIT's stlmbr wraps the reference
+        # longitude to [-180, 180).
+        turn = _wrap_lon(self.orientation)
+        ref_lon = _wrap_lon(self.tangent_lon)
+        gamma = math.sin(math.radians(self.cone_angle))
+        return {"lon_0": ref_lon - turn / gamma, "over": True}
 
     @override
     def __repr__(self) -> str:
@@ -449,7 +485,9 @@ class Grid:
         transformer = pyproj.Transformer.from_proj(
             proj_from="EPSG:4326", proj_to=base_crs, always_xy=True
         )
-        sync_proj_x, sync_proj_y = transformer.transform(proj.sync_lon, proj.sync_lat)
+        sync_proj_x, sync_proj_y = transformer.transform(
+            self._crs_lons(proj.sync_lon), proj.sync_lat
+        )
 
         # Convert sync grid coordinates to projected coordinates
         # Grid coordinates are 1-based, so sync_x=1, sync_y=1 means bottom-left corner
@@ -470,6 +508,10 @@ class Grid:
         -------
         pyproj.CRS
             Coordinate reference system with false easting/northing applied.
+            Its x and y are the grid's axes, rotated grids included: there the
+            central meridian is moved and PROJ's longitude wrap is off
+            (``+over``), so give it longitudes within 180 degrees of
+            ``tangent_lon``, where HYSPLIT cuts the projection.
         """
         params = self.projection.params
         if not self.is_latlon:
@@ -509,13 +551,9 @@ class Grid:
         x_coords = np.arange(self.nx) * grid_size
         y_coords = np.arange(self.ny) * grid_size
 
-        # Create a transformer from the projection to lat/lon
-        transformer = pyproj.Transformer.from_crs(self.crs, "EPSG:4326", always_xy=True)
-
-        # Transform the coordinates to lat/lon
-        xx, yy = np.meshgrid(x_coords, y_coords)
-        lons, lats = transformer.transform(xx, yy)
-        lons = wrap_lons(np.asarray(lons, dtype=float))
+        ii, jj = np.meshgrid(np.arange(self.nx), np.arange(self.ny))
+        lons, lats = self._lonlat_at(ii, jj)
+        lons = wrap_lons(lons)
 
         return {
             "x": (("x",), x_coords),
@@ -581,7 +619,7 @@ class Grid:
             self.crs,
             always_xy=True,
         )
-        proj_x, proj_y = transformer.transform(lon_arr, lat_arr)
+        proj_x, proj_y = transformer.transform(self._crs_lons(lon_arr), lat_arr)
         step = self.projection.grid_size * 1000.0
         if step == 0.0:
             raise ValueError("Projected grids require a non-zero grid_size.")
@@ -589,14 +627,33 @@ class Grid:
         y = np.asarray(proj_y, dtype=float) / step
         return x, y
 
+    def _crs_lons(self, lon: npt.NDArray[Any] | float) -> Any:
+        """
+        Longitudes as :attr:`crs` takes them: within 180 degrees of ``tangent_lon``.
+
+        HYSPLIT measures a longitude from the reference longitude in
+        [-180, 180) (``cnllxy``). PROJ does the same about its central
+        meridian, which a rotated grid moves (:meth:`Projection._rotation`),
+        so a rotated grid's CRS has that wrap turned off and its longitudes
+        are put in place here. Other grids get their longitudes back as given.
+        """
+        proj = self.projection
+        if proj.orientation == 0.0 or proj.is_latlon:
+            return lon
+        ref_lon = _wrap_lon(proj.tangent_lon)
+        return (
+            ref_lon + (np.asarray(lon, dtype=float) - ref_lon + 180.0) % 360.0 - 180.0
+        )
+
     def meridian_convergence(
         self, lon: npt.NDArray[Any] | float, lat: npt.NDArray[Any] | float
     ) -> npt.NDArray[Any]:
         """
-        Angle from grid north to true north at each point, in degrees.
+        Angle from true north to the grid's y-axis at each point, in degrees.
 
-        Positive where true north lies clockwise of the grid y-axis. Zero
-        everywhere on a lat/lon grid.
+        Positive where the grid's y-axis points east of true north (true north
+        lies counterclockwise of it), so at ``tangent_lon`` it is the grid's
+        ``orientation``. Zero everywhere on a lat/lon grid.
 
         Parameters
         ----------
@@ -614,7 +671,7 @@ class Grid:
         )
         if self.is_latlon:
             return np.zeros(lon_arr.shape, dtype=float)
-        factors = pyproj.Proj(self.crs).get_factors(lon_arr, lat_arr)
+        factors = pyproj.Proj(self.crs).get_factors(self._crs_lons(lon_arr), lat_arr)
         return np.asarray(factors.meridian_convergence, dtype=float).reshape(
             lon_arr.shape
         )
@@ -810,11 +867,25 @@ class Grid:
     def _lonlat_at(
         self, x: npt.NDArray[Any], y: npt.NDArray[Any]
     ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
-        """Longitude and latitude of fractional grid indices (projected grids)."""
+        """
+        Longitude and latitude of fractional grid indices (projected grids).
+
+        On a rotated Lambert grid PROJ's inverse can land a longitude a whole
+        turn of the cone (``360 / sin(cone_angle)`` degrees) away from
+        HYSPLIT's, when the grid is turned by more than
+        ``180 * (1 - |sin(cone_angle)|)`` degrees; it is moved back to within
+        180 degrees of ``tangent_lon``. Longitudes are not wrapped.
+        """
         transformer = pyproj.Transformer.from_crs(self.crs, "EPSG:4326", always_xy=True)
-        step = self.projection.grid_size * 1000.0
+        proj = self.projection
+        step = proj.grid_size * 1000.0
         lon, lat = transformer.transform(np.asarray(x) * step, np.asarray(y) * step)
-        return np.asarray(lon, dtype=float), np.asarray(lat, dtype=float)
+        lon = np.asarray(lon, dtype=float)
+        if proj.orientation != 0.0:
+            gamma = math.sin(math.radians(proj.cone_angle))
+            turns = np.round((lon - _wrap_lon(proj.tangent_lon)) * gamma / 360.0)
+            lon = lon - turns * 360.0 / gamma
+        return lon, np.asarray(lat, dtype=float)
 
     @cached_property
     def _outline_spacing(self) -> tuple[float, float]:
