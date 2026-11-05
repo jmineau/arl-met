@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=06e1ea03"></script>
+    <script src="_static/documentation_options.js?v=704ead4f"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b8.dev2+g6aa706797" />
+  <meta name="docsearch:version" content="0.1.0b8.dev3+gbbb4ad693" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -460,10 +460,17 @@ wraps longitudes</p></td>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">stlmbr</span></code> / <code class="docutils literal notranslate"><span class="pre">stcm1p</span></code> (set up in <code class="docutils literal notranslate"><span class="pre">metini.f</span></code>)</p></td>
 <td><p>the map projection of a projected grid: <code class="docutils literal notranslate"><span class="pre">cone_angle</span></code> alone picks
 polar stereographic (±90), Mercator (0) or a Lambert cone tangent there;
-<code class="docutils literal notranslate"><span class="pre">grid_size</span></code> holds at the reference latitude, <code class="docutils literal notranslate"><span class="pre">tangent_lat</span></code></p></td>
+<code class="docutils literal notranslate"><span class="pre">grid_size</span></code> holds at the reference latitude, <code class="docutils literal notranslate"><span class="pre">tangent_lat</span></code>;
+<code class="docutils literal notranslate"><span class="pre">stcm1p</span></code> turns the plane by <code class="docutils literal notranslate"><span class="pre">orientation</span></code> about the reference point,
+and <code class="docutils literal notranslate"><span class="pre">cnllxy</span></code> cuts the projection 180 degrees from <code class="docutils literal notranslate"><span class="pre">tangent_lon</span></code></p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.Projection.params.html#arlmet.Projection.params" title="arlmet.Projection.params"><code class="xref py py-attr docutils literal notranslate"><span class="pre">arlmet.Projection.params</span></code></a>: <code class="docutils literal notranslate"><span class="pre">lat_ts</span></code>, or a Lambert <code class="docutils literal notranslate"><span class="pre">k_0</span></code> that
 makes the scale 1 at <code class="docutils literal notranslate"><span class="pre">tangent_lat</span></code>; agrees with the compiled routines
-within 0.001 cells on HRRR, NAM, NARR, NAMS and WRF files</p></td>
+within 0.001 cells on HRRR, NAM, NARR, NAMS and WRF files. A rotated
+cone moves <code class="docutils literal notranslate"><span class="pre">lon_0</span></code> by <code class="docutils literal notranslate"><span class="pre">orientation</span> <span class="pre">/</span> <span class="pre">sin(cone_angle)</span></code> instead, with
+PROJ’s <code class="docutils literal notranslate"><span class="pre">+over</span></code> so the cut stays at HYSPLIT’s (<code class="docutils literal notranslate"><span class="pre">Projection._rotation</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Grid._crs_lons</span></code>, <code class="docutils literal notranslate"><span class="pre">Grid._lonlat_at</span></code>); it agrees within 0.0012 cells on
+Lambert and polar stereographic grids of both hemispheres turned up to 179
+degrees. A rotated Mercator grid raises <code class="docutils literal notranslate"><span class="pre">NotImplementedError</span></code></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prfcom</span></code></p></td>
 <td><p>choose the vertical conversion from the vertical flag</p></td>

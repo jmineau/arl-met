@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=06e1ea03"></script>
+    <script src="../_static/documentation_options.js?v=704ead4f"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b8.dev2+g6aa706797" />
+  <meta name="docsearch:version" content="0.1.0b8.dev3+gbbb4ad693" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -640,7 +640,11 @@
 <dd><p>Coordinate reference system for this grid.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Coordinate reference system with false easting/northing applied.</p>
+<dd class="field-odd"><p>Coordinate reference system with false easting/northing applied.
+Its x and y are the grid’s axes, rotated grids included: there the
+central meridian is moved and PROJ’s longitude wrap is off
+(<code class="docutils literal notranslate"><span class="pre">+over</span></code>), so give it longitudes within 180 degrees of
+<code class="docutils literal notranslate"><span class="pre">tangent_lon</span></code>, where HYSPLIT cuts the projection.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>pyproj.CRS</p>
