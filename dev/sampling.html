@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Sampling Points &#8212; arl-met 0.1.0b7</title>
+    <title>Sampling Points &#8212; arl-met dev</title>
   
   
   
@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=8b1483a0"></script>
+    <script src="_static/documentation_options.js?v=48daff58"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -50,7 +50,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b7';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b7" />
+  <meta name="docsearch:version" content="0.1.0b8.dev1+gc33fd5876" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -130,7 +130,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b7</p>
+    <p class="title logo__title">arl-met dev</p>
   
 </a></div>
     
@@ -530,12 +530,14 @@ have it); <code class="docutils literal notranslate"><span class="pre">PRES</spa
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;agl&quot;</span></code></p></td>
 <td><p>meters above ground level</p></td>
-<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>; flag=3: none;
+<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>; flag=3: <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>
+or <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> (none with <code class="docutils literal notranslate"><span class="pre">model_top=None</span></code>);
 flag=5: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">PRES</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code></p></td>
 <td><p>meters above mean sea level</p></td>
-<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=3: <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>;
+<td><p>flag=2: <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=1/4: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; flag=3: <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>
+(and <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> without <code class="docutils literal notranslate"><span class="pre">PRSS</span></code>);
 flag=5: <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> + <code class="docutils literal notranslate"><span class="pre">PRES</span></code> + <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> + <code class="docutils literal notranslate"><span class="pre">SHGT</span></code></p></td>
 </tr>
 </tbody>
@@ -671,8 +673,21 @@ first level’s temperature.</p></li>
 </div>
 <p>The default applies at heights only. At pressures and native levels
 <code class="docutils literal notranslate"><span class="pre">model_top</span></code> plays no part and the default is ignored; passing a value there
-raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. On a terrain-following (flag 3) file the default is
-ignored too and the file’s own levels are read; passing a value raises.</p>
+raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+<p><strong>Terrain-following (flag 3) files.</strong> Their levels are heights over flat
+ground, <code class="docutils literal notranslate"><span class="pre">Z*</span></code>. HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfter</span></code> puts a level <code class="docutils literal notranslate"><span class="pre">Z*</span> <span class="pre">(1</span> <span class="pre">-</span> <span class="pre">zsfc</span> <span class="pre">/</span> <span class="pre">ZMDLT)</span></code>
+above a grid point with terrain <code class="docutils literal notranslate"><span class="pre">zsfc</span></code>, where <code class="docutils literal notranslate"><span class="pre">ZMDLT</span></code> is 20000 m (RAMS’s
+model top; on a file whose source is <code class="docutils literal notranslate"><span class="pre">RAMS</span></code>, <code class="docutils literal notranslate"><span class="pre">ZMDL</span></code>), and <code class="docutils literal notranslate"><span class="pre">sample_points</span></code>
+does the same. Every variable is linear in height there, pressure too, and the
+virtual <code class="docutils literal notranslate"><span class="pre">pressure</span></code> comes from the file’s <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field (NaN without one).
+A file without <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> takes HYSPLIT’s surface pressure from <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>. No
+real flag 3 file was on hand: on 9 made-up ones (tops of 3, 10, 25 and 40 km)
+<code class="docutils literal notranslate"><span class="pre">sample_points</span></code> agrees with HYSPLIT’s routines to 0.0002 K and m/s and 0.002
+hPa. Before arl-met followed <code class="docutils literal notranslate"><span class="pre">prfter</span></code>, it read a flag 3 file’s stored levels
+as heights above the ground, which is what <code class="docutils literal notranslate"><span class="pre">model_top=None</span></code> still does. On
+the made-up file with terrain up to 3300 m and a 25 km top that was off by up
+to 5.2 K and 3.9 m/s between 10 m and 5 km (0.5 K and 0.45 m/s on average) and
+9.2 K above 5 km, with no value below the first stored level or for pressure.</p>
 <p><strong>The default matches a run whose top is 25000 m, not one with a lower top.</strong>
 <code class="docutils literal notranslate"><span class="pre">ZMDL</span></code>, where the sigma surfaces go flat, is 25000 m for every top up to
 25 km, but the internal levels are not the same: <code class="docutils literal notranslate"><span class="pre">metlvl</span></code> counts the file’s
@@ -755,8 +770,9 @@ first internal level, which depends on the run’s roughness length;
 <li><p>In HYSPLIT’s top internal layer (from about 24 km up with a 25 km top) its
 advection takes the top level’s value while its particle output
 interpolates; <code class="docutils literal notranslate"><span class="pre">sample_points</span></code> interpolates.</p></li>
-<li><p>Terrain-following (flag 3) files have no internal levels here: the default reads
-their own levels, and passing <code class="docutils literal notranslate"><span class="pre">model_top</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
+<li><p>A run with a negative top, which HYSPLIT takes as <code class="docutils literal notranslate"><span class="pre">ZMDLT</span></code> for a
+terrain-following file (COAMPS’s 34800 m): <code class="docutils literal notranslate"><span class="pre">model_top</span></code> must be positive.
+HYSPLIT’s own <code class="docutils literal notranslate"><span class="pre">metlvl</span></code> picks a one-level grid for such a top.</p></li>
 </ul>
 </section>
 <section id="earth-relative-winds">
@@ -897,16 +913,18 @@ raise <code class="docutils literal notranslate"><span class="pre">ValueError</s
 <li><p><code class="docutils literal notranslate"><span class="pre">z_kind=&quot;agl&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code> use different field requirements depending on
 the vertical flag: pressure files (flag=2) require <code class="docutils literal notranslate"><span class="pre">HGTS</span></code> and <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>; sigma/hybrid
 files (flag=1/4) use hypsometric integration from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> and <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>;
-terrain-following files (flag=3) use the stored level heights directly; WRF
+terrain-following files (flag=3) use the stored level heights, scaled as
+HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfter</span></code> scales them (with <code class="docutils literal notranslate"><span class="pre">model_top=None</span></code>, as they are); WRF
 files (flag=5) integrate as sigma files do, through the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field. See
 the <a class="reference internal" href="vertical.html"><span class="doc">Vertical Coordinates</span></a> guide.</p></li>
 <li><p>A point outside the grid is NaN. A point within 1e-6 cells of the grid’s edge
 counts as on it, so the edge nodes of a projected grid, sampled at the
 longitude and latitude arl-met reports for them, have values even though
 mapping them back to the grid lands about 1e-12 cells outside.</p></li>
-<li><p>Only sigma, pressure-level, hybrid and WRF files take the ground as a level
-(pressure-level files only at heights); on terrain-following files a point below
-the lowest level with data is NaN.</p></li>
+<li><p>Sigma, hybrid and WRF files take the ground as a level, pressure-level files
+at heights, and terrain-following files on HYSPLIT’s internal levels; on a
+terrain-following file with <code class="docutils literal notranslate"><span class="pre">model_top=None</span></code> a point below the lowest level
+with data is NaN.</p></li>
 </ul>
 </section>
 </section>
