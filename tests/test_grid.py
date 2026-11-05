@@ -660,6 +660,34 @@ class TestGrid:
         shifted = (west + 360 * turns, south, east + 360 * turns, north)
         assert grid.window_from_bbox(shifted) == window
 
+    @pytest.mark.parametrize(
+        "bbox",
+        [(170, 50, -170, 60), (179, 55, -175, 65), (-200, 50, -210, 60)],
+    )
+    def test_window_from_bbox_across_the_dateline_on_a_projected_grid(self, bbox):
+        """``west > east`` crosses the dateline on a projected grid too (#25)."""
+        grid = Grid(projection=_NAMS_AK, nx=387, ny=276)
+        west, south, east, north = bbox
+        unwrapped = (west, south, west + (east - west) % 360.0, north)
+        window = grid.window_from_bbox(bbox)
+        assert window == grid.window_from_bbox(unwrapped)
+        assert window == _reference_window(grid, unwrapped)
+
+    def test_window_from_bbox_across_the_dateline_off_a_projected_grid_raises(self):
+        """A box across the dateline that misses the grid (HRRR) raises (#25)."""
+        grid = Grid(projection=_HRRR, nx=1799, ny=1059)
+        with pytest.raises(ValueError, match="does not intersect"):
+            grid.window_from_bbox((170, 20, -170, 60))
+
+    def test_window_from_bbox_projected_nan_or_infinite_edges(self):
+        """Longitudes are checked as on a lat/lon grid; -inf to 0 holds the grid."""
+        grid = Grid(projection=_NAM12, nx=614, ny=428)
+        inf, nan = float("inf"), float("nan")
+        for bbox in [(10, 0, nan, 10), (nan, 0, 10, 10), (inf, 0, -inf, 10)]:
+            with pytest.raises(ValueError, match="longitudes"):
+                grid.window_from_bbox(bbox)
+        assert grid.window_from_bbox((-inf, 0, 0, 90)) == grid.full_window()
+
     def test_window_from_bbox_box_wider_than_a_turn_holds_the_grid(self):
         """A box 2000 degrees wide holds every longitude, wherever it starts (#139 review)."""
         grid = Grid(projection=_NAM12, nx=614, ny=428)

@@ -91,7 +91,8 @@ available as a method:
        out = met.extract_subset("cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0))
    ds = arlmet.open_dataset(out)
 
-On a lat-lon grid, a ``bbox`` with ``west > east`` crosses the dateline. On a
+A ``bbox`` with ``west > east`` crosses the dateline, on any grid:
+``(170.0, 50.0, -170.0, 60.0)`` is the box ``(170.0, 50.0, 190.0, 60.0)``. On a
 global grid a box may also cross the grid's seam, the column where its longitudes
 start again (0 E on GDAS or GFS, which start at 0 E; 180 on a grid that starts at
 180 W). The crop then holds only the box's columns, in order from west to east
@@ -214,7 +215,6 @@ Limitations
 -----------
 
 - ``bbox`` is always interpreted as ``(west, south, east, north)`` in degrees
-- projected-grid bounding boxes must not cross the dateline
 - on a lat-lon grid short of 360 degrees, a box must not select columns at both
   of its ends
 - the cropped grid must still be large enough to hold the ARL index record

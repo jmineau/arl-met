@@ -109,8 +109,7 @@ when it downloads, so it imports without the `archives` extra.
    rebuilds the index records. Keep both paths writing the same index records.
 4. **Windowing.** On lat/lon grids a cell is kept when its center is inside the
    bbox, edges included (`xtrct_grid` rounds an edge to the nearest column, so it can
-   keep one more for an edge between columns); `west > east` crosses the dateline,
-   longitudes count modulo 360 (an edge at 180 keeps the 180 column; a box may reach
+   keep one more for an edge between columns); longitudes count modulo 360 (an edge at 180 keeps the 180 column; a box may reach
    past 180; a width of 360 or more, infinite included, holds every column; edges are
    converted to Python floats first; a column within 1e-6 cells of an edge counts as on
    it, so rounding in the modulo never decides an edge column), and a window across a
@@ -121,7 +120,7 @@ when it downloads, so it imports without the `archives` extra.
    corners in the box, and each axis's extremes are rounded like Fortran `NINT`; a step
    over two cells is a jump across the projection's cut. `xtrct_grid` uses only the SW
    and NE corners (reference: `test_grid.py`). A bbox is `(west, south, east, north)`
-   in degrees.
+   in degrees; on any grid `west > east` crosses the dateline (east moves a turn east).
 5. **`write_dataset` handles the common case only:** the flat Dataset that
    `open_dataset` returns, with DIF records written from `attrs["diff"] =
    "DIF..."` on the parent. The `forecast_hour(time)` coordinate is the index
