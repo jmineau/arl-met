@@ -42,10 +42,17 @@ for choice. The Fortran routines it matches:
    * - ``stlmbr`` / ``stcm1p`` (set up in ``metini.f``)
      - the map projection of a projected grid: ``cone_angle`` alone picks
        polar stereographic (±90), Mercator (0) or a Lambert cone tangent there;
-       ``grid_size`` holds at the reference latitude, ``tangent_lat``
+       ``grid_size`` holds at the reference latitude, ``tangent_lat``;
+       ``stcm1p`` turns the plane by ``orientation`` about the reference point,
+       and ``cnllxy`` cuts the projection 180 degrees from ``tangent_lon``
      - :attr:`arlmet.Projection.params`: ``lat_ts``, or a Lambert ``k_0`` that
        makes the scale 1 at ``tangent_lat``; agrees with the compiled routines
-       within 0.001 cells on HRRR, NAM, NARR, NAMS and WRF files
+       within 0.001 cells on HRRR, NAM, NARR, NAMS and WRF files. A rotated
+       cone moves ``lon_0`` by ``orientation / sin(cone_angle)`` instead, with
+       PROJ's ``+over`` so the cut stays at HYSPLIT's (``Projection._rotation``,
+       ``Grid._crs_lons``, ``Grid._lonlat_at``); it agrees within 0.0012 cells on
+       Lambert and polar stereographic grids of both hemispheres turned up to 179
+       degrees. A rotated Mercator grid raises ``NotImplementedError``
    * - ``prfcom``
      - choose the vertical conversion from the vertical flag
      - :meth:`arlmet.VerticalAxis.from_flag` and its subclasses

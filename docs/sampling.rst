@@ -308,7 +308,8 @@ stereographic, Mercator) are stored relative to the grid axes, which is what
 HYSPLIT expects. Sampled ``UWND``/``VWND`` and ``U10M``/``V10M`` are therefore
 not directly comparable with observed winds. Pass ``earth_relative=True`` to
 rotate each pair so that ``u`` points east and ``v`` north, using the meridian
-convergence of the file's grid at each point. Both components of a pair must
+convergence of the file's grid at each point (a rotated grid's ``orientation``
+included). Both components of a pair must
 be requested. Lat/lon grids are unaffected.
 
 Here ``lambert.arl`` is a made-up file on a Lambert conformal grid, and the

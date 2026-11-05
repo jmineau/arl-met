@@ -218,9 +218,9 @@ class TestProjection:
         assert proj.is_latlon is False
         assert proj.params["proj"] == "merc"
 
-    def test_rotated_grid_raises_error(self):
-        """Test that rotated grids raise NotImplementedError."""
-        with pytest.raises(NotImplementedError):
+    def test_rotated_mercator_raises(self):
+        """A rotated Mercator grid raises NotImplementedError (PROJ cannot turn one)."""
+        with pytest.raises(NotImplementedError, match="Mercator"):
             Projection(
                 pole_lat=90.0,
                 pole_lon=0.0,
@@ -555,6 +555,12 @@ class TestGrid:
             pytest.param(_HRRR, 1799, 1059, id="lambert"),
             pytest.param(_NAMS_AK, 387, 276, id="polar-stereographic"),
             pytest.param(_NAMS_HI, 321, 225, id="mercator"),
+            pytest.param(
+                replace(_HRRR, orientation=15.0), 1799, 1059, id="rotated-lambert"
+            ),
+            pytest.param(
+                replace(_NAMS_AK, orientation=-40.0), 387, 276, id="rotated-stereo"
+            ),
         ],
     )
     def test_window_from_bbox_projected_holds_random_boxes(self, projection, nx, ny):
@@ -1393,6 +1399,155 @@ class TestWindRotation:
         u_out, v_out = grid.rotate_winds([1.0, 2.0], [3.0, 4.0], lon, lat)
         np.testing.assert_array_equal(u_out, [1.0, 2.0])
         np.testing.assert_array_equal(v_out, [3.0, 4.0])
+
+
+class TestRotatedGrids:
+    """Grids turned by ``orientation``, as HYSPLIT's stcm1p turns them (#20)."""
+
+    # Each case: the 12 projection fields, the grid size, and grid nodes
+    # ``(i, j)`` (0-based) with the latitude and longitude HYSPLIT's
+    # stlmbr/stcm1p/cxy2ll give them, set up as metini.f does.
+    CASES = {
+        # the 2020-02-08 HRRR grid, turned 15 degrees
+        "lambert": (
+            replace(_HRRR, orientation=15.0),
+            (1799, 1059),
+            {
+                (0, 0): (21.138102, -122.718994),
+                (1798, 1058): (33.199802, -60.855217),
+                (0, 1058): (49.353226, -123.243607),
+                (1798, 0): (10.234965, -76.817383),
+            },
+        ),
+        # a southern polar stereographic grid around its sync point, turned -40
+        "south-stereo": (
+            Projection(
+                pole_lat=-90.0,
+                pole_lon=0.0,
+                tangent_lat=-60.0,
+                tangent_lon=0.0,
+                grid_size=20.0,
+                orientation=-40.0,
+                cone_angle=-90.0,
+                sync_x=100.0,
+                sync_y=100.0,
+                sync_lat=-75.0,
+                sync_lon=30.0,
+            ),
+            (200, 200),
+            {
+                (0, 0): (-75.316643, 159.415863),
+                (199, 199): (-50.246994, 13.852860),
+                (0, 199): (-65.457283, -51.356262),
+                (199, 0): (-54.904217, 72.598831),
+            },
+        ),
+        # a southern Lambert grid turned 179 degrees: PROJ's inverse alone
+        # puts the east of the grid a whole turn of the cone away
+        "lambert-turned-179": (
+            Projection(
+                pole_lat=-90.0,
+                pole_lon=0.0,
+                tangent_lat=-35.0,
+                tangent_lon=140.0,
+                grid_size=10.0,
+                orientation=179.0,
+                cone_angle=-35.0,
+                sync_x=50.0,
+                sync_y=40.0,
+                sync_lat=-35.0,
+                sync_lon=140.0,
+            ),
+            (200, 150),
+            {
+                (0, 0): (-31.308483, 145.076935),
+                (199, 149): (-43.863754, 121.659119),
+                (0, 149): (-44.621418, 146.342499),
+                (199, 0): (-30.661024, 124.228455),
+                (80, 0): (-31.496548, 136.664734),
+            },
+        ),
+    }
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_nodes_match_hysplit(self, case):
+        """Node positions and their inverse agree with HYSPLIT's map routines."""
+        projection, (nx, ny), hysplit = self.CASES[case]
+        grid = Grid(projection=projection, nx=nx, ny=ny)
+        coords = grid.calculate_coords()
+        lat, lon = coords["lat"][1], coords["lon"][1]
+        for (i, j), (hlat, hlon) in hysplit.items():
+            assert lat[j, i] == pytest.approx(hlat, abs=1e-4)
+            assert lon[j, i] == pytest.approx(hlon, abs=1e-4)
+            x, y = grid.fractional_indices(hlon, hlat)
+            assert float(x) == pytest.approx(i, abs=2e-3)
+            assert float(y) == pytest.approx(j, abs=2e-3)
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_every_node_maps_back_to_itself(self, case):
+        """``fractional_indices`` inverts ``calculate_coords`` on the whole grid."""
+        projection, (nx, ny), _ = self.CASES[case]
+        grid = Grid(projection=projection, nx=nx, ny=ny)
+        coords = grid.calculate_coords()
+        x, y = grid.fractional_indices(coords["lon"][1], coords["lat"][1])
+        jj, ii = np.mgrid[0:ny, 0:nx]
+        np.testing.assert_allclose(x, ii, atol=1e-6)
+        np.testing.assert_allclose(y, jj, atol=1e-6)
+
+    @pytest.mark.parametrize("orientation", [15.0, -40.0, 179.0, 350.0])
+    @pytest.mark.parametrize("projection", [_HRRR, _NAMS_AK], ids=["lambert", "stereo"])
+    def test_y_axis_points_orientation_east_of_north(self, projection, orientation):
+        """A wind along the y-axis blows ``orientation`` east of north at ``tangent_lon``."""
+        grid = Grid(projection=replace(projection, orientation=orientation), nx=9, ny=9)
+        lon, lat = projection.tangent_lon, projection.tangent_lat
+        turn = (orientation + 180.0) % 360.0 - 180.0
+        assert float(grid.meridian_convergence(lon, lat)) == pytest.approx(turn)
+        u, v = grid.rotate_winds(0.0, 1.0, lon, lat)
+        bearing = np.degrees(np.arctan2(u, v))
+        assert float(bearing) == pytest.approx(turn, abs=1e-6)
+
+    def test_turn_of_a_whole_circle_changes_nothing(self):
+        """``orientation`` counts modulo 360."""
+        a = Grid(projection=replace(_HRRR, orientation=-10.0), nx=50, ny=40)
+        b = Grid(projection=replace(_HRRR, orientation=350.0), nx=50, ny=40)
+        for name in ("lon", "lat"):
+            np.testing.assert_allclose(
+                a.calculate_coords()[name][1], b.calculate_coords()[name][1], atol=1e-9
+            )
+
+    def test_latlon_grid_ignores_orientation(self):
+        """HYSPLIT reads a lat/lon grid without its orientation, and so does arlmet."""
+        fields = dict(
+            pole_lat=90.0,
+            pole_lon=0.0,
+            tangent_lat=0.5,
+            tangent_lon=0.5,
+            grid_size=0.0,
+            cone_angle=0.0,
+            sync_x=1.0,
+            sync_y=1.0,
+            sync_lat=30.0,
+            sync_lon=-120.0,
+        )
+        plain = Grid(projection=Projection(orientation=0.0, **fields), nx=8, ny=6)
+        turned = Grid(projection=Projection(orientation=25.0, **fields), nx=8, ny=6)
+        for name in ("lon", "lat"):
+            np.testing.assert_array_equal(
+                plain.calculate_coords()[name][1], turned.calculate_coords()[name][1]
+            )
+
+    def test_subset_keeps_source_positions(self):
+        """A crop of a rotated grid puts each cell where the source does."""
+        grid = Grid(projection=replace(_HRRR, orientation=15.0), nx=300, ny=200)
+        window = GridWindow(x_start=40, x_stop=140, y_start=30, y_stop=110)
+        sub = grid.subset(window)
+        expected, coords = grid.calculate_coords(), sub.calculate_coords()
+        for name in ("lon", "lat"):
+            np.testing.assert_allclose(
+                coords[name][1],
+                expected[name][1][window.y_slice, window.x_slice],
+                atol=1e-9,
+            )
 
 
 def _lambert_projection(**overrides) -> Projection:

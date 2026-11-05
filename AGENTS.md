@@ -86,7 +86,10 @@ when it downloads, so it imports without the `archives` extra.
   `Z*`: on HYSPLIT's internal levels `sample_points` puts them at `Z* (1 - zsfc / ZMDLT)`
   (`prfter`; `ZMDLT` 20000, `ZMDL` for RAMS), linear in height, pressure included. No
   fallback across flags; each subclass takes only the keyword-only inputs it needs, else `ValueError`.
-- **Rotated grids** (`orientation != 0`) raise `NotImplementedError` in `Projection`.
+- **Rotated grids.** `stcm1p` turns the plane by `orientation`; on a cone that is `lon_0` moved by
+  `orientation / sin(cone_angle)` (`Projection._rotation`), with PROJ's wrap off (`+over`): lon/lat go
+  through `Grid._crs_lons` / `Grid._lonlat_at`, which keep HYSPLIT's cut 180 degrees from `tangent_lon`.
+  Rotated Mercator raises `NotImplementedError`; lat/lon grids ignore `orientation`, as HYSPLIT does.
 - **WRF winds are staggered.** In an `AWRF` file column `i` of `UWND` is the west face of cell `i` and row
   `j` of `VWND` its south face; `sample_points` reads each, with its whole column, at `x + 0.5` / `y + 0.5`
   (`metini`'s `SUX`/`SVY`, `_WRF_STAGGER`). With `MUU0`/`MUV0` (mass-coupled) it also decouples the winds

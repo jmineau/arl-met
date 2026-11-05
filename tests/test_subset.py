@@ -320,13 +320,17 @@ def test_open_dataset_bbox_and_levels_reads_only_selected_subset(tmp_path):
     )
 
 
-def test_extract_subset_projected_crop_keeps_source_cell_positions(tmp_path):
+@pytest.mark.parametrize("orientation", [0.0, 10.0])
+def test_extract_subset_projected_crop_keeps_source_cell_positions(
+    tmp_path, orientation
+):
     """
     Every cell of a projected crop sits where the source puts it (#78).
 
     The source's sync point is the corner of a Lambert grid (as in a NOAA HRRR
     file); a crop's own corner longitude would be rounded to 0.01 degree in
-    the index record and move the crop by up to 0.15 cells.
+    the index record and move the crop by up to 0.15 cells. A rotated grid
+    (#20) crops the same way.
     """
     projection = Projection(
         pole_lat=90.0,
@@ -334,7 +338,7 @@ def test_extract_subset_projected_crop_keeps_source_cell_positions(tmp_path):
         tangent_lat=38.5,
         tangent_lon=-97.5,
         grid_size=3.0,
-        orientation=0.0,
+        orientation=orientation,
         cone_angle=38.5,
         sync_x=1.0,
         sync_y=1.0,
