@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=819c166b"></script>
+    <script src="_static/documentation_options.js?v=71bc8d95"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b8.dev4+g962e947e3" />
+  <meta name="docsearch:version" content="0.1.0b8.dev5+gf8f422fe1" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -555,10 +555,40 @@ column at -110 whether the grid stores it as -110 or as 250, and an edge at
 41.4 keeps the row at 41.4 on a 0.1 degree grid, where 0.1 is not exact in
 binary and the stored latitude is 41.400000000000006.</p>
 </section>
+<section id="a-box-in-another-coordinate-system">
+<h2>A box in another coordinate system<a class="headerlink" href="#a-box-in-another-coordinate-system" title="Link to this heading">#</a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">bbox</span></code> is in degrees of longitude and latitude unless you pass <code class="docutils literal notranslate"><span class="pre">bbox_crs=</span></code>,
+the coordinate reference system it is in: an EPSG code (<code class="docutils literal notranslate"><span class="pre">&quot;EPSG:32612&quot;</span></code> or
+<code class="docutils literal notranslate"><span class="pre">32612</span></code>), a PROJ string, a <code class="xref py py-class docutils literal notranslate"><span class="pre">pyproj.CRS</span></code>, anything
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">pyproj.CRS.from_user_input()</span></code> takes. The box is then
+<code class="docutils literal notranslate"><span class="pre">(xmin,</span> <span class="pre">ymin,</span> <span class="pre">xmax,</span> <span class="pre">ymax)</span></code> in that system’s units, easting before northing. Here
+a box of 80 by 160 km in UTM zone 12N, around Salt Lake City:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">utm</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
+<span class="gp">   ....: </span>    <span class="s2">"met.arl"</span><span class="p">,</span>
+<span class="gp">   ....: </span>    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="mf">380_000.0</span><span class="p">,</span> <span class="mf">4_400_000.0</span><span class="p">,</span> <span class="mf">460_000.0</span><span class="p">,</span> <span class="mf">4_560_000.0</span><span class="p">),</span>
+<span class="gp">   ....: </span>    <span class="n">bbox_crs</span><span class="o">=</span><span class="s2">"EPSG:32612"</span><span class="p">,</span>
+<span class="gp">   ....: </span><span class="p">)</span>
+<span class="gp">   ....: </span>
+
+<span class="gp">In [13]: </span><span class="nb">dict</span><span class="p">(</span><span class="n">utm</span><span class="o">.</span><span class="n">sizes</span><span class="p">)</span>
+<span class="gh">Out[13]: </span><span class="go">{'lon': 10, 'lat': 16, 'level': 4, 'time': 4}</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">extract_subset()</span></code>, <code class="docutils literal notranslate"><span class="pre">File.extract_subset()</span></code>, <code class="docutils literal notranslate"><span class="pre">File.to_dataset()</span></code> and
+<code class="docutils literal notranslate"><span class="pre">xr.open_dataset(...,</span> <span class="pre">engine=&quot;arl&quot;)</span></code> take <code class="docutils literal notranslate"><span class="pre">bbox_crs=</span></code> too. The box is a
+rectangle in its own system, which on the grid is a curved shape, so the crop is
+found as a projected grid’s is (next section), on either kind of grid: the smallest
+rectangle of cells that holds every point of the box on the grid. A global lat-lon
+grid is cut at its seam there, so a box across the seam gets every column.
+<code class="docutils literal notranslate"><span class="pre">bbox_crs=&quot;EPSG:4326&quot;</span></code> is the same as none, in either axis order
+(<code class="docutils literal notranslate"><span class="pre">&quot;OGC:CRS84&quot;</span></code> too). A projected grid’s own system, <code class="docutils literal notranslate"><span class="pre">grid.crs</span></code>, is in meters
+from the center of its first cell, so <code class="docutils literal notranslate"><span class="pre">bbox_crs=ds.arl.grid.crs</span></code> takes a box in
+cells times the grid spacing.</p>
+</section>
 <section id="keep-only-the-levels-and-variables-you-need">
 <h2>Keep only the levels and variables you need<a class="headerlink" href="#keep-only-the-levels-and-variables-you-need" title="Link to this heading">#</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">extract_subset()</span></code> can keep only the levels and variables you need.</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [14]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
 <span class="gp">   ....: </span>    <span class="s2">"met.arl"</span><span class="p">,</span>
 <span class="gp">   ....: </span>    <span class="s2">"subset.arl"</span><span class="p">,</span>
 <span class="gp">   ....: </span>    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span>
@@ -566,10 +596,10 @@ binary and the stored latitude is 41.400000000000006.</p>
 <span class="gp">   ....: </span>    <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">,</span> <span class="s2">"TEMP"</span><span class="p">],</span>
 <span class="gp">   ....: </span><span class="p">)</span>
 <span class="gp">   ....: </span>
-<span class="gh">Out[12]: </span><span class="go">PosixPath('subset.arl')</span>
+<span class="gh">Out[14]: </span><span class="go">PosixPath('subset.arl')</span>
 
-<span class="gp">In [13]: </span><span class="nb">list</span><span class="p">(</span><span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">"subset.arl"</span><span class="p">)</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
-<span class="gh">Out[13]: </span><span class="go">['TEMP', 'UWND', 'VWND']</span>
+<span class="gp">In [15]: </span><span class="nb">list</span><span class="p">(</span><span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">"subset.arl"</span><span class="p">)</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
+<span class="gh">Out[15]: </span><span class="go">['TEMP', 'UWND', 'VWND']</span>
 </pre></div>
 </div>
 <p>Without a <code class="docutils literal notranslate"><span class="pre">bbox</span></code>, selecting levels or variables does not unpack anything:
@@ -640,7 +670,6 @@ coordinate is the same either way.</p>
 <section id="limitations">
 <h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading">#</a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">bbox</span></code> is always interpreted as <code class="docutils literal notranslate"><span class="pre">(west,</span> <span class="pre">south,</span> <span class="pre">east,</span> <span class="pre">north)</span></code> in degrees</p></li>
 <li><p>on a lat-lon grid short of 360 degrees, a box must not select columns at both
 of its ends</p></li>
 <li><p>the cropped grid must still be large enough to hold the ARL index record</p></li>
@@ -705,6 +734,7 @@ degree file with all levels it is 3,340 cells.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#lazy-crop-while-reading">Lazy crop while reading</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#select-levels-while-reading">Select levels while reading</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#write-a-smaller-arl-file">Write a smaller ARL file</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#a-box-in-another-coordinate-system">A box in another coordinate system</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#keep-only-the-levels-and-variables-you-need">Keep only the levels and variables you need</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#which-cells-a-crop-keeps">Which cells a crop keeps</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-changes-in-the-output-file">What changes in the output file</a></li>

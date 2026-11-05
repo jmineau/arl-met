@@ -118,6 +118,36 @@ column at -110 whether the grid stores it as -110 or as 250, and an edge at
 41.4 keeps the row at 41.4 on a 0.1 degree grid, where 0.1 is not exact in
 binary and the stored latitude is 41.400000000000006.
 
+A box in another coordinate system
+----------------------------------
+
+A ``bbox`` is in degrees of longitude and latitude unless you pass ``bbox_crs=``,
+the coordinate reference system it is in: an EPSG code (``"EPSG:32612"`` or
+``32612``), a PROJ string, a :class:`pyproj.CRS`, anything
+:meth:`pyproj.CRS.from_user_input` takes. The box is then
+``(xmin, ymin, xmax, ymax)`` in that system's units, easting before northing. Here
+a box of 80 by 160 km in UTM zone 12N, around Salt Lake City:
+
+.. ipython:: python
+
+   utm = arlmet.open_dataset(
+       "met.arl",
+       bbox=(380_000.0, 4_400_000.0, 460_000.0, 4_560_000.0),
+       bbox_crs="EPSG:32612",
+   )
+   dict(utm.sizes)
+
+``extract_subset()``, ``File.extract_subset()``, ``File.to_dataset()`` and
+``xr.open_dataset(..., engine="arl")`` take ``bbox_crs=`` too. The box is a
+rectangle in its own system, which on the grid is a curved shape, so the crop is
+found as a projected grid's is (next section), on either kind of grid: the smallest
+rectangle of cells that holds every point of the box on the grid. A global lat-lon
+grid is cut at its seam there, so a box across the seam gets every column.
+``bbox_crs="EPSG:4326"`` is the same as none, in either axis order
+(``"OGC:CRS84"`` too). A projected grid's own system, ``grid.crs``, is in meters
+from the center of its first cell, so ``bbox_crs=ds.arl.grid.crs`` takes a box in
+cells times the grid spacing.
+
 Keep only the levels and variables you need
 -------------------------------------------
 
@@ -214,7 +244,6 @@ coordinate is the same either way.
 Limitations
 -----------
 
-- ``bbox`` is always interpreted as ``(west, south, east, north)`` in degrees
 - on a lat-lon grid short of 360 degrees, a box must not select columns at both
   of its ends
 - the cropped grid must still be large enough to hold the ARL index record
