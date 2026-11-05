@@ -42,10 +42,17 @@ for choice. The Fortran routines it matches:
    * - ``stlmbr`` / ``stcm1p`` (set up in ``metini.f``)
      - the map projection of a projected grid: ``cone_angle`` alone picks
        polar stereographic (±90), Mercator (0) or a Lambert cone tangent there;
-       ``grid_size`` holds at the reference latitude, ``tangent_lat``
+       ``grid_size`` holds at the reference latitude, ``tangent_lat``;
+       ``stcm1p`` turns the plane by ``orientation`` about the reference point,
+       and ``cnllxy`` cuts the projection 180 degrees from ``tangent_lon``
      - :attr:`arlmet.Projection.params`: ``lat_ts``, or a Lambert ``k_0`` that
        makes the scale 1 at ``tangent_lat``; agrees with the compiled routines
-       within 0.001 cells on HRRR, NAM, NARR, NAMS and WRF files
+       within 0.001 cells on HRRR, NAM, NARR, NAMS and WRF files. A rotated
+       cone moves ``lon_0`` by ``orientation / sin(cone_angle)`` instead, with
+       PROJ's ``+over`` so the cut stays at HYSPLIT's (``Projection._rotation``,
+       ``Grid._crs_lons``, ``Grid._lonlat_at``); it agrees within 0.0012 cells on
+       Lambert and polar stereographic grids of both hemispheres turned up to 179
+       degrees. A rotated Mercator grid raises ``NotImplementedError``
    * - ``prfcom``
      - choose the vertical conversion from the vertical flag
      - :meth:`arlmet.VerticalAxis.from_flag` and its subclasses
@@ -89,6 +96,20 @@ for choice. The Fortran routines it matches:
      - the column in ``ops/sample.py``; ``TEMP`` and winds agree with the
        compiled ``prfprs`` within 0.001 on NAM12 and GDAS columns, pressure
        within 0.0006 hPa (float32 rounding of ``ln p``)
+   * - ``prfter``
+     - the terrain-following (flag 3) profile: a stored level ``Z*`` is
+       ``Z* (1 - zsfc / ZMDLT)`` above the ground (``ZMDLT`` 20000 m, the
+       ``CONTROL`` top's absolute value when it is negative, ``ZMDL`` for
+       RAMS); the ground (``PRSS``, else ``prfa``'s from ``SHGT``; ``T02M``,
+       else the first level's brought down adiabatically; ``U10M``) at the
+       bottom; every variable, pressure from the ``PRES`` field included,
+       linear in height; ``metlvl`` counts the stored heights as they are
+     - :func:`arlmet.sample_points` at heights (``ops/sample.py``, ``_Column``,
+       ``_InternalLevels``); on 9 made-up flag 3 files (no real one was on
+       hand) with tops of 3, 10, 25 and 40 km it agrees with the compiled
+       ``prfter``, ``metlvl`` and ``zindex`` within 0.0002 K and m/s and
+       0.002 hPa; a negative ``CONTROL`` top is not taken (``metlvl`` then
+       picks a one-level grid)
    * - ``prfwrf``
      - the WRF (flag 5) profile: pressure from the ``PRES`` field, heights from
        WRF's hybrid coefficients (read from a side file, ``hybrid_wrfvcoords.txt``)

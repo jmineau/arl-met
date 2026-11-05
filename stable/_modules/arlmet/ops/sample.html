@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.ops.sample &#8212; arl-met 0.1.0b7</title>
+    <title>arlmet.ops.sample &#8212; arl-met 0.1.0b8</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=8b1483a0"></script>
+    <script src="../../../_static/documentation_options.js?v=630e2062"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b7';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b8';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b7" />
+  <meta name="docsearch:version" content="0.1.0b8" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -127,7 +127,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b7</p>
+    <p class="title logo__title">arl-met 0.1.0b8</p>
   
 </a></div>
     
@@ -452,9 +452,9 @@
 
 <span class="n">SURFACE_VARIABLES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"PRSS"</span><span class="p">,</span> <span class="s2">"SHGT"</span><span class="p">}</span>
 
-<span class="c1">#: On sigma, pressure-level, hybrid and WRF files, the surface field that gives</span>
-<span class="c1">#: an upper-level variable its value at the ground, as HYSPLIT's ``prfsig``,</span>
-<span class="c1">#: ``prfprs`` and ``prfecm`` start their columns. ``TEMP`` takes the column's</span>
+<span class="c1">#: Along a :class:`_Column`, the surface field that gives an upper-level</span>
+<span class="c1">#: variable its value at the ground, as HYSPLIT's ``prfsig``, ``prfprs``,</span>
+<span class="c1">#: ``prfecm`` and ``prfter`` start their columns. ``TEMP`` takes the column's</span>
 <span class="c1">#: ground temperature (``T02M``, ``TMPS``, else the first level's brought down</span>
 <span class="c1">#: adiabatically), vertical motion is zero, and any other variable keeps its</span>
 <span class="c1">#: first level's value.</span>
@@ -1163,7 +1163,9 @@
 <span class="sd">    - flag=1/4/5 (sigma/hybrid/WRF): the *column* (PRSS at level 0, the ground;</span>
 <span class="sd">      PRES on sigma files that have it and on WRF files, else the axis's</span>
 <span class="sd">      pressure; HYSPLIT's heights).</span>
-<span class="sd">    - flag=3 (terrain): stored level heights are AGL; no pressure coordinate.</span>
+<span class="sd">    - flag=3 (terrain): the *column* on HYSPLIT's internal levels (PRSS at the</span>
+<span class="sd">      ground, the PRES field, ``prfter``'s heights); without internal levels the</span>
+<span class="sd">      stored level heights, and no pressure coordinate.</span>
 <span class="sd">    """</span>
     <span class="n">axis</span> <span class="o">=</span> <span class="n">recordset</span><span class="o">.</span><span class="n">vertical_axis</span>
     <span class="n">level_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span>
@@ -1185,6 +1187,8 @@
             <span class="k">assert</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
             <span class="k">return</span> <span class="n">column</span><span class="o">.</span><span class="n">pressure</span><span class="p">[:,</span> <span class="n">level_list</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">column</span><span class="o">.</span><span class="n">pressure</span><span class="p">[:,</span> <span class="n">level_list</span><span class="p">]</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">"z_kind='pressure' is not supported for terrain-following (flag=3) vertical axes."</span>
             <span class="p">)</span>
@@ -1193,13 +1197,13 @@
         <span class="p">)</span>
 
     <span class="c1"># z_kind == "agl"</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">)</span> <span class="ow">and</span> <span class="n">column</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_broadcast</span><span class="p">(</span><span class="n">axis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">()[</span><span class="n">level_list</span><span class="p">])</span>
 
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">PressureAxis</span><span class="p">,</span> <span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">)):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">PressureAxis</span><span class="p">,</span> <span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">)):</span>
         <span class="c1"># HYSPLIT PRFPRS: HGTS above the ground. PRFSIG/PRFECM: hypsometric from</span>
         <span class="c1"># the ground with virtual temperature; a WRF file without hybrid</span>
-        <span class="c1"># coefficients goes to PRFSIG too.</span>
+        <span class="c1"># coefficients goes to PRFSIG too. PRFTER: the stored levels, scaled.</span>
         <span class="k">assert</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="n">column</span><span class="o">.</span><span class="n">z_agl</span><span class="p">[:,</span> <span class="n">level_list</span><span class="p">]</span>
 
@@ -1218,13 +1222,14 @@
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    The vertical column of one sigma, pressure-level, hybrid or WRF time step.</span>
+<span class="sd">    The vertical column of one time step.</span>
 
 <span class="sd">    Built at the grid points of *plan* (:func:`_node_plan`) as HYSPLIT's</span>
 <span class="sd">    ``prfsig`` (sigma, flag 1, and WRF, flag 5, without WRF's hybrid</span>
-<span class="sd">    coefficients), ``prfprs`` (pressure, flag 2) and ``prfecm`` (hybrid, flag</span>
-<span class="sd">    4) build theirs at each grid point, and shared by every variable sampled</span>
-<span class="sd">    there at that time. Level 0 is the ground:</span>
+<span class="sd">    coefficients), ``prfprs`` (pressure, flag 2), ``prfter`` (terrain-following,</span>
+<span class="sd">    flag 3, which has a column only on the internal *levels*) and ``prfecm``</span>
+<span class="sd">    (hybrid, flag 4) build theirs at each grid point, and shared by every</span>
+<span class="sd">    variable sampled there at that time. Level 0 is the ground:</span>
 <span class="sd">    0 m above it, at the surface pressure ``PRSS``. On a pressure-level file a</span>
 <span class="sd">    level at or below the ground has no height (NaN), so a profile runs from</span>
 <span class="sd">    the ground to the first level above it, as ``prfprs`` skips such levels.</span>
@@ -1260,14 +1265,23 @@
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">surface_pressure</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""``PRSS`` [hPa] at each point."""</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        ``PRSS`` [hPa] at each point.</span>
+
+<span class="sd">        A terrain-following time step without ``PRSS`` gets HYSPLIT's estimate</span>
+<span class="sd">        from ``SHGT`` and the first level's temperature (``prfmod``'s ``PRFA``:</span>
+<span class="sd">        ``1013 exp(-zsfc g / (R T1))``).</span>
+<span class="sd">        """</span>
         <span class="n">prss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_surface</span><span class="p">(</span><span class="s2">"PRSS"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">prss</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"Surface pressure field PRSS is required but not available at "</span>
-                <span class="sa">f</span><span class="s2">"time </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">."</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">prss</span>
+        <span class="k">if</span> <span class="n">prss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">prss</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"SHGT"</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="p">:</span>
+            <span class="n">t1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_temperature</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">_SFCP</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">terrain</span> <span class="o">*</span> <span class="n">_HYSPLIT_GRAV</span> <span class="o">/</span> <span class="n">_HYSPLIT_RDRY</span> <span class="o">/</span> <span class="n">t1</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"Surface pressure field PRSS is required but not available at "</span>
+            <span class="sa">f</span><span class="s2">"time </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2">."</span>
+        <span class="p">)</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">pressure</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
@@ -1277,16 +1291,20 @@
 <span class="sd">        ``PRSS`` at the ground, then the ``PRES`` field when a sigma time step</span>
 <span class="sd">        has one (HYSPLIT's ``ZFLG``), else the nominal pressure of the axis. A</span>
 <span class="sd">        WRF time step needs ``PRES``: its eta levels give pressure only with</span>
-<span class="sd">        WRF's hybrid coefficients, which the file does not hold.</span>
+<span class="sd">        WRF's hybrid coefficients, which the file does not hold. So does a</span>
+<span class="sd">        terrain-following one: its levels are heights.</span>
 <span class="sd">        """</span>
         <span class="n">sp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">surface_pressure</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">):</span>
             <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">to_pressure</span><span class="p">(),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sp</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
             <span class="n">p</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sp</span>
             <span class="k">return</span> <span class="n">p</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">WrfAxis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">)):</span>
             <span class="n">pres</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">"PRES"</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">pres</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># A terrain-following file without PRES has no pressure: its</span>
+                <span class="c1"># virtual pressure is NaN (_variable_profile) and nothing else</span>
+                <span class="c1"># needs this.</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">"WRF (flag=5) files require PRES records for pressure and "</span>
                     <span class="s2">"AGL/MSL sampling."</span>
@@ -1305,6 +1323,8 @@
 <span class="w">        </span><span class="sd">"""Height above ground [m] of each level, 0 at the ground (HYSPLIT's heights)."""</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hgts_agl</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scaled_levels</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pressure</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">upper</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">z</span>
@@ -1326,11 +1346,11 @@
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Terrain height [m] at each point: ``SHGT``.</span>
 
-<span class="sd">        A sigma, hybrid or WRF time step without ``SHGT`` gets HYSPLIT's</span>
-<span class="sd">        estimate from the surface pressure and the first level's temperature</span>
-<span class="sd">        (``prfmod``'s ``PRFA``: ``ln(1013 / PRSS) R T1 / g``, 0 where ``PRSS``</span>
-<span class="sd">        is above 1013 hPa), which ``prfsig`` and ``prfecm`` write back into</span>
-<span class="sd">        HYSPLIT's terrain array.</span>
+<span class="sd">        A sigma, terrain-following, hybrid or WRF time step without ``SHGT``</span>
+<span class="sd">        gets HYSPLIT's estimate from the surface pressure and the first level's</span>
+<span class="sd">        temperature (``prfmod``'s ``PRFA``: ``ln(1013 / PRSS) R T1 / g``, 0</span>
+<span class="sd">        where ``PRSS`` is above 1013 hPa), which ``prfsig``, ``prfter`` and</span>
+<span class="sd">        ``prfecm`` write back into HYSPLIT's terrain array.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"SHGT"</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">_terrain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">recordset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plan</span><span class="p">)</span>
@@ -1339,6 +1359,20 @@
         <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
             <span class="n">estimate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">_SFCP</span> <span class="o">/</span> <span class="n">p0</span><span class="p">)</span> <span class="o">*</span> <span class="n">_HYSPLIT_RDRY</span> <span class="o">*</span> <span class="n">t1</span> <span class="o">/</span> <span class="n">_HYSPLIT_GRAV</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">p0</span> <span class="o">&lt;=</span> <span class="n">_SFCP</span><span class="p">,</span> <span class="n">estimate</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_scaled_levels</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Height above ground [m] of each level of a terrain-following file, 0 at the ground.</span>
+
+<span class="sd">        The stored levels are ``Z*``, heights over flat ground, and ``prfter``</span>
+<span class="sd">        turns them into ``Z* (1 - zsfc / ZMDLT)`` at each grid point.</span>
+<span class="sd">        """</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">terrain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">terrain</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">terrain</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="o">.</span><span class="n">zmdlt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span>
+        <span class="n">z</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">return</span> <span class="n">z</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_hgts_agl</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
@@ -1373,12 +1407,19 @@
 
 <span class="sd">        HYSPLIT's ``CALCTV`` at each level's pressure, and at the ground's</span>
 <span class="sd">        temperature and pressure for the ground, as ``prfsig``, ``prfprs`` and</span>
-<span class="sd">        ``prfecm`` find the air's density from it.</span>
+<span class="sd">        ``prfecm`` find the air's density from it. ``prfter`` passes each</span>
+<span class="sd">        level's stored height where ``CALCTV`` takes the pressure, which only</span>
+<span class="sd">        matters with ``RELH``, and this does the same, to give its value.</span>
 <span class="sd">        """</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pressure</span>
+        <span class="n">sp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">surface_pressure</span>
+        <span class="n">level_p</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sp</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">)</span>
+            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">pressure</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
+        <span class="p">)</span>
         <span class="n">tv</span><span class="p">,</span> <span class="n">tv_ground</span> <span class="o">=</span> <span class="n">_hysplit_virtual_temperature</span><span class="p">(</span>
-            <span class="n">p</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:],</span>
-            <span class="n">p</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="n">level_p</span><span class="p">,</span>
+            <span class="n">sp</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_temperature</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ground_temperature</span><span class="p">,</span>
             <span class="n">specific_humidity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_upper</span><span class="p">(</span><span class="s2">"SPHU"</span><span class="p">),</span>
@@ -1419,8 +1460,12 @@
 <span class="sd">        (``PSG(1)``) on sigma files and the stored eta on WRF files, its nominal pressure over ``PRSS``</span>
 <span class="sd">        (``ESG(1)``) on hybrid files, and level 1's pressure over ``PRSS``</span>
 <span class="sd">        (``PSG(1)/P0``) on pressure-level files, where that level can be below</span>
-<span class="sd">        the ground.</span>
+<span class="sd">        the ground. On terrain-following files, ``prfter``'s ``1 - Z*(1) / ZMDLT``.</span>
 <span class="sd">        """</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="o">.</span><span class="n">zmdlt</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">),</span> <span class="n">sigma</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">)):</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">):</span>
@@ -1434,6 +1479,8 @@
 <span class="w">        </span><span class="sd">"""Value of upper-level *variable* at the ground, given its first level's value."""</span>
         <span class="k">if</span> <span class="n">variable</span> <span class="o">==</span> <span class="s2">"TEMP"</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ground_temperature</span>
+        <span class="k">if</span> <span class="n">variable</span> <span class="o">==</span> <span class="s2">"PRES"</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">surface_pressure</span>
         <span class="k">if</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">_ZERO_AT_GROUND</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">first_level</span><span class="p">)</span>
         <span class="n">surface</span> <span class="o">=</span> <span class="n">_GROUND_FIELDS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">variable</span><span class="p">)</span>
@@ -1527,7 +1574,8 @@
 <span class="sd">        are then blended.</span>
 <span class="sd">    column :</span>
 <span class="sd">        The column of this time step on sigma, hybrid and WRF files (flag</span>
-<span class="sd">        1/4/5), and on pressure-level files (flag 2) sampled at heights; else</span>
+<span class="sd">        1/4/5), on pressure-level files (flag 2) sampled at heights, and on</span>
+<span class="sd">        terrain-following files (flag 3) sampled on the internal levels; else</span>
 <span class="sd">        None. Level</span>
 <span class="sd">        0 is then the ground, and a variable without a record there takes its</span>
 <span class="sd">        ground value (:meth:`_Column.ground_values`).</span>
@@ -1539,10 +1587,15 @@
 <span class="sd">        interpolated as ln p, as HYSPLIT's ``prfsig``, ``prfprs`` and ``prfecm``</span>
 <span class="sd">        do; otherwise (terrain-following files, whose ``prfter`` is linear, and</span>
 <span class="sd">        the native levels of pressure-level files, whose level 0 holds no</span>
-<span class="sd">        pressure) linearly.</span>
+<span class="sd">        pressure) linearly. A terrain-following file's virtual pressure comes</span>
+<span class="sd">        from its ``PRES`` field: NaN without one or off the internal levels.</span>
 <span class="sd">    """</span>
     <span class="n">axis</span> <span class="o">=</span> <span class="n">recordset</span><span class="o">.</span><span class="n">vertical_axis</span>
-    <span class="n">log_p</span> <span class="o">=</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">_PRESSURE_VARIABLES</span>
+    <span class="n">log_p</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="ow">and</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">_PRESSURE_VARIABLES</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="c1"># At heights a column is walked in level order, as HYSPLIT does (#106).</span>
     <span class="n">walk</span> <span class="o">=</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"agl"</span>
 
@@ -1555,8 +1608,10 @@
 
     <span class="c1"># --- virtual "pressure" variable ---</span>
     <span class="k">if</span> <span class="n">variable</span> <span class="o">==</span> <span class="s2">"pressure"</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
-            <span class="c1"># Terrain-following files have no pressure coordinate.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">column</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_levels</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="s2">"PRES"</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="c1"># Terrain-following files have no pressure coordinate of their own.</span>
             <span class="k">return</span> <span class="n">_Profile</span><span class="p">(</span><span class="n">fixed</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">inside</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
 
         <span class="c1"># Treat pressure as a virtual field whose per-level values are the</span>
@@ -1636,23 +1691,29 @@
 <span class="sd">    surfaces go flat: ``max(model_top, 25000)`` (``runset.f``). *heights* are</span>
 <span class="sd">    the internal levels' heights above the ground where the terrain is 0 m,</span>
 <span class="sd">    ``a k**2 + b k + c`` (``1 - ZSG`` times ``ZMDL``); above a grid point with</span>
-<span class="sd">    terrain ``zsfc`` each is ``(ZMDL - zsfc) / ZMDL`` times as high.</span>
+<span class="sd">    terrain ``zsfc`` each is ``(ZMDL - zsfc) / ZMDL`` times as high. *zmdlt* is</span>
+<span class="sd">    ``ZMDLT``, which scales a terrain-following (flag 3) file's stored levels.</span>
 <span class="sd">    """</span>
 
     <span class="n">zmdl</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">heights</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span>
+    <span class="n">zmdlt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20000.0</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">for_axis</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">,</span> <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_InternalLevels</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">for_axis</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">,</span> <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_InternalLevels</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Return the internal grid HYSPLIT's ``metlvl.f`` sets up for a run on *axis*.</span>
 
 <span class="sd">        ``metlvl`` counts the file's levels up to *model_top* (each level's</span>
-<span class="sd">        pressure turned into a rough height with a fixed table) and takes the</span>
-<span class="sd">        first of six quadratic grids that has more levels than that up to</span>
+<span class="sd">        pressure turned into a rough height with a fixed table; a</span>
+<span class="sd">        terrain-following file's stored height as it is) and takes the first</span>
+<span class="sd">        of six quadratic grids that has more levels than that up to</span>
 <span class="sd">        *model_top*. Computed in single precision, as HYSPLIT does. A WRF</span>
 <span class="sd">        (flag 5) file counts as sigma: without WRF's hybrid coefficients</span>
-<span class="sd">        HYSPLIT reads it as flag 1.</span>
+<span class="sd">        HYSPLIT reads it as flag 1. ``ZMDLT`` is 20000 m, ``runset.f``'s</span>
+<span class="sd">        default, and ``ZMDL`` on a file whose *source* is ``RAMS`` (``prfter``).</span>
 <span class="sd">        """</span>
         <span class="n">f32</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
         <span class="n">zdata</span> <span class="o">=</span> <span class="n">f32</span><span class="p">(</span><span class="n">model_top</span><span class="p">)</span>
@@ -1664,6 +1725,9 @@
         <span class="k">while</span> <span class="n">zlevel</span> <span class="o">&lt;=</span> <span class="n">zdata</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">n_data</span><span class="p">:</span>
             <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="n">height</span> <span class="o">=</span> <span class="n">levels</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
+                <span class="n">zlevel</span> <span class="o">=</span> <span class="n">height</span>
+                <span class="k">continue</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">)):</span>
                 <span class="n">plevel</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">f32</span><span class="p">(</span><span class="n">_SFCP</span><span class="p">)</span> <span class="o">-</span> <span class="n">offset</span><span class="p">)</span> <span class="o">*</span> <span class="n">height</span>
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">):</span>
@@ -1688,7 +1752,10 @@
                 <span class="k">break</span>
         <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
         <span class="n">heights</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">k</span> <span class="o">*</span> <span class="n">k</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">*</span> <span class="n">k</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">zmdl</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">model_top</span><span class="p">)),</span> <span class="mf">25000.0</span><span class="p">),</span> <span class="n">heights</span><span class="o">=</span><span class="n">heights</span><span class="p">)</span>
+        <span class="n">zmdl</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">model_top</span><span class="p">)),</span> <span class="mf">25000.0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">zmdl</span><span class="o">=</span><span class="n">zmdl</span><span class="p">,</span> <span class="n">heights</span><span class="o">=</span><span class="n">heights</span><span class="p">,</span> <span class="n">zmdlt</span><span class="o">=</span><span class="n">zmdl</span> <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">"RAMS"</span> <span class="k">else</span> <span class="mf">20000.0</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Return how much higher the levels are above *terrain* than at 0 m: ``(ZMDL - zsfc) / ZMDL``."""</span>
@@ -1867,7 +1934,9 @@
 <span class="sd">          HYSPLIT's ``prfsig``/``prfecm`` do (WRF through PRES); pressure uses</span>
 <span class="sd">          HGTS - SHGT (both required) from the ground</span>
 <span class="sd">          up, leaving out the levels at or below the ground, as HYSPLIT's</span>
-<span class="sd">          ``prfprs`` does; terrain-following uses the stored levels.</span>
+<span class="sd">          ``prfprs`` does; terrain-following scales the stored levels as</span>
+<span class="sd">          HYSPLIT's ``prfter`` does, or with ``model_top=None`` uses them as</span>
+<span class="sd">          they are.</span>
 <span class="sd">        - ``'msl'``: meters above mean sea level, turned into meters above</span>
 <span class="sd">          the ground at the point (less SHGT there), then as ``'agl'``.</span>
 
@@ -1887,9 +1956,7 @@
 <span class="sd">        run's internal levels (:class:`_InternalLevels`,</span>
 <span class="sd">        :func:`_sample_on_internal_levels`). None: at the point's height</span>
 <span class="sd">        above each grid point's ground. The default (``_DEFAULT_MODEL_TOP``,</span>
-<span class="sd">        told by identity) is 25000 at heights, except on a terrain-following</span>
-<span class="sd">        (flag 3) file, where it reads the file's own levels; any other value</span>
-<span class="sd">        raises on a flag 3 file.</span>
+<span class="sd">        told by identity) is 25000 at heights.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1901,12 +1968,7 @@
     <span class="n">heights</span> <span class="o">=</span> <span class="n">z_kind</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">)</span>
     <span class="n">levels</span><span class="p">:</span> <span class="n">_InternalLevels</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">model_top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">heights</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
-            <span class="n">levels</span> <span class="o">=</span> <span class="n">_InternalLevels</span><span class="o">.</span><span class="n">for_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">model_top</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">model_top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">_DEFAULT_MODEL_TOP</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"model_top is not supported for terrain-following (flag=3) files."</span>
-            <span class="p">)</span>
+        <span class="n">levels</span> <span class="o">=</span> <span class="n">_InternalLevels</span><span class="o">.</span><span class="n">for_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">model_top</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">source</span><span class="p">)</span>
     <span class="c1"># flag=2 heights need terrain for the ground and HGTS - SHGT; MSL needs the</span>
     <span class="c1"># terrain at the point on every axis.</span>
     <span class="n">need_terrain</span> <span class="o">=</span> <span class="p">(</span><span class="n">heights</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
@@ -1934,9 +1996,11 @@
 
     <span class="c1"># Sigma, hybrid and WRF files always start their column at the ground;</span>
     <span class="c1"># pressure files do when sampled at heights (at pressures the stored levels</span>
-    <span class="c1"># are used).</span>
-    <span class="n">has_column</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
-        <span class="n">heights</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">)</span>
+    <span class="c1"># are used), and terrain-following files on the internal levels.</span>
+    <span class="n">has_column</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">))</span>
+        <span class="ow">or</span> <span class="p">(</span><span class="n">heights</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">PressureAxis</span><span class="p">))</span>
+        <span class="ow">or</span> <span class="p">(</span><span class="n">levels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="c1"># HYSPLIT's order (#116): the column at each grid point around a point is</span>
     <span class="c1"># interpolated to the point's height, then the grid points are blended.</span>
@@ -2113,18 +2177,17 @@
 <span class="sd">        ``max(model_top, 25000)`` m, linear between those levels, the first</span>
 <span class="sd">        level's value below it (10 m, or 5 m on the finest grid), and above a</span>
 <span class="sd">        file's top ``TEMP``, ``UWND``, ``VWND`` and pressure extrapolated as</span>
-<span class="sd">        HYSPLIT does (other variables NaN there). A sigma, hybrid or WRF file</span>
-<span class="sd">        without ``SHGT`` takes HYSPLIT's terrain estimate from ``PRSS``. The</span>
-<span class="sd">        default matches a run with PYSTILT's default top; a run with another</span>
+<span class="sd">        HYSPLIT does (other variables NaN there). A sigma, terrain-following,</span>
+<span class="sd">        hybrid or WRF file without ``SHGT`` takes HYSPLIT's terrain estimate</span>
+<span class="sd">        from ``PRSS``. The default matches a run with PYSTILT's default top; a run with another</span>
 <span class="sd">        top needs its value, because below 25 km the internal levels depend on</span>
 <span class="sd">        it (the *Sampling* guide says how far). ``None`` reads each grid</span>
 <span class="sd">        point's column at the point's own height above that grid point's</span>
 <span class="sd">        ground, between the file's own levels, which is not what HYSPLIT does</span>
 <span class="sd">        (differences of up to 4.6 K, 3.5 m/s and 1.9 hPa below 5 km) and gives</span>
 <span class="sd">        NaN above a file's top. The default applies at heights only: at</span>
-<span class="sd">        ``"pressure"`` and ``"native"`` it is ignored, and on a</span>
-<span class="sd">        terrain-following (flag 3) file it is ignored too, the file's own</span>
-<span class="sd">        levels being read; a value passed with any of these raises.</span>
+<span class="sd">        ``"pressure"`` and ``"native"`` it is ignored, and a value passed with</span>
+<span class="sd">        either raises.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -2144,8 +2207,7 @@
 <span class="sd">        file, a variable name collides with a column of ``points``, ``z_kind``</span>
 <span class="sd">        or ``method`` is invalid, a field that ``z_kind`` requires is</span>
 <span class="sd">        missing, or ``model_top`` is passed with ``z_kind`` ``"pressure"`` or</span>
-<span class="sd">        ``"native"``, is not a positive number, or is passed for a</span>
-<span class="sd">        terrain-following (flag 3) file.</span>
+<span class="sd">        ``"native"`` or is not a positive number.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>

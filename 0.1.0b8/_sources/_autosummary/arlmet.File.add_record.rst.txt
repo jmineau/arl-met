@@ -1,0 +1,6 @@
+arlmet.File.add\_record
+=======================
+
+.. currentmodule:: arlmet
+
+.. automethod:: File.add_record

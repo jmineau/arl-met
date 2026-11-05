@@ -1,0 +1,6 @@
+arlmet.File.close
+=================
+
+.. currentmodule:: arlmet
+
+.. automethod:: File.close

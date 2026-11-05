@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>arlmet.File.sample_points &#8212; arl-met 0.1.0b7</title>
+    <title>arlmet.File.sample_points &#8212; arl-met 0.1.0b8</title>
   
   
   
@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=8b1483a0"></script>
+    <script src="../_static/documentation_options.js?v=630e2062"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -50,7 +50,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b7';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b8';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b7" />
+  <meta name="docsearch:version" content="0.1.0b8" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -130,7 +130,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b7</p>
+    <p class="title logo__title">arl-met 0.1.0b8</p>
   
 </a></div>
     
@@ -669,8 +669,9 @@ integrate hypsometrically from the ground (<code class="docutils literal notrans
 through each level’s pressure (<code class="docutils literal notranslate"><span class="pre">PRES</span></code> on WRF files) with the
 virtual temperature (<code class="docutils literal notranslate"><span class="pre">TEMP</span></code> with <code class="docutils literal notranslate"><span class="pre">SPHU</span></code> or <code class="docutils literal notranslate"><span class="pre">RELH</span></code>), as
 HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> and <code class="docutils literal notranslate"><span class="pre">prfecm</span></code> do; pressure files use
-<code class="docutils literal notranslate"><span class="pre">HGTS</span> <span class="pre">-</span> <span class="pre">SHGT</span></code> from the ground up; terrain-following files use
-the stored levels.</p></li>
+<code class="docutils literal notranslate"><span class="pre">HGTS</span> <span class="pre">-</span> <span class="pre">SHGT</span></code> from the ground up; terrain-following files
+scale the stored levels as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfter</span></code> does (with
+<code class="docutils literal notranslate"><span class="pre">model_top=None</span></code>, the stored levels as they are).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;msl&quot;</span></code>: meters above mean sea level, taken as the height
 above the ground at the point (less <code class="docutils literal notranslate"><span class="pre">SHGT</span></code> there), then as
 <code class="docutils literal notranslate"><span class="pre">&quot;agl&quot;</span></code>. Every file needs <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>.</p></li>
@@ -724,8 +725,8 @@ the vertical range are NaN.</p>
     time is not in the file, a variable name collides with a column
     of <code class="docutils literal notranslate"><span class="pre">points</span></code>, <code class="docutils literal notranslate"><span class="pre">z_kind</span></code> or <code class="docutils literal notranslate"><span class="pre">method</span></code> is invalid, a field
     that <code class="docutils literal notranslate"><span class="pre">z_kind</span></code> requires is missing, or <code class="docutils literal notranslate"><span class="pre">model_top</span></code> is passed
-    with <code class="docutils literal notranslate"><span class="pre">z_kind</span></code> <code class="docutils literal notranslate"><span class="pre">&quot;pressure&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code>, is not a positive
-    number, or is passed for a terrain-following (flag 3) file.</p>
+    with <code class="docutils literal notranslate"><span class="pre">z_kind</span></code> <code class="docutils literal notranslate"><span class="pre">&quot;pressure&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code> or is not a
+    positive number.</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>

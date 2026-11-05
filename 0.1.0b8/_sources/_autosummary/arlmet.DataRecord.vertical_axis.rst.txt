@@ -1,0 +1,6 @@
+arlmet.DataRecord.vertical\_axis
+================================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: DataRecord.vertical_axis

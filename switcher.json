@@ -5,10 +5,15 @@
     "url": "https://jmineau.github.io/arl-met/dev/"
   },
   {
-    "name": "0.1.0b7 (latest)",
-    "version": "0.1.0b7",
+    "name": "0.1.0b8 (latest)",
+    "version": "0.1.0b8",
     "url": "https://jmineau.github.io/arl-met/stable/",
     "preferred": true
+  },
+  {
+    "name": "0.1.0b7",
+    "version": "0.1.0b7",
+    "url": "https://jmineau.github.io/arl-met/0.1.0b7/"
   },
   {
     "name": "0.1.0b6",

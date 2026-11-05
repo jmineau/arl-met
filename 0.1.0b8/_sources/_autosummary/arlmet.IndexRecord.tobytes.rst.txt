@@ -1,0 +1,6 @@
+arlmet.IndexRecord.tobytes
+==========================
+
+.. currentmodule:: arlmet
+
+.. automethod:: IndexRecord.tobytes
