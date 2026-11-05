@@ -856,8 +856,9 @@ class File:
               through each level's pressure (``PRES`` on WRF files) with the
               virtual temperature (``TEMP`` with ``SPHU`` or ``RELH``), as
               HYSPLIT's ``prfsig`` and ``prfecm`` do; pressure files use
-              ``HGTS - SHGT`` from the ground up; terrain-following files use
-              the stored levels.
+              ``HGTS - SHGT`` from the ground up; terrain-following files
+              scale the stored levels as HYSPLIT's ``prfter`` does (with
+              ``model_top=None``, the stored levels as they are).
             - ``"msl"``: meters above mean sea level, taken as the height
               above the ground at the point (less ``SHGT`` there), then as
               ``"agl"``. Every file needs ``SHGT``.
@@ -913,8 +914,8 @@ class File:
             time is not in the file, a variable name collides with a column
             of ``points``, ``z_kind`` or ``method`` is invalid, a field
             that ``z_kind`` requires is missing, or ``model_top`` is passed
-            with ``z_kind`` ``"pressure"`` or ``"native"``, is not a positive
-            number, or is passed for a terrain-following (flag 3) file.
+            with ``z_kind`` ``"pressure"`` or ``"native"`` or is not a
+            positive number.
 
         Examples
         --------

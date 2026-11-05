@@ -36,9 +36,9 @@ __all__ = ["sample_points"]
 
 SURFACE_VARIABLES = {"PRSS", "SHGT"}
 
-#: On sigma, pressure-level, hybrid and WRF files, the surface field that gives
-#: an upper-level variable its value at the ground, as HYSPLIT's ``prfsig``,
-#: ``prfprs`` and ``prfecm`` start their columns. ``TEMP`` takes the column's
+#: Along a :class:`_Column`, the surface field that gives an upper-level
+#: variable its value at the ground, as HYSPLIT's ``prfsig``, ``prfprs``,
+#: ``prfecm`` and ``prfter`` start their columns. ``TEMP`` takes the column's
 #: ground temperature (``T02M``, ``TMPS``, else the first level's brought down
 #: adiabatically), vertical motion is zero, and any other variable keeps its
 #: first level's value.
@@ -747,7 +747,9 @@ def _vertical_coords(
     - flag=1/4/5 (sigma/hybrid/WRF): the *column* (PRSS at level 0, the ground;
       PRES on sigma files that have it and on WRF files, else the axis's
       pressure; HYSPLIT's heights).
-    - flag=3 (terrain): stored level heights are AGL; no pressure coordinate.
+    - flag=3 (terrain): the *column* on HYSPLIT's internal levels (PRSS at the
+      ground, the PRES field, ``prfter``'s heights); without internal levels the
+      stored level heights, and no pressure coordinate.
     """
     axis = recordset.vertical_axis
     level_list = list(levels)
@@ -769,6 +771,8 @@ def _vertical_coords(
             assert column is not None
             return column.pressure[:, level_list]
         if isinstance(axis, TerrainAxis):
+            if column is not None:
+                return column.pressure[:, level_list]
             raise ValueError(
                 "z_kind='pressure' is not supported for terrain-following (flag=3) vertical axes."
             )
@@ -777,13 +781,13 @@ def _vertical_coords(
         )
 
     # z_kind == "agl"
-    if isinstance(axis, TerrainAxis):
+    if isinstance(axis, TerrainAxis) and column is None:
         return _broadcast(axis.to_height_agl()[level_list])
 
-    if isinstance(axis, (PressureAxis, SigmaAxis, HybridAxis, WrfAxis)):
+    if isinstance(axis, (PressureAxis, SigmaAxis, HybridAxis, WrfAxis, TerrainAxis)):
         # HYSPLIT PRFPRS: HGTS above the ground. PRFSIG/PRFECM: hypsometric from
         # the ground with virtual temperature; a WRF file without hybrid
-        # coefficients goes to PRFSIG too.
+        # coefficients goes to PRFSIG too. PRFTER: the stored levels, scaled.
         assert column is not None
         return column.z_agl[:, level_list]
 
@@ -802,13 +806,14 @@ def _terrain(recordset: RecordSet, plan: HorizontalSamplePlan) -> npt.NDArray[An
 
 class _Column:
     """
-    The vertical column of one sigma, pressure-level, hybrid or WRF time step.
+    The vertical column of one time step.
 
     Built at the grid points of *plan* (:func:`_node_plan`) as HYSPLIT's
     ``prfsig`` (sigma, flag 1, and WRF, flag 5, without WRF's hybrid
-    coefficients), ``prfprs`` (pressure, flag 2) and ``prfecm`` (hybrid, flag
-    4) build theirs at each grid point, and shared by every variable sampled
-    there at that time. Level 0 is the ground:
+    coefficients), ``prfprs`` (pressure, flag 2), ``prfter`` (terrain-following,
+    flag 3, which has a column only on the internal *levels*) and ``prfecm``
+    (hybrid, flag 4) build theirs at each grid point, and shared by every
+    variable sampled there at that time. Level 0 is the ground:
     0 m above it, at the surface pressure ``PRSS``. On a pressure-level file a
     level at or below the ground has no height (NaN), so a profile runs from
     the ground to the first level above it, as ``prfprs`` skips such levels.
@@ -844,14 +849,23 @@ class _Column:
 
     @cached_property
     def surface_pressure(self) -> npt.NDArray[Any]:
-        """``PRSS`` [hPa] at each point."""
+        """
+        ``PRSS`` [hPa] at each point.
+
+        A terrain-following time step without ``PRSS`` gets HYSPLIT's estimate
+        from ``SHGT`` and the first level's temperature (``prfmod``'s ``PRFA``:
+        ``1013 exp(-zsfc g / (R T1))``).
+        """
         prss = self._surface("PRSS")
-        if prss is None:
-            raise ValueError(
-                "Surface pressure field PRSS is required but not available at "
-                f"time {self.recordset.time}."
-            )
-        return prss
+        if prss is not None:
+            return prss
+        if isinstance(self.axis, TerrainAxis) and (0, "SHGT") in self.recordset:
+            t1 = self._temperature[:, 0].astype(float)
+            return _SFCP * np.exp(-self.terrain * _HYSPLIT_GRAV / _HYSPLIT_RDRY / t1)
+        raise ValueError(
+            "Surface pressure field PRSS is required but not available at "
+            f"time {self.recordset.time}."
+        )
 
     @cached_property
     def pressure(self) -> npt.NDArray[Any]:
@@ -861,16 +875,20 @@ class _Column:
         ``PRSS`` at the ground, then the ``PRES`` field when a sigma time step
         has one (HYSPLIT's ``ZFLG``), else the nominal pressure of the axis. A
         WRF time step needs ``PRES``: its eta levels give pressure only with
-        WRF's hybrid coefficients, which the file does not hold.
+        WRF's hybrid coefficients, which the file does not hold. So does a
+        terrain-following one: its levels are heights.
         """
         sp = self.surface_pressure
         if isinstance(self.axis, PressureAxis):
             p = np.tile(self.axis.to_pressure(), (len(sp), 1))
             p[:, 0] = sp
             return p
-        if isinstance(self.axis, WrfAxis):
+        if isinstance(self.axis, (WrfAxis, TerrainAxis)):
             pres = self._upper("PRES")
             if pres is None:
+                # A terrain-following file without PRES has no pressure: its
+                # virtual pressure is NaN (_variable_profile) and nothing else
+                # needs this.
                 raise ValueError(
                     "WRF (flag=5) files require PRES records for pressure and "
                     "AGL/MSL sampling."
@@ -889,6 +907,8 @@ class _Column:
         """Height above ground [m] of each level, 0 at the ground (HYSPLIT's heights)."""
         if isinstance(self.axis, PressureAxis):
             return self._hgts_agl
+        if isinstance(self.axis, TerrainAxis):
+            return self._scaled_levels
         z = np.zeros_like(self.pressure)
         if not self.upper:
             return z
@@ -910,11 +930,11 @@ class _Column:
         """
         Terrain height [m] at each point: ``SHGT``.
 
-        A sigma, hybrid or WRF time step without ``SHGT`` gets HYSPLIT's
-        estimate from the surface pressure and the first level's temperature
-        (``prfmod``'s ``PRFA``: ``ln(1013 / PRSS) R T1 / g``, 0 where ``PRSS``
-        is above 1013 hPa), which ``prfsig`` and ``prfecm`` write back into
-        HYSPLIT's terrain array.
+        A sigma, terrain-following, hybrid or WRF time step without ``SHGT``
+        gets HYSPLIT's estimate from the surface pressure and the first level's
+        temperature (``prfmod``'s ``PRFA``: ``ln(1013 / PRSS) R T1 / g``, 0
+        where ``PRSS`` is above 1013 hPa), which ``prfsig``, ``prfter`` and
+        ``prfecm`` write back into HYSPLIT's terrain array.
         """
         if isinstance(self.axis, PressureAxis) or (0, "SHGT") in self.recordset:
             return _terrain(self.recordset, self.plan)
@@ -923,6 +943,20 @@ class _Column:
         with np.errstate(divide="ignore", invalid="ignore"):
             estimate = np.log(_SFCP / p0) * _HYSPLIT_RDRY * t1 / _HYSPLIT_GRAV
         return np.where(p0 <= _SFCP, estimate, 0.0)
+
+    @cached_property
+    def _scaled_levels(self) -> npt.NDArray[Any]:
+        """
+        Height above ground [m] of each level of a terrain-following file, 0 at the ground.
+
+        The stored levels are ``Z*``, heights over flat ground, and ``prfter``
+        turns them into ``Z* (1 - zsfc / ZMDLT)`` at each grid point.
+        """
+        assert self.levels is not None
+        terrain = np.asarray(self.terrain, dtype=float)
+        z = np.outer(1.0 - terrain / self.levels.zmdlt, self.axis.levels)
+        z[:, 0] = 0.0
+        return z
 
     @cached_property
     def _hgts_agl(self) -> npt.NDArray[Any]:
@@ -957,12 +991,19 @@ class _Column:
 
         HYSPLIT's ``CALCTV`` at each level's pressure, and at the ground's
         temperature and pressure for the ground, as ``prfsig``, ``prfprs`` and
-        ``prfecm`` find the air's density from it.
+        ``prfecm`` find the air's density from it. ``prfter`` passes each
+        level's stored height where ``CALCTV`` takes the pressure, which only
+        matters with ``RELH``, and this does the same, to give its value.
         """
-        p = self.pressure
+        sp = self.surface_pressure
+        level_p = (
+            np.tile(self.axis.levels[1:], (len(sp), 1))
+            if isinstance(self.axis, TerrainAxis)
+            else self.pressure[:, 1:]
+        )
         tv, tv_ground = _hysplit_virtual_temperature(
-            p[:, 1:],
-            p[:, 0],
+            level_p,
+            sp,
             self._temperature,
             self.ground_temperature,
             specific_humidity=self._upper("SPHU"),
@@ -1003,8 +1044,12 @@ class _Column:
         (``PSG(1)``) on sigma files and the stored eta on WRF files, its nominal pressure over ``PRSS``
         (``ESG(1)``) on hybrid files, and level 1's pressure over ``PRSS``
         (``PSG(1)/P0``) on pressure-level files, where that level can be below
-        the ground.
+        the ground. On terrain-following files, ``prfter``'s ``1 - Z*(1) / ZMDLT``.
         """
+        if isinstance(self.axis, TerrainAxis):
+            assert self.levels is not None
+            sigma = 1.0 - self.axis.levels[1] / self.levels.zmdlt
+            return np.full(len(self.plan.inside), sigma)
         if isinstance(self.axis, (SigmaAxis, WrfAxis)):
             return np.full(len(self.plan.inside), self.axis.levels[1])
         if isinstance(self.axis, PressureAxis):
@@ -1018,6 +1063,8 @@ class _Column:
         """Value of upper-level *variable* at the ground, given its first level's value."""
         if variable == "TEMP":
             return self.ground_temperature
+        if variable == "PRES" and isinstance(self.axis, TerrainAxis):
+            return self.surface_pressure
         if variable in _ZERO_AT_GROUND:
             return np.zeros_like(first_level)
         surface = _GROUND_FIELDS.get(variable)
@@ -1111,7 +1158,8 @@ def _variable_profile(
         are then blended.
     column :
         The column of this time step on sigma, hybrid and WRF files (flag
-        1/4/5), and on pressure-level files (flag 2) sampled at heights; else
+        1/4/5), on pressure-level files (flag 2) sampled at heights, and on
+        terrain-following files (flag 3) sampled on the internal levels; else
         None. Level
         0 is then the ground, and a variable without a record there takes its
         ground value (:meth:`_Column.ground_values`).
@@ -1123,10 +1171,15 @@ def _variable_profile(
         interpolated as ln p, as HYSPLIT's ``prfsig``, ``prfprs`` and ``prfecm``
         do; otherwise (terrain-following files, whose ``prfter`` is linear, and
         the native levels of pressure-level files, whose level 0 holds no
-        pressure) linearly.
+        pressure) linearly. A terrain-following file's virtual pressure comes
+        from its ``PRES`` field: NaN without one or off the internal levels.
     """
     axis = recordset.vertical_axis
-    log_p = column is not None and variable in _PRESSURE_VARIABLES
+    log_p = (
+        column is not None
+        and variable in _PRESSURE_VARIABLES
+        and not isinstance(axis, TerrainAxis)
+    )
     # At heights a column is walked in level order, as HYSPLIT does (#106).
     walk = column is not None and z_kind == "agl"
 
@@ -1139,8 +1192,10 @@ def _variable_profile(
 
     # --- virtual "pressure" variable ---
     if variable == "pressure":
-        if isinstance(axis, TerrainAxis):
-            # Terrain-following files have no pressure coordinate.
+        if isinstance(axis, TerrainAxis) and (
+            column is None or not _levels(recordset, "PRES")
+        ):
+            # Terrain-following files have no pressure coordinate of their own.
             return _Profile(fixed=np.full(len(plan.inside), np.nan, dtype=np.float32))
 
         # Treat pressure as a virtual field whose per-level values are the
@@ -1220,23 +1275,29 @@ class _InternalLevels:
     surfaces go flat: ``max(model_top, 25000)`` (``runset.f``). *heights* are
     the internal levels' heights above the ground where the terrain is 0 m,
     ``a k**2 + b k + c`` (``1 - ZSG`` times ``ZMDL``); above a grid point with
-    terrain ``zsfc`` each is ``(ZMDL - zsfc) / ZMDL`` times as high.
+    terrain ``zsfc`` each is ``(ZMDL - zsfc) / ZMDL`` times as high. *zmdlt* is
+    ``ZMDLT``, which scales a terrain-following (flag 3) file's stored levels.
     """
 
     zmdl: float
     heights: npt.NDArray[Any]
+    zmdlt: float = 20000.0
 
     @classmethod
-    def for_axis(cls, axis: VerticalAxis, model_top: float) -> _InternalLevels:
+    def for_axis(
+        cls, axis: VerticalAxis, model_top: float, *, source: str = ""
+    ) -> _InternalLevels:
         """
         Return the internal grid HYSPLIT's ``metlvl.f`` sets up for a run on *axis*.
 
         ``metlvl`` counts the file's levels up to *model_top* (each level's
-        pressure turned into a rough height with a fixed table) and takes the
-        first of six quadratic grids that has more levels than that up to
+        pressure turned into a rough height with a fixed table; a
+        terrain-following file's stored height as it is) and takes the first
+        of six quadratic grids that has more levels than that up to
         *model_top*. Computed in single precision, as HYSPLIT does. A WRF
         (flag 5) file counts as sigma: without WRF's hybrid coefficients
-        HYSPLIT reads it as flag 1.
+        HYSPLIT reads it as flag 1. ``ZMDLT`` is 20000 m, ``runset.f``'s
+        default, and ``ZMDL`` on a file whose *source* is ``RAMS`` (``prfter``).
         """
         f32 = np.float32
         zdata = f32(model_top)
@@ -1248,6 +1309,9 @@ class _InternalLevels:
         while zlevel <= zdata and n < n_data:
             n += 1
             height = levels[n - 1]
+            if isinstance(axis, TerrainAxis):
+                zlevel = height
+                continue
             if isinstance(axis, (SigmaAxis, WrfAxis)):
                 plevel = offset + (f32(_SFCP) - offset) * height
             elif isinstance(axis, PressureAxis):
@@ -1272,7 +1336,10 @@ class _InternalLevels:
                 break
         k = np.arange(1, count + 1, dtype=float)
         heights = float(a) * k * k + float(b) * k + float(c)
-        return cls(zmdl=max(abs(float(model_top)), 25000.0), heights=heights)
+        zmdl = max(abs(float(model_top)), 25000.0)
+        return cls(
+            zmdl=zmdl, heights=heights, zmdlt=zmdl if source == "RAMS" else 20000.0
+        )
 
     def scale(self, terrain: npt.NDArray[Any]) -> npt.NDArray[Any]:
         """Return how much higher the levels are above *terrain* than at 0 m: ``(ZMDL - zsfc) / ZMDL``."""
@@ -1451,7 +1518,9 @@ def _sample_points_from_file(
           HYSPLIT's ``prfsig``/``prfecm`` do (WRF through PRES); pressure uses
           HGTS - SHGT (both required) from the ground
           up, leaving out the levels at or below the ground, as HYSPLIT's
-          ``prfprs`` does; terrain-following uses the stored levels.
+          ``prfprs`` does; terrain-following scales the stored levels as
+          HYSPLIT's ``prfter`` does, or with ``model_top=None`` uses them as
+          they are.
         - ``'msl'``: meters above mean sea level, turned into meters above
           the ground at the point (less SHGT there), then as ``'agl'``.
 
@@ -1471,9 +1540,7 @@ def _sample_points_from_file(
         run's internal levels (:class:`_InternalLevels`,
         :func:`_sample_on_internal_levels`). None: at the point's height
         above each grid point's ground. The default (``_DEFAULT_MODEL_TOP``,
-        told by identity) is 25000 at heights, except on a terrain-following
-        (flag 3) file, where it reads the file's own levels; any other value
-        raises on a flag 3 file.
+        told by identity) is 25000 at heights.
 
     Returns
     -------
@@ -1485,12 +1552,7 @@ def _sample_points_from_file(
     heights = z_kind in ("agl", "msl")
     levels: _InternalLevels | None = None
     if model_top is not None and heights:
-        if not isinstance(axis, TerrainAxis):
-            levels = _InternalLevels.for_axis(axis, model_top)
-        elif model_top is not _DEFAULT_MODEL_TOP:
-            raise ValueError(
-                "model_top is not supported for terrain-following (flag=3) files."
-            )
+        levels = _InternalLevels.for_axis(axis, model_top, source=file.source)
     # flag=2 heights need terrain for the ground and HGTS - SHGT; MSL needs the
     # terrain at the point on every axis.
     need_terrain = (heights and isinstance(axis, PressureAxis)) or (
@@ -1518,9 +1580,11 @@ def _sample_points_from_file(
 
     # Sigma, hybrid and WRF files always start their column at the ground;
     # pressure files do when sampled at heights (at pressures the stored levels
-    # are used).
-    has_column = isinstance(axis, (SigmaAxis, HybridAxis, WrfAxis)) or (
-        heights and isinstance(axis, PressureAxis)
+    # are used), and terrain-following files on the internal levels.
+    has_column = (
+        isinstance(axis, (SigmaAxis, HybridAxis, WrfAxis))
+        or (heights and isinstance(axis, PressureAxis))
+        or (levels is not None)
     )
     # HYSPLIT's order (#116): the column at each grid point around a point is
     # interpolated to the point's height, then the grid points are blended.
@@ -1695,18 +1759,17 @@ def sample_points(
         ``max(model_top, 25000)`` m, linear between those levels, the first
         level's value below it (10 m, or 5 m on the finest grid), and above a
         file's top ``TEMP``, ``UWND``, ``VWND`` and pressure extrapolated as
-        HYSPLIT does (other variables NaN there). A sigma, hybrid or WRF file
-        without ``SHGT`` takes HYSPLIT's terrain estimate from ``PRSS``. The
-        default matches a run with PYSTILT's default top; a run with another
+        HYSPLIT does (other variables NaN there). A sigma, terrain-following,
+        hybrid or WRF file without ``SHGT`` takes HYSPLIT's terrain estimate
+        from ``PRSS``. The default matches a run with PYSTILT's default top; a run with another
         top needs its value, because below 25 km the internal levels depend on
         it (the *Sampling* guide says how far). ``None`` reads each grid
         point's column at the point's own height above that grid point's
         ground, between the file's own levels, which is not what HYSPLIT does
         (differences of up to 4.6 K, 3.5 m/s and 1.9 hPa below 5 km) and gives
         NaN above a file's top. The default applies at heights only: at
-        ``"pressure"`` and ``"native"`` it is ignored, and on a
-        terrain-following (flag 3) file it is ignored too, the file's own
-        levels being read; a value passed with any of these raises.
+        ``"pressure"`` and ``"native"`` it is ignored, and a value passed with
+        either raises.
 
     Returns
     -------
@@ -1726,8 +1789,7 @@ def sample_points(
         file, a variable name collides with a column of ``points``, ``z_kind``
         or ``method`` is invalid, a field that ``z_kind`` requires is
         missing, or ``model_top`` is passed with ``z_kind`` ``"pressure"`` or
-        ``"native"``, is not a positive number, or is passed for a
-        terrain-following (flag 3) file.
+        ``"native"`` or is not a positive number.
 
     Examples
     --------

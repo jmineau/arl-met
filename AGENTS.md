@@ -82,8 +82,10 @@ when it downloads, so it imports without the `archives` extra.
   `PressureAxis`, 3 `TerrainAxis`, 4 `HybridAxis`, 5 `WrfAxis`, else `ValueError`.
   Sigma/hybrid/WRF heights are HYSPLIT's `prfsig`/`prfecm` column (ground at `PRSS`,
   `T02M`; virtual T; a sigma file's `PRES` over nominal sigma); WRF pressure is `PRES`
-  (eta needs coefficients the file lacks); pressure files use `HGTS`. No fallback across
-  flags; each subclass takes only the keyword-only inputs it needs, else `ValueError`.
+  (eta needs coefficients the file lacks); pressure files use `HGTS`. Flag 3 levels are
+  `Z*`: on HYSPLIT's internal levels `sample_points` puts them at `Z* (1 - zsfc / ZMDLT)`
+  (`prfter`; `ZMDLT` 20000, `ZMDL` for RAMS), linear in height, pressure included. No
+  fallback across flags; each subclass takes only the keyword-only inputs it needs, else `ValueError`.
 - **Rotated grids** (`orientation != 0`) raise `NotImplementedError` in `Projection`.
 - **WRF winds are staggered.** In an `AWRF` file column `i` of `UWND` is the west face of cell `i` and row
   `j` of `VWND` its south face; `sample_points` reads each, with its whole column, at `x + 0.5` / `y + 0.5`
