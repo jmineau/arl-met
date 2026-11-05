@@ -106,8 +106,11 @@ dispatcher — each coordinate system has exactly one correct method:
   and hybrid heights`_). Requires ``PRSS`` and ``TEMP``, and ``PRES`` on WRF
   files; uses ``T02M`` (or ``TMPS``), ``SPHU`` (or ``RELH``) and, on sigma
   files, ``PRES`` when present. These files do not store ``HGTS``.
-- **flag=3 (terrain-following):** returns the stored 1D ``height`` coordinate —
-  terrain-following levels are already heights AGL.
+- **flag=3 (terrain-following):** returns the stored 1D ``height`` coordinate,
+  the levels' heights over flat ground. HYSPLIT's ``prfter`` lowers them over
+  terrain, to ``Z* (1 - zsfc / ZMDLT)`` with ``ZMDLT`` 20000 m, and
+  :func:`arlmet.sample_points` does too (the :doc:`sampling` guide); this
+  helper does not.
 
 Each layer of the hypsometric integration is ``(R_d / g) * T * ln(p_below /
 p_above)`` thick, with ``T`` the mean of its two bounding levels, the first

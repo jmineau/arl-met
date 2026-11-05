@@ -2800,6 +2800,12 @@ _METLVL_AXES = {
     "hybrid30": HybridAxis(
         levels=[1.0] + [2 * k + round(1.0 - k / 30.0, 4) for k in range(1, 30)]
     ),
+    # heights Z* [m] (#153; a made-up file, since no real flag 3 file is on hand)
+    "terrain24": TerrainAxis(
+        levels=[0.0, 10.0, 30.0, 60.0, 100.0, 150.0, 220.0, 300.0, 400.0, 550.0]
+        + [750.0, 1000.0, 1400.0, 2000.0, 2800.0, 3800.0, 5000.0, 6500.0, 8500.0]
+        + [11000.0, 14000.0, 18000.0, 23000.0, 30000.0]
+    ),
 }
 
 
@@ -2823,6 +2829,10 @@ _METLVL_AXES = {
         ("hybrid30", 10000, 26, (15, -5, 0), 25000),
         ("hybrid30", 40000, 37, (30, -25, 5), 40000),
         ("hybrid30", 3000, 13, (20, -15, 5), 25000),
+        ("terrain24", 25000, 30, (30, -25, 5), 25000),
+        ("terrain24", 10000, 23, (20, -15, 5), 25000),
+        ("terrain24", 40000, 37, (30, -25, 5), 40000),
+        ("terrain24", 3000, 18, (10, -10, 10), 25000),
     ],
 )
 def test_internal_levels_are_hysplits(axis, model_top, n, abc, zmdl):
@@ -3188,10 +3198,6 @@ class TestHysplitInternalLevels:
         for top in (0.0, -10.0, np.nan):
             with pytest.raises(ValueError, match="model_top must be a positive"):
                 sample_points(path, points, ["TEMP"], z_kind="agl", model_top=top)
-        terrain = tmp_path / "terrain.arl"
-        write_terrain_sampling_file(terrain, time=_COLUMN_TIME)
-        with pytest.raises(ValueError, match="terrain-following"):
-            sample_points(terrain, points, ["TEMP"], z_kind="agl", model_top=25000)
 
     def test_the_default_is_25000_at_heights(self, tmp_path):
         path = tmp_path / "hilly.arl"
@@ -3222,19 +3228,189 @@ class TestHysplitInternalLevels:
             with pytest.raises(ValueError, match="model_top applies to heights"):
                 sample_points(path, points, ["TEMP"], z_kind=z_kind, model_top=25000.0)
 
-    def test_the_default_on_a_terrain_following_file_reads_its_own_levels(
-        self, tmp_path
-    ):
+    def test_the_default_on_a_terrain_following_file_is_25000(self, tmp_path):
         terrain = tmp_path / "terrain.arl"
         write_terrain_sampling_file(terrain, time=_COLUMN_TIME)
         points = _cell_points(self.XY, 400.0)
         for z_kind in ("agl", "msl"):
             default = sample_points(terrain, points, ["TEMP"], z_kind=z_kind)
+            top = sample_points(
+                terrain, points, ["TEMP"], z_kind=z_kind, model_top=25000.0
+            )
             none = sample_points(
                 terrain, points, ["TEMP"], z_kind=z_kind, model_top=None
             )
-            pd.testing.assert_frame_equal(default, none)
-            with pytest.raises(ValueError, match="terrain-following"):
-                sample_points(
-                    terrain, points, ["TEMP"], z_kind=z_kind, model_top=25000.0
-                )
+            pd.testing.assert_frame_equal(default, top)
+            assert not np.allclose(default["TEMP"], none["TEMP"])
+
+
+# --- terrain-following (flag 3) files on HYSPLIT's internal levels (#153) ---
+
+# Stored heights Z* [m] and uniform fields, so every grid point has one column.
+_F3_LEVELS = [0.0, 100.0, 500.0, 2000.0]
+_F3_SHGT, _F3_PRSS, _F3_T02M = 1000.0, 900.0, 290.0
+_F3_TEMP = [288.0, 285.0, 275.0]
+_F3_UWND = [2.0, 4.0, 8.0]
+_F3_PRES = [889.0, 845.0, 690.0]
+_F3_POINT = [(4.3, 7.6)]
+
+
+def write_terrain_column_file(
+    path, *, source="TEST", prss=True, pres=True, t02m=True, shgt=True
+):
+    """A terrain-following (flag 3) file whose fields are the same at every grid point."""
+    grid = make_test_grid()
+    full = lambda value: np.full((grid.ny, grid.nx), value, dtype=np.float32)  # noqa: E731
+    with File(
+        path,
+        mode="w",
+        source=source,
+        grid=grid,
+        vertical_axis=TerrainAxis(levels=_F3_LEVELS),
+    ) as met:
+        rs = met.create_recordset(_COLUMN_TIME)
+        if shgt:
+            rs.create_datarecord("SHGT", level=0, forecast=0, data=full(_F3_SHGT))
+        if prss:
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=full(_F3_PRSS))
+        if t02m:
+            rs.create_datarecord("T02M", level=0, forecast=0, data=full(_F3_T02M))
+        rs.create_datarecord("U10M", level=0, forecast=0, data=full(1.0))
+        for level, (t, u, p) in enumerate(
+            zip(_F3_TEMP, _F3_UWND, _F3_PRES, strict=True), start=1
+        ):
+            rs.create_datarecord("TEMP", level=level, forecast=0, data=full(t))
+            rs.create_datarecord("UWND", level=level, forecast=0, data=full(u))
+            if pres:
+                rs.create_datarecord("PRES", level=level, forecast=0, data=full(p))
+
+
+class TestTerrainFollowingInternalLevels:
+    """
+    A flag 3 file at heights is read as HYSPLIT's ``prfter`` fills its internal levels (#153).
+
+    ``prfter`` puts a stored level ``Z*`` at ``Z* (1 - zsfc / ZMDLT)`` above the
+    ground (``ZMDLT`` 20000 m, or ``ZMDL`` for RAMS), starts the column at the
+    ground (``T02M``, ``U10M``, ``PRSS``) and interpolates every variable,
+    pressure too, linearly in height. By hand here, on uniform fields.
+    """
+
+    @staticmethod
+    def _by_hand(
+        values, ground, z, *, model_top=25000.0, zmdlt=20000.0, terrain=_F3_SHGT
+    ):
+        from arlmet.ops.sample import _InternalLevels
+
+        levels = _InternalLevels.for_axis(TerrainAxis(levels=_F3_LEVELS), model_top)
+        h, zmdl = levels.heights, levels.zmdl
+        heights = np.array(_F3_LEVELS) * (1.0 - terrain / zmdlt)
+        column = np.array([ground, *values])
+        scale = (zmdl - terrain) / zmdl
+        internal = z / scale
+        k = int(np.clip(np.searchsorted(h, internal, side="right") - 1, 0, len(h) - 2))
+        f = float(np.clip((internal - h[k]) / (h[k + 1] - h[k]), 0.0, 1.0))
+        lo, hi = (np.interp(h[i] * scale, heights, column) for i in (k, k + 1))
+        return lo + f * (hi - lo)
+
+    def _sample(self, path, names, z, **kwargs):
+        return sample_points(
+            path, _cell_points(_F3_POINT, z), names, z_kind="agl", **kwargs
+        )
+
+    def test_values_are_prfters(self, tmp_path):
+        path = tmp_path / "flag3.arl"
+        write_terrain_column_file(path)
+        for z in (3.0, 20.0, 300.0, 1200.0):
+            result = self._sample(path, ["TEMP", "UWND", "PRES", "pressure"], z)
+            expected = {
+                "TEMP": self._by_hand(_F3_TEMP, _F3_T02M, z),
+                "UWND": self._by_hand(_F3_UWND, 1.0, z),
+                # linear in height, not in ln p
+                "PRES": self._by_hand(_F3_PRES, _F3_PRSS, z),
+                "pressure": self._by_hand(_F3_PRES, _F3_PRSS, z),
+            }
+            for name, value in expected.items():
+                np.testing.assert_allclose(result[name], value, rtol=1e-6, err_msg=name)
+
+    def test_model_top_is_taken(self, tmp_path):
+        path = tmp_path / "flag3.arl"
+        write_terrain_column_file(path)
+        for top in (3000.0, 40000.0):
+            result = self._sample(path, ["TEMP"], 300.0, model_top=top)
+            expected = self._by_hand(_F3_TEMP, _F3_T02M, 300.0, model_top=top)
+            np.testing.assert_allclose(result["TEMP"], expected, rtol=1e-6)
+
+    def test_rams_scales_by_zmdl(self, tmp_path):
+        from arlmet.ops.sample import _InternalLevels
+
+        axis = TerrainAxis(levels=_F3_LEVELS)
+        assert _InternalLevels.for_axis(axis, 25000.0).zmdlt == 20000.0
+        assert _InternalLevels.for_axis(axis, 40000.0, source="RAMS").zmdlt == 40000.0
+        path = tmp_path / "rams.arl"
+        write_terrain_column_file(path, source="RAMS")
+        result = self._sample(path, ["TEMP"], 300.0)
+        expected = self._by_hand(_F3_TEMP, _F3_T02M, 300.0, zmdlt=25000.0)
+        np.testing.assert_allclose(result["TEMP"], expected, rtol=1e-6)
+
+    def test_above_the_top_temperature_is_held(self, tmp_path):
+        from arlmet.ops.sample import _InternalLevels
+
+        path = tmp_path / "flag3.arl"
+        write_terrain_column_file(path)
+        h = _InternalLevels.for_axis(TerrainAxis(levels=_F3_LEVELS), 25000.0).heights
+        scale = (25000.0 - _F3_SHGT) / 25000.0
+        top = _F3_LEVELS[-1] * (1.0 - _F3_SHGT / 20000.0)
+        last = h[h * scale <= top][-1] * scale  # the last internal level below the top
+        heights = np.array(_F3_LEVELS) * (1.0 - _F3_SHGT / 20000.0)
+        held = np.interp(last, heights, [_F3_T02M, *_F3_TEMP])
+        result = self._sample(path, ["TEMP", "pressure"], 3000.0)
+        np.testing.assert_allclose(result["TEMP"], held, rtol=1e-6)
+        # pressure falls on from the top, below the last level's
+        assert result["pressure"].iloc[0] < _F3_PRES[-1]
+
+    def test_without_t02m_the_ground_is_adiabatic(self, tmp_path):
+        path = tmp_path / "flag3.arl"
+        write_terrain_column_file(path, t02m=False)
+        ground = _F3_TEMP[0] * (1.0 - _F3_LEVELS[1] / 20000.0) ** -0.286
+        result = self._sample(path, ["TEMP"], 20.0)
+        expected = self._by_hand(_F3_TEMP, ground, 20.0)
+        np.testing.assert_allclose(result["TEMP"], expected, rtol=1e-6)
+
+    def test_without_prss_the_surface_pressure_is_hysplits_estimate(self, tmp_path):
+        path = tmp_path / "flag3.arl"
+        write_terrain_column_file(path, prss=False)
+        # prfmod's PRFA from SHGT and the first level's temperature
+        p0 = 1013.0 * np.exp(-_F3_SHGT * 9.80616 / 287.04 / _F3_TEMP[0])
+        result = self._sample(path, ["PRES", "pressure"], 20.0)
+        expected = self._by_hand(_F3_PRES, p0, 20.0)
+        np.testing.assert_allclose(result["PRES"], expected, rtol=1e-6)
+        np.testing.assert_allclose(result["pressure"], expected, rtol=1e-6)
+
+    def test_without_shgt_the_terrain_is_hysplits_estimate(self, tmp_path):
+        # prfmod's PRFA from PRSS and the first level's temperature
+        estimate = np.log(1013.0 / _F3_PRSS) * 287.04 * _F3_TEMP[0] / 9.80616
+        path = tmp_path / "none.arl"
+        write_terrain_column_file(path, shgt=False)
+        result = self._sample(path, ["TEMP"], 300.0)
+        expected = self._by_hand(_F3_TEMP, _F3_T02M, 300.0, terrain=estimate)
+        np.testing.assert_allclose(result["TEMP"], expected, rtol=1e-6)
+        # neither PRSS nor SHGT: HYSPLIT stops, and so does this
+        neither = tmp_path / "neither.arl"
+        write_terrain_column_file(neither, shgt=False, prss=False)
+        with pytest.raises(ValueError, match="PRSS"):
+            self._sample(neither, ["TEMP"], 300.0)
+
+    def test_without_pres_pressure_is_nan(self, tmp_path):
+        path = tmp_path / "flag3.arl"
+        write_terrain_column_file(path, pres=False)
+        result = self._sample(path, ["TEMP", "pressure"], 300.0)
+        assert np.isfinite(result["TEMP"].iloc[0])
+        assert np.isnan(result["pressure"].iloc[0])
+
+    def test_without_model_top_the_stored_levels_are_read(self, tmp_path):
+        path = tmp_path / "flag3.arl"
+        write_terrain_column_file(path)
+        result = self._sample(path, ["TEMP", "pressure"], 300.0, model_top=None)
+        expected = np.interp(300.0, _F3_LEVELS[1:], _F3_TEMP)
+        np.testing.assert_allclose(result["TEMP"], expected, rtol=1e-6)
+        assert np.isnan(result["pressure"].iloc[0])

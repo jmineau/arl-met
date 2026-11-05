@@ -86,11 +86,13 @@ The ``z`` column is interpreted according to ``z_kind`` (default
        have it); ``PRES`` for WRF files (flag=5)
    * - ``"agl"``
      - meters above ground level
-     - flag=2: ``HGTS`` + ``SHGT``; flag=1/4: ``PRSS`` + ``TEMP``; flag=3: none;
+     - flag=2: ``HGTS`` + ``SHGT``; flag=1/4: ``PRSS`` + ``TEMP``; flag=3: ``SHGT``
+       or ``PRSS`` + ``TEMP`` (none with ``model_top=None``);
        flag=5: ``PRSS`` + ``PRES`` + ``TEMP``
    * - ``"msl"``
      - meters above mean sea level
-     - flag=2: ``HGTS`` + ``SHGT``; flag=1/4: ``PRSS`` + ``TEMP`` + ``SHGT``; flag=3: ``SHGT``;
+     - flag=2: ``HGTS`` + ``SHGT``; flag=1/4: ``PRSS`` + ``TEMP`` + ``SHGT``; flag=3: ``SHGT``
+       (and ``TEMP`` without ``PRSS``);
        flag=5: ``PRSS`` + ``PRES`` + ``TEMP`` + ``SHGT``
 
 On sigma, hybrid and WRF files (flags 1, 4 and 5) the heights are HYSPLIT's:
@@ -204,8 +206,22 @@ argument. A run with another top passes it as ``model_top``:
 
 The default applies at heights only. At pressures and native levels
 ``model_top`` plays no part and the default is ignored; passing a value there
-raises ``ValueError``. On a terrain-following (flag 3) file the default is
-ignored too and the file's own levels are read; passing a value raises.
+raises ``ValueError``.
+
+**Terrain-following (flag 3) files.** Their levels are heights over flat
+ground, ``Z*``. HYSPLIT's ``prfter`` puts a level ``Z* (1 - zsfc / ZMDLT)``
+above a grid point with terrain ``zsfc``, where ``ZMDLT`` is 20000 m (RAMS's
+model top; on a file whose source is ``RAMS``, ``ZMDL``), and ``sample_points``
+does the same. Every variable is linear in height there, pressure too, and the
+virtual ``pressure`` comes from the file's ``PRES`` field (NaN without one).
+A file without ``PRSS`` takes HYSPLIT's surface pressure from ``SHGT``. No
+real flag 3 file was on hand: on 9 made-up ones (tops of 3, 10, 25 and 40 km)
+``sample_points`` agrees with HYSPLIT's routines to 0.0002 K and m/s and 0.002
+hPa. Before arl-met followed ``prfter``, it read a flag 3 file's stored levels
+as heights above the ground, which is what ``model_top=None`` still does. On
+the made-up file with terrain up to 3300 m and a 25 km top that was off by up
+to 5.2 K and 3.9 m/s between 10 m and 5 km (0.5 K and 0.45 m/s on average) and
+9.2 K above 5 km, with no value below the first stored level or for pressure.
 
 **The default matches a run whose top is 25000 m, not one with a lower top.**
 ``ZMDL``, where the sigma surfaces go flat, is 25000 m for every top up to
@@ -280,8 +296,9 @@ What the default does not cover:
 - In HYSPLIT's top internal layer (from about 24 km up with a 25 km top) its
   advection takes the top level's value while its particle output
   interpolates; ``sample_points`` interpolates.
-- Terrain-following (flag 3) files have no internal levels here: the default reads
-  their own levels, and passing ``model_top`` raises ``ValueError``.
+- A run with a negative top, which HYSPLIT takes as ``ZMDLT`` for a
+  terrain-following file (COAMPS's 34800 m): ``model_top`` must be positive.
+  HYSPLIT's own ``metlvl`` picks a one-level grid for such a top.
 
 Earth-relative winds
 --------------------
@@ -429,13 +446,15 @@ Limitations
 - ``z_kind="agl"`` and ``"msl"`` use different field requirements depending on
   the vertical flag: pressure files (flag=2) require ``HGTS`` and ``SHGT``; sigma/hybrid
   files (flag=1/4) use hypsometric integration from ``PRSS`` and ``TEMP``;
-  terrain-following files (flag=3) use the stored level heights directly; WRF
+  terrain-following files (flag=3) use the stored level heights, scaled as
+  HYSPLIT's ``prfter`` scales them (with ``model_top=None``, as they are); WRF
   files (flag=5) integrate as sigma files do, through the ``PRES`` field. See
   the :doc:`vertical` guide.
 - A point outside the grid is NaN. A point within 1e-6 cells of the grid's edge
   counts as on it, so the edge nodes of a projected grid, sampled at the
   longitude and latitude arl-met reports for them, have values even though
   mapping them back to the grid lands about 1e-12 cells outside.
-- Only sigma, pressure-level, hybrid and WRF files take the ground as a level
-  (pressure-level files only at heights); on terrain-following files a point below
-  the lowest level with data is NaN.
+- Sigma, hybrid and WRF files take the ground as a level, pressure-level files
+  at heights, and terrain-following files on HYSPLIT's internal levels; on a
+  terrain-following file with ``model_top=None`` a point below the lowest level
+  with data is NaN.
