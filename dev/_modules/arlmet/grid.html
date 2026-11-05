@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=704ead4f"></script>
+    <script src="../../_static/documentation_options.js?v=819c166b"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b8.dev3+gbbb4ad693" />
+  <meta name="docsearch:version" content="0.1.0b8.dev4+g962e947e3" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1213,13 +1213,11 @@
 <span class="sd">        bbox : tuple[float, float, float, float]</span>
 <span class="sd">            Bounding box as ``(west, south, east, north)`` in degrees.</span>
 <span class="sd">            Longitudes count modulo 360, so 180 and -180 are the same meridian</span>
-<span class="sd">            and a box may reach past 180. On a lat/lon grid ``west &gt; east``</span>
-<span class="sd">            crosses the dateline, so ``(170, 190)`` and ``(170, -170)`` select</span>
-<span class="sd">            the same columns; on a projected grid ``(170, -170)`` raises</span>
-<span class="sd">            ``ValueError`` and ``(170, 190)`` is a window where it reaches the</span>
-<span class="sd">            grid (Alaska) and raises where it does not (HRRR). On a lat/lon</span>
-<span class="sd">            grid an infinite width (``west=-inf`` or ``east=inf``) holds every</span>
-<span class="sd">            longitude; a NaN longitude raises ``ValueError``. Edges may be any</span>
+<span class="sd">            and a box may reach past 180. ``west &gt; east`` crosses the dateline,</span>
+<span class="sd">            so ``(170, -170)`` is the box ``(170, 190)``: a window where it</span>
+<span class="sd">            reaches the grid (GFS, Alaska) and ``ValueError`` where it does not</span>
+<span class="sd">            (HRRR). An infinite width (``west=-inf`` or ``east=inf``) holds</span>
+<span class="sd">            every longitude; a NaN longitude raises ``ValueError``. Edges may be any</span>
 <span class="sd">            real numbers (NumPy scalars, ``Decimal``): they are converted to</span>
 <span class="sd">            ``float`` first.</span>
 <span class="sd">        """</span>
@@ -1229,13 +1227,19 @@
         <span class="n">west</span><span class="p">,</span> <span class="n">south</span><span class="p">,</span> <span class="n">east</span><span class="p">,</span> <span class="n">north</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">bbox</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">south</span> <span class="o">&gt;</span> <span class="n">north</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"bbox south must be less than or equal to north."</span><span class="p">)</span>
+        <span class="c1"># From here on west &lt;= east: ``west &gt; east`` crosses the dateline, so the</span>
+        <span class="c1"># box's east edge moves a turn east of where it was given.</span>
+        <span class="k">if</span> <span class="n">east</span> <span class="o">-</span> <span class="n">west</span> <span class="o">&gt;=</span> <span class="mf">360.0</span><span class="p">:</span>  <span class="c1"># every longitude, whatever the edges (inf included)</span>
+            <span class="n">west</span><span class="p">,</span> <span class="n">east</span> <span class="o">=</span> <span class="o">-</span><span class="mf">180.0</span><span class="p">,</span> <span class="mf">180.0</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">west</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">east</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"bbox </span><span class="si">{</span><span class="n">bbox</span><span class="si">}</span><span class="s2">: longitudes must not be NaN, and west must not be "</span>
+                <span class="s2">"+inf nor east -inf."</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">west</span> <span class="o">&gt;</span> <span class="n">east</span><span class="p">:</span>
+            <span class="n">east</span> <span class="o">=</span> <span class="n">west</span> <span class="o">+</span> <span class="p">(</span><span class="n">east</span> <span class="o">-</span> <span class="n">west</span><span class="p">)</span> <span class="o">%</span> <span class="mf">360.0</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_latlon</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">west</span> <span class="o">&gt;</span> <span class="n">east</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">"Projected-grid bboxes must not cross the dateline (west &lt;= east)."</span>
-                <span class="p">)</span>
-
             <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bbox_points_on_grid</span><span class="p">(</span><span class="n">west</span><span class="p">,</span> <span class="n">south</span><span class="p">,</span> <span class="n">east</span><span class="p">,</span> <span class="n">north</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"bbox does not intersect the grid."</span><span class="p">)</span>
@@ -1261,23 +1265,17 @@
         <span class="c1"># measured east of the west edge. Longitudes count modulo 360, so 180 and</span>
         <span class="c1"># -180 are one meridian (an edge there keeps the column, whichever way the</span>
         <span class="c1"># grid writes it) and a box may reach past 180, as HYSPLIT's xtrct_grid</span>
-        <span class="c1"># allows. ``west &gt; east`` crosses the dateline. The modulo rounds at the</span>
-        <span class="c1"># size of a number up to 360 and the width at the size of the box, so a</span>
-        <span class="c1"># column exactly on an edge can miss it by ~1e-14 degrees: a column within</span>
-        <span class="c1"># _EDGE_TOLERANCE cells of an edge counts as on it. A row is the same:</span>
-        <span class="c1"># ``lat_0 + j * dlat`` rounds in the product, so a row at a latitude as</span>
-        <span class="c1"># typed (41.4) can lie a hair beyond it.</span>
+        <span class="c1"># allows. The modulo rounds at the size of a number up to 360 and the</span>
+        <span class="c1"># width at the size of the box, so a column exactly on an edge can miss it</span>
+        <span class="c1"># by ~1e-14 degrees: a column within _EDGE_TOLERANCE cells of an edge</span>
+        <span class="c1"># counts as on it. A row is the same: ``lat_0 + j * dlat`` rounds in the</span>
+        <span class="c1"># product, so a row at a latitude as typed (41.4) can lie a hair beyond it.</span>
         <span class="n">tol</span> <span class="o">=</span> <span class="n">_EDGE_TOLERANCE</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">tangent_lon</span><span class="p">)</span>
         <span class="n">lat_tol</span> <span class="o">=</span> <span class="n">_EDGE_TOLERANCE</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">tangent_lat</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">east</span> <span class="o">-</span> <span class="n">west</span> <span class="o">&gt;=</span> <span class="mf">360.0</span><span class="p">:</span>  <span class="c1"># every longitude, whatever the edges (inf included)</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="n">east</span> <span class="o">-</span> <span class="n">west</span>
+        <span class="k">if</span> <span class="n">width</span> <span class="o">&gt;=</span> <span class="mf">360.0</span><span class="p">:</span>
             <span class="n">lon_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">lons</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">west</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">east</span><span class="p">)):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"bbox </span><span class="si">{</span><span class="n">bbox</span><span class="si">}</span><span class="s2">: longitudes must not be NaN, and west must not be "</span>
-                <span class="s2">"+inf nor east -inf."</span>
-            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">width</span> <span class="o">=</span> <span class="n">east</span> <span class="o">-</span> <span class="n">west</span> <span class="k">if</span> <span class="n">west</span> <span class="o">&lt;=</span> <span class="n">east</span> <span class="k">else</span> <span class="p">(</span><span class="n">east</span> <span class="o">-</span> <span class="n">west</span><span class="p">)</span> <span class="o">%</span> <span class="mf">360.0</span>
             <span class="n">east_of_west</span> <span class="o">=</span> <span class="p">(</span><span class="n">lons</span> <span class="o">-</span> <span class="n">west</span><span class="p">)</span> <span class="o">%</span> <span class="mf">360.0</span>
             <span class="n">lon_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">east_of_west</span> <span class="o">&lt;=</span> <span class="n">width</span> <span class="o">+</span> <span class="n">tol</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">east_of_west</span> <span class="o">&gt;=</span> <span class="mf">360.0</span> <span class="o">-</span> <span class="n">tol</span><span class="p">)</span>
         <span class="n">lat_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">lats</span> <span class="o">&gt;=</span> <span class="n">south</span> <span class="o">-</span> <span class="n">lat_tol</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">lats</span> <span class="o">&lt;=</span> <span class="n">north</span> <span class="o">+</span> <span class="n">lat_tol</span><span class="p">)</span>

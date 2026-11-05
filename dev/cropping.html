@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=704ead4f"></script>
+    <script src="_static/documentation_options.js?v=819c166b"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b8.dev3+gbbb4ad693" />
+  <meta name="docsearch:version" content="0.1.0b8.dev4+g962e947e3" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -529,7 +529,8 @@ available as a method:</p>
 <span class="gp">In [11]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>On a lat-lon grid, a <code class="docutils literal notranslate"><span class="pre">bbox</span></code> with <code class="docutils literal notranslate"><span class="pre">west</span> <span class="pre">&gt;</span> <span class="pre">east</span></code> crosses the dateline. On a
+<p>A <code class="docutils literal notranslate"><span class="pre">bbox</span></code> with <code class="docutils literal notranslate"><span class="pre">west</span> <span class="pre">&gt;</span> <span class="pre">east</span></code> crosses the dateline, on any grid:
+<code class="docutils literal notranslate"><span class="pre">(170.0,</span> <span class="pre">50.0,</span> <span class="pre">-170.0,</span> <span class="pre">60.0)</span></code> is the box <code class="docutils literal notranslate"><span class="pre">(170.0,</span> <span class="pre">50.0,</span> <span class="pre">190.0,</span> <span class="pre">60.0)</span></code>. On a
 global grid a box may also cross the grid’s seam, the column where its longitudes
 start again (0 E on GDAS or GFS, which start at 0 E; 180 on a grid that starts at
 180 W). The crop then holds only the box’s columns, in order from west to east
@@ -640,7 +641,6 @@ coordinate is the same either way.</p>
 <h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading">#</a></h2>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">bbox</span></code> is always interpreted as <code class="docutils literal notranslate"><span class="pre">(west,</span> <span class="pre">south,</span> <span class="pre">east,</span> <span class="pre">north)</span></code> in degrees</p></li>
-<li><p>projected-grid bounding boxes must not cross the dateline</p></li>
 <li><p>on a lat-lon grid short of 360 degrees, a box must not select columns at both
 of its ends</p></li>
 <li><p>the cropped grid must still be large enough to hold the ARL index record</p></li>
