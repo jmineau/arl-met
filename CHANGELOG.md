@@ -7,6 +7,24 @@ file alone: the entries are written at release (`just changelog` drafts them).
 
 ## [Unreleased]
 
+## [0.1.0b8] - 2026-11-05
+
+### Added
+
+- `window_from_bbox`, `extract_subset`, `open_dataset`, `File.extract_subset`, `File.to_dataset` and the xarray backend take `bbox_crs=`, the CRS the bbox is in (`"EPSG:32612"`, a PROJ string, `grid.crs`, ...). The box is then `(xmin, ymin, xmax, ymax)` in that system's units, and the window is the smallest rectangle of cells holding every point of the box on the grid, found from its outline as on a projected grid. `None`, or a CRS equal to EPSG:4326, keeps the degree rules unchanged. (#21, #159)
+- Rotated Lambert conformal and polar stereographic grids (`orientation != 0`) no longer raise: the grid is turned as HYSPLIT's `stcm1p` turns it, and its coordinates, crops, sampled points and earth-relative winds follow. `Grid.crs` stays a plain PROJ CRS whose x and y are the grid's axes. A rotated Mercator grid still raises `NotImplementedError`; a lat/lon grid ignores `orientation`, as HYSPLIT does. (#20, #157)
+- A bbox with `west > east` crosses the dateline on projected grids too, as it already did on lat/lon grids: `(170, 50, -170, 60)` is the box `(170, 50, 190, 60)`. (#25, #158)
+
+### Changed
+
+- **Existing `agl` and `msl` results change for terrain-following (flag 3) files.** `sample_points` at heights reads a flag 3 file as a HYSPLIT run does: a stored level Z* sits at Z* (1 - zsfc / 20000 m) above the ground (`ZMDL` for RAMS), each column starts at the ground (`PRSS`, else an estimate from `SHGT`; `T02M`, else adiabatic; `U10M`), and every variable, pressure included, is linear in height. The default `model_top` now applies to flag 3 files, and passing `model_top` for one no longer raises. `model_top=None` gives the previous reading of the stored levels. (#153, #155)
+- NaN and unmatched infinite longitudes in a bbox raise the same `ValueError` on projected grids as on lat/lon grids, and `(-inf, 0, 0, 90)` holds every longitude on a projected grid too. (#158)
+
+### Fixed
+
+- The index record writes a level height of 10000 or more with a decimal point (`"11000."`, as HYSPLIT's F6.0 writes it). It wrote `" 11000"`, which HYSPLIT reads as 110.00. A value too large to fit with a point raises. Only flag 3 files have level values this large. (#154, #156)
+- The `meridian_convergence` docstring states its sign the right way round. (#157)
+
 ## [0.1.0b7] - 2026-11-04
 
 ### Added
