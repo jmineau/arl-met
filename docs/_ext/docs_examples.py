@@ -282,6 +282,63 @@ def gfs_sample() -> list[xr.Dataset]:
     return [*forecast, *fields(0)]
 
 
+def wrf_sample() -> xr.Dataset:
+    """
+    Return a made-up WRF run, laid out as xarray opens ``wrfout`` files.
+
+    Three hours on a 12 km Lambert conformal grid over Utah with four model
+    levels, WRF's staggered dimensions and its global map attributes.
+    """
+    nx, ny, nt = 30, 25, 3
+    start = pd.Timestamp("2013-06-29 18:00")
+    minutes = np.array([360.0, 420.0, 480.0])
+    times = [
+        (start + pd.Timedelta(minutes=m)).strftime("%Y-%m-%d_%H:%M:%S").encode()
+        for m in minutes
+    ]
+    y, x = np.meshgrid(np.linspace(0, 3, ny), np.linspace(0, 4, nx), indexing="ij")
+    wave = np.sin(x + y)
+    hours = np.arange(nt)[:, None, None, None]
+    eta = np.array([0.99, 0.95, 0.85, 0.7])
+    base = (101325 * eta)[None, :, None, None] + 0 * wave + 0 * hours  # Pa
+
+    def stag(field, axis):
+        """Add one more point along ``axis``, as WRF staggers a field."""
+        return np.concatenate([field, field.take([-1], axis=axis)], axis=axis)
+
+    winds = 5 + 3 * wave + 2 * hours + 0 * base
+    mass = ("Time", "bottom_top", "south_north", "west_east")
+    flat = ("Time", "south_north", "west_east")
+    rain = np.cumsum(np.clip(wave, 0, None)[None] * np.ones((nt, 1, 1)), axis=0)
+    data = {
+        "Times": (("Time",), np.array(times, dtype="S19")),
+        "XTIME": (("Time",), minutes),
+        "ZNU": (("Time", "bottom_top"), np.tile(eta, (nt, 1))),
+        "P_TOP": (("Time",), np.full(nt, 5000.0)),
+        "P": (mass, 50 * wave + 0 * base),
+        "PB": (mass, base),
+        "T": (mass, 10 * (1 - eta)[None, :, None, None] + wave + 0 * hours),
+        "QVAPOR": (mass, 0.005 * eta[None, :, None, None] + 0 * winds),
+        "U": (("Time", "bottom_top", "south_north", "west_east_stag"), stag(winds, 3)),
+        "V": (("Time", "bottom_top", "south_north_stag", "west_east"), stag(-0.5 * winds, 2)),
+        "W": (("Time", "bottom_top_stag", "south_north", "west_east"), stag(0.1 * wave + 0 * base, 1)),
+        "HGT": (flat, 1300 + 300 * wave[None] + 0 * hours[:, 0]),
+        "PSFC": (flat, 87000 - 3000 * wave[None] + 0 * hours[:, 0]),
+        "RAINC": (flat, 0.2 * rain),
+        "RAINNC": (flat, 0.8 * rain),
+        "T2": (flat, 295 - 2 * wave[None] + hours[:, 0]),
+    }  # fmt: skip
+    return xr.Dataset(
+        {name: (dims, np.asarray(values, dtype=np.float32) if values.dtype.kind == "f" else values)
+         for name, (dims, values) in data.items()},
+        attrs={
+            "MAP_PROJ": 1, "CEN_LAT": 40.0, "CEN_LON": -111.5, "STAND_LON": -111.5,
+            "TRUELAT1": 30.0, "TRUELAT2": 60.0, "DX": 12000.0, "DY": 12000.0,
+            "HYBRID_OPT": 0, "START_DATE": "2013-06-29_18:00:00",
+        },
+    )  # fmt: skip
+
+
 def temp_workdir() -> str:
     """Change to a new temporary folder and return the folder you left."""
     previous = os.getcwd()

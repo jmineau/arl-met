@@ -16,6 +16,8 @@ The converters so far:
   levels, as HYSPLIT's ``era52arl`` converts it.
 - :func:`arlmet.converters.from_gfs`: NCEP's GFS forecasts and GDAS analyses
   on pressure levels (``pgrb2`` files), as HYSPLIT's ``api2arl`` converts them.
+- :func:`arlmet.converters.from_wrf`: WRF-ARW output (``wrfout`` files) on its
+  own grid and model levels, as HYSPLIT's ``arw2arl`` converts it.
 
 .. ipython:: python
    :suppress:
@@ -208,6 +210,55 @@ planetary boundary layer height is a local GRIB2 parameter that ecCodes reads
 as ``unknown``, so ``PBLH`` is not written, and the GDAS files' instantaneous
 total cloud cover is missing at every point, so they give no ``TCLD``. Like
 ``api2arl``, it writes no ``DIF*`` records.
+
+WRF
+---
+
+:func:`~arlmet.converters.from_wrf` converts WRF-ARW's ``wrfout`` netCDF files
+on the model's own grid (Lambert conformal, polar stereographic or Mercator)
+and levels, as ``arw2arl`` does with its default variables. Open the files of
+one run together, joined along ``Time``, so that each hour's precipitation can
+be taken from the run's accumulated totals:
+
+.. code-block:: python
+
+   import xarray as xr
+
+   wrf = xr.open_mfdataset(
+       "wrfout_d01_2013-06-30_*", combine="nested", concat_dim="Time"
+   )
+
+Here a small made-up run, laid out as xarray opens ``wrfout`` files, stands in
+for them:
+
+.. ipython:: python
+
+   wrf = docs_examples.wrf_sample()
+   ds = arlmet.converters.from_wrf(wrf)
+   ds
+   ds.arl.grid
+   ds.arl.vertical_axis  # sigma levels, with the model top as offset
+
+.. ipython:: python
+
+   arlmet.write_dataset(ds, "wrf.arl")
+
+The file has source ``AWRF``, which HYSPLIT reads as WRF. It keeps WRF's
+staggered winds where WRF puts them, ``UWND`` on the west and ``VWND`` on the
+south face of each cell, and HYSPLIT (and :func:`arlmet.sample_points`) read
+them there. ``WWND`` is WRF's vertical velocity as a pressure tendency
+(hPa s-1), and ``TPP1`` the precipitation since the time step before, per
+hour, each with a ``DIF*`` record. The first time step has no precipitation,
+as ``arw2arl`` writes it when it has no earlier file.
+
+Converted alongside ``arw2arl`` from the same four hours of a 12 km WRF run,
+every field matched its file but the two it computes, ``TEMP`` and ``WWND``,
+which differ in the last bits of single precision, as Fortran's and NumPy's
+arithmetic do: ``TEMP`` mostly by 1e-4 K, and by one packing step (0.125 K)
+at 0.006 % of its values; ``WWND`` by at most 6e-5 hPa s-1. ``arw2arl`` keeps the
+lowest 50 levels unless told otherwise; all are kept here, and
+``ds.isel(level=slice(0, 50))`` keeps fewer. Its other two variable lists, the
+mass-coupled time-averaged winds and TKE, are not converted.
 
 .. ipython:: python
    :suppress:
