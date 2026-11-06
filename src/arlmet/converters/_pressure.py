@@ -6,10 +6,12 @@ from collections.abc import Container, Hashable, Iterable, Mapping, Sequence
 from typing import NamedTuple
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import xarray as xr
 
-from arlmet.vertical import PressureAxis
+from arlmet.grid import Grid
+from arlmet.vertical import PressureAxis, VerticalAxis
 from arlmet.xarray._coords import (
     add_cf_spatial_attrs,
     grid_to_coord,
@@ -18,7 +20,13 @@ from arlmet.xarray._coords import (
 
 from ._latlon import latlon_grid
 
-__all__ = ["Field", "pressure_level_dataset", "standardize"]
+__all__ = [
+    "Field",
+    "arl_dataset",
+    "field_variable",
+    "pressure_level_dataset",
+    "standardize",
+]
 
 TIME_DIMS = ("valid_time", "time")
 LEVEL_DIMS = ("pressure_level", "isobaricInhPa", "level")
@@ -117,7 +125,7 @@ def standardize(
     return ds.sortby("lat")
 
 
-def _field_variable(
+def field_variable(
     da: xr.DataArray, field: Field, dims: tuple[str, ...]
 ) -> xr.Variable:
     """Scale ``da`` to the ARL field, keeping a lazy array lazy where possible."""
@@ -129,6 +137,47 @@ def _field_variable(
         attrs["diff"] = field.diff
     variable.attrs = attrs
     return variable
+
+
+def arl_dataset(
+    grid: Grid,
+    vertical_axis: VerticalAxis,
+    times: npt.ArrayLike,
+    *,
+    source: str,
+    forecast_hours: Sequence[int] | None = None,
+) -> xr.Dataset:
+    """
+    Return an empty Dataset in :func:`arlmet.open_dataset`'s layout, to add fields to.
+
+    It has the grid's coordinates and ``arl_grid``, ``time``, the index records'
+    ``forecast_hour`` (0 unless given), ``level`` numbered 1 to N with the
+    physical coordinate of ``vertical_axis`` (whose first level is the
+    surface), and the ``source`` and ``vertical_flag`` attrs.
+    """
+    times = np.asarray(times)
+    level_numbers = list(range(1, len(vertical_axis.levels)))
+    hours = (
+        np.zeros(len(times), dtype=int) if forecast_hours is None else forecast_hours
+    )
+    ds = add_cf_spatial_attrs(xr.Dataset(coords=grid.calculate_coords()))
+    phys_name, phys_coord = physical_coord_for_vaxis(vertical_axis, level_numbers)
+    ds = ds.assign_coords(
+        time=xr.Variable("time", times, attrs={"standard_name": "time", "axis": "T"}),
+        forecast_hour=xr.Variable(
+            "time",
+            np.asarray(hours, dtype=int),
+            attrs={"long_name": "ARL index record forecast hour", "units": "hours"},
+        ),
+        level=xr.Variable(
+            "level", level_numbers, attrs={"standard_name": "model_level_number"}
+        ),
+        arl_grid=grid_to_coord(grid),
+    )
+    ds = ds.assign_coords({phys_name: phys_coord})
+    ds.attrs["source"] = source
+    ds.attrs["vertical_flag"] = vertical_axis.flag
+    return ds
 
 
 def pressure_level_dataset(
@@ -173,42 +222,25 @@ def pressure_level_dataset(
 
     grid = latlon_grid(upper["lat"].values, upper["lon"].values)
     pressures = [float(p) for p in upper["level"].values]
-    level_numbers = list(range(1, len(pressures) + 1))
     vertical_axis = PressureAxis(levels=[0.0, *pressures])
-    times = upper["time"].values
-    hours = (
-        np.zeros(len(times), dtype=int) if forecast_hours is None else forecast_hours
+    ds = arl_dataset(
+        grid,
+        vertical_axis,
+        upper["time"].values,
+        source=source,
+        forecast_hours=forecast_hours,
     )
-
-    ds = add_cf_spatial_attrs(xr.Dataset(coords=grid.calculate_coords()))
-    phys_name, phys_coord = physical_coord_for_vaxis(vertical_axis, level_numbers)
-    ds = ds.assign_coords(
-        time=xr.Variable("time", times, attrs={"standard_name": "time", "axis": "T"}),
-        forecast_hour=xr.Variable(
-            "time",
-            np.asarray(hours, dtype=int),
-            attrs={"long_name": "ARL index record forecast hour", "units": "hours"},
-        ),
-        level=xr.Variable(
-            "level", level_numbers, attrs={"standard_name": "model_level_number"}
-        ),
-        arl_grid=grid_to_coord(grid),
-    )
-    ds = ds.assign_coords({phys_name: phys_coord})
 
     upper = upper.drop_vars(["lat", "lon", "level", "time"])
     surface = surface.drop_vars(["lat", "lon", "time"])
     for name, field in upper_fields.items():
         if name in upper:
-            ds[field.name] = _field_variable(
+            ds[field.name] = field_variable(
                 upper[name], field, ("time", "level", "lat", "lon")
             )
     for name, field in surface_fields.items():
         if name in surface:
-            ds[field.name] = _field_variable(
+            ds[field.name] = field_variable(
                 surface[name], field, ("time", "lat", "lon")
             )
-
-    ds.attrs["source"] = source
-    ds.attrs["vertical_flag"] = vertical_axis.flag
     return ds

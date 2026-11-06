@@ -37,7 +37,7 @@ src/arlmet/
   exceptions.py, _io.py, _time.py   ARLFormatError/Warning; atomic outputs; timestamps
   archives.py; directoryindex.py    NOAA archive downloads and sync (Archive, ARCHIVES, get_archive); index, DirectoryIndex
   ops/                              extract_subset, sample_points, concat, concat_by_time
-  converters/                       from_era5, from_gfs: other models' output to write_dataset's Dataset
+  converters/                       from_era5, from_gfs, from_wrf: other models' output as a Dataset
   xarray/                           open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl
 ```
 

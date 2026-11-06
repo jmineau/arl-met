@@ -6,7 +6,7 @@ import pytest
 import xarray as xr
 
 import arlmet
-from arlmet.converters import from_era5, from_gfs
+from arlmet.converters import from_era5, from_gfs, from_wrf
 from arlmet.converters._latlon import latlon_grid
 
 TIMES = pd.date_range("2024-07-18 00:00", periods=2, freq="h")
@@ -519,3 +519,185 @@ class TestFromGfs:
     def test_not_a_dataset_raises(self):
         with pytest.raises(TypeError, match="takes xarray.Datasets"):
             from_gfs(["gdas.t00z.pgrb2.1p00.f000"])  # pyrefly: ignore[bad-argument-type]
+
+
+# ---- WRF-ARW output, as xarray opens wrfout files ----------------------------
+
+WRF_ATTRS = {
+    "MAP_PROJ": 1,
+    "CEN_LAT": 40.0,
+    "CEN_LON": -111.0,
+    "STAND_LON": -111.0,
+    "TRUELAT1": 30.0,
+    "TRUELAT2": 60.0,
+    "DX": 12000.0,
+    "DY": 12000.0,
+    "HYBRID_OPT": 0,
+    "START_DATE": "2013-06-29_18:00:00",
+}
+
+
+def wrf_output(minutes=(360.0, 420.0, 480.0), *, nx=25, ny=20, nz=3, attrs=None):
+    """Made-up wrfout fields, joined along Time, on WRF's staggered dimensions."""
+    rng = np.random.default_rng(3)
+    nt = len(minutes)
+    start = pd.Timestamp("2013-06-29 18:00")
+    times = [
+        (start + pd.Timedelta(minutes=m)).strftime("%Y-%m-%d_%H:%M:%S").encode()
+        for m in minutes
+    ]
+    mass = ("Time", "bottom_top", "south_north", "west_east")
+    flat = ("Time", "south_north", "west_east")
+
+    def f(base, scale, shape):
+        return _field(rng, base, scale, shape)
+
+    m3, m2 = (nt, nz, ny, nx), (nt, ny, nx)
+    rain = np.cumsum(f(0.0, 2.0, m2), axis=0)  # accumulated, mm
+    data = {
+        "Times": (("Time",), np.array(times, dtype="S19")),
+        "XTIME": (("Time",), np.asarray(minutes, dtype=np.float32)),
+        "ZNU": (("Time", "bottom_top"), np.tile([0.99, 0.95, 0.85][:nz], (nt, 1))),
+        "P_TOP": (("Time",), np.full(nt, 5000.0, dtype=np.float32)),
+        "P": (mass, f(-500.0, 1000.0, m3)),
+        "PB": (mass, np.broadcast_to(np.array([95000.0, 90000.0, 80000.0][:nz])[:, None, None], m3).astype(np.float32)),
+        "T": (mass, f(-10.0, 20.0, m3)),
+        "QVAPOR": (mass, f(0.0, 0.01, m3)),
+        "U": (("Time", "bottom_top", "south_north", "west_east_stag"), f(-10.0, 20.0, (nt, nz, ny, nx + 1))),
+        "V": (("Time", "bottom_top", "south_north_stag", "west_east"), f(-10.0, 20.0, (nt, nz, ny + 1, nx))),
+        "W": (("Time", "bottom_top_stag", "south_north", "west_east"), f(-1.0, 2.0, (nt, nz + 1, ny, nx))),
+        "HGT": (flat, f(1000.0, 2000.0, m2)),
+        "PSFC": (flat, f(80000.0, 20000.0, m2)),
+        "RAINC": (flat, 0.3 * rain),
+        "RAINNC": (flat, 0.7 * rain),
+        "PBLH": (flat, f(100.0, 2000.0, m2)),
+        "HFX": (flat, f(-50.0, 300.0, m2)),
+        "T2": (flat, f(280.0, 20.0, m2)),
+    }  # fmt: skip
+    return xr.Dataset(
+        {name: (dims, np.asarray(values)) for name, (dims, values) in data.items()},
+        attrs={**WRF_ATTRS, **(attrs or {})},
+    )
+
+
+class TestFromWrf:
+    def test_layout(self):
+        wrf = wrf_output()
+        ds = from_wrf(wrf)
+        assert ds.attrs["source"] == "AWRF"
+        assert ds.attrs["vertical_flag"] == 1
+        assert ds["TEMP"].dims == ("time", "level", "y", "x")
+        assert ds["PRSS"].dims == ("time", "y", "x")
+        axis = ds.arl.vertical_axis
+        assert isinstance(axis, arlmet.SigmaAxis)
+        assert axis.levels.tolist() == [1.0, 0.99, 0.95, 0.85]
+        assert axis.offset == 50.0  # P_TOP in hPa
+        assert ds["forecast_hour"].values.tolist() == [6, 7, 8]
+        assert ds.indexes["time"][0] == pd.Timestamp("2013-06-30 00:00")
+        assert set(ds.data_vars) == {
+            "SHGT", "PRSS", "TPP1", "PBLH", "SHTF", "T02M",
+            "PRES", "TEMP", "UWND", "VWND", "WWND", "SPHU",
+        }  # fmt: skip
+        assert ds["WWND"].attrs == {"units": "hPa s-1", "diff": "DIFW"}
+        assert ds["TPP1"].attrs == {"units": "m", "diff": "DIFR"}
+
+    def test_grid_as_setmap(self):
+        grid = from_wrf(wrf_output()).arl.grid
+        proj = grid.projection
+        assert (grid.nx, grid.ny) == (25, 20)
+        assert proj.cone_angle == pytest.approx(45.6897, abs=1e-4)
+        assert proj.pole_lat == proj.cone_angle
+        assert (proj.pole_lon, proj.tangent_lat, proj.tangent_lon) == (
+            -111.0,
+            30.0,
+            -111.0,
+        )
+        assert proj.grid_size == 12.0
+        assert (proj.sync_x, proj.sync_y) == (13.0, 10.5)  # the domain's center
+        assert (proj.sync_lat, proj.sync_lon) == (40.0, -111.0)
+
+    def test_fields_as_arw2arl(self):
+        wrf = wrf_output()
+        ds = from_wrf(wrf)
+        pressure = wrf["P"].values + wrf["PB"].values
+        temperature = (wrf["T"].values + 300.0) * (pressure / 1e5) ** (287.04 / 1004.0)
+        np.testing.assert_allclose(ds["PRES"].values, pressure / 100, rtol=1e-6)
+        np.testing.assert_allclose(ds["TEMP"].values, temperature, rtol=1e-6)
+        # Staggered winds keep their west and south faces; W the bottom of each layer.
+        np.testing.assert_array_equal(ds["UWND"].values, wrf["U"].values[..., :-1])
+        np.testing.assert_array_equal(ds["VWND"].values, wrf["V"].values[:, :, :-1])
+        omega = (
+            -wrf["W"].values[:, :-1] * 9.81 * pressure * 0.01
+            / (287.04 * temperature * (1 + 0.6077 * wrf["QVAPOR"].values))
+        )  # fmt: skip
+        np.testing.assert_allclose(ds["WWND"].values, omega, rtol=1e-5, atol=1e-9)
+        np.testing.assert_allclose(
+            ds["PRSS"].values, wrf["PSFC"].values / 100, rtol=1e-6
+        )
+
+    def test_precipitation_per_hour_since_the_step_before(self):
+        wrf = wrf_output(minutes=(360.0, 390.0, 420.0))  # every 30 minutes
+        ds = from_wrf(wrf)
+        rain = (wrf["RAINC"] + wrf["RAINNC"]).values * 0.001
+        assert (ds["TPP1"].isel(time=0).values == 0).all()
+        np.testing.assert_allclose(
+            ds["TPP1"].isel(time=slice(1, None)).values,
+            np.diff(rain, axis=0) * 2.0,  # scaled to one hour
+            rtol=1e-5,
+            atol=1e-9,
+        )
+
+    def test_written_file_reads_back(self, tmp_path):
+        ds = from_wrf(wrf_output())
+        dest = tmp_path / "wrf.arl"
+        arlmet.write_dataset(ds, dest)
+        with arlmet.File(dest) as met:
+            assert met.source == "AWRF"
+            assert met.grid == ds.arl.grid
+            assert met.vertical_axis == ds.arl.vertical_axis
+            records = met[met.times[1]]
+            assert [d.variable for d in records[(1, "WWND")].diffs] == ["DIFW"]
+            assert [d.variable for d in records[(0, "TPP1")].diffs] == ["DIFR"]
+        back = arlmet.open_dataset(dest)
+        span = float(ds["TEMP"].max() - ds["TEMP"].min())
+        np.testing.assert_allclose(
+            back["TEMP"].values, ds["TEMP"].values, atol=1e-3 * span
+        )
+
+    def test_hybrid_coordinate_is_flag_5(self):
+        ds = from_wrf(wrf_output(attrs={"HYBRID_OPT": 2}))
+        assert ds.attrs["vertical_flag"] == 5
+        assert isinstance(ds.arl.vertical_axis, arlmet.WrfAxis)
+
+    def test_one_time_step_and_decoded_xtime(self):
+        wrf = wrf_output().isel(Time=1)
+        start = pd.Timestamp("2013-06-29 18:00")
+        wrf["XTIME"] = start + pd.Timedelta(minutes=420)  # as xarray decodes it
+        ds = from_wrf(wrf)
+        assert ds.sizes["time"] == 1
+        assert ds["forecast_hour"].values.tolist() == [7]
+
+    def test_polar_stereographic_and_mercator(self):
+        polar = from_wrf(wrf_output(attrs={"MAP_PROJ": 2, "TRUELAT2": 30.0}))
+        assert polar.arl.grid.projection.cone_angle == 90.0
+        mercator = from_wrf(wrf_output(attrs={"MAP_PROJ": 3}))
+        assert mercator.arl.grid.projection.cone_angle == 0.0
+
+    @pytest.mark.parametrize(
+        ("attrs", "match"),
+        [
+            ({"MAP_PROJ": 6}, "MAP_PROJ 6 is not converted"),
+            ({"MAP_PROJ": 2}, "TRUELAT1 equal to TRUELAT2"),
+        ],
+    )
+    def test_unsupported_grids_raise(self, attrs, match):
+        with pytest.raises(ValueError, match=match):
+            from_wrf(wrf_output(attrs=attrs))
+
+    def test_missing_variables_raise(self):
+        with pytest.raises(ValueError, match="lacks PB, W"):
+            from_wrf(wrf_output().drop_vars(["PB", "W"]))
+
+    def test_not_a_dataset_raises(self):
+        with pytest.raises(TypeError, match="takes an xarray.Dataset"):
+            from_wrf("wrfout_d01")  # pyrefly: ignore[bad-argument-type]
