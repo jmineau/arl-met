@@ -445,7 +445,8 @@ class File:
         Raises
         ------
         ARLFormatError
-            If the file is not valid ARL: an unparseable index record, a size
+            If the file is not valid ARL: no index record (an empty file), an
+            unparseable index record, a size
             that is not a whole number of records, an index record that
             declares more data records than remain, inconsistent metadata
             between index records, a variable listed twice on one level, or
@@ -611,6 +612,12 @@ class File:
 
             # Move file pointer to the start of the next index record
             fh.seek(position)
+
+        if not self._steps:
+            raise ARLFormatError(
+                f"{self.path}: holds no index record at byte 0; it may be "
+                "empty, truncated, or not ARL."
+            )
 
         if unpaired:
             found = [

@@ -130,16 +130,13 @@ def _read_file(path: Path) -> dict[str, Any]:
     """
     Return what *path*'s index records say, as one row of the cache.
 
-    A file that cannot be opened, holds no time step, or whose time steps
+    A file that cannot be opened (an empty one included) or whose time steps
     are not evenly spaced gets the reason in ``error``.
     """
     row: dict[str, Any] = dict(_EMPTY)
     try:
         with File(path) as met:
             times = met.times
-            if not times:
-                row["error"] = "The file holds no time step."
-                return row
             row["source"] = met.source
             row["grid"] = repr(met.grid)
     except (ARLFormatError, OSError) as exc:

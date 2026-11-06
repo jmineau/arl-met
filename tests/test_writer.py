@@ -296,6 +296,17 @@ class TestWriter:
             open_dataset(source_path)["TEMP"].values,
         )
 
+    def test_write_dataset_refuses_to_write_no_time_steps(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path).isel(time=slice(0, 0))
+
+        with pytest.raises(ValueError, match="no time steps"):
+            write_dataset(ds, written_path)
+        assert not written_path.exists()
+
     def test_write_dataset_defaults_missing_forecast_hours_to_zero(self, tmp_path):
         source_path = tmp_path / "source.arl"
         written_path = tmp_path / "written.arl"

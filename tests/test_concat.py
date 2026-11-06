@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from arlmet import ARLFormatWarning, File, concat, concat_by_time
+from arlmet import ARLFormatError, ARLFormatWarning, File, concat, concat_by_time
 from arlmet.grid import Grid, Projection
 from arlmet.vertical import PressureAxis
 
@@ -270,7 +270,7 @@ def test_concat_rejects_empty_input_file(tmp_path):
     empty.write_bytes(b"")
     out = tmp_path / "out.arl"
 
-    with pytest.raises(ValueError, match="contains no records"):
+    with pytest.raises(ARLFormatError, match="empty.arl: holds no index record"):
         concat([a, empty], out)
 
 
