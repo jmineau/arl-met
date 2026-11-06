@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=51eac999"></script>
+    <script src="_static/documentation_options.js?v=777aa1d8"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b8.dev6+g380011af1" />
+  <meta name="docsearch:version" content="0.1.0b9.dev1+g03af8e300" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -387,6 +387,9 @@
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.concat_by_time.html">arlmet.concat_by_time</a></li>
 </ul>
 <ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.converters.from_era5.html">arlmet.converters.from_era5</a></li>
+</ul>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.index.html">arlmet.index</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.html">arlmet.DirectoryIndex</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/arlmet.DirectoryIndex.cache.html">arlmet.DirectoryIndex.cache</a></li>
@@ -668,6 +671,19 @@ See the <a class="reference internal" href="cropping.html"><span class="doc">Cro
 </table>
 </div>
 </section>
+<section id="converting-other-models-output">
+<h2>Converting Other Models’ Output<a class="headerlink" href="#converting-other-models-output" title="Link to this heading">#</a></h2>
+<p>Turn a model’s own output, opened with xarray, into a Dataset that
+<code class="docutils literal notranslate"><span class="pre">write_dataset()</span></code> writes. See the <a class="reference internal" href="converting.html"><span class="doc">Converting Other Models’ Output</span></a> guide.</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.converters.from_era5.html#arlmet.converters.from_era5" title="arlmet.converters.from_era5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">converters.from_era5</span></code></a></p></td>
+<td><p>Convert ERA5 hourly fields to a Dataset that <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> writes.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
 <section id="finding-files">
 <h2>Finding Files<a class="headerlink" href="#finding-files" title="Link to this heading">#</a></h2>
 <p>Find the files that cover a time window by their headers. See the
@@ -915,6 +931,7 @@ subclasses <code class="docutils literal notranslate"><span class="pre">ValueErr
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#high-level-i-o">High-Level I/O</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#file-operations">File Operations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#converting-other-models-output">Converting Other Models’ Output</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#finding-files">Finding Files</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#probing-one-file">Probing One File</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#vertical-coordinates">Vertical Coordinates</a></li>

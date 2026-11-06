@@ -33,6 +33,18 @@ See the :doc:`cropping`, :doc:`sampling`, and :doc:`concatenating` guides.
    concat
    concat_by_time
 
+Converting Other Models' Output
+-------------------------------
+
+Turn a model's own output, opened with xarray, into a Dataset that
+``write_dataset()`` writes. See the :doc:`converting` guide.
+
+.. autosummary::
+   :toctree: _autosummary
+   :nosignatures:
+
+   converters.from_era5
+
 Finding Files
 -------------
 

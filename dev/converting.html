@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Converting Other Models’ Output &#8212; arl-met dev</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx_autodoc_typehints.css?v=057ac668" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=283e4333" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
+
+    <script src="_static/documentation_options.js?v=777aa1d8"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'converting';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            true;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Concatenating ARL Files" href="concatenating.html" />
+    <link rel="prev" title="Writing ARL Files" href="writing.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.0b9.dev1+g03af8e300" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">arl-met dev</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button type="button" class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-3"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-3"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-3"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-3">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button type="button" id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="downloading.html">Downloading Archived Meteorology</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cropping.html">Cropping ARL Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="writing.html">Writing ARL Files</a></li>
+<li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Converting Other Models’ Output</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concatenating.html">Concatenating ARL Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indexing.html">Indexing a Directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="probing.html">Probing a File</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sampling.html">Sampling Points</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vertical.html">Vertical Coordinates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="checking.html">Checking Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="format.html">ARL File Format</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="user-guides.html" class="nav-link">User Guides</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Converting Other Models’ Output</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="converting-other-models-output">
+<h1>Converting Other Models’ Output<a class="headerlink" href="#converting-other-models-output" title="Link to this heading">#</a></h1>
+<p>HYSPLIT reads only ARL files, and NOAA publishes them for a few products (HRRR,
+NAM, GDAS, GFS, …; see <a class="reference internal" href="downloading.html"><span class="doc">Downloading Archived Meteorology</span></a>). For any other model, HYSPLIT ships
+one Fortran <code class="docutils literal notranslate"><span class="pre">data2arl</span></code> program per product. <code class="xref py py-mod docutils literal notranslate"><span class="pre">arlmet.converters</span></code> holds
+Python versions of them. Each takes the product’s own output, opened with
+xarray, and returns a Dataset in the layout <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> writes:
+ARL’s four-character names, the units HYSPLIT reads, rows from south to north,
+and the vertical axis HYSPLIT expects for the product. You can look at it, plot
+it and change it before anything is written.</p>
+<p>The converters so far:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="_autosummary/arlmet.converters.from_era5.html#arlmet.converters.from_era5" title="arlmet.converters.from_era5"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.converters.from_era5()</span></code></a>: ECMWF’s ERA5 reanalysis on pressure
+levels, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">era52arl</span></code> converts it.</p></li>
+</ul>
+<section id="era5">
+<h2>ERA5<a class="headerlink" href="#era5" title="Link to this heading">#</a></h2>
+<p>Download the pressure-level and single-level fields from the Copernicus Climate
+Data Store, for example with its <code class="docutils literal notranslate"><span class="pre">cdsapi</span></code> client (an account and API key are
+needed). Ask for the same hours and area in both:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cdsapi</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">cdsapi</span><span class="o">.</span><span class="n">Client</span><span class="p">()</span>
+<span class="n">when</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"product_type"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"reanalysis"</span><span class="p">],</span>
+    <span class="s2">"year"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"2024"</span><span class="p">],</span>
+    <span class="s2">"month"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"07"</span><span class="p">],</span>
+    <span class="s2">"day"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"18"</span><span class="p">],</span>
+    <span class="s2">"time"</span><span class="p">:</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">hour</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">:00"</span> <span class="k">for</span> <span class="n">hour</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">24</span><span class="p">)],</span>
+    <span class="s2">"area"</span><span class="p">:</span> <span class="p">[</span><span class="mi">44</span><span class="p">,</span> <span class="o">-</span><span class="mi">116</span><span class="p">,</span> <span class="mi">38</span><span class="p">,</span> <span class="o">-</span><span class="mi">110</span><span class="p">],</span>  <span class="c1"># north, west, south, east</span>
+    <span class="s2">"data_format"</span><span class="p">:</span> <span class="s2">"netcdf"</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">client</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+    <span class="s2">"reanalysis-era5-pressure-levels"</span><span class="p">,</span>
+    <span class="p">{</span>
+        <span class="o">**</span><span class="n">when</span><span class="p">,</span>
+        <span class="s2">"variable"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">"geopotential"</span><span class="p">,</span> <span class="s2">"temperature"</span><span class="p">,</span> <span class="s2">"u_component_of_wind"</span><span class="p">,</span>
+            <span class="s2">"v_component_of_wind"</span><span class="p">,</span> <span class="s2">"vertical_velocity"</span><span class="p">,</span> <span class="s2">"relative_humidity"</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="s2">"pressure_level"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"1000"</span><span class="p">,</span> <span class="s2">"975"</span><span class="p">,</span> <span class="s2">"950"</span><span class="p">,</span> <span class="s2">"925"</span><span class="p">,</span> <span class="s2">"900"</span><span class="p">,</span> <span class="s2">"850"</span><span class="p">,</span> <span class="s2">"800"</span><span class="p">,</span>
+                           <span class="s2">"700"</span><span class="p">,</span> <span class="s2">"600"</span><span class="p">,</span> <span class="s2">"500"</span><span class="p">,</span> <span class="s2">"400"</span><span class="p">,</span> <span class="s2">"300"</span><span class="p">,</span> <span class="s2">"250"</span><span class="p">,</span> <span class="s2">"200"</span><span class="p">],</span>
+    <span class="p">},</span>
+    <span class="s2">"era5_pressure_levels.nc"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">client</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+    <span class="s2">"reanalysis-era5-single-levels"</span><span class="p">,</span>
+    <span class="p">{</span>
+        <span class="o">**</span><span class="n">when</span><span class="p">,</span>
+        <span class="s2">"variable"</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">"surface_pressure"</span><span class="p">,</span> <span class="s2">"geopotential"</span><span class="p">,</span> <span class="s2">"2m_temperature"</span><span class="p">,</span>
+            <span class="s2">"2m_dewpoint_temperature"</span><span class="p">,</span> <span class="s2">"10m_u_component_of_wind"</span><span class="p">,</span>
+            <span class="s2">"10m_v_component_of_wind"</span><span class="p">,</span> <span class="s2">"boundary_layer_height"</span><span class="p">,</span>
+            <span class="s2">"total_precipitation"</span><span class="p">,</span> <span class="s2">"surface_sensible_heat_flux"</span><span class="p">,</span>
+            <span class="s2">"surface_latent_heat_flux"</span><span class="p">,</span> <span class="s2">"surface_solar_radiation_downwards"</span><span class="p">,</span>
+        <span class="p">],</span>
+    <span class="p">},</span>
+    <span class="s2">"era5_single_levels.zip"</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Open both with xarray. A single-level netCDF request that mixes instantaneous
+fields with accumulated ones (precipitation, the fluxes) comes as a zip of two
+files; open each and merge them. <code class="docutils literal notranslate"><span class="pre">chunks={}</span></code> keeps the values on disk until
+they are written, one time step at a time:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+
+<span class="n">pressure_levels</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">"era5_pressure_levels.nc"</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="p">{})</span>
+<span class="n">single_levels</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">"data_stream-oper_stepType-instant.nc"</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="p">{}),</span>
+        <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">"data_stream-oper_stepType-accum.nc"</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="p">{}),</span>
+    <span class="p">],</span>
+    <span class="n">compat</span><span class="o">=</span><span class="s2">"override"</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>GRIB files work the same way, opened with <code class="docutils literal notranslate"><span class="pre">engine=&quot;cfgrib&quot;</span></code> (which needs the
+<code class="docutils literal notranslate"><span class="pre">cfgrib</span></code> package). Here two small made-up Datasets laid out as the netCDF
+files are stand in for the download:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
+
+<span class="gp">In [2]: </span><span class="n">pressure_levels</span><span class="p">,</span> <span class="n">single_levels</span> <span class="o">=</span> <span class="n">docs_examples</span><span class="o">.</span><span class="n">era5_sample</span><span class="p">()</span>
+
+<span class="gp">In [3]: </span><span class="n">pressure_levels</span>
+<span class="gh">Out[3]: </span>
+<span class="go">&lt;xarray.Dataset&gt; Size: 180kB</span>
+<span class="go">Dimensions:         (valid_time: 3, pressure_level: 4, latitude: 25,</span>
+<span class="go">                     longitude: 25)</span>
+<span class="go">Coordinates:</span>
+<span class="go">  * valid_time      (valid_time) datetime64[us] 24B 2024-07-18T15:00:00 ... 2...</span>
+<span class="go">  * pressure_level  (pressure_level) float64 32B 1e+03 850.0 700.0 500.0</span>
+<span class="go">  * latitude        (latitude) float64 200B 44.0 43.75 43.5 ... 38.5 38.25 38.0</span>
+<span class="go">  * longitude       (longitude) float64 200B -116.0 -115.8 ... -110.2 -110.0</span>
+<span class="go">Data variables:</span>
+<span class="go">    z               (valid_time, pressure_level, latitude, longitude) float32 30kB ...</span>
+<span class="go">    t               (valid_time, pressure_level, latitude, longitude) float32 30kB ...</span>
+<span class="go">    u               (valid_time, pressure_level, latitude, longitude) float32 30kB ...</span>
+<span class="go">    v               (valid_time, pressure_level, latitude, longitude) float32 30kB ...</span>
+<span class="go">    w               (valid_time, pressure_level, latitude, longitude) float32 30kB ...</span>
+<span class="go">    r               (valid_time, pressure_level, latitude, longitude) float32 30kB ...</span>
+</pre></div>
+</div>
+<p>Convert them, look at the result, and write it:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_era5</span><span class="p">(</span><span class="n">pressure_levels</span><span class="p">,</span> <span class="n">single_levels</span><span class="p">)</span>
+
+<span class="gp">In [5]: </span><span class="n">ds</span>
+<span class="gh">Out[5]: </span>
+<span class="go">&lt;xarray.Dataset&gt; Size: 241kB</span>
+<span class="go">Dimensions:        (lon: 25, lat: 25, time: 3, level: 4)</span>
+<span class="go">Coordinates:</span>
+<span class="go">  * lon            (lon) float64 200B -116.0 -115.8 -115.5 ... -110.2 -110.0</span>
+<span class="go">  * lat            (lat) float64 200B 38.0 38.25 38.5 38.75 ... 43.5 43.75 44.0</span>
+<span class="go">  * time           (time) datetime64[us] 24B 2024-07-18T15:00:00 ... 2024-07-...</span>
+<span class="go">    forecast_hour  (time) int64 24B 0 0 0</span>
+<span class="go">  * level          (level) int64 32B 1 2 3 4</span>
+<span class="go">    pressure       (level) float64 32B 1e+03 850.0 700.0 500.0</span>
+<span class="go">    arl_grid       int64 8B 0</span>
+<span class="go">Data variables: (12/14)</span>
+<span class="go">    HGTS           (time, level, lat, lon) float32 30kB 110.9 ... 5.574e+03</span>
+<span class="go">    TEMP           (time, level, lat, lon) float32 30kB 296.3 296.3 ... 257.8</span>
+<span class="go">    UWND           (time, level, lat, lon) float32 30kB 4.487 4.457 ... 11.79</span>
+<span class="go">    VWND           (time, level, lat, lon) float32 30kB -3.97 -3.97 ... -3.532</span>
+<span class="go">    WWND           (time, level, lat, lon) float32 30kB 0.00829 ... -0.0006976</span>
+<span class="go">    RELH           (time, level, lat, lon) float32 30kB 56.58 56.38 ... 38.6</span>
+<span class="go">    ...             ...</span>
+<span class="go">    T02M           (time, lat, lon) float32 8kB 289.5 289.5 ... 293.5 293.5</span>
+<span class="go">    U10M           (time, lat, lon) float32 8kB 2.829 2.819 2.809 ... 1.948 1.93</span>
+<span class="go">    V10M           (time, lat, lon) float32 8kB -1.0 -1.0 -1.0 ... -1.0 -1.0</span>
+<span class="go">    TPP1           (time, lat, lon) float32 8kB 0.0001658 0.0001638 ... 0.0 0.0</span>
+<span class="go">    SHTF           (time, lat, lon) float32 8kB 194.9 194.7 ... 238.7 238.3</span>
+<span class="go">    DSWF           (time, lat, lon) float32 8kB 600.0 600.0 ... 800.0 800.0</span>
+<span class="go">Attributes:</span>
+<span class="go">    source:         ERA5</span>
+<span class="go">    vertical_flag:  2</span>
+
+<span class="gp">In [6]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># level 1 is the highest pressure</span>
+<span class="gh">Out[6]: </span><span class="go">array([1000.,  850.,  700.,  500.])</span>
+
+<span class="gp">In [7]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">"SHTF"</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span>  <span class="c1"># W m-2, positive upward</span>
+<span class="gh">Out[7]: </span><span class="go">{'units': 'W m-2'}</span>
+</pre></div>
+</div>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [8]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"era5.arl"</span><span class="p">)</span>
+
+<span class="gp">In [9]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"era5.arl"</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ...: </span>    <span class="nb">print</span><span class="p">(</span><span class="n">met</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">met</span><span class="o">.</span><span class="n">vertical_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span>
+<span class="gp">   ...: </span>
+<span class="go">Grid(latlon, 25×25) [   0. 1000.  850.  700.  500.]</span>
+</pre></div>
+</div>
+<p>The API page of <a class="reference internal" href="_autosummary/arlmet.converters.from_era5.html#arlmet.converters.from_era5" title="arlmet.converters.from_era5"><code class="xref py py-func docutils literal notranslate"><span class="pre">from_era5()</span></code></a> lists every ERA5 variable
+it converts and how. Variables it does not know are left out, so ask the Data
+Store only for those you need.</p>
+</section>
+<section id="how-it-differs-from-era52arl">
+<h2>How it differs from <code class="docutils literal notranslate"><span class="pre">era52arl</span></code><a class="headerlink" href="#how-it-differs-from-era52arl" title="Link to this heading">#</a></h2>
+<p>The values are what HYSPLIT reads, which is not always what <code class="docutils literal notranslate"><span class="pre">era52arl</span></code>
+writes:</p>
+<ul class="simple">
+<li><p>geopotential becomes height through ECMWF’s gravity, 9.80665 m s-2
+(<code class="docutils literal notranslate"><span class="pre">era52arl</span></code> multiplies by 0.102);</p></li>
+<li><p>total cloud cover <code class="docutils literal notranslate"><span class="pre">TCLD</span></code> is in percent, as HYSPLIT reads it
+(<code class="docutils literal notranslate"><span class="pre">era52arl</span></code> writes the 0 to 1 fraction);</p></li>
+<li><p>the heat fluxes <code class="docutils literal notranslate"><span class="pre">SHTF</span></code> and <code class="docutils literal notranslate"><span class="pre">LHTF</span></code> are positive upward, as HYSPLIT takes
+them (ERA5’s, and <code class="docutils literal notranslate"><span class="pre">era52arl</span></code>’s, are positive downward);</p></li>
+<li><p>the latent heat flux is named <code class="docutils literal notranslate"><span class="pre">LHTF</span></code>, which HYSPLIT reads (<code class="docutils literal notranslate"><span class="pre">era52arl</span></code>
+names it <code class="docutils literal notranslate"><span class="pre">LTHF</span></code>).</p></li>
+</ul>
+<p>As <code class="docutils literal notranslate"><span class="pre">era52arl</span></code> does, it writes a <code class="docutils literal notranslate"><span class="pre">DIFW</span></code> record after each <code class="docutils literal notranslate"><span class="pre">WWND</span></code> and a
+<code class="docutils literal notranslate"><span class="pre">DIFR</span></code> record after <code class="docutils literal notranslate"><span class="pre">TPP1</span></code>, which keep what 8-bit packing leaves out.</p>
+</section>
+<section id="what-it-does-not-do">
+<h2>What it does not do<a class="headerlink" href="#what-it-does-not-do" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>ERA5 on model levels (HYSPLIT’s hybrid levels, vertical flag 4), the ensemble
+(a <code class="docutils literal notranslate"><span class="pre">number</span></code> dimension), and forecast-step layouts (a <code class="docutils literal notranslate"><span class="pre">step</span></code> dimension):
+each raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. Select one ensemble member, or the valid times,
+first.</p></li>
+<li><p>Regridding: the converter writes the grid the input is on, which must be a
+regular latitude/longitude grid.</p></li>
+</ul>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="writing.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Writing ARL Files</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="concatenating.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Concatenating ARL Files</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#era5">ERA5</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#how-it-differs-from-era52arl">How it differs from <code class="docutils literal notranslate"><span class="pre">era52arl</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-it-does-not-do">What it does not do</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/converting.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, James Mineau.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
