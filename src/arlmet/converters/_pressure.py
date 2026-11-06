@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Container, Hashable, Iterable, Mapping, Sequence
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import numpy as np
 import numpy.typing as npt
@@ -26,6 +26,8 @@ __all__ = [
     "field_variable",
     "pressure_axis",
     "pressure_level_dataset",
+    "scalar_coord",
+    "stack_times",
     "standardize",
 ]
 
@@ -53,6 +55,44 @@ def _pick(
             return name
     raise ValueError(
         f"{label} has no {what} dimension (looked for {', '.join(names)})."
+    )
+
+
+def scalar_coord(ds: xr.Dataset, name: str) -> Any:
+    """Return the value of a scalar coordinate of ``ds`` (any dtype), or None without one."""
+    coord = ds.coords.get(name)
+    if coord is None or coord.ndim != 0:
+        return None
+    return coord.values[()]
+
+
+def stack_times(
+    found: Mapping[tuple[pd.Timestamp, str], xr.DataArray],
+    times: Sequence[pd.Timestamp],
+) -> xr.Dataset:
+    """
+    Join each field's time steps along ``time``, NaN where a time step lacks it.
+
+    ``found`` maps (valid time, name) to the field at that time; the result
+    has one variable per name, on ``times``.
+    """
+    variables = {}
+    for name in sorted({name for _, name in found}):
+        template = next(da for (_, other), da in found.items() if other == name)
+        slices = [
+            found[(time, name)]
+            if (time, name) in found
+            else xr.full_like(template, np.nan, dtype=float)
+            for time in times
+        ]
+        try:
+            variables[name] = xr.concat(slices, dim="time", join="exact")
+        except ValueError as exc:
+            raise ValueError(
+                f"The time steps hold '{name}' on different grids or pressure levels."
+            ) from exc
+    return xr.Dataset(variables).assign_coords(
+        time=pd.DatetimeIndex(list(times)).values
     )
 
 

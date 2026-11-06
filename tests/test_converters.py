@@ -1,4 +1,4 @@
-"""Tests for arlmet.converters: ERA5 to an ARL Dataset."""
+"""Tests for arlmet.converters: other models' output to an ARL Dataset."""
 
 import numpy as np
 import pandas as pd
@@ -6,7 +6,7 @@ import pytest
 import xarray as xr
 
 import arlmet
-from arlmet.converters import from_era5, from_gfs, from_wrf
+from arlmet.converters import from_era5, from_gfs, from_icon, from_wrf
 from arlmet.converters._latlon import latlon_grid
 
 TIMES = pd.date_range("2024-07-18 00:00", periods=2, freq="h")
@@ -935,3 +935,278 @@ class TestFromWrf:
     def test_not_a_dataset_raises(self):
         with pytest.raises(TypeError, match="takes an xarray.Dataset"):
             from_wrf("wrfout_d01")  # pyrefly: ignore[bad-argument-type]
+
+
+# ---- ICON on a regular lat/lon grid, one cfgrib Dataset per DWD file -------
+
+ICON_LATS = np.arange(44.0, 50.0 + 0.01, 0.25)  # south to north, as DWD stores them
+ICON_LONS = np.arange(-3.0, 3.0 + 0.01, 0.25)
+ICON_PRESSURES = (1000.0, 850.0, 500.0)
+ICON_START = pd.Timestamp("2026-11-06 00:00")
+#: Made-up hourly means and totals (hour 1, 2, ...) the files' running ones come from.
+ICON_RATES = {
+    "avg_slhtf": [-40.0, -30.0, -20.0, -10.0, 0.0, 10.0],
+    "avg_ishf": [5.0, -5.0, 15.0, 25.0, 35.0, 45.0],
+    "ASWDIR_S": [0.0, 10.0, 50.0, 100.0, 200.0, 300.0],
+    "ASWDIFD_S": [0.0, 5.0, 20.0, 40.0, 60.0, 80.0],
+    "AUMFL_S": [0.1, 0.2, 0.3, 0.2, 0.1, 0.0],
+    "AVMFL_S": [-0.1, 0.0, 0.1, 0.2, 0.3, 0.4],
+    "tp": [1.0, 0.0, 2.0, 0.5, 0.0, 3.0],  # kg m-2 in each hour
+}
+
+
+#: The running means and totals vary over the grid as this pattern (mean 1), so
+#: that they pack as real fields do (a constant field below 1/127 reads as 0).
+_ny, _nx = len(ICON_LATS), len(ICON_LONS)
+ICON_PATTERN = (
+    1.0
+    + 0.5
+    * np.sin(np.linspace(0.0, 2.0 * np.pi, _nx))[None, :]
+    * np.cos(np.linspace(0.0, np.pi, _ny))[:, None]
+).astype(np.float32)
+ICON_PATTERN /= ICON_PATTERN.mean()
+
+
+def _icon_cube(name, values, start, step, level_coord, *, step_type="instant"):
+    """The cfgrib Dataset of one DWD file: one variable, one level, one step."""
+    step = pd.Timedelta(hours=step)
+    type_of_level, level = level_coord
+    coords = {
+        "time": start,
+        "step": step,
+        "valid_time": start + step,
+        "latitude": ICON_LATS,
+        "longitude": ICON_LONS,
+    }
+    if type_of_level is not None:
+        coords[type_of_level] = float(level)
+    attrs = {"GRIB_typeOfLevel": type_of_level, "GRIB_stepType": step_type}
+    data = (("latitude", "longitude"), np.asarray(values, dtype=np.float32), attrs)
+    return xr.Dataset({name: data}, coords=coords)
+
+
+def _running(name, step):
+    """The file's value: the mean or total of ICON_RATES from the forecast start."""
+    rates = ICON_RATES[name][:step]
+    total = float(np.sum(rates))
+    return total if name == "tp" or step == 0 else total / step
+
+
+def icon_files(steps=(0, 1, 2, 3), *, start=ICON_START, seed=0, levels=ICON_PRESSURES):
+    """Made-up Datasets of DWD's ICON-EU files of one forecast, as cfgrib reads them."""
+    rng = np.random.default_rng(seed)
+    shape = (len(ICON_LATS), len(ICON_LONS))
+
+    def f(base, scale):
+        return _field(rng, base, scale, shape)
+
+    cubes = [_icon_cube("HSURF", f(0.0, 2000.0), start, 0, (None, 0.0))]
+    for step in steps:
+        for p in levels:
+            level = ("isobaricInhPa", p)
+            height = 44330.0 * (1.0 - (p / 1013.25) ** 0.19)
+            for name, values in {
+                "z": f(9.80665 * height, 500.0),
+                "t": f(220.0 + 0.06 * p, 10.0),
+                "u": f(-10.0, 20.0),
+                "v": f(-10.0, 20.0),
+                "w": f(-0.5, 1.0),
+                "r": f(10.0, 80.0),
+            }.items():
+                cubes.append(_icon_cube(name, values, start, step, level))
+        surface, two, ten = (
+            ("surface", 0.0),
+            ("heightAboveGround", 2.0),
+            (
+                "heightAboveGround",
+                10.0,
+            ),
+        )
+        for name, values, level in [
+            ("sp", f(8.0e4, 2.0e4), surface),
+            ("prmsl", f(1.0e5, 3.0e3), ("meanSea", 0.0)),
+            ("T_G", f(270.0, 30.0), surface),
+            ("t2m", f(270.0, 30.0), two),
+            ("r2", f(20.0, 70.0), two),
+            ("u10", f(-5.0, 10.0), ten),
+            ("v10", f(-5.0, 10.0), ten),
+            ("CLCT", f(0.0, 100.0), surface),
+            ("CAPE_ML", f(0.0, 500.0), (None, 0.0)),
+            ("CIN_ML", f(0.0, 100.0), (None, 0.0)),
+            ("mld", f(50.0, 1500.0), surface),
+            ("fsr", f(0.01, 1.0), surface),
+        ]:
+            cubes.append(_icon_cube(name, values, start, step, level))
+        for name in ICON_RATES:
+            step_type = "accum" if name == "tp" else "avg"
+            cubes.append(
+                _icon_cube(
+                    name,
+                    _running(name, step) * ICON_PATTERN,
+                    start,
+                    step,
+                    surface,
+                    step_type=step_type,
+                )
+            )
+    return cubes
+
+
+class TestFromIcon:
+    def test_pressure_levels_from_the_ground_up(self):
+        files = icon_files()
+        ds = from_icon(files)
+        assert ds.attrs["source"] == "ICON"
+        assert ds.attrs["vertical_flag"] == 2
+        assert ds.sizes == {"time": 4, "level": 3, "lat": 25, "lon": 25}
+        assert ds["pressure"].values.tolist() == [1000.0, 850.0, 500.0]
+        assert ds["forecast_hour"].values.tolist() == [0, 1, 2, 3]
+        np.testing.assert_array_equal(
+            ds["time"].values, (ICON_START + pd.to_timedelta([0, 1, 2, 3], "h")).values
+        )
+        z500 = next(
+            c["z"]
+            for c in files
+            if "z" in c and c["isobaricInhPa"] == 500.0 and c["step"] == pd.Timedelta(0)
+        )
+        np.testing.assert_allclose(
+            ds["HGTS"].isel(time=0, level=2).values, z500.values / 9.80665, rtol=1e-6
+        )
+        assert ds["WWND"].attrs == {"units": "hPa s-1"}
+        assert ds["HGTS"].attrs == {"units": "m"}
+
+    def test_means_and_totals_since_the_step_before(self):
+        ds = from_icon(icon_files())
+        for arl, name, sign in [
+            ("LHTF", "avg_slhtf", -1.0),
+            ("SHTF", "avg_ishf", -1.0),
+            ("UMOF", "AUMFL_S", 1.0),
+            ("VMOF", "AVMFL_S", 1.0),
+            ("TPP1", "tp", 0.001),
+        ]:
+            got = ds[arl].mean(["lat", "lon"]).values
+            assert np.isnan(got[0])  # step 0 has no interval
+            np.testing.assert_allclose(
+                got[1:], sign * np.array(ICON_RATES[name][:3]), atol=1e-5, err_msg=arl
+            )
+        dswf = np.add(ICON_RATES["ASWDIR_S"], ICON_RATES["ASWDIFD_S"])[:3]
+        np.testing.assert_allclose(
+            ds["DSWF"].mean(["lat", "lon"]).values[1:], dswf, atol=1e-4
+        )
+        assert ds["TPP1"].attrs == {"units": "m"}
+
+    def test_steps_three_hours_apart(self):
+        ds = from_icon(icon_files(steps=(0, 3, 6)))
+        tp = ICON_RATES["tp"]
+        lhf = ICON_RATES["avg_slhtf"]
+        np.testing.assert_allclose(
+            ds["TPP1"].mean(["lat", "lon"]).values[1:],
+            [0.001 * sum(tp[:3]) / 3, 0.001 * sum(tp[3:6]) / 3],
+            atol=1e-6,
+        )
+        np.testing.assert_allclose(
+            ds["LHTF"].mean(["lat", "lon"]).values[1:],
+            [-np.mean(lhf[:3]), -np.mean(lhf[3:6])],
+            atol=1e-4,
+        )
+
+    def test_a_forecast_without_its_start_counts_from_it(self):
+        ds = from_icon(icon_files(steps=(2, 3)))
+        tp = ICON_RATES["tp"]
+        np.testing.assert_allclose(
+            ds["TPP1"].mean(["lat", "lon"]).values,
+            [0.001 * sum(tp[:2]) / 2, 0.001 * tp[2]],
+            atol=1e-6,
+        )
+
+    def test_two_forecasts_join_with_the_shorter_step(self):
+        earlier = icon_files(steps=range(7), seed=1)
+        later = icon_files(
+            steps=range(4), start=ICON_START + pd.Timedelta("6h"), seed=2
+        )
+        ds = from_icon(earlier + later)
+        assert ds.sizes["time"] == 10
+        assert ds["forecast_hour"].values.tolist() == [0, 1, 2, 3, 4, 5, 0, 1, 2, 3]
+        six = ds.isel(time=6)
+        later_t = next(
+            c["t"]
+            for c in later
+            if "t" in c
+            and c["isobaricInhPa"] == 1000.0
+            and c["step"] == pd.Timedelta(0)
+        )
+        np.testing.assert_allclose(six["TEMP"].isel(level=0).values, later_t.values)
+        # The later forecast's step 0 has no interval: the earlier's 6-hour step gives it.
+        np.testing.assert_allclose(
+            float(six["LHTF"].mean()), -ICON_RATES["avg_slhtf"][5], atol=1e-4
+        )
+        assert np.isnan(ds["LHTF"].isel(time=0)).all()
+
+    def test_terrain_height_at_every_time(self):
+        files = icon_files()
+        ds = from_icon(files)
+        hsurf = next(c["HSURF"] for c in files if "HSURF" in c)
+        for time in range(4):
+            np.testing.assert_array_equal(
+                ds["SHGT"].isel(time=time).values, hsurf.values
+            )
+
+    def test_writes_and_reads_back(self, tmp_path):
+        ds = from_icon(icon_files())
+        dest = tmp_path / "icon.arl"
+        arlmet.write_dataset(ds, dest)
+        back = arlmet.open_dataset(dest)
+        assert back.attrs["source"] == "ICON"
+        for name in ("TEMP", "HGTS", "PRSS", "TPP1", "DSWF", "SHGT"):
+            want = ds[name].values
+            span = float(np.nanmax(want) - np.nanmin(want)) or 1.0
+            np.testing.assert_allclose(
+                back[name].values, want, atol=2e-3 * span, err_msg=name
+            )
+
+    def test_a_dataset_with_several_levels(self):
+        files = icon_files()
+        stacked = [
+            xr.concat(
+                [c for c in files if "t" in c and c["step"] == step],
+                dim="isobaricInhPa",
+            )
+            for step in pd.to_timedelta([0, 1, 2, 3], "h")
+        ]
+        rest = [c for c in files if "t" not in c]
+        a, b = from_icon(files), from_icon(stacked + rest)
+        np.testing.assert_array_equal(a["TEMP"].values, b["TEMP"].values)
+
+    def test_dwd_names_read_as_ecmwf_names(self):
+        renames = {"avg_slhtf": "ALHFL_S", "tp": "TOT_PREC", "sp": "PS", "mld": "MH"}
+        files = [
+            c.rename({k: v for k, v in renames.items() if k in c}) for c in icon_files()
+        ]
+        a, b = from_icon(icon_files()), from_icon(files)
+        for name in ("LHTF", "TPP1", "PRSS", "PBLH"):
+            np.testing.assert_array_equal(a[name].values, b[name].values)
+
+    def test_a_field_given_twice_raises(self):
+        files = icon_files()
+        with pytest.raises(ValueError, match="given twice"):
+            from_icon([*files, files[1]])
+
+    def test_different_levels_raise(self):
+        second = icon_files(steps=(1,), levels=(1000.0, 850.0))
+        files = icon_files(steps=(0,)) + [c for c in second if "HSURF" not in c]
+        with pytest.raises(ValueError, match="different grids or pressure levels"):
+            from_icon(files)
+
+    def test_no_pressure_levels_raise(self):
+        files = [c for c in icon_files() if "isobaricInhPa" not in c.coords]
+        with pytest.raises(ValueError, match="pressure-level fields"):
+            from_icon(files)
+
+    def test_a_dataset_without_its_times_raises(self):
+        cube = icon_files(steps=(0,))[1].drop_vars("step")
+        with pytest.raises(ValueError, match="scalar 'time'"):
+            from_icon([cube])
+
+    def test_not_a_dataset_raises(self):
+        with pytest.raises(TypeError, match="takes xarray.Datasets"):
+            from_icon(["icon.grib2"])  # pyrefly: ignore[bad-argument-type]
