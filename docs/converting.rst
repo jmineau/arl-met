@@ -4,7 +4,7 @@ Converting Other Models' Output
 HYSPLIT reads only ARL files, and NOAA publishes them for a few products (HRRR,
 NAM, GDAS, GFS, ...; see :doc:`downloading`). For any other model, HYSPLIT ships
 one Fortran ``data2arl`` program per product. :mod:`arlmet.converters` holds
-Python versions of them. Each takes the product's own output, opened with
+Python versions of them, and converters for products HYSPLIT has none for. Each takes the product's own output, opened with
 xarray, and returns a Dataset in the layout :func:`arlmet.write_dataset` writes:
 ARL's four-character names, the units HYSPLIT reads, rows from south to north,
 and the vertical axis HYSPLIT expects for the product. You can look at it, plot
@@ -16,6 +16,9 @@ The converters so far:
   levels, as HYSPLIT's ``era52arl`` converts it.
 - :func:`arlmet.converters.from_gfs`: NCEP's GFS forecasts and GDAS analyses
   on pressure levels (``pgrb2`` files), as HYSPLIT's ``api2arl`` converts them.
+- :func:`arlmet.converters.from_icon`: DWD's ICON-EU and ICON-D2 forecasts on
+  their regular lat/lon grids and pressure levels, which HYSPLIT has no
+  converter for.
 - :func:`arlmet.converters.from_wrf`: WRF-ARW output (``wrfout`` files) on its
   own grid and model levels, as HYSPLIT's ``arw2arl`` converts it.
 
@@ -210,6 +213,69 @@ planetary boundary layer height is a local GRIB2 parameter that ecCodes reads
 as ``unknown``, so ``PBLH`` is not written, and the GDAS files' instantaneous
 total cloud cover is missing at every point, so they give no ``TCLD``. Like
 ``api2arl``, it writes no ``DIF*`` records.
+
+ICON
+----
+
+DWD's ICON-EU (Europe, about 6.5 km) and ICON-D2 (Germany, about 2.2 km) are
+published free at ``https://opendata.dwd.de/weather/nwp/``, each forecast on
+its own grid and on a regular lat/lon grid; :func:`~arlmet.converters.from_icon`
+converts the lat/lon files on pressure levels. DWD keeps a forecast for about
+a day. Each file holds one variable at one level and one forecast step,
+compressed with bzip2:
+
+.. code-block:: text
+
+   icon-eu/grib/00/t/icon-eu_europe_regular-lat-lon_pressure-level_2026110600_003_850_T.grib2.bz2
+   icon-eu/grib/00/tot_prec/icon-eu_europe_regular-lat-lon_single-level_2026110600_003_TOT_PREC.grib2.bz2
+   icon-eu/grib/00/hsurf/icon-eu_europe_regular-lat-lon_time-invariant_2026110600_HSURF.grib2.bz2
+
+The pressure-level variables are ``fi``, ``t``, ``u``, ``v``, ``omega`` and
+``relhum``; the API page of :func:`~arlmet.converters.from_icon` lists the
+single-level ones it reads. Download those you need for every step, unpack
+them (``bunzip2``) and open each with cfgrib, passing all the Datasets
+together:
+
+.. code-block:: python
+
+   import glob
+
+   import cfgrib
+
+   files = sorted(glob.glob("icon-eu_europe_regular-lat-lon_*.grib2"))
+   datasets = [ds for f in files for ds in cfgrib.open_datasets(f)]
+
+The levels of each variable are stacked, and each valid time becomes one time
+step. ICON's precipitation and surface fluxes are totals and means from the
+start of the forecast (a 3-hour file holds hours 0 to 3); each is written as
+the total or mean since the step before. ``TPP1`` is that precipitation per
+hour, so 3-hourly steps (ICON-EU's after 78 hours) give the hourly mean of
+each 3 hours. A forecast's step 0 has no such interval, so its precipitation
+and fluxes are missing records; as in :func:`~arlmet.converters.from_gfs`,
+where two forecasts hold a field at the same valid time the shorter step is
+used, so the first 6 hours of each run joined together give every time step
+its fields. ICON's fluxes are positive downward; ``SHTF`` and ``LHTF`` are
+written positive upward, as HYSPLIT takes them. Here made-up Datasets laid out
+as cfgrib returns DWD's files stand in for one forecast's steps 0 to 3:
+
+.. ipython:: python
+
+   datasets = docs_examples.icon_sample()
+   len(datasets), list(datasets[-1].data_vars)
+   ds = arlmet.converters.from_icon(datasets)
+   ds
+   ds["TPP1"].mean(["lat", "lon"]).values  # m per hour; none at step 0
+
+.. ipython:: python
+
+   arlmet.write_dataset(ds, "icon-eu.arl")
+
+ICON's own grid (icosahedral, the only one DWD publishes for global ICON) and
+its model levels (heights that follow the terrain, which no ARL vertical
+coordinate describes) are not converted: remap the output to a lat/lon grid
+and pressure levels first (for example with CDO) and write it as GRIB2 with
+DWD's variable names. HYSPLIT has no ICON converter to compare with; the
+files written are read by HYSPLIT's ``hycs_std``.
 
 WRF
 ---

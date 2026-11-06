@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
-import numpy as np
 import pandas as pd
 import xarray as xr
 
-from ._pressure import Field, pressure_level_dataset, standardize
+from ._pressure import (
+    Field,
+    pressure_level_dataset,
+    scalar_coord,
+    stack_times,
+    standardize,
+)
 
 __all__ = ["from_gfs"]
 
@@ -71,14 +76,6 @@ SINGLE_LEVEL_SOURCES: tuple[_Source, ...] = (
 _SINGLE_LEVEL_FIELDS = {s.field.name: s.field for s in SINGLE_LEVEL_SOURCES}
 
 
-def _scalar(ds: xr.Dataset, name: str) -> Any:
-    """Return the value of a scalar coordinate of ``ds`` (any dtype), or None without one."""
-    coord = ds.coords.get(name)
-    if coord is None or coord.ndim != 0:
-        return None
-    return coord.values[()]
-
-
 def _arl_name(ds: xr.Dataset, name: str, da: xr.DataArray) -> str | None:
     """Return the ARL name ``ds[name]`` converts to, or None if it is not converted."""
     type_of_level = da.attrs.get("GRIB_typeOfLevel")
@@ -95,7 +92,7 @@ def _arl_name(ds: xr.Dataset, name: str, da: xr.DataArray) -> str | None:
             and step_type == source.step_type
         ):
             if source.level is not None:
-                level = _scalar(ds, source.type_of_level)
+                level = scalar_coord(ds, source.type_of_level)
                 if level is None or float(level) != source.level:
                     continue
             return source.field.name
@@ -206,14 +203,14 @@ def from_gfs(datasets: Iterable[xr.Dataset]) -> xr.Dataset:
         }
         if not names:
             continue
-        valid_time = _scalar(ds, "valid_time")
+        valid_time = scalar_coord(ds, "valid_time")
         if valid_time is None:
             raise ValueError(
                 "Each Dataset needs a scalar 'valid_time', as cfgrib.open_datasets() "
                 f"gives one per GRIB file; got one with dims {dict(ds.sizes)}."
             )
         time = pd.Timestamp(valid_time)
-        step_value = _scalar(ds, "step")
+        step_value = scalar_coord(ds, "step")
         step = pd.Timedelta(0 if step_value is None else step_value)
         for name, arl in names.items():
             da = ds[name].reset_coords(drop=True)
@@ -240,36 +237,15 @@ def from_gfs(datasets: Iterable[xr.Dataset]) -> xr.Dataset:
         for time in times
     ]
 
-    def stack(
-        found: dict[tuple[pd.Timestamp, str], tuple[pd.Timedelta, xr.DataArray]],
-    ) -> xr.Dataset:
-        """One Dataset of the fields by ARL name, NaN where a time step has none."""
-        variables = {}
-        for arl in sorted({name for _, name in found}):
-            template = next(da for (_, name), (_, da) in found.items() if name == arl)
-            slices = [
-                found[(time, arl)][1]
-                if (time, arl) in found
-                else xr.full_like(template, np.nan, dtype=float)
-                for time in times
-            ]
-            try:
-                variables[arl] = xr.concat(slices, dim="time", join="exact")
-            except ValueError as exc:
-                raise ValueError(
-                    f"The time steps hold '{arl}' on different grids or pressure levels."
-                ) from exc
-        return xr.Dataset(variables).assign_coords(time=pd.DatetimeIndex(times).values)
-
     upper_ds = standardize(
-        stack(upper),
+        stack_times({k: da for k, (_, da) in upper.items()}, times),
         [f.name for f in PRESSURE_LEVEL_FIELDS.values()],
         upper=True,
         label="pressure levels",
     )
     surface_ds = (
         standardize(
-            stack(surface),
+            stack_times({k: da for k, (_, da) in surface.items()}, times),
             list(_SINGLE_LEVEL_FIELDS),
             upper=False,
             label="single levels",
