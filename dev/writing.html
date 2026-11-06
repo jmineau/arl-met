@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=1fcd2af6"></script>
+    <script src="_static/documentation_options.js?v=a9dffdff"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev2+gb186253a5" />
+  <meta name="docsearch:version" content="0.1.0b9.dev3+g2e87d2ef8" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -508,6 +508,11 @@ parent DataArray’s <code class="docutils literal notranslate"><span class="pre
 <li><p>surface variables use dims <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">lat,</span> <span class="pre">lon)</span></code> or <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">y,</span> <span class="pre">x)</span></code></p></li>
 <li><p>upper-air variables use dims <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">level,</span> <span class="pre">lat,</span> <span class="pre">lon)</span></code> or
 <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">level,</span> <span class="pre">y,</span> <span class="pre">x)</span></code></p></li>
+<li><p>the <code class="docutils literal notranslate"><span class="pre">lat</span></code> and <code class="docutils literal notranslate"><span class="pre">lon</span></code> (or <code class="docutils literal notranslate"><span class="pre">y</span></code> and <code class="docutils literal notranslate"><span class="pre">x</span></code>) coordinates increase along their
+dimensions, as <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a> returns them; rows and columns are
+written in array order, so a Dataset turned north-up with
+<code class="docutils literal notranslate"><span class="pre">ds.isel(lat=slice(None,</span> <span class="pre">None,</span> <span class="pre">-1))</span></code> raises until it is sorted
+(<code class="docutils literal notranslate"><span class="pre">ds.sortby(&quot;lat&quot;)</span></code>)</p></li>
 <li><p>all upper-air variables must share the Dataset <code class="docutils literal notranslate"><span class="pre">level</span></code> coordinate</p></li>
 </ul>
 <p>The <code class="docutils literal notranslate"><span class="pre">forecast_hour</span></code> coordinate holds one forecast hour per time step, the one

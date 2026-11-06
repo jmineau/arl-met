@@ -64,6 +64,11 @@ Dataset write contract
 - surface variables use dims ``(time, lat, lon)`` or ``(time, y, x)``
 - upper-air variables use dims ``(time, level, lat, lon)`` or
   ``(time, level, y, x)``
+- the ``lat`` and ``lon`` (or ``y`` and ``x``) coordinates increase along their
+  dimensions, as :func:`arlmet.open_dataset` returns them; rows and columns are
+  written in array order, so a Dataset turned north-up with
+  ``ds.isel(lat=slice(None, None, -1))`` raises until it is sorted
+  (``ds.sortby("lat")``)
 - all upper-air variables must share the Dataset ``level`` coordinate
 
 The ``forecast_hour`` coordinate holds one forecast hour per time step, the one
