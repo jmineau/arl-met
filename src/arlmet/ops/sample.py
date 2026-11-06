@@ -191,7 +191,10 @@ def _normalize_points(
         }
     )
     if has_time_column:
-        coords["time"] = pd.to_datetime(df["time"]).to_numpy()
+        point_times = pd.to_datetime(df["time"])
+        if point_times.dt.tz is not None:
+            point_times = point_times.dt.tz_convert("UTC").dt.tz_localize(None)
+        coords["time"] = point_times.to_numpy()
     elif time is not None:
         coords["time"] = ensure_timestamp(time)
     elif implied_time is not None:

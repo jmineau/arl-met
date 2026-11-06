@@ -387,12 +387,6 @@ def _fetch_turn(dest: Path, *, overwrite: bool) -> Iterator[bool]:
                     dest.with_name(name).unlink()
 
 
-def _utc_naive(value: pd.Timestamp | str) -> pd.Timestamp:
-    """Return *value* as a timestamp without a time zone, in UTC (as archive dates are)."""
-    ts = ensure_timestamp(value)
-    return ts if ts.tzinfo is None else ts.tz_convert("UTC").tz_localize(None)
-
-
 @dataclass
 class SyncResult:
     """
@@ -631,8 +625,8 @@ class Archive(ABC):
         """
         # Convert to UTC before flooring: a zone offset by half an hour
         # (India, Newfoundland) has its hours at :30 UTC.
-        t0 = _utc_naive(start).floor("h")
-        t1 = _utc_naive(end).floor("h")
+        t0 = ensure_timestamp(start).floor("h")
+        t1 = ensure_timestamp(end).floor("h")
         if t0 > t1:
             t0, t1 = t1, t0
 
@@ -890,11 +884,11 @@ class Archive(ABC):
             ) from None
 
         dest_dir = Path(dest_dir)
-        first = self.start_date if start is None else _utc_naive(start)
+        first = self.start_date if start is None else ensure_timestamp(start)
         last = (
             pd.Timestamp.now("UTC").tz_localize(None)
             if end is None
-            else _utc_naive(end)
+            else ensure_timestamp(end)
         )
         # The archive's path of each file in the range, by file name: NOAA's list
         # holds bare names.

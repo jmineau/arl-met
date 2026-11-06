@@ -247,6 +247,24 @@ class TestPointSampling:
 
         np.testing.assert_allclose(result["TEMP"].to_numpy(), [290.5, 310.5])
 
+    @pytest.mark.parametrize(
+        "zoned", [pd.Timestamp("2024-07-18 00:00", tz="UTC"), "2024-07-17 18:00-06:00"]
+    )
+    def test_time_with_a_time_zone_is_converted_to_utc(self, tmp_path, zoned):
+        path = tmp_path / "zone.arl"
+        write_sampling_file(path, time=pd.Timestamp("2024-07-18 00:00"))
+        points = {"lon": [20.5], "lat": [-9.5], "z": [950.0]}
+
+        by_column = sample_points(
+            path, {**points, "time": [pd.Timestamp(zoned)]}, ["TEMP"], z_kind="pressure"
+        )
+        by_argument = sample_points(
+            path, points, ["TEMP"], time=zoned, z_kind="pressure"
+        )
+
+        np.testing.assert_allclose(by_column["TEMP"].to_numpy(), [290.5])
+        np.testing.assert_allclose(by_argument["TEMP"].to_numpy(), [290.5])
+
     def test_module_sample_points_accepts_single_path(self, tmp_path):
         path = tmp_path / "single.arl"
         time = pd.Timestamp("2024-07-18 00:00")
