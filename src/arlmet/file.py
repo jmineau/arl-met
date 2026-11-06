@@ -21,7 +21,7 @@ from arlmet._time import ensure_timestamp
 from arlmet.collection import VariableAccessor
 from arlmet.exceptions import ARLFormatError, ARLFormatWarning
 from arlmet.grid import Grid, Projection
-from arlmet.header import record_length_from_grid
+from arlmet.header import check_year, record_length_from_grid
 from arlmet.indexrecord import IndexRecord
 from arlmet.record import DataRecord, _corrects, _is_missing, _require_mode
 from arlmet.recordset import RecordSet
@@ -375,6 +375,12 @@ class File:
         -------
         RecordSet
             Writable record set associated with ``time``.
+
+        Raises
+        ------
+        ValueError
+            If ``time`` is outside 1940 to 2039, the years a label's two-digit
+            year can hold.
         """
         _require_mode(self, "w")
         if self.source is None or self.grid is None:
@@ -383,6 +389,7 @@ class File:
         position = -1  # New recordsets have no on-disk position yet
         source = grid = None  # skip checks in _create_recordset
         ts = ensure_timestamp(time)
+        check_year(ts.year)
         return self._create_recordset(
             position=position, source=source, grid=grid, time=ts, forecast=forecast
         )

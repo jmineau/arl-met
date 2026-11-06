@@ -191,6 +191,15 @@ data records, byte for byte. arl-met keeps the first copy, ignores the repeat,
 and emits an :class:`arlmet.ARLFormatWarning`. Rewriting such a file (e.g. with
 :func:`arlmet.extract_subset`) produces a clean file without the repeat.
 
+Years 1940 to 2039
+~~~~~~~~~~~~~~~~~~
+
+A record's 50-byte label has two characters for the year, so an ARL file holds
+only the years 1940 to 2039 (HYSPLIT reads 00 to 39 as 2000 to 2039 and 40 to 99
+as 1940 to 1999). Writing a time outside that range raises ``ValueError``
+(:meth:`arlmet.File.create_recordset` and :func:`arlmet.write_dataset`) rather
+than storing the year in another century.
+
 Forecast hours above 99
 ~~~~~~~~~~~~~~~~~~~~~~~
 
