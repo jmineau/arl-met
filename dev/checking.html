@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=d296d3bd"></script>
+    <script src="_static/documentation_options.js?v=21ca5cd7"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev7+gbd99993b0" />
+  <meta name="docsearch:version" content="0.1.0b9.dev8+g2dc1a4686" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -452,7 +452,7 @@
 <h1>Checking Files<a class="headerlink" href="#checking-files" title="Link to this heading">#</a></h1>
 <p>Use <a class="reference internal" href="_autosummary/arlmet.File.check.html#arlmet.File.check" title="arlmet.File.check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.File.check()</span></code></a> to find damage that does not stop a file from
 opening. Opening a file already raises <a class="reference internal" href="_autosummary/arlmet.ARLFormatError.html#arlmet.ARLFormatError" title="arlmet.ARLFormatError"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.ARLFormatError</span></code></a> when it is
-cut short. A file can also hold a time step written partway, skip a time step,
+empty or cut short. A file can also hold a time step written partway, skip a time step,
 or have records overwritten with other bytes, and still open. HYSPLIT then stops
 partway through a run, or reads bad values. Checking a file before a run, or
 after downloading or cropping it, finds these first.</p>

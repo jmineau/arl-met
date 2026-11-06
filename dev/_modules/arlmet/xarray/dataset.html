@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=d296d3bd"></script>
+    <script src="../../../_static/documentation_options.js?v=21ca5cd7"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev7+gbd99993b0" />
+  <meta name="docsearch:version" content="0.1.0b9.dev8+g2dc1a4686" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -770,10 +770,10 @@
 <span class="sd">    ------</span>
 <span class="sd">    ValueError</span>
 <span class="sd">        If the Dataset does not match the layout above (including a ``lat``,</span>
-<span class="sd">        ``lon``, ``y`` or ``x`` coordinate that does not increase), a slice is</span>
-<span class="sd">        partly NaN or non-finite, an ``attrs["diff"]`` name is not one the name table</span>
-<span class="sd">        pairs with its variable, or ``filename_or_obj`` is the file ``ds`` was</span>
-<span class="sd">        opened from.</span>
+<span class="sd">        ``lon``, ``y`` or ``x`` coordinate that does not increase), has no time</span>
+<span class="sd">        steps, a slice is partly NaN or non-finite, an ``attrs["diff"]`` name</span>
+<span class="sd">        is not one the name table pairs with its variable, or</span>
+<span class="sd">        ``filename_or_obj`` is the file ``ds`` was opened from.</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
@@ -791,6 +791,8 @@
     <span class="k">if</span> <span class="s2">"time"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Dataset must define a 'time' coordinate."</span><span class="p">)</span>
     <span class="n">times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Dataset has no time steps to write."</span><span class="p">)</span>
 
     <span class="n">source</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"source"</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">source</span><span class="p">:</span>

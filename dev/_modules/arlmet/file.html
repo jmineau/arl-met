@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=d296d3bd"></script>
+    <script src="../../_static/documentation_options.js?v=21ca5cd7"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev7+gbd99993b0" />
+  <meta name="docsearch:version" content="0.1.0b9.dev8+g2dc1a4686" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -872,7 +872,8 @@
 <span class="sd">        Raises</span>
 <span class="sd">        ------</span>
 <span class="sd">        ARLFormatError</span>
-<span class="sd">            If the file is not valid ARL: an unparseable index record, a size</span>
+<span class="sd">            If the file is not valid ARL: no index record (an empty file), an</span>
+<span class="sd">            unparseable index record, a size</span>
 <span class="sd">            that is not a whole number of records, an index record that</span>
 <span class="sd">            declares more data records than remain, inconsistent metadata</span>
 <span class="sd">            between index records, a variable listed twice on one level, or</span>
@@ -1038,6 +1039,12 @@
 
             <span class="c1"># Move file pointer to the start of the next index record</span>
             <span class="n">fh</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ARLFormatError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: holds no index record at byte 0; it may be "</span>
+                <span class="s2">"empty, truncated, or not ARL."</span>
+            <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">unpaired</span><span class="p">:</span>
             <span class="n">found</span> <span class="o">=</span> <span class="p">[</span>

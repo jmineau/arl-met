@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=d296d3bd"></script>
+    <script src="../../_static/documentation_options.js?v=21ca5cd7"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev7+gbd99993b0" />
+  <meta name="docsearch:version" content="0.1.0b9.dev8+g2dc1a4686" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -546,16 +546,13 @@
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Return what *path*'s index records say, as one row of the cache.</span>
 
-<span class="sd">    A file that cannot be opened, holds no time step, or whose time steps</span>
+<span class="sd">    A file that cannot be opened (an empty one included) or whose time steps</span>
 <span class="sd">    are not evenly spaced gets the reason in ``error``.</span>
 <span class="sd">    """</span>
     <span class="n">row</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">_EMPTY</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
             <span class="n">times</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">times</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">times</span><span class="p">:</span>
-                <span class="n">row</span><span class="p">[</span><span class="s2">"error"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"The file holds no time step."</span>
-                <span class="k">return</span> <span class="n">row</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">"source"</span><span class="p">]</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">source</span>
             <span class="n">row</span><span class="p">[</span><span class="s2">"grid"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">met</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
     <span class="k">except</span> <span class="p">(</span><span class="n">ARLFormatError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
