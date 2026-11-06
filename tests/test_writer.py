@@ -308,6 +308,26 @@ class TestWriter:
         with File(written_path) as reopened:
             assert [reopened[time].forecast for time in reopened.times] == [0, 0]
 
+    def test_create_datarecord_rejects_data_of_the_wrong_shape(self, tmp_path):
+        grid = make_test_grid()
+        axis = PressureAxis(levels=[0.0, 1000.0])
+        path = tmp_path / "short.arl"
+
+        with File(path, mode="w", source="TEST", grid=grid, vertical_axis=axis) as arl:
+            rs = arl.create_recordset(pd.Timestamp("2024-07-18"), forecast=0)
+            rs.create_datarecord(
+                "PRSS", level=0, forecast=0, data=np.ones((20, 20), "float32")
+            )
+            with pytest.raises(ValueError, match=r"shape \(10, 20\).*\(20, 20\)"):
+                rs.create_datarecord(
+                    "TEMP", level=1, forecast=0, data=np.ones((10, 20), "float32")
+                )
+            assert len(rs) == 1  # the refused record was not added
+            record = rs.create_datarecord("TEMP", level=1, forecast=0)
+            with pytest.raises(ValueError, match="TEMP at level 1"):
+                record[:] = np.ones((20, 10), "float32")
+            record[:] = np.ones((20, 20), "float32")
+
     def test_write_dataset_surface_only_requires_vertical_axis(self, tmp_path):
         source_path = tmp_path / "surface.arl"
         written_path = tmp_path / "written.arl"
