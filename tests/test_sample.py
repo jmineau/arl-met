@@ -2375,13 +2375,25 @@ class TestSampleTimeResolution:
         write_sampling_file(f1, time=TIME1)
         points = pd.DataFrame({**self.POINTS, "time": [pd.Timestamp("2030-01-01")]})
 
-        match = "No input file contains the requested point times: 2030-01-01"
+        match = (
+            "No input file contains the requested point times: 2030-01-01.*"
+            "does not interpolate in time.*hold 2024-07-18 00:00:00"
+        )
         with pytest.raises(ValueError, match=match):
             sample_points(f0, points, ["TEMP"])
         with File(f0) as arl, pytest.raises(ValueError, match=match):
             arl.sample_points(points, ["TEMP"])
         with pytest.raises(ValueError, match=match):
             sample_points([f0, f1], points, ["TEMP"])
+
+    def test_time_between_steps_says_time_is_not_interpolated(self, tmp_path):
+        path = write_two_time_file(tmp_path / "multi.arl")
+        points = pd.DataFrame({**self.POINTS, "time": [TIME0 + pd.Timedelta(hours=1)]})
+
+        with pytest.raises(
+            ValueError, match=r"does not interpolate in time.*every 6 hours"
+        ):
+            sample_points(path, points, ["TEMP"])
 
     def test_nat_time_raises(self, tmp_path):
         path = write_two_time_file(tmp_path / "multi.arl")

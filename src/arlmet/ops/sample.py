@@ -1690,6 +1690,20 @@ def _map_times(files: Sequence[File]) -> dict[pd.Timestamp, File]:
     return time_map
 
 
+def _describe_times(times: Sequence[pd.Timestamp]) -> str:
+    """Say which valid times the input files hold, briefly, with the spacing if it is even."""
+    if not times:
+        return "no times"
+    steps = {b - a for a, b in zip(times[:-1], times[1:], strict=True)}
+    every = ""
+    if len(steps) == 1:
+        hours = next(iter(steps)) / pd.Timedelta(hours=1)
+        every = f" (every {hours:g} hours)"
+    if len(times) <= 8:
+        return ", ".join(str(t) for t in times) + every
+    return f"{len(times)} times from {times[0]} to {times[-1]}{every}"
+
+
 def sample_points(
     files: FileLike | Sequence[FileLike],
     points: pd.DataFrame | Mapping[str, Any],
@@ -1708,7 +1722,9 @@ def sample_points(
     periods. Each may be an open :class:`~arlmet.file.File` or a path to an
     ARL file; paths are opened (read mode) and closed automatically, while
     already-open Files are left open for the caller to manage. Each point is
-    sampled from the file that contains its valid time.
+    sampled from the file that contains its valid time. Time is not
+    interpolated: each point's time must be one of the valid times of the
+    files, and a point between two valid times raises ``ValueError``.
 
     Parameters
     ----------
@@ -1730,7 +1746,8 @@ def sample_points(
     time : pandas.Timestamp or str, optional
         One valid time for every point, used when ``points`` has no ``time``
         column. Passing both raises ``ValueError``. When neither is given, the
-        input file(s) must contain exactly one valid time, which is used.
+        input file(s) must contain exactly one valid time, which is used. A
+        time must be a valid time of a file (no interpolation in time).
     z_kind : {"pressure", "native", "agl", "msl"}, default "pressure"
         Vertical coordinate system of the ``z`` values. See
         :meth:`arlmet.File.sample_points` for the method each vertical
@@ -1840,12 +1857,13 @@ def sample_points(
         codes, point_times = pd.factorize(coords["time"])
         missing_times = [t for t in point_times if ensure_timestamp(t) not in time_map]
         if missing_times:
-            available = sorted(time_map)
-            coverage = f"{available[0]} to {available[-1]}" if available else "no times"
             raise ValueError(
                 "No input file contains the requested point times: "
                 + ", ".join(str(ensure_timestamp(t)) for t in missing_times)
-                + f". The input file(s) cover {coverage}."
+                + ". A point time must be one of the valid times of the input "
+                "file(s); sample_points does not interpolate in time. They hold "
+                + _describe_times(sorted(time_map))
+                + "."
             )
 
         columns = {

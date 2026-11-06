@@ -848,6 +848,8 @@ class File:
             One valid time for every point, used when ``points`` has no
             ``time`` column. Passing both raises ``ValueError``. When neither
             is given, the file must contain exactly one time, which is used.
+            A time must be one of the file's valid times (no interpolation
+            in time).
         z_kind : {"pressure", "native", "agl", "msl"}, default "pressure"
             Vertical coordinate system of the ``z`` values:
 
