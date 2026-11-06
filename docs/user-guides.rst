@@ -2,9 +2,10 @@ User Guides
 ===========
 
 Use these guides for the most common workflows: downloading meteorology,
-cropping domains, writing ARL files, concatenating files, finding the files for
-a time window, probing one file cheaply, sampling points, deriving vertical
-coordinates, checking files for damage, and understanding the file format.
+cropping domains, writing ARL files, converting other models' output,
+concatenating files, finding the files for a time window, probing one file
+cheaply, sampling points, deriving vertical coordinates, checking files for
+damage, and understanding the file format.
 
 .. toctree::
    :maxdepth: 1
@@ -12,6 +13,7 @@ coordinates, checking files for damage, and understanding the file format.
    downloading
    cropping
    writing
+   converting
    concatenating
    indexing
    probing
