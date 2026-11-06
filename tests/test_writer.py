@@ -277,6 +277,25 @@ class TestWriter:
         np.testing.assert_allclose(reopened["PRSS"].values, ds["PRSS"].values)
         np.testing.assert_allclose(reopened["TEMP"].values, ds["TEMP"].values)
 
+    @pytest.mark.parametrize("dim", ["lat", "lon"])
+    def test_write_dataset_rejects_a_descending_coordinate(self, tmp_path, dim):
+        """Rows and columns are written in array order, so a flipped Dataset is refused."""
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+
+        self.write_sample_file(source_path)
+        flipped = open_dataset(source_path).isel({dim: slice(None, None, -1)})
+
+        with pytest.raises(ValueError, match=rf"coordinate '{dim}' must increase"):
+            write_dataset(flipped, written_path)
+        assert not written_path.exists()
+
+        write_dataset(flipped.sortby(dim), written_path)
+        np.testing.assert_allclose(
+            open_dataset(written_path)["TEMP"].values,
+            open_dataset(source_path)["TEMP"].values,
+        )
+
     def test_write_dataset_defaults_missing_forecast_hours_to_zero(self, tmp_path):
         source_path = tmp_path / "source.arl"
         written_path = tmp_path / "written.arl"
