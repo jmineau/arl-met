@@ -169,6 +169,12 @@ class File:
         if self.mode != "w":
             self._scan()
 
+    def __getstate__(self) -> dict[str, Any]:
+        """Copy and pickle without the open handle; the manager reopens the file."""
+        state = self.__dict__.copy()
+        state["_handle"] = None
+        return state
+
     @property
     def handle(self) -> BinaryIO:
         """Open binary handle to the file, reopened if the file cache closed it."""

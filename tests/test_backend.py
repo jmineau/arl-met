@@ -1,5 +1,8 @@
 """Tests for the xarray backend entrypoint (``engine="arl"``)."""
 
+import copy
+import pickle
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -87,6 +90,20 @@ def test_engine_supports_dask_chunks(tmp_path):
     np.testing.assert_allclose(
         ds["TEMP"].values, arlmet.open_dataset(path)["TEMP"].values
     )
+
+
+@pytest.mark.parametrize("opener", [arlmet.open_dataset, "engine"])
+def test_dataset_copies_and_pickles_after_a_read(tmp_path, opener):
+    path = write_arl(tmp_path / "met.arl")
+    ds = xr.open_dataset(path, engine="arl") if opener == "engine" else opener(path)
+    expected = ds["TEMP"].isel(time=0).values  # the read leaves a handle open
+
+    for copied in (
+        ds.copy(deep=True),
+        copy.deepcopy(ds),
+        pickle.loads(pickle.dumps(ds)),
+    ):
+        np.testing.assert_array_equal(copied["TEMP"].isel(time=0).values, expected)
 
 
 def test_engine_is_detected_without_engine_argument(tmp_path):
