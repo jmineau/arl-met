@@ -348,8 +348,9 @@ def write_dataset(
     Raises
     ------
     ValueError
-        If the Dataset does not match the layout above, a slice is partly NaN
-        or non-finite, an ``attrs["diff"]`` name is not one the name table
+        If the Dataset does not match the layout above (including a ``lat``,
+        ``lon``, ``y`` or ``x`` coordinate that does not increase), a slice is
+        partly NaN or non-finite, an ``attrs["diff"]`` name is not one the name table
         pairs with its variable, or ``filename_or_obj`` is the file ``ds`` was
         opened from.
 
@@ -432,6 +433,14 @@ def write_dataset(
             if da.sizes[dim] != size:
                 raise ValueError(
                     f"Variable '{var_name}' dimension '{dim}' has size {da.sizes[dim]}, expected {size}."
+                )
+            # Rows and columns are written in array order, which must be the
+            # grid's: south to north and west to east, as open_dataset returns.
+            if dim in da.coords and not (np.diff(da.coords[dim].values) > 0).all():
+                raise ValueError(
+                    f"Variable '{var_name}' coordinate '{dim}' must increase along "
+                    f"the dimension, as the file's grid does; sort the Dataset "
+                    f"first, e.g. ds.sortby('{dim}')."
                 )
 
         if "time" not in da.dims:
