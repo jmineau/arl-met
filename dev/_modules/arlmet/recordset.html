@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=7f593605"></script>
+    <script src="../../_static/documentation_options.js?v=d296d3bd"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev6+g94a916daf" />
+  <meta name="docsearch:version" content="0.1.0b9.dev7+gbd99993b0" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -431,7 +431,12 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span><span class="p">,</span> <span class="n">split_grid_component</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.indexrecord</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span><span class="p">,</span> <span class="n">LvlInfo</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">,</span> <span class="n">_derive_index_forecast</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span><span class="p">,</span> <span class="n">_check_dif_parent</span><span class="p">,</span> <span class="n">_require_mode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DataRecord</span><span class="p">,</span>
+    <span class="n">_check_dif_parent</span><span class="p">,</span>
+    <span class="n">_check_field_shape</span><span class="p">,</span>
+    <span class="n">_require_mode</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerticalAxis</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
@@ -611,8 +616,9 @@
 <span class="sd">        Raises</span>
 <span class="sd">        ------</span>
 <span class="sd">        ValueError</span>
-<span class="sd">            If ``variable`` is a ``DIF*`` name, or a ``diff`` name is not one</span>
-<span class="sd">            the name table pairs with ``variable`` at ``level``.</span>
+<span class="sd">            If ``variable`` is a ``DIF*`` name, a ``diff`` name is not one the</span>
+<span class="sd">            name table pairs with ``variable`` at ``level``, or ``data`` does</span>
+<span class="sd">            not have the grid's ``(ny, nx)`` shape.</span>
 <span class="sd">        """</span>
         <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">variable</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"DIF"</span><span class="p">):</span>
@@ -622,6 +628,10 @@
         <span class="n">diff_names</span> <span class="o">=</span> <span class="p">(</span><span class="n">diff</span><span class="p">,)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">diff</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">diff</span> <span class="ow">or</span> <span class="p">())</span>
         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">diff_names</span><span class="p">:</span>
             <span class="n">_check_dif_parent</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Check before the record joins this time step, so a refused one</span>
+            <span class="c1"># leaves nothing behind.</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">_check_field_shape</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
         <span class="n">dr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_datarecord</span><span class="p">(</span>
             <span class="n">position</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">variable</span><span class="o">=</span><span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="n">forecast</span>
         <span class="p">)</span>
