@@ -31,6 +31,20 @@ def restore_year(yr: str | int) -> int:
     return 2000 + yr if (yr < 40) else 1900 + yr
 
 
+FIRST_YEAR = 1940
+LAST_YEAR = 2039
+
+
+def check_year(year: int) -> int:
+    """Return *year*, or raise if the two-digit year of an ARL label cannot hold it."""
+    if not FIRST_YEAR <= year <= LAST_YEAR:
+        raise ValueError(
+            f"ARL files hold a two-digit year, so times must be from {FIRST_YEAR} "
+            f"to {LAST_YEAR}; got the year {year}."
+        )
+    return year
+
+
 def letter_to_thousands(char: str) -> int:
     """Convert letter to thousands digit for large grids. A=1000, B=2000, …"""
     if char in string.ascii_uppercase:
@@ -240,7 +254,7 @@ class Header:
         A forecast hour above 99 is written as 99, the most the two-character
         label holds (HYSPLIT's ``pakrec`` writes ``MIN(hour, 99)``).
         """
-        yy = self.year % 100
+        yy = check_year(self.year) % 100
         grid = "".join(thousands_to_letter(value) for value in self.grid)
         header = (
             f"{yy:02d}"

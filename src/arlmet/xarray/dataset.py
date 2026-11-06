@@ -15,6 +15,7 @@ from xarray.core import indexing
 
 from arlmet._io import atomic_output, reject_same_file
 from arlmet._time import ensure_timestamp
+from arlmet.header import check_year
 from arlmet.ops.sample import _mass_coupled
 from arlmet.ops.subset import normalize_levels, resolve_window, select_records
 from arlmet.vertical import VerticalAxis
@@ -350,7 +351,8 @@ def write_dataset(
     ValueError
         If the Dataset does not match the layout above (including a ``lat``,
         ``lon``, ``y`` or ``x`` coordinate that does not increase), has no time
-        steps, a slice is partly NaN or non-finite, an ``attrs["diff"]`` name
+        steps, a time is outside 1940 to 2039 (a label's two-digit year cannot
+        hold it), a slice is partly NaN or non-finite, an ``attrs["diff"]`` name
         is not one the name table pairs with its variable, or
         ``filename_or_obj`` is the file ``ds`` was opened from.
 
@@ -390,6 +392,9 @@ def write_dataset(
             f"Dataset needs {n_upper_levels + 1} (the surface plus one per 'level' "
             "coordinate value)."
         )
+    if len(times):
+        check_year(times.min().year)
+        check_year(times.max().year)
     forecast_hours = _extract_dataset_forecast_hours(ds, times)
 
     data_vars = list(ds.data_vars)

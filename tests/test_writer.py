@@ -400,6 +400,51 @@ class TestWriter:
             open_dataset(written_path).drop_encoding(), ds.drop_encoding()
         )
 
+    @pytest.mark.parametrize("year", [1899, 1939, 2040, 2045])
+    def test_times_outside_1940_to_2039_are_refused(self, tmp_path, year):
+        grid = make_test_grid()
+        axis = PressureAxis(levels=[0.0])
+        time = pd.Timestamp(f"{year}-03-04 05:00")
+
+        with File(
+            tmp_path / "year.arl",
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=axis,
+        ) as arl:
+            with pytest.raises(ValueError, match=rf"1940 to 2039; got the year {year}"):
+                arl.create_recordset(time)
+            with pytest.raises(ValueError, match="1940 to 2039"):
+                arl.add_record(
+                    time, "PRSS", 0, forecast=0, data=np.ones((20, 20), "float32")
+                )
+
+        source_path = tmp_path / "source.arl"
+        self.write_surface_only_file(source_path)
+        ds = open_dataset(source_path)
+        ds = ds.assign_coords(
+            time=ds.time.values - ds.time.values[0] + np.datetime64(time)
+        )
+        with pytest.raises(ValueError, match="1940 to 2039"):
+            write_dataset(ds, tmp_path / "written.arl", vertical_axis=axis)
+        assert not (tmp_path / "written.arl").exists()
+
+    @pytest.mark.parametrize("year", [1940, 2039])
+    def test_the_first_and_last_year_round_trip(self, tmp_path, year):
+        grid = make_test_grid()
+        axis = PressureAxis(levels=[0.0])
+        time = pd.Timestamp(f"{year}-12-31 23:00")
+        path = tmp_path / "year.arl"
+
+        with File(path, mode="w", source="TEST", grid=grid, vertical_axis=axis) as arl:
+            arl.add_record(
+                time, "PRSS", 0, forecast=0, data=np.ones((20, 20), "float32")
+            )
+
+        with File(path) as arl:
+            assert arl.times == [time]
+
     def test_write_dataset_compacts_level_subset(self, tmp_path):
         source_path = tmp_path / "levels.arl"
         written_path = tmp_path / "written.arl"
