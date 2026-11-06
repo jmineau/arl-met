@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=55c50c90"></script>
+    <script src="../../_static/documentation_options.js?v=5793185b"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev9+g577f4a7c8" />
+  <meta name="docsearch:version" content="0.1.0b9.dev10+gb07b79a32" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -437,7 +437,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.collection</span><span class="w"> </span><span class="kn">import</span> <span class="n">VariableAccessor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARLFormatError</span><span class="p">,</span> <span class="n">ARLFormatWarning</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span><span class="p">,</span> <span class="n">Projection</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">record_length_from_grid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_year</span><span class="p">,</span> <span class="n">record_length_from_grid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.indexrecord</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span><span class="p">,</span> <span class="n">_corrects</span><span class="p">,</span> <span class="n">_is_missing</span><span class="p">,</span> <span class="n">_require_mode</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.recordset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordSet</span>
@@ -798,6 +798,12 @@
 <span class="sd">        -------</span>
 <span class="sd">        RecordSet</span>
 <span class="sd">            Writable record set associated with ``time``.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``time`` is outside 1940 to 2039, the years a label's two-digit</span>
+<span class="sd">            year can hold.</span>
 <span class="sd">        """</span>
         <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -806,6 +812,7 @@
         <span class="n">position</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># New recordsets have no on-disk position yet</span>
         <span class="n">source</span> <span class="o">=</span> <span class="n">grid</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># skip checks in _create_recordset</span>
         <span class="n">ts</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+        <span class="n">check_year</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_recordset</span><span class="p">(</span>
             <span class="n">position</span><span class="o">=</span><span class="n">position</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="n">grid</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">ts</span><span class="p">,</span> <span class="n">forecast</span><span class="o">=</span><span class="n">forecast</span>
         <span class="p">)</span></div>

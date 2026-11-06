@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=55c50c90"></script>
+    <script src="../../_static/documentation_options.js?v=5793185b"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev9+g577f4a7c8" />
+  <meta name="docsearch:version" content="0.1.0b9.dev10+gb07b79a32" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -447,6 +447,20 @@
     <span class="k">return</span> <span class="mi">2000</span> <span class="o">+</span> <span class="n">yr</span> <span class="k">if</span> <span class="p">(</span><span class="n">yr</span> <span class="o">&lt;</span> <span class="mi">40</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1900</span> <span class="o">+</span> <span class="n">yr</span>
 
 
+<span class="n">FIRST_YEAR</span> <span class="o">=</span> <span class="mi">1940</span>
+<span class="n">LAST_YEAR</span> <span class="o">=</span> <span class="mi">2039</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">check_year</span><span class="p">(</span><span class="n">year</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return *year*, or raise if the two-digit year of an ARL label cannot hold it."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">FIRST_YEAR</span> <span class="o">&lt;=</span> <span class="n">year</span> <span class="o">&lt;=</span> <span class="n">LAST_YEAR</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"ARL files hold a two-digit year, so times must be from </span><span class="si">{</span><span class="n">FIRST_YEAR</span><span class="si">}</span><span class="s2"> "</span>
+            <span class="sa">f</span><span class="s2">"to </span><span class="si">{</span><span class="n">LAST_YEAR</span><span class="si">}</span><span class="s2">; got the year </span><span class="si">{</span><span class="n">year</span><span class="si">}</span><span class="s2">."</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">year</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">letter_to_thousands</span><span class="p">(</span><span class="n">char</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Convert letter to thousands digit for large grids. A=1000, B=2000, …"""</span>
     <span class="k">if</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">string</span><span class="o">.</span><span class="n">ascii_uppercase</span><span class="p">:</span>
@@ -663,7 +677,7 @@
 <span class="sd">        A forecast hour above 99 is written as 99, the most the two-character</span>
 <span class="sd">        label holds (HYSPLIT's ``pakrec`` writes ``MIN(hour, 99)``).</span>
 <span class="sd">        """</span>
-        <span class="n">yy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">year</span> <span class="o">%</span> <span class="mi">100</span>
+        <span class="n">yy</span> <span class="o">=</span> <span class="n">check_year</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">)</span> <span class="o">%</span> <span class="mi">100</span>
         <span class="n">grid</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">thousands_to_letter</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
         <span class="n">header</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">yy</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">"</span>
