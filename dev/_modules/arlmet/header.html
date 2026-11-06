@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=5793185b"></script>
+    <script src="../../_static/documentation_options.js?v=0deba581"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev10+gb07b79a32" />
+  <meta name="docsearch:version" content="0.1.0b9.dev11+gcda182a00" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -462,7 +462,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">letter_to_thousands</span><span class="p">(</span><span class="n">char</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Convert letter to thousands digit for large grids. A=1000, B=2000, …"""</span>
+<span class="w">    </span><span class="sd">"""Convert a header grid character to thousands: A=1000, B=2000, …; else 0."""</span>
     <span class="k">if</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">string</span><span class="o">.</span><span class="n">ascii_uppercase</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_uppercase</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">char</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span>
     <span class="k">return</span> <span class="mi">0</span>
@@ -470,16 +470,18 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">thousands_to_letter</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Convert thousands value back to ARL grid header character.</span>
+<span class="sd">    Convert a thousands value to its ARL grid header character.</span>
 
-<span class="sd">    Zero is encoded as ``9`` in the files seen so far. Positive thousands</span>
-<span class="sd">    are encoded as letters with ``A=1000``.</span>
+<span class="sd">    As HYSPLIT's ``pakset`` writes it, ``CHAR(64 + thousands)``: ``@`` for</span>
+<span class="sd">    none, ``A`` for 1000, ``B`` for 2000, and so on. HYSPLIT's ``metset``</span>
+<span class="sd">    reads both characters so once either is ``@`` or above, so a grid with</span>
+<span class="sd">    one axis of 1000 or more needs ``@`` on the other (``9`` there reads as</span>
+<span class="sd">    -7000). A grid under 1000 on both axes has the grid number ``99`` instead</span>
+<span class="sd">    (:meth:`Header.tobytes`).</span>
 <span class="sd">    """</span>
-    <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">"9"</span>
     <span class="k">if</span> <span class="n">value</span> <span class="o">%</span> <span class="mi">1000</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="mi">26000</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported grid thousands value: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">string</span><span class="o">.</span><span class="n">ascii_uppercase</span><span class="p">[(</span><span class="n">value</span> <span class="o">//</span> <span class="mi">1000</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">chr</span><span class="p">(</span><span class="mi">64</span> <span class="o">+</span> <span class="n">value</span> <span class="o">//</span> <span class="mi">1000</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">format_fortran_float</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -568,8 +570,8 @@
 <span class="sd">        ARL vertical level index.</span>
 <span class="sd">    grid : tuple[int, int]</span>
 <span class="sd">        Thousands part of the x and y grid sizes, as stored in the header's</span>
-<span class="sd">        two grid letters (``(1000, 0)`` for a 1799x799 grid; ``(0, 0)``</span>
-<span class="sd">        below 1000 points). The remainders live in the index record, whose</span>
+<span class="sd">        two grid characters (``(1000, 0)`` for a 1799x799 grid, written</span>
+<span class="sd">        ``A@``; ``(0, 0)`` below 1000 points, written ``99``). The remainders live in the index record, whose</span>
 <span class="sd">        ``nx``/``ny`` are the full sizes.</span>
 <span class="sd">    variable : str</span>
 <span class="sd">        Four-character ARL variable name.</span>
@@ -675,10 +677,17 @@
 <span class="sd">        Serialize the header to its fixed-width ASCII representation.</span>
 
 <span class="sd">        A forecast hour above 99 is written as 99, the most the two-character</span>
-<span class="sd">        label holds (HYSPLIT's ``pakrec`` writes ``MIN(hour, 99)``).</span>
+<span class="sd">        label holds (HYSPLIT's ``pakrec`` writes ``MIN(hour, 99)``). The grid</span>
+<span class="sd">        characters are ``99`` below 1000 points on both axes, else one per</span>
+<span class="sd">        axis, ``@`` for no thousands (HYSPLIT's ``pakset``).</span>
 <span class="sd">        """</span>
         <span class="n">yy</span> <span class="o">=</span> <span class="n">check_year</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">)</span> <span class="o">%</span> <span class="mi">100</span>
-        <span class="n">grid</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">thousands_to_letter</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
+        <span class="c1"># The grid number 99 below 1000 points, else a character per axis.</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">thousands_to_letter</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
+            <span class="k">else</span> <span class="s2">"99"</span>
+        <span class="p">)</span>
         <span class="n">header</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">yy</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">"</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">month</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">"</span>
