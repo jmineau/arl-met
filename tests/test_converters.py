@@ -573,6 +573,14 @@ def wrf_output(minutes=(360.0, 420.0, 480.0), *, nx=25, ny=20, nz=3, attrs=None)
         "PBLH": (flat, f(100.0, 2000.0, m2)),
         "HFX": (flat, f(-50.0, 300.0, m2)),
         "T2": (flat, f(280.0, 20.0, m2)),
+        "AVGFLX_RUM": (("Time", "bottom_top", "south_north", "west_east_stag"), f(-1e5, 2e5, (nt, nz, ny, nx + 1))),
+        "AVGFLX_RVM": (("Time", "bottom_top", "south_north_stag", "west_east"), f(-1e5, 2e5, (nt, nz, ny + 1, nx))),
+        "AVGFLX_WWM": (("Time", "bottom_top_stag", "south_north", "west_east"), f(-1e3, 2e3, (nt, nz + 1, ny, nx))),
+        "MUU": (("Time", "south_north", "west_east_stag"), f(7e4, 2e4, (nt, ny, nx + 1))),
+        "MUV": (("Time", "south_north_stag", "west_east"), f(7e4, 2e4, (nt, ny + 1, nx))),
+        "MAPFAC_M": (flat, f(0.99, 0.02, m2)),
+        "MAPFAC_U": (("Time", "south_north", "west_east_stag"), f(0.99, 0.02, (nt, ny, nx + 1))),
+        "MAPFAC_V": (("Time", "south_north_stag", "west_east"), f(0.99, 0.02, (nt, ny + 1, nx))),
     }  # fmt: skip
     return xr.Dataset(
         {name: (dims, np.asarray(values)) for name, (dims, values) in data.items()},
@@ -697,6 +705,84 @@ class TestFromWrf:
     def test_missing_variables_raise(self):
         with pytest.raises(ValueError, match="lacks PB, W"):
             from_wrf(wrf_output().drop_vars(["PB", "W"]))
+
+    def test_averaged_winds_as_arw2arl_c2(self):
+        wrf = wrf_output().assign(ZNT=wrf_output()["HGT"] * 0 + 0.1)
+        ds = from_wrf(wrf, winds="averaged")
+        # The mass-coupled averages as stored, at the faces of each cell.
+        np.testing.assert_array_equal(
+            ds["UWND"].values, wrf["AVGFLX_RUM"].values[..., :-1]
+        )
+        np.testing.assert_array_equal(
+            ds["VWND"].values, wrf["AVGFLX_RVM"].values[:, :, :-1]
+        )
+        np.testing.assert_array_equal(
+            ds["WWND"].values, wrf["AVGFLX_WWM"].values[:, :-1]
+        )
+        assert ds["UWND"].attrs == {"units": "Pa m s-1"}
+        assert ds["WWND"].attrs == {"units": "Pa s-1"}  # no DIFW
+        np.testing.assert_array_equal(ds["MUU0"].values, wrf["MUU"].values[..., :-1])
+        np.testing.assert_array_equal(ds["MUV0"].values, wrf["MUV"].values[:, :-1])
+        np.testing.assert_array_equal(ds["MSFT"].values, wrf["MAPFAC_M"].values)
+        np.testing.assert_array_equal(
+            ds["MSFU"].values, wrf["MAPFAC_U"].values[..., :-1]
+        )
+        np.testing.assert_array_equal(ds["MSFV"].values, wrf["MAPFAC_V"].values[:, :-1])
+        np.testing.assert_array_equal(ds["RGHS"].values, wrf["ZNT"].values)
+        # Temperature, pressure and precipitation as with instantaneous winds.
+        instant = from_wrf(wrf)
+        for name in ("TEMP", "PRES", "TPP1", "SPHU"):
+            xr.testing.assert_identical(ds[name], instant[name])
+
+    def test_averaged_file_reads_as_mass_coupled(self, tmp_path):
+        ds = from_wrf(wrf_output(), winds="averaged")
+        assert "RGHS" not in ds  # this run has no ZNT
+        dest = tmp_path / "wrf-avg.arl"
+        arlmet.write_dataset(ds, dest)
+        back = arlmet.open_dataset(dest)
+        assert "MUU0" in back["UWND"].attrs["description"]
+
+    def test_averaged_winds_sample_as_the_winds_they_couple(self, tmp_path):
+        # Coupled winds built from U, V and the omega of the instantaneous file
+        # decouple, in sample_points as in HYSPLIT, to the same winds.
+        wrf = wrf_output()
+        instantaneous = from_wrf(wrf)
+        nz = wrf.sizes["bottom_top"]
+        wrf["AVGFLX_RUM"] = wrf["U"] * wrf["MUU"] / wrf["MAPFAC_U"]
+        wrf["AVGFLX_RVM"] = wrf["V"] * wrf["MUV"] / wrf["MAPFAC_V"]
+        wwm = wrf["AVGFLX_WWM"].values.copy()
+        omega = instantaneous["WWND"].values  # hPa s-1
+        wwm[:, :nz] = omega * 100.0 / wrf["MAPFAC_M"].values[:, None]
+        wrf["AVGFLX_WWM"] = (wrf["AVGFLX_WWM"].dims, wwm)
+        paths = tmp_path / "instantaneous.arl", tmp_path / "averaged.arl"
+        arlmet.write_dataset(instantaneous, paths[0])
+        arlmet.write_dataset(from_wrf(wrf, winds="averaged"), paths[1])
+
+        j, i = np.meshgrid([4, 9, 15], [5, 12, 19], indexing="ij")
+        points = pd.DataFrame(
+            {
+                "lon": instantaneous["lon"].values[j, i].ravel(),
+                "lat": instantaneous["lat"].values[j, i].ravel(),
+                "z": 2.0,
+            }
+        )
+        time = instantaneous["time"].values[1]
+        names = ["UWND", "VWND", "WWND"]
+        expected, got = (
+            arlmet.sample_points(path, points, names, time=time, z_kind="native")
+            for path in paths
+        )
+        for name in names:
+            span = float(np.ptp(instantaneous[name].values))
+            np.testing.assert_allclose(got[name], expected[name], atol=2e-3 * span)
+
+    def test_averaged_winds_need_their_fields(self):
+        with pytest.raises(ValueError, match="lacks AVGFLX_WWM, MUU"):
+            from_wrf(wrf_output().drop_vars(["AVGFLX_WWM", "MUU"]), winds="averaged")
+
+    def test_unknown_winds_raise(self):
+        with pytest.raises(ValueError, match="winds must be"):
+            from_wrf(wrf_output(), winds="mean")  # pyrefly: ignore[bad-argument-type]
 
     def test_not_a_dataset_raises(self):
         with pytest.raises(TypeError, match="takes an xarray.Dataset"):

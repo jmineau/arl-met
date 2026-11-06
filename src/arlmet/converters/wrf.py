@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -49,7 +49,27 @@ LEVEL_FIELDS: dict[str, Field] = {
     "SPHU": Field("SPHU", 1.0, "kg kg-1"),
 }
 
-_REQUIRED = ("Times", "ZNU", "P_TOP", "P", "PB", "T", "U", "V", "W", "QVAPOR")
+_REQUIRED = ("Times", "ZNU", "P_TOP", "P", "PB", "T", "QVAPOR")
+#: The winds of each of ``arw2arl``'s variable lists: (U, V, W) and, for the
+#: mass-coupled averages, the fields HYSPLIT decouples them with.
+_WINDS = {
+    "instantaneous": (("U", "V", "W"), ()),
+    "averaged": (
+        ("AVGFLX_RUM", "AVGFLX_RVM", "AVGFLX_WWM"),
+        ("MUU", "MUV", "MAPFAC_M", "MAPFAC_U", "MAPFAC_V"),
+    ),
+}
+
+#: The surface fields the averaged winds add (``arw2arl -c2``), by WRF name:
+#: (ARL field, the staggered dimension to cut to the mass points).
+AVERAGED_SURFACE_FIELDS: dict[str, tuple[Field, str | None]] = {
+    "ZNT": (Field("RGHS", 1.0, "m"), None),
+    "MUU": (Field("MUU0", 1.0, "Pa"), "west_east_stag"),
+    "MUV": (Field("MUV0", 1.0, "Pa"), "south_north_stag"),
+    "MAPFAC_M": (Field("MSFT", 1.0, "1"), None),
+    "MAPFAC_U": (Field("MSFU", 1.0, "1"), "west_east_stag"),
+    "MAPFAC_V": (Field("MSFV", 1.0, "1"), "south_north_stag"),
+}
 _DIMS = {"Time": "time", "bottom_top": "level", "south_north": "y", "west_east": "x"}
 
 
@@ -79,6 +99,7 @@ def wrf_grid(attrs: Mapping[str, Any], nx: int, ny: int) -> Grid:
     """
 
     def value(name: str) -> float:
+        """Return the global attribute ``name`` as a float, or raise naming it."""
         if name not in attrs:
             raise ValueError(f"The WRF Dataset has no '{name}' attribute.")
         return float(attrs[name])
@@ -147,12 +168,15 @@ def _minutes(ds: xr.Dataset, times: pd.DatetimeIndex) -> np.ndarray:
     return np.asarray(offset / pd.Timedelta(minutes=1), dtype=float)
 
 
-def from_wrf(ds: xr.Dataset) -> xr.Dataset:
+def from_wrf(
+    ds: xr.Dataset, *, winds: Literal["instantaneous", "averaged"] = "instantaneous"
+) -> xr.Dataset:
     """
     Convert WRF-ARW output to a Dataset that :func:`arlmet.write_dataset` writes.
 
     This is HYSPLIT's ``arw2arl`` with its default variables (instantaneous
-    winds), taking WRF's ``wrfout`` files as xarray opens them: one file, or
+    winds) or, with ``winds="averaged"``, its mass-coupled time-averaged winds
+    (``arw2arl -c2``), taking WRF's ``wrfout`` files as xarray opens them: one file, or
     several joined along ``Time`` (``xr.open_mfdataset(files,
     combine="nested", concat_dim="Time")``). The result has source ``AWRF``
     (which HYSPLIT and :func:`arlmet.sample_points` read as WRF), WRF's own
@@ -190,35 +214,49 @@ def from_wrf(ds: xr.Dataset) -> xr.Dataset:
     before, scaled to one hour; the first time step has none, so join every
     file of a run before converting.
 
+    With ``winds="averaged"`` (a run with ``do_avgflx_em = 1``), ``UWND``,
+    ``VWND`` and ``WWND`` are WRF's ``AVGFLX_RUM``, ``AVGFLX_RVM`` and
+    ``AVGFLX_WWM`` as stored: averaged over the output interval and coupled to
+    the column mass (no ``DIFW``, as ``arw2arl -c2`` writes them). The file
+    also gets what HYSPLIT decouples them with: ``MUU0`` and ``MUV0`` (WRF's
+    ``MUU``, ``MUV``), ``MSFT``, ``MSFU`` and ``MSFV`` (``MAPFAC_M``,
+    ``MAPFAC_U``, ``MAPFAC_V``), all at the mass points' faces as stored,
+    and ``RGHS`` (``ZNT``) where the run has it. HYSPLIT and
+    :func:`arlmet.sample_points` use ``UWND * MSFU / MUU0``, ...;
+    :func:`arlmet.open_dataset` returns the stored values.
+
     Parameters
     ----------
     ds : xarray.Dataset
         WRF output with its global attributes (``MAP_PROJ``, ``CEN_LAT``,
         ``DX``, ...) and at least ``Times``, ``ZNU``, ``P_TOP``, ``P``, ``PB``,
-        ``T``, ``U``, ``V``, ``W`` and ``QVAPOR``. Single-level variables
-        not in it are left out.
+        ``T``, ``QVAPOR`` and the winds. Single-level variables not in it are
+        left out.
+    winds : {"instantaneous", "averaged"}, default "instantaneous"
+        Which winds to write: WRF's ``U``, ``V`` and ``W`` at the output time,
+        or the mass-coupled averages over the interval before it (above).
 
     Returns
     -------
     xarray.Dataset
         The fields in :func:`arlmet.open_dataset`'s layout (dims ``time``,
         ``level``, ``y``, ``x``), with each variable's ARL ``units`` and
-        ``attrs["diff"]`` on ``WWND`` and ``TPP1``. Every model level is kept
+        ``attrs["diff"]`` on ``TPP1`` and, for instantaneous winds, ``WWND``.
+        Every model level is kept
         (``arw2arl`` keeps 50 unless told otherwise); ``ds.isel(level=...)``
         keeps fewer.
 
     Raises
     ------
     ValueError
-        If a required variable or attribute is missing, or ``MAP_PROJ`` is
-        not 1, 2 or 3.
+        If a required variable or attribute is missing, ``MAP_PROJ`` is not
+        1, 2 or 3, or ``winds`` is neither "instantaneous" nor "averaged".
 
     Notes
     -----
-    ``arw2arl``'s other variable lists, the mass-coupled time-averaged winds
-    (``AVGFLX_RUM``, ... with ``MUU0``, ``MSFU``, ...) and TKE, are not
-    converted. :func:`arlmet.open_dataset` and :func:`arlmet.sample_points`
-    read the winds of the result where WRF put them (``AWRF``).
+    ``arw2arl``'s TKE list is not converted. :func:`arlmet.open_dataset` and
+    :func:`arlmet.sample_points` read the winds of the result where WRF put
+    them (``AWRF``).
 
     Examples
     --------
@@ -232,7 +270,11 @@ def from_wrf(ds: xr.Dataset) -> xr.Dataset:
     """
     if not isinstance(ds, xr.Dataset):
         raise TypeError(f"from_wrf() takes an xarray.Dataset, got {type(ds).__name__}.")
-    missing = [name for name in _REQUIRED if name not in ds]
+    if winds not in _WINDS:
+        raise ValueError(f"winds must be 'instantaneous' or 'averaged', got {winds!r}.")
+    (u_name, v_name, w_name), couplers = _WINDS[winds]
+    required = (*_REQUIRED, u_name, v_name, w_name, *couplers)
+    missing = [name for name in required if name not in ds]
     if missing:
         raise ValueError(f"The WRF Dataset lacks {', '.join(missing)}.")
     if "Time" not in ds["T"].dims:
@@ -282,17 +324,22 @@ def from_wrf(ds: xr.Dataset) -> xr.Dataset:
 
     pressure = ds["P"] + ds["PB"]  # Pa
     temperature = (ds["T"] + 300.0) * (pressure / 1.0e5) ** (R_DRY / CP)
-    w = ds["W"].isel(bottom_top_stag=slice(0, nz)).rename(bottom_top_stag="bottom_top")
-    omega = (
-        -w
-        * GRAVITY
-        * pressure
-        * 0.01
-        / (R_DRY * temperature * (1.0 + 0.6077 * ds["QVAPOR"]))
+    w = (
+        ds[w_name]
+        .isel(bottom_top_stag=slice(0, nz))
+        .rename(bottom_top_stag="bottom_top")
     )
-    u = ds["U"].isel(west_east_stag=slice(0, nx)).rename(west_east_stag="west_east")
+    if winds == "instantaneous":
+        w = (
+            -w
+            * GRAVITY
+            * pressure
+            * 0.01
+            / (R_DRY * temperature * (1.0 + 0.6077 * ds["QVAPOR"]))
+        )
+    u = ds[u_name].isel(west_east_stag=slice(0, nx)).rename(west_east_stag="west_east")
     v = (
-        ds["V"]
+        ds[v_name]
         .isel(south_north_stag=slice(0, ny))
         .rename(south_north_stag="south_north")
     )
@@ -301,12 +348,27 @@ def from_wrf(ds: xr.Dataset) -> xr.Dataset:
         "TEMP": temperature,
         "UWND": u,
         "VWND": v,
-        "WWND": omega,
+        "WWND": w,
         "SPHU": ds["QVAPOR"],
     }
     for name, da in fields.items():
         bad = {d: s for d, s in sizes_ok.items() if d in da.dims and da.sizes[d] != s}
         if bad:
             raise ValueError(f"WRF's {name} has unexpected sizes {bad}.")
-        out[name] = field_variable(arl(da), LEVEL_FIELDS[name], upper_dims)
+        field = LEVEL_FIELDS[name]
+        if winds == "averaged" and name in {"UWND", "VWND", "WWND"}:
+            # Mass-coupled, as stored (WRF's units).
+            field = Field(name, 1.0, "Pa s-1" if name == "WWND" else "Pa m s-1")
+        out[name] = field_variable(arl(da), field, upper_dims)
+    if winds == "averaged":
+        for name, (field, staggered) in AVERAGED_SURFACE_FIELDS.items():
+            if name not in ds:
+                continue
+            da = ds[name]
+            if staggered is not None:
+                size = nx if staggered == "west_east_stag" else ny
+                da = da.isel({staggered: slice(0, size)}).rename(
+                    {staggered: staggered.removesuffix("_stag")}
+                )
+            out[field.name] = field_variable(arl(da), field, surface_dims)
     return out
