@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=ebc28676"></script>
+    <script src="../_static/documentation_options.js?v=7f593605"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev5+g699c3a4a0" />
+  <meta name="docsearch:version" content="0.1.0b9.dev6+g94a916daf" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -659,7 +659,9 @@ file with <code class="docutils literal notranslate"><span class="pre">THET</spa
 <span class="pre">**</span> <span class="pre">0.286</span></code>.</p></li>
 <li><p><strong>time</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.html#pandas.Timestamp" title="(in pandas v3.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Timestamp</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – One valid time for every point, used when <code class="docutils literal notranslate"><span class="pre">points</span></code> has no
 <code class="docutils literal notranslate"><span class="pre">time</span></code> column. Passing both raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. When neither
-is given, the file must contain exactly one time, which is used.</p></li>
+is given, the file must contain exactly one time, which is used.
+A time must be one of the file’s valid times (no interpolation
+in time).</p></li>
 <li><p><strong>z_kind</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'native'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'pressure'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'agl'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'msl'</span></span></code></span>]</span>) – <p>Vertical coordinate system of the <code class="docutils literal notranslate"><span class="pre">z</span></code> values:</p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;native&quot;</span></code>: fractional ARL level index.</p></li>

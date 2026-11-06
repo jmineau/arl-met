@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=ebc28676"></script>
+    <script src="../../_static/documentation_options.js?v=7f593605"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev5+g699c3a4a0" />
+  <meta name="docsearch:version" content="0.1.0b9.dev6+g94a916daf" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1286,6 +1286,8 @@
 <span class="sd">            One valid time for every point, used when ``points`` has no</span>
 <span class="sd">            ``time`` column. Passing both raises ``ValueError``. When neither</span>
 <span class="sd">            is given, the file must contain exactly one time, which is used.</span>
+<span class="sd">            A time must be one of the file's valid times (no interpolation</span>
+<span class="sd">            in time).</span>
 <span class="sd">        z_kind : {"pressure", "native", "agl", "msl"}, default "pressure"</span>
 <span class="sd">            Vertical coordinate system of the ``z`` values:</span>
 

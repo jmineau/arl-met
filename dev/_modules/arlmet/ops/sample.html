@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=ebc28676"></script>
+    <script src="../../../_static/documentation_options.js?v=7f593605"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev5+g699c3a4a0" />
+  <meta name="docsearch:version" content="0.1.0b9.dev6+g94a916daf" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -2106,6 +2106,20 @@
     <span class="k">return</span> <span class="n">time_map</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_describe_times</span><span class="p">(</span><span class="n">times</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Say which valid times the input files hold, briefly, with the spacing if it is even."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">times</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"no times"</span>
+    <span class="n">steps</span> <span class="o">=</span> <span class="p">{</span><span class="n">b</span> <span class="o">-</span> <span class="n">a</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">times</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">times</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span>
+    <span class="n">every</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">hours</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">steps</span><span class="p">))</span> <span class="o">/</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">every</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" (every </span><span class="si">{</span><span class="n">hours</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> hours)"</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">8</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">times</span><span class="p">)</span> <span class="o">+</span> <span class="n">every</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span><span class="si">}</span><span class="s2"> times from </span><span class="si">{</span><span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">times</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}{</span><span class="n">every</span><span class="si">}</span><span class="s2">"</span>
+
+
 <div class="viewcode-block" id="sample_points">
 <a class="viewcode-back" href="../../../_autosummary/arlmet.sample_points.html#arlmet.sample_points">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">sample_points</span><span class="p">(</span>
@@ -2126,7 +2140,9 @@
 <span class="sd">    periods. Each may be an open :class:`~arlmet.file.File` or a path to an</span>
 <span class="sd">    ARL file; paths are opened (read mode) and closed automatically, while</span>
 <span class="sd">    already-open Files are left open for the caller to manage. Each point is</span>
-<span class="sd">    sampled from the file that contains its valid time.</span>
+<span class="sd">    sampled from the file that contains its valid time. Time is not</span>
+<span class="sd">    interpolated: each point's time must be one of the valid times of the</span>
+<span class="sd">    files, and a point between two valid times raises ``ValueError``.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -2148,7 +2164,8 @@
 <span class="sd">    time : pandas.Timestamp or str, optional</span>
 <span class="sd">        One valid time for every point, used when ``points`` has no ``time``</span>
 <span class="sd">        column. Passing both raises ``ValueError``. When neither is given, the</span>
-<span class="sd">        input file(s) must contain exactly one valid time, which is used.</span>
+<span class="sd">        input file(s) must contain exactly one valid time, which is used. A</span>
+<span class="sd">        time must be a valid time of a file (no interpolation in time).</span>
 <span class="sd">    z_kind : {"pressure", "native", "agl", "msl"}, default "pressure"</span>
 <span class="sd">        Vertical coordinate system of the ``z`` values. See</span>
 <span class="sd">        :meth:`arlmet.File.sample_points` for the method each vertical</span>
@@ -2258,12 +2275,13 @@
         <span class="n">codes</span><span class="p">,</span> <span class="n">point_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">factorize</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="s2">"time"</span><span class="p">])</span>
         <span class="n">missing_times</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">point_times</span> <span class="k">if</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">time_map</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">missing_times</span><span class="p">:</span>
-            <span class="n">available</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">time_map</span><span class="p">)</span>
-            <span class="n">coverage</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">available</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">available</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">available</span> <span class="k">else</span> <span class="s2">"no times"</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">"No input file contains the requested point times: "</span>
                 <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">missing_times</span><span class="p">)</span>
-                <span class="o">+</span> <span class="sa">f</span><span class="s2">". The input file(s) cover </span><span class="si">{</span><span class="n">coverage</span><span class="si">}</span><span class="s2">."</span>
+                <span class="o">+</span> <span class="s2">". A point time must be one of the valid times of the input "</span>
+                <span class="s2">"file(s); sample_points does not interpolate in time. They hold "</span>
+                <span class="o">+</span> <span class="n">_describe_times</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">time_map</span><span class="p">))</span>
+                <span class="o">+</span> <span class="s2">"."</span>
             <span class="p">)</span>
 
         <span class="n">columns</span> <span class="o">=</span> <span class="p">{</span>
