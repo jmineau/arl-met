@@ -124,6 +124,17 @@ class TestTable:
             tmp_path / "aaa",
         ]
 
+    def test_a_window_with_a_time_zone_is_converted_to_utc(self, archive):
+        idx = index(archive)
+        # 2024-06-30 18:00 to 2024-07-01 04:00 in Denver is 00:00 to 10:00 UTC.
+        start = pd.Timestamp("2024-06-30 18:00", tz="America/Denver")
+        end = pd.Timestamp("2024-07-01 04:00", tz="America/Denver")
+
+        assert idx.covering(start, end) == idx.covering(
+            "2024-07-01 00:00", "2024-07-01 10:00"
+        )
+        assert idx.missing(start, end) == []
+
     def test_a_file_that_is_not_arl_is_kept_with_its_error(self, archive):
         (archive / "README.TXT").write_text("HRRR 3 km archive\n" * 40)
         (archive / "empty").write_bytes(b"")

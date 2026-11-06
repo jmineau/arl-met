@@ -477,7 +477,8 @@ class DirectoryIndex:
         Parameters
         ----------
         start, end : datetime-like
-            The window, earlier time first.
+            The window, earlier time first. A time without a time zone is UTC;
+            a time-zone-aware one is converted to UTC.
 
         Returns
         -------
@@ -507,7 +508,8 @@ class DirectoryIndex:
         Parameters
         ----------
         start, end : datetime-like
-            The window, earlier time first.
+            The window, earlier time first. A time without a time zone is UTC;
+            a time-zone-aware one is converted to UTC.
 
         Returns
         -------

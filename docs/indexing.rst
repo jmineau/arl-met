@@ -77,7 +77,8 @@ hold them, in time order:
 
 The window starts at 05:30, so it needs 05:00, which is in the first file, and
 it ends at 12:00, which is in the third. A window from 06:00 to 11:00 needs only
-the second file.
+the second file. A time without a time zone is UTC, and one with a time zone
+is converted to UTC, as in the archives.
 
 The valid times are expected every :attr:`~arlmet.DirectoryIndex.step`, the
 most common spacing between the valid times of the folder. When a file is

@@ -379,7 +379,8 @@ Point times
 
 Each point's valid time comes from exactly one place:
 
-- the ``time`` column of ``points``, if it has one;
+- the ``time`` column of ``points``, if it has one (a time without a time zone
+  is UTC, and one with a time zone is converted to UTC);
 - otherwise the ``time=`` argument, applied to every point;
 - otherwise, when the input file(s) hold a single valid time, that time.
 
