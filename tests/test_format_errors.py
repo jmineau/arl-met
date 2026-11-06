@@ -6,7 +6,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from arlmet import ARLFormatError, ARLFormatWarning, File, extract_subset
+from arlmet import (
+    ARLFormatError,
+    ARLFormatWarning,
+    File,
+    extract_subset,
+    open_dataset,
+)
 from arlmet.grid import Grid, Projection
 from arlmet.header import Header
 from arlmet.vertical import PressureAxis
@@ -88,6 +94,19 @@ class TestHeaderAndIndexParsing:
 
         with pytest.raises(ARLFormatError, match="junk.bin.*byte 0"):
             File(path)
+
+    def test_empty_file_raises_format_error_in_every_reader(self, tmp_path):
+        path = tmp_path / "empty.arl"
+        path.write_bytes(b"")
+        match = "empty.arl: holds no index record at byte 0"
+
+        with pytest.raises(ARLFormatError, match=match):
+            File(path)
+        with pytest.raises(ARLFormatError, match=match):
+            open_dataset(path)
+        with pytest.raises(ARLFormatError, match=match):
+            extract_subset(path, tmp_path / "out.arl", bbox=(0, 0, 10, 10))
+        assert not (tmp_path / "out.arl").exists()
 
     def test_corrupt_index_record_raises_format_error(self, tmp_path):
         path = tmp_path / "corrupt_index.arl"

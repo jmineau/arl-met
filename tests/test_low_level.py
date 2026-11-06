@@ -937,9 +937,8 @@ class TestFileLowLevelBehavior:
             raise EOFError
 
         monkeypatch.setattr("arlmet.file.IndexRecord.from_position", eof_from_position)
-        arl = File(eof_path)
-        assert len(arl) == 0
-        arl.close()
+        with pytest.raises(ARLFormatError, match="holds no index record"):
+            File(eof_path)
 
         diff_path = tmp_path / "scan_diff_after_data.arl"
         diff_path.write_bytes(b"\0" * 1350)  # index record + two data records

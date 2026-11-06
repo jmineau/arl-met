@@ -349,10 +349,10 @@ def write_dataset(
     ------
     ValueError
         If the Dataset does not match the layout above (including a ``lat``,
-        ``lon``, ``y`` or ``x`` coordinate that does not increase), a slice is
-        partly NaN or non-finite, an ``attrs["diff"]`` name is not one the name table
-        pairs with its variable, or ``filename_or_obj`` is the file ``ds`` was
-        opened from.
+        ``lon``, ``y`` or ``x`` coordinate that does not increase), has no time
+        steps, a slice is partly NaN or non-finite, an ``attrs["diff"]`` name
+        is not one the name table pairs with its variable, or
+        ``filename_or_obj`` is the file ``ds`` was opened from.
 
     Notes
     -----
@@ -370,6 +370,8 @@ def write_dataset(
     if "time" not in ds.coords:
         raise ValueError("Dataset must define a 'time' coordinate.")
     times = pd.to_datetime(ds.coords["time"].values)
+    if len(times) == 0:
+        raise ValueError("Dataset has no time steps to write.")
 
     source = ds.attrs.get("source")
     if not isinstance(source, str) or not source:

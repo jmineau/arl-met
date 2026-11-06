@@ -159,9 +159,6 @@ def _scan_inputs(paths: list[Path]) -> list[tuple[pd.Timestamp, Path, int, int]]
     for path in paths:
         with File(path) as src:
             times = src.times
-            if not times:
-                # An empty file never set a grid/axis, so check before reading them.
-                raise ValueError(f"Input file {path} contains no records.")
             grid = src.grid
             axis = src.vertical_axis
             # File raised if a repeated time step differs, so a repeat is a
@@ -349,6 +346,4 @@ def _read_time_span(path: Path) -> tuple[pd.Timestamp, pd.Timestamp]:
             f"Could not read an ARL index record from {path}: {exc}. "
             "Scope `pattern` so it only matches ARL files."
         ) from exc
-    if not times:
-        raise ValueError(f"Input file {path} contains no records.")
     return times[0], times[-1]

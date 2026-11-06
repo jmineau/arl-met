@@ -145,7 +145,7 @@ class TestTable:
             zip([p.name for p in idx.table["path"]], idx.table["error"], strict=True)
         )
         assert "README.TXT" in errors["README.TXT"]  # the message names the file
-        assert errors["empty"] == "The file holds no time step."
+        assert "holds no index record" in errors["empty"]
         rows = idx.table.set_index(idx.table["path"].map(lambda p: p.name))
         assert pd.isna(rows.loc["README.TXT", "start"])
         assert rows.loc["empty", "source"] == ""

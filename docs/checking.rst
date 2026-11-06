@@ -3,7 +3,7 @@ Checking Files
 
 Use :meth:`arlmet.File.check` to find damage that does not stop a file from
 opening. Opening a file already raises :class:`arlmet.ARLFormatError` when it is
-cut short. A file can also hold a time step written partway, skip a time step,
+empty or cut short. A file can also hold a time step written partway, skip a time step,
 or have records overwritten with other bytes, and still open. HYSPLIT then stops
 partway through a run, or reads bad values. Checking a file before a run, or
 after downloading or cropping it, finds these first.
