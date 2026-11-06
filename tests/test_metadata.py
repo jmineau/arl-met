@@ -44,6 +44,10 @@ class TestLetterToThousands:
         """Test that space returns 0."""
         assert letter_to_thousands(" ") == 0
 
+    def test_at_sign_is_no_thousands(self):
+        """HYSPLIT's pakset writes '@' for an axis under 1000 beside one over it."""
+        assert letter_to_thousands("@") == 0
+
 
 class TestRestoreYear:
     """Tests for restore_year function."""
@@ -186,6 +190,29 @@ class TestIndexRecordGridSize:
     def test_mismatched_header_grid_raises(self):
         with pytest.raises(ValueError, match="thousands"):
             _index_record(1799, 1059, grid=(0, 0))
+
+    @pytest.mark.parametrize(
+        ("nx", "ny", "chars"),
+        [
+            (999, 999, b"99"),
+            (1377, 657, b"A@"),
+            (657, 2001, b"@B"),
+            (1799, 1059, b"AA"),
+        ],
+    )
+    def test_grid_characters_as_hysplit_writes_and_reads_them(self, nx, ny, chars):
+        raw = _index_record(nx, ny).tobytes()
+        assert raw[12:14] == chars  # pakset: CHAR(64 + thousands) once either is 1000+
+        # metset reads the label's two characters as the thousands of each axis
+        # once either is '@' (64) or above, and the remainders from the index record.
+        knx, kny = raw[12], raw[13]
+        fixed = raw[Header.N_BYTES : Header.N_BYTES + IndexRecord.N_BYTES_FIXED]
+        rem_x, rem_y = int(fixed[93:96]), int(fixed[96:99])
+        if knx >= 64 or kny >= 64:
+            rem_x, rem_y = (knx - 64) * 1000 + rem_x, (kny - 64) * 1000 + rem_y
+        assert (rem_x, rem_y) == (nx, ny)
+        parsed = IndexRecord.from_position(io.BytesIO(raw), 0)
+        assert (parsed.nx, parsed.ny) == (nx, ny)
 
     def test_tobytes_computes_index_length_without_mutation(self):
         index = _index_record(20, 20)

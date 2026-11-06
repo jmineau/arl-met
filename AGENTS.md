@@ -58,9 +58,9 @@ methods, keeping the import graph one-way; `converters/` sits on `xarray/`.
 - **Projection fields.** The 12 projection values are kept as stored (HYSPLIT reads
   them raw; to its `gbl2xy` a lat/lon `sync_lon` of -125 is not 235). `sync_x`/`sync_y`
   can lie off the grid: a projected crop keeps its source's sync point (`Grid.subset`).
-- **Grids over 999 cells.** The thousands of `nx`/`ny` are a letter in the header
-  (`A` = 1000, ...). `Header.grid` holds the thousands and the index record only
-  the remainder, but `IndexRecord.nx`/`ny` are the full sizes (`__post_init__`
+- **Grids over 999 cells.** Each of `nx`/`ny` has a thousands character in the header (`@` = 0,
+  `A` = 1000, ...; `99` if both are under 1000: `pakset` writes, `metset` reads). `Header.grid` holds the
+  thousands, the index record the remainder, but `IndexRecord.nx`/`ny` are the full sizes (`__post_init__`
   rejects a mismatched `header.grid`); `index_length` is computed, never stored.
 - **Packing.** Values are unsigned bytes of differences from the previous value.
   `pack` (`_pack.c`) and `unpack` give HYSPLIT's `pakout`/`pakinp` results bit for bit;
