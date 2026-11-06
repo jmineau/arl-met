@@ -46,7 +46,7 @@ def check_year(year: int) -> int:
 
 
 def letter_to_thousands(char: str) -> int:
-    """Convert letter to thousands digit for large grids. A=1000, B=2000, …"""
+    """Convert a header grid character to thousands: A=1000, B=2000, …; else 0."""
     if char in string.ascii_uppercase:
         return (string.ascii_uppercase.index(char) + 1) * 1000
     return 0
@@ -54,16 +54,18 @@ def letter_to_thousands(char: str) -> int:
 
 def thousands_to_letter(value: int) -> str:
     """
-    Convert thousands value back to ARL grid header character.
+    Convert a thousands value to its ARL grid header character.
 
-    Zero is encoded as ``9`` in the files seen so far. Positive thousands
-    are encoded as letters with ``A=1000``.
+    As HYSPLIT's ``pakset`` writes it, ``CHAR(64 + thousands)``: ``@`` for
+    none, ``A`` for 1000, ``B`` for 2000, and so on. HYSPLIT's ``metset``
+    reads both characters so once either is ``@`` or above, so a grid with
+    one axis of 1000 or more needs ``@`` on the other (``9`` there reads as
+    -7000). A grid under 1000 on both axes has the grid number ``99`` instead
+    (:meth:`Header.tobytes`).
     """
-    if value == 0:
-        return "9"
     if value % 1000 != 0 or value < 0 or value > 26000:
         raise ValueError(f"Unsupported grid thousands value: {value}")
-    return string.ascii_uppercase[(value // 1000) - 1]
+    return chr(64 + value // 1000)
 
 
 def format_fortran_float(value: float) -> str:
@@ -150,8 +152,8 @@ class Header:
         ARL vertical level index.
     grid : tuple[int, int]
         Thousands part of the x and y grid sizes, as stored in the header's
-        two grid letters (``(1000, 0)`` for a 1799x799 grid; ``(0, 0)``
-        below 1000 points). The remainders live in the index record, whose
+        two grid characters (``(1000, 0)`` for a 1799x799 grid, written
+        ``A@``; ``(0, 0)`` below 1000 points, written ``99``). The remainders live in the index record, whose
         ``nx``/``ny`` are the full sizes.
     variable : str
         Four-character ARL variable name.
@@ -252,10 +254,17 @@ class Header:
         Serialize the header to its fixed-width ASCII representation.
 
         A forecast hour above 99 is written as 99, the most the two-character
-        label holds (HYSPLIT's ``pakrec`` writes ``MIN(hour, 99)``).
+        label holds (HYSPLIT's ``pakrec`` writes ``MIN(hour, 99)``). The grid
+        characters are ``99`` below 1000 points on both axes, else one per
+        axis, ``@`` for no thousands (HYSPLIT's ``pakset``).
         """
         yy = check_year(self.year) % 100
-        grid = "".join(thousands_to_letter(value) for value in self.grid)
+        # The grid number 99 below 1000 points, else a character per axis.
+        grid = (
+            "".join(thousands_to_letter(value) for value in self.grid)
+            if any(self.grid)
+            else "99"
+        )
         header = (
             f"{yy:02d}"
             f"{self.month:2d}"
