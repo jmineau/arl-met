@@ -14,6 +14,8 @@ The converters so far:
 
 - :func:`arlmet.converters.from_era5`: ECMWF's ERA5 reanalysis on pressure
   levels, as HYSPLIT's ``era52arl`` converts it.
+- :func:`arlmet.converters.from_gfs`: NCEP's GFS forecasts and GDAS analyses
+  on pressure levels (``pgrb2`` files), as HYSPLIT's ``api2arl`` converts them.
 
 .. ipython:: python
    :suppress:
@@ -122,7 +124,7 @@ it converts and how. Variables it does not know are left out, so ask the Data
 Store only for those you need.
 
 How it differs from ``era52arl``
---------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The values are what HYSPLIT reads, which is not always what ``era52arl``
 writes:
@@ -140,7 +142,7 @@ As ``era52arl`` does, it writes a ``DIFW`` record after each ``WWND`` and a
 ``DIFR`` record after ``TPP1``, which keep what 8-bit packing leaves out.
 
 What it does not do
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 - ERA5 on model levels (HYSPLIT's hybrid levels, vertical flag 4), the ensemble
   (a ``number`` dimension), and forecast-step layouts (a ``step`` dimension):
@@ -148,6 +150,64 @@ What it does not do
   first.
 - Regridding: the converter writes the grid the input is on, which must be a
   regular latitude/longitude grid.
+
+GFS and GDAS
+------------
+
+NOAA publishes GFS and GDAS as ARL files (:doc:`downloading`), but only some
+of them: the 0.25 degree GFS on its own hybrid levels, the 1 degree GDAS on
+pressure levels. :func:`~arlmet.converters.from_gfs` converts NCEP's GRIB2
+``pgrb2`` files themselves, so any cycle, forecast hour or resolution (0.25,
+0.5 or 1 degree) can be written on pressure levels. NOAA keeps them in a public
+bucket, ``https://noaa-gfs-bdp-pds.s3.amazonaws.com``, one file per cycle and
+forecast hour:
+
+.. code-block:: text
+
+   gfs.20250901/00/atmos/gfs.t00z.pgrb2.0p25.f003     GFS, 0.25 degree, 3-hour forecast
+   gdas.20250901/00/atmos/gdas.t00z.pgrb2.1p00.f000   GDAS, 1 degree, analysis
+
+Open each file with cfgrib (``pip install cfgrib eccodes``), which splits a
+GRIB2 file into one Dataset per kind of level, and pass all the Datasets of all
+the files together:
+
+.. code-block:: python
+
+   import cfgrib
+
+   files = ["gdas.t18z.pgrb2.1p00.f006", "gdas.t00z.pgrb2.1p00.f000"]
+   datasets = [ds for f in files for ds in cfgrib.open_datasets(f)]
+
+Each valid time becomes one time step. An analysis has no precipitation or
+fluxes, which a forecast accumulates or averages over its hours, so where two
+files hold a field at the same valid time the shorter forecast is used: above,
+the 00 UTC analysis gives the instantaneous fields and the 18 UTC cycle's
+6-hour forecast the precipitation and fluxes, as NOAA's GDAS ARL files are
+made. GFS empties its precipitation bucket every 6 hours (a 3-hour forecast
+holds hours 0 to 3, a 6-hour forecast 0 to 6), which is what HYSPLIT reads in
+``TPP6``. Here made-up Datasets laid out as cfgrib returns them stand in for
+those two files:
+
+.. ipython:: python
+
+   datasets = docs_examples.gfs_sample()
+   [list(d.data_vars) for d in datasets]
+   ds = arlmet.converters.from_gfs(datasets)
+   ds
+   ds["forecast_hour"].values  # the analysis's
+
+.. ipython:: python
+
+   arlmet.write_dataset(ds, "gdas.arl")
+
+The API page of :func:`~arlmet.converters.from_gfs` lists the GRIB2 variables
+it converts. All the pressure levels of a file are written; to write fewer,
+select them first, in the Dataset that holds ``gh``
+(``d.sel(isobaricInhPa=[1000, 925, 850, 700, 500, 300, 200])``). NCEP's
+planetary boundary layer height is a local GRIB2 parameter that ecCodes reads
+as ``unknown``, so ``PBLH`` is not written, and the GDAS files' instantaneous
+total cloud cover is missing at every point, so they give no ``TCLD``. Like
+``api2arl``, it writes no ``DIF*`` records.
 
 .. ipython:: python
    :suppress:

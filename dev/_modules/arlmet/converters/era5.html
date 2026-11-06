@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=777aa1d8"></script>
+    <script src="../../../_static/documentation_options.js?v=1fcd2af6"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev1+g03af8e300" />
+  <meta name="docsearch:version" content="0.1.0b9.dev2+gb186253a5" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -418,21 +418,9 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Container</span><span class="p">,</span> <span class="n">Hashable</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NamedTuple</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">PressureAxis</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.xarray._coords</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">add_cf_spatial_attrs</span><span class="p">,</span>
-    <span class="n">grid_to_coord</span><span class="p">,</span>
-    <span class="n">physical_coord_for_vaxis</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">._latlon</span><span class="w"> </span><span class="kn">import</span> <span class="n">latlon_grid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._pressure</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span><span class="p">,</span> <span class="n">pressure_level_dataset</span><span class="p">,</span> <span class="n">standardize</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"from_era5"</span><span class="p">]</span>
 
@@ -442,142 +430,36 @@
 <span class="n">HOUR</span> <span class="o">=</span> <span class="mf">3600.0</span>
 
 
-<span class="k">class</span><span class="w"> </span><span class="nc">_Field</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""How one ERA5 variable becomes an ARL variable: ``ARL = ERA5 * scale``."""</span>
-
-    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span>
-    <span class="n">units</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">diff</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-
-
 <span class="c1">#: ERA5 pressure-level variables (netCDF and cfgrib names) and their ARL fields.</span>
-<span class="n">PRESSURE_LEVEL_FIELDS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_Field</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"z"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"HGTS"</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">GRAVITY</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">),</span>
-    <span class="s2">"t"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"TEMP"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"K"</span><span class="p">),</span>
-    <span class="s2">"u"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
-    <span class="s2">"v"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"VWND"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
-    <span class="s2">"w"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"WWND"</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s2">"hPa s-1"</span><span class="p">,</span> <span class="s2">"DIFW"</span><span class="p">),</span>
-    <span class="s2">"r"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"RELH"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"%"</span><span class="p">),</span>
-    <span class="s2">"q"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"SPHU"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"kg kg-1"</span><span class="p">),</span>
+<span class="n">PRESSURE_LEVEL_FIELDS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"z"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"HGTS"</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">GRAVITY</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">),</span>
+    <span class="s2">"t"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"TEMP"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"K"</span><span class="p">),</span>
+    <span class="s2">"u"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
+    <span class="s2">"v"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"VWND"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
+    <span class="s2">"w"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"WWND"</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s2">"hPa s-1"</span><span class="p">,</span> <span class="s2">"DIFW"</span><span class="p">),</span>
+    <span class="s2">"r"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"RELH"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"%"</span><span class="p">),</span>
+    <span class="s2">"q"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"SPHU"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"kg kg-1"</span><span class="p">),</span>
 <span class="p">}</span>
 
 <span class="c1">#: ERA5 single-level variables and their ARL fields. Accumulations are over the</span>
 <span class="c1">#: hour before the valid time; ECMWF's fluxes are positive downward, HYSPLIT's</span>
 <span class="c1">#: heat fluxes positive upward.</span>
-<span class="n">SINGLE_LEVEL_FIELDS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_Field</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"sp"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"PRSS"</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s2">"hPa"</span><span class="p">),</span>
-    <span class="s2">"z"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"SHGT"</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">GRAVITY</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">),</span>
-    <span class="s2">"t2m"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"T02M"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"K"</span><span class="p">),</span>
-    <span class="s2">"d2m"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"DP2M"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"K"</span><span class="p">),</span>
-    <span class="s2">"u10"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"U10M"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
-    <span class="s2">"v10"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"V10M"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
-    <span class="s2">"blh"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"PBLH"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">),</span>
-    <span class="s2">"cape"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"CAPE"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"J kg-1"</span><span class="p">),</span>
-    <span class="s2">"tcc"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"TCLD"</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">,</span> <span class="s2">"%"</span><span class="p">),</span>
-    <span class="s2">"tp"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"TPP1"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">,</span> <span class="s2">"DIFR"</span><span class="p">),</span>
-    <span class="s2">"sshf"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"SHTF"</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">HOUR</span><span class="p">,</span> <span class="s2">"W m-2"</span><span class="p">),</span>
-    <span class="s2">"slhf"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"LHTF"</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">HOUR</span><span class="p">,</span> <span class="s2">"W m-2"</span><span class="p">),</span>
-    <span class="s2">"ssrd"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"DSWF"</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">HOUR</span><span class="p">,</span> <span class="s2">"W m-2"</span><span class="p">),</span>
-    <span class="s2">"zust"</span><span class="p">:</span> <span class="n">_Field</span><span class="p">(</span><span class="s2">"USTR"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
+<span class="n">SINGLE_LEVEL_FIELDS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"sp"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"PRSS"</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s2">"hPa"</span><span class="p">),</span>
+    <span class="s2">"z"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"SHGT"</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">GRAVITY</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">),</span>
+    <span class="s2">"t2m"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"T02M"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"K"</span><span class="p">),</span>
+    <span class="s2">"d2m"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"DP2M"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"K"</span><span class="p">),</span>
+    <span class="s2">"u10"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"U10M"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
+    <span class="s2">"v10"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"V10M"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
+    <span class="s2">"blh"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"PBLH"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">),</span>
+    <span class="s2">"cape"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"CAPE"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"J kg-1"</span><span class="p">),</span>
+    <span class="s2">"tcc"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"TCLD"</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">,</span> <span class="s2">"%"</span><span class="p">),</span>
+    <span class="s2">"tp"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"TPP1"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">,</span> <span class="s2">"DIFR"</span><span class="p">),</span>
+    <span class="s2">"sshf"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"SHTF"</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">HOUR</span><span class="p">,</span> <span class="s2">"W m-2"</span><span class="p">),</span>
+    <span class="s2">"slhf"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"LHTF"</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">HOUR</span><span class="p">,</span> <span class="s2">"W m-2"</span><span class="p">),</span>
+    <span class="s2">"ssrd"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"DSWF"</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">HOUR</span><span class="p">,</span> <span class="s2">"W m-2"</span><span class="p">),</span>
+    <span class="s2">"zust"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"USTR"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
 <span class="p">}</span>
-
-<span class="n">_TIME_DIMS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"valid_time"</span><span class="p">,</span> <span class="s2">"time"</span><span class="p">)</span>
-<span class="n">_LEVEL_DIMS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"pressure_level"</span><span class="p">,</span> <span class="s2">"isobaricInhPa"</span><span class="p">,</span> <span class="s2">"level"</span><span class="p">)</span>
-<span class="n">_LAT_DIMS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"latitude"</span><span class="p">,</span> <span class="s2">"lat"</span><span class="p">)</span>
-<span class="n">_LON_DIMS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"longitude"</span><span class="p">,</span> <span class="s2">"lon"</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_pick</span><span class="p">(</span>
-    <span class="n">names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">available</span><span class="p">:</span> <span class="n">Container</span><span class="p">[</span><span class="n">Hashable</span><span class="p">],</span> <span class="n">what</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Return the first of ``names`` in ``available``, or raise naming them."""</span>
-    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">available</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">name</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> has no </span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2"> dimension (looked for </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">names</span><span class="p">)</span><span class="si">}</span><span class="s2">)."</span>
-    <span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_standardize</span><span class="p">(</span>
-    <span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_Field</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Keep the variables of ``fields`` with dims ``time``, (``level``,) ``lat``, ``lon``.</span>
-
-<span class="sd">    The coordinates are the valid times, the pressures (hPa), and the cell</span>
-<span class="sd">    centers; every other coordinate (``number``, ``expver``, ...) is dropped.</span>
-<span class="sd">    """</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> must be an xarray.Dataset, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
-    <span class="n">known</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fields</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">]</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">known</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> holds none of the ERA5 variables arlmet converts "</span>
-            <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span><span class="si">}</span><span class="s2">); found </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">))</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">'none'</span><span class="si">}</span><span class="s2">."</span>
-        <span class="p">)</span>
-    <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">known</span><span class="p">]</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">name</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">dims</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_TIME_DIMS</span><span class="p">):</span>
-        <span class="c1"># One time step, as a scalar coordinate.</span>
-        <span class="n">scalar</span> <span class="o">=</span> <span class="n">_pick</span><span class="p">(</span><span class="n">_TIME_DIMS</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="s2">"time"</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
-        <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">scalar</span><span class="p">)</span>
-    <span class="n">time_dim</span> <span class="o">=</span> <span class="n">_pick</span><span class="p">(</span><span class="n">_TIME_DIMS</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span> <span class="s2">"time"</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
-    <span class="n">valid</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"valid_time"</span><span class="p">)</span>
-    <span class="n">times</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">valid</span> <span class="k">if</span> <span class="n">valid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">valid</span><span class="o">.</span><span class="n">dims</span> <span class="o">==</span> <span class="p">(</span><span class="n">time_dim</span><span class="p">,)</span> <span class="k">else</span> <span class="n">ds</span><span class="p">[</span><span class="n">time_dim</span><span class="p">]</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">values</span>
-
-    <span class="n">dims</span> <span class="o">=</span> <span class="p">{</span><span class="n">time_dim</span><span class="p">:</span> <span class="s2">"time"</span><span class="p">}</span>
-    <span class="n">coords</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"time"</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">times</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">}</span>
-    <span class="k">if</span> <span class="n">upper</span><span class="p">:</span>
-        <span class="n">level_dim</span> <span class="o">=</span> <span class="n">_pick</span><span class="p">(</span><span class="n">_LEVEL_DIMS</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span> <span class="s2">"pressure-level"</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
-        <span class="n">dims</span><span class="p">[</span><span class="n">level_dim</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"level"</span>
-        <span class="n">coords</span><span class="p">[</span><span class="s2">"level"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">level_dim</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">lat_dim</span> <span class="o">=</span> <span class="n">_pick</span><span class="p">(</span><span class="n">_LAT_DIMS</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span> <span class="s2">"latitude"</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
-    <span class="n">lon_dim</span> <span class="o">=</span> <span class="n">_pick</span><span class="p">(</span><span class="n">_LON_DIMS</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span> <span class="s2">"longitude"</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
-    <span class="n">dims</span><span class="p">[</span><span class="n">lat_dim</span><span class="p">],</span> <span class="n">dims</span><span class="p">[</span><span class="n">lon_dim</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"lat"</span><span class="p">,</span> <span class="s2">"lon"</span>
-    <span class="n">coords</span><span class="p">[</span><span class="s2">"lat"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">lat_dim</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">coords</span><span class="p">[</span><span class="s2">"lon"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">lon_dim</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">known</span><span class="p">:</span>
-        <span class="n">extra</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">))</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">extra</span><span class="p">:</span>
-            <span class="n">hint</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="s2">" (a 'step' dimension: select or stack valid times first)"</span>
-                <span class="k">if</span> <span class="s2">"step"</span> <span class="ow">in</span> <span class="n">extra</span>
-                <span class="k">else</span> <span class="s2">""</span>
-            <span class="p">)</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> variable '</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">' has dimensions </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">extra</span><span class="p">)</span><span class="si">}</span><span class="s2"> besides "</span>
-                <span class="sa">f</span><span class="s2">"time, </span><span class="si">{</span><span class="s1">'pressure level, '</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">upper</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">''</span><span class="si">}</span><span class="s2">latitude and longitude</span><span class="si">{</span><span class="n">hint</span><span class="si">}</span><span class="s2">."</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">dims</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">)):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> variable '</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">' has dims </span><span class="si">{</span><span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="si">}</span><span class="s2">; expected "</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span><span class="si">}</span><span class="s2">."</span>
-            <span class="p">)</span>
-
-    <span class="n">renames</span> <span class="o">=</span> <span class="p">{</span><span class="n">old</span><span class="p">:</span> <span class="n">new</span> <span class="k">for</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span> <span class="ow">in</span> <span class="n">dims</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">old</span> <span class="o">!=</span> <span class="n">new</span><span class="p">}</span>
-    <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">drop_vars</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">))</span><span class="o">.</span><span class="n">rename_dims</span><span class="p">(</span><span class="n">renames</span><span class="p">)</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">has_duplicates</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> has repeated valid times."</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">ds</span><span class="o">.</span><span class="n">sortby</span><span class="p">(</span><span class="s2">"lat"</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_field_variable</span><span class="p">(</span>
-    <span class="n">da</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="n">_Field</span><span class="p">,</span> <span class="n">dims</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Variable</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Scale ``da`` to the ARL field, keeping a lazy array lazy where possible."""</span>
-    <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">scale</span> <span class="o">!=</span> <span class="mf">1.0</span><span class="p">:</span>
-        <span class="n">da</span> <span class="o">=</span> <span class="n">da</span> <span class="o">*</span> <span class="n">field</span><span class="o">.</span><span class="n">scale</span>
-    <span class="n">variable</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">*</span><span class="n">dims</span><span class="p">)</span><span class="o">.</span><span class="n">variable</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">attrs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"units"</span><span class="p">:</span> <span class="n">field</span><span class="o">.</span><span class="n">units</span><span class="p">}</span>
-    <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">diff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">attrs</span><span class="p">[</span><span class="s2">"diff"</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">diff</span>
-    <span class="n">variable</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span>
-    <span class="k">return</span> <span class="n">variable</span>
 
 
 <div class="viewcode-block" id="from_era5">
@@ -671,71 +553,15 @@
 <span class="sd">    &gt;&gt;&gt; ds = arlmet.converters.from_era5(pl, sfc)  # doctest: +SKIP</span>
 <span class="sd">    &gt;&gt;&gt; arlmet.write_dataset(ds, "era5.arl")  # doctest: +SKIP</span>
 <span class="sd">    """</span>
-    <span class="n">upper</span> <span class="o">=</span> <span class="n">_standardize</span><span class="p">(</span>
+    <span class="n">upper</span> <span class="o">=</span> <span class="n">standardize</span><span class="p">(</span>
         <span class="n">pressure_levels</span><span class="p">,</span> <span class="n">PRESSURE_LEVEL_FIELDS</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"pressure_levels"</span>
     <span class="p">)</span>
-    <span class="n">surface</span> <span class="o">=</span> <span class="n">_standardize</span><span class="p">(</span>
+    <span class="n">surface</span> <span class="o">=</span> <span class="n">standardize</span><span class="p">(</span>
         <span class="n">single_levels</span><span class="p">,</span> <span class="n">SINGLE_LEVEL_FIELDS</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"single_levels"</span>
     <span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">axis</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"lat"</span><span class="p">,</span> <span class="s2">"lon"</span><span class="p">):</span>
-        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">upper</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">surface</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-        <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span> <span class="o">+</span> <span class="mf">180.0</span><span class="p">)</span> <span class="o">%</span> <span class="mf">360.0</span> <span class="o">-</span> <span class="mf">180.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-6</span>
-        <span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"pressure_levels and single_levels are on different grids "</span>
-                <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">axis</span><span class="si">}</span><span class="s2"> differs)."</span>
-            <span class="p">)</span>
-    <span class="n">missing</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">upper</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span>
-        <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
-    <span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">missing</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"single_levels lacks </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span><span class="si">}</span><span class="s2"> valid time(s) of pressure_levels, "</span>
-            <span class="sa">f</span><span class="s2">"the first </span><span class="si">{</span><span class="n">missing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">."</span>
-        <span class="p">)</span>
-    <span class="n">surface</span> <span class="o">=</span> <span class="n">surface</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">upper</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
-    <span class="n">upper</span> <span class="o">=</span> <span class="n">upper</span><span class="o">.</span><span class="n">sortby</span><span class="p">(</span><span class="s2">"level"</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-    <span class="n">grid</span> <span class="o">=</span> <span class="n">latlon_grid</span><span class="p">(</span><span class="n">upper</span><span class="p">[</span><span class="s2">"lat"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">upper</span><span class="p">[</span><span class="s2">"lon"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
-    <span class="n">pressures</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">upper</span><span class="p">[</span><span class="s2">"level"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">]</span>
-    <span class="n">level_numbers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pressures</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-    <span class="n">vertical_axis</span> <span class="o">=</span> <span class="n">PressureAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">*</span><span class="n">pressures</span><span class="p">])</span>
-    <span class="n">times</span> <span class="o">=</span> <span class="n">upper</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-
-    <span class="n">ds</span> <span class="o">=</span> <span class="n">add_cf_spatial_attrs</span><span class="p">(</span><span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">coords</span><span class="o">=</span><span class="n">grid</span><span class="o">.</span><span class="n">calculate_coords</span><span class="p">()))</span>
-    <span class="n">phys_name</span><span class="p">,</span> <span class="n">phys_coord</span> <span class="o">=</span> <span class="n">physical_coord_for_vaxis</span><span class="p">(</span><span class="n">vertical_axis</span><span class="p">,</span> <span class="n">level_numbers</span><span class="p">)</span>
-    <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">(</span>
-        <span class="n">time</span><span class="o">=</span><span class="n">xr</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="s2">"time"</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">"standard_name"</span><span class="p">:</span> <span class="s2">"time"</span><span class="p">,</span> <span class="s2">"axis"</span><span class="p">:</span> <span class="s2">"T"</span><span class="p">}),</span>
-        <span class="n">forecast_hour</span><span class="o">=</span><span class="n">xr</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
-            <span class="s2">"time"</span><span class="p">,</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">),</span>
-            <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">"long_name"</span><span class="p">:</span> <span class="s2">"ARL index record forecast hour"</span><span class="p">,</span> <span class="s2">"units"</span><span class="p">:</span> <span class="s2">"hours"</span><span class="p">},</span>
-        <span class="p">),</span>
-        <span class="n">level</span><span class="o">=</span><span class="n">xr</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
-            <span class="s2">"level"</span><span class="p">,</span> <span class="n">level_numbers</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">"standard_name"</span><span class="p">:</span> <span class="s2">"model_level_number"</span><span class="p">}</span>
-        <span class="p">),</span>
-        <span class="n">arl_grid</span><span class="o">=</span><span class="n">grid_to_coord</span><span class="p">(</span><span class="n">grid</span><span class="p">),</span>
-    <span class="p">)</span>
-    <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">({</span><span class="n">phys_name</span><span class="p">:</span> <span class="n">phys_coord</span><span class="p">})</span>
-
-    <span class="n">upper</span> <span class="o">=</span> <span class="n">upper</span><span class="o">.</span><span class="n">drop_vars</span><span class="p">([</span><span class="s2">"lat"</span><span class="p">,</span> <span class="s2">"lon"</span><span class="p">,</span> <span class="s2">"level"</span><span class="p">,</span> <span class="s2">"time"</span><span class="p">])</span>
-    <span class="n">surface</span> <span class="o">=</span> <span class="n">surface</span><span class="o">.</span><span class="n">drop_vars</span><span class="p">([</span><span class="s2">"lat"</span><span class="p">,</span> <span class="s2">"lon"</span><span class="p">,</span> <span class="s2">"time"</span><span class="p">])</span>
-    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">PRESSURE_LEVEL_FIELDS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">upper</span><span class="p">:</span>
-            <span class="n">ds</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_field_variable</span><span class="p">(</span>
-                <span class="n">upper</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">field</span><span class="p">,</span> <span class="p">(</span><span class="s2">"time"</span><span class="p">,</span> <span class="s2">"level"</span><span class="p">,</span> <span class="s2">"lat"</span><span class="p">,</span> <span class="s2">"lon"</span><span class="p">)</span>
-            <span class="p">)</span>
-    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">SINGLE_LEVEL_FIELDS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">surface</span><span class="p">:</span>
-            <span class="n">ds</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_field_variable</span><span class="p">(</span>
-                <span class="n">surface</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">field</span><span class="p">,</span> <span class="p">(</span><span class="s2">"time"</span><span class="p">,</span> <span class="s2">"lat"</span><span class="p">,</span> <span class="s2">"lon"</span><span class="p">)</span>
-            <span class="p">)</span>
-
-    <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"source"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"ERA5"</span>
-    <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"vertical_flag"</span><span class="p">]</span> <span class="o">=</span> <span class="n">vertical_axis</span><span class="o">.</span><span class="n">flag</span>
-    <span class="k">return</span> <span class="n">ds</span></div>
+    <span class="k">return</span> <span class="n">pressure_level_dataset</span><span class="p">(</span>
+        <span class="n">upper</span><span class="p">,</span> <span class="n">surface</span><span class="p">,</span> <span class="n">PRESSURE_LEVEL_FIELDS</span><span class="p">,</span> <span class="n">SINGLE_LEVEL_FIELDS</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">"ERA5"</span>
+    <span class="p">)</span></div>
 
 </pre></div>
 
