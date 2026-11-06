@@ -8,7 +8,7 @@ HYSPLIT expects for the product, and ``attrs["diff"]`` where a ``DIF*`` record
 follows. The Dataset can be looked at and plotted before anything is written.
 These are Python versions of HYSPLIT's ``data2arl`` programs (``era52arl``,
 ``api2arl``,
-``arw2arl``, ...).
+``arw2arl``, ...), and one for DWD's ICON, which HYSPLIT has none for.
 
 Units follow what HYSPLIT reads, not always what its converter writes:
 ``TCLD`` is in percent (``metinp.f`` divides it by 100), the heat fluxes
@@ -18,6 +18,7 @@ flux is named ``LHTF`` (``metini.f``).
 
 from .era5 import from_era5
 from .gfs import from_gfs
+from .icon import from_icon
 from .wrf import from_wrf
 
-__all__ = ["from_era5", "from_gfs", "from_wrf"]
+__all__ = ["from_era5", "from_gfs", "from_icon", "from_wrf"]
