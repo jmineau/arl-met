@@ -6,7 +6,7 @@ import pytest
 import xarray as xr
 
 import arlmet
-from arlmet.converters import from_era5
+from arlmet.converters import from_era5, from_gfs
 from arlmet.converters._latlon import latlon_grid
 
 TIMES = pd.date_range("2024-07-18 00:00", periods=2, freq="h")
@@ -256,7 +256,7 @@ class TestFromEra5:
             from_era5(pl, steps)
 
     def test_no_known_variables_raises(self, pl, sfc):
-        with pytest.raises(ValueError, match="none of the ERA5 variables"):
+        with pytest.raises(ValueError, match="none of the variables"):
             from_era5(pl[["o3"]], sfc)
 
     def test_not_a_dataset_raises(self, sfc):
@@ -291,3 +291,231 @@ class TestLatlonGrid:
     def test_irregular_values_raise(self, lat, lon, match):
         with pytest.raises(ValueError, match=match):
             latlon_grid(lat, lon)
+
+
+# ---- GFS / GDAS GRIB2, as cfgrib.open_datasets() returns them ----------------
+
+GFS_LATS = np.arange(45.0, 39.0 - 0.01, -0.25)  # north to south, as GRIB stores them
+GFS_LONS = np.arange(250.0, 256.0 + 0.01, 0.25)
+GFS_PRESSURES = np.array([1000.0, 850.0, 500.0])
+
+
+def _cube(variables, valid_time, step, level_coord, *, step_type="instant"):
+    """One cfgrib Dataset: scalar time, step and valid_time, rows north to south."""
+    valid_time = pd.Timestamp(valid_time)
+    step = pd.Timedelta(hours=step)
+    type_of_level, level = level_coord
+    coords = {
+        "time": valid_time - step,
+        "step": step,
+        "valid_time": valid_time,
+        "latitude": GFS_LATS,
+        "longitude": GFS_LONS,
+    }
+    if np.ndim(level):
+        coords[type_of_level] = level
+    else:
+        coords[type_of_level] = float(level)
+    attrs = {"GRIB_typeOfLevel": type_of_level, "GRIB_stepType": step_type}
+    return xr.Dataset(
+        {name: (dims, values, attrs) for name, (dims, values) in variables.items()},
+        coords=coords,
+    )
+
+
+def gfs_file(valid_time, step, *, seed=0, levels=GFS_PRESSURES, old_names=False):
+    """The cfgrib Datasets of one made-up GFS file; accumulations unless an analysis."""
+    rng = np.random.default_rng(seed)
+    ny, nx = len(GFS_LATS), len(GFS_LONS)
+    up = (len(levels), ny, nx)
+    upper_dims = ("isobaricInhPa", "latitude", "longitude")
+    flat = ("latitude", "longitude")
+
+    def f(base, scale, shape=(ny, nx)):
+        return _field(rng, base, scale, shape)
+
+    cubes = [
+        _cube(
+            {
+                "gh": (upper_dims, f(100.0, 5000.0, up)),
+                "t": (upper_dims, f(250.0, 40.0, up)),
+                "u": (upper_dims, f(-10.0, 20.0, up)),
+                "v": (upper_dims, f(-10.0, 20.0, up)),
+                "w": (upper_dims, f(-0.5, 1.0, up)),
+                "r": (upper_dims, f(0.0, 100.0, up)),
+                "absv": (upper_dims, f(0.0, 1e-4, up)),  # not converted
+            },
+            valid_time,
+            step,
+            ("isobaricInhPa", levels),
+        ),
+        # cfgrib's second pressure-level cube (cloud fields): not converted.
+        _cube({"tcc": (upper_dims, f(0.0, 100.0, up))}, valid_time, step,
+              ("isobaricInhPa", levels)),
+        _cube(
+            {
+                "sp": (flat, f(8.0e4, 2.0e4)),
+                "orog": (flat, f(1000.0, 2000.0)),
+                "t": (flat, f(270.0, 30.0)),
+                "cape": (flat, f(0.0, 500.0)),
+            },
+            valid_time,
+            step,
+            ("surface", 0.0),
+        ),
+        _cube({"t2m": (flat, f(280.0, 20.0)), "r2": (flat, f(10.0, 80.0))},
+              valid_time, step, ("heightAboveGround", 2.0)),
+        _cube({"u10": (flat, f(-5.0, 10.0)), "v10": (flat, f(-5.0, 10.0))},
+              valid_time, step, ("heightAboveGround", 10.0)),
+        # Temperature at 80 and 100 m: a level dimension, not converted.
+        _cube({"t": (("heightAboveGround", *flat), f(270.0, 30.0, (2, ny, nx)))},
+              valid_time, step, ("heightAboveGround", np.array([80.0, 100.0]))),
+        _cube({"tcc": (flat, f(0.0, 100.0))}, valid_time, step, ("atmosphere", 0.0)),
+        _cube({"prmsl": (flat, f(1.0e5, 3.0e3))}, valid_time, step, ("meanSea", 0.0)),
+    ]  # fmt: skip
+    if step:
+        shtf, dswf = ("shtfl", "dswrf") if old_names else ("avg_ishf", "sdswrf")
+        cubes += [
+            _cube({"tp": (flat, f(0.0, 5.0))}, valid_time, step, ("surface", 0.0),
+                  step_type="accum"),
+            _cube({shtf: (flat, f(-50.0, 300.0)), dswf: (flat, f(0.0, 800.0))},
+                  valid_time, step, ("surface", 0.0), step_type="avg"),
+            # The averaged cloud cover is not TCLD (the instantaneous one is).
+            _cube({"tcc": (flat, f(0.0, 100.0))}, valid_time, step,
+                  ("atmosphere", 0.0), step_type="avg"),
+        ]  # fmt: skip
+    return cubes
+
+
+def _by_name(cubes, name, type_of_level, *, step_type="instant"):
+    for cube in cubes:
+        attrs = cube[name].attrs if name in cube else {}
+        if (attrs.get("GRIB_typeOfLevel"), attrs.get("GRIB_stepType")) == (
+            type_of_level,
+            step_type,
+        ):
+            return cube[name]
+    raise KeyError(name)
+
+
+class TestFromGfs:
+    def test_analysis(self):
+        cubes = gfs_file("2025-09-01 00:00", 0)
+        ds = from_gfs(cubes)
+        assert ds.attrs["source"] == "GFS"
+        assert ds.attrs["vertical_flag"] == 2
+        assert ds.sizes["time"] == 1
+        assert ds["forecast_hour"].values.tolist() == [0]
+        assert ds["pressure"].values.tolist() == [1000.0, 850.0, 500.0]
+        assert set(ds.data_vars) == {
+            "HGTS", "TEMP", "UWND", "VWND", "WWND", "RELH",
+            "PRSS", "SHGT", "TMPS", "CAPE", "T02M", "RH2M", "U10M", "V10M",
+            "TCLD", "MSLP",
+        }  # fmt: skip
+        flip = slice(None, None, -1)
+        np.testing.assert_allclose(
+            ds["PRSS"].isel(time=0).values,
+            _by_name(cubes, "sp", "surface").values[flip] * 0.01,
+            rtol=1e-6,
+        )
+        np.testing.assert_allclose(
+            ds["WWND"].isel(time=0).values,
+            _by_name(cubes, "w", "isobaricInhPa").values[:, flip] * 0.01,
+            rtol=1e-6,
+        )
+        np.testing.assert_allclose(
+            ds["TMPS"].isel(time=0).values,
+            _by_name(cubes, "t", "surface").values[flip],
+        )
+        grid = ds.arl.grid.projection
+        assert (grid.sync_lat, grid.sync_lon, grid.pole_lon) == (39.0, 250.0, 256.0)
+        assert all("diff" not in ds[name].attrs for name in ds.data_vars)
+
+    def test_analysis_takes_fluxes_from_the_previous_forecast(self):
+        analysis = gfs_file("2025-09-01 00:00", 0, seed=0)
+        forecast = gfs_file("2025-09-01 00:00", 6, seed=1)
+        ds = from_gfs([*forecast, *analysis])
+        flip = slice(None, None, -1)
+        assert ds["forecast_hour"].values.tolist() == [0]
+        # Instantaneous fields from the analysis, the bucket's from the forecast.
+        np.testing.assert_allclose(
+            ds["TEMP"].isel(time=0).values,
+            _by_name(analysis, "t", "isobaricInhPa").values[:, flip],
+        )
+        np.testing.assert_allclose(
+            ds["TCLD"].isel(time=0).values,
+            _by_name(analysis, "tcc", "atmosphere").values[flip],
+        )
+        np.testing.assert_allclose(
+            ds["TPP6"].isel(time=0).values,
+            _by_name(forecast, "tp", "surface", step_type="accum").values[flip] * 0.001,
+            rtol=1e-6,
+        )
+        np.testing.assert_allclose(
+            ds["SHTF"].isel(time=0).values,
+            _by_name(forecast, "avg_ishf", "surface", step_type="avg").values[flip],
+        )
+        assert ds["TPP6"].attrs == {"units": "m"}
+
+    def test_forecast_run(self):
+        cubes = [
+            *gfs_file("2025-09-01 06:00", 6, seed=2),
+            *gfs_file("2025-09-01 03:00", 3, seed=1),
+        ]
+        ds = from_gfs(cubes)
+        assert ds.indexes["time"].tolist() == [
+            pd.Timestamp("2025-09-01 03:00"),
+            pd.Timestamp("2025-09-01 06:00"),
+        ]
+        assert ds["forecast_hour"].values.tolist() == [3, 6]
+        assert np.isfinite(ds["TPP6"].values).all()
+
+    def test_time_step_without_a_field_is_written_missing(self, tmp_path):
+        cubes = [
+            *gfs_file("2025-09-01 00:00", 0),
+            *gfs_file("2025-09-01 03:00", 3, seed=1),
+        ]
+        ds = from_gfs(cubes)
+        assert np.isnan(ds["TPP6"].isel(time=0).values).all()
+        assert np.isfinite(ds["TPP6"].isel(time=1).values).all()
+        dest = tmp_path / "gfs.arl"
+        arlmet.write_dataset(ds, dest)
+        back = arlmet.open_dataset(dest)
+        assert np.isnan(back["TPP6"].isel(time=0).values).all()
+        np.testing.assert_allclose(
+            back["TPP6"].isel(time=1).values,
+            ds["TPP6"].isel(time=1).values,
+            atol=1e-3 * float(ds["TPP6"].max()),
+        )
+        assert back["forecast_hour"].values.tolist() == [0, 3]
+
+    def test_older_eccodes_names(self):
+        ds = from_gfs(gfs_file("2025-09-01 06:00", 6, old_names=True))
+        assert {"SHTF", "DSWF"} <= set(ds.data_vars)
+
+    def test_different_levels_raise(self):
+        cubes = [
+            *gfs_file("2025-09-01 00:00", 0),
+            *gfs_file("2025-09-01 03:00", 3, levels=np.array([1000.0, 700.0, 500.0])),
+        ]
+        with pytest.raises(ValueError, match="different grids or pressure levels"):
+            from_gfs(cubes)
+
+    def test_no_pressure_levels_raises(self):
+        surface_only = [
+            c
+            for c in gfs_file("2025-09-01 00:00", 0)
+            if "isobaricInhPa" not in c.coords
+        ]
+        with pytest.raises(ValueError, match="pressure-level fields"):
+            from_gfs(surface_only)
+
+    def test_no_scalar_valid_time_raises(self):
+        cubes = gfs_file("2025-09-01 00:00", 0)
+        stacked = xr.concat([cubes[0], cubes[0]], dim="valid_time")
+        with pytest.raises(ValueError, match="scalar 'valid_time'"):
+            from_gfs([stacked])
+
+    def test_not_a_dataset_raises(self):
+        with pytest.raises(TypeError, match="takes xarray.Datasets"):
+            from_gfs(["gdas.t00z.pgrb2.1p00.f000"])  # pyrefly: ignore[bad-argument-type]

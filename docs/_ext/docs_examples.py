@@ -208,6 +208,80 @@ def era5_sample() -> tuple[xr.Dataset, xr.Dataset]:
     return pressure_levels, single_levels
 
 
+def gfs_sample() -> list[xr.Dataset]:
+    """
+    Return made-up GDAS Datasets, laid out as ``cfgrib.open_datasets`` returns them.
+
+    They stand in for two GRIB2 files valid at 2025-09-01 00 UTC: the 00 UTC
+    analysis (``step`` 0) and the 18 UTC cycle's 6-hour forecast, which adds
+    the accumulated precipitation and the averaged sensible heat flux. One
+    Dataset per kind of level, rows from north to south, on a 1 degree grid
+    over the western United States.
+    """
+    valid = pd.Timestamp("2025-09-01 00:00")
+    lat = np.arange(50.0, 29.99, -1.0)
+    lon = np.arange(235.0, 259.01, 1.0)
+    levels = np.array([1000.0, 850.0, 700.0, 500.0])
+    lon2, lat2 = np.meshgrid(lon, lat)
+    wave = np.sin(np.deg2rad(8 * lon2 + 10 * lat2))
+    terrain = 1300 + 150 * np.exp(-(((lon2 - 248.7) / 2.0) ** 2))
+    hpa = levels[:, None, None]
+    height = 44330.8 * (1 - (hpa / 1013.25) ** 0.190263) + 0 * wave
+    flat = ("latitude", "longitude")
+    upper = ("isobaricInhPa", *flat)
+
+    def cube(step, variables, type_of_level, level=0.0, step_type="instant"):
+        attrs = {"GRIB_typeOfLevel": type_of_level, "GRIB_stepType": step_type}
+        step = pd.Timedelta(hours=step)
+        coords = {"time": valid - step, "step": step, "valid_time": valid,
+                  "latitude": lat, "longitude": lon, type_of_level: level}  # fmt: skip
+        return xr.Dataset(
+            {
+                name: (dims, np.asarray(values, dtype="float32"), attrs)
+                for name, (dims, values) in variables.items()
+            },
+            coords=coords,
+        )
+
+    def fields(step):
+        winds = 5 + 3 * wave + (850 - hpa) / 50 + step
+        return [
+            cube(
+                step,
+                {
+                    "gh": (upper, height),
+                    "t": (upper, 296 - 0.0065 * height + 0.5 * (40 - lat2)),
+                    "u": (upper, winds),
+                    "v": (upper, -2 + 2 * np.cos(np.deg2rad(5 * lat2)) + 0 * hpa),
+                    "w": (upper, 0.5 * wave + 0 * hpa),  # Pa s-1
+                    "r": (upper, 40 + 20 * wave + 0 * hpa),
+                },
+                "isobaricInhPa",
+                levels,
+            ),
+            cube(
+                step,
+                {
+                    "sp": (flat, 101325 * (1 - terrain / 44330.8) ** 5.255),
+                    "orog": (flat, terrain),
+                },
+                "surface",
+            ),
+            cube(
+                step, {"t2m": (flat, 298 - 0.0065 * terrain)}, "heightAboveGround", 2.0
+            ),
+        ]
+
+    forecast = [
+        *fields(6),
+        cube(
+            6, {"tp": (flat, 2 * np.clip(wave, 0, None))}, "surface", step_type="accum"
+        ),
+        cube(6, {"avg_ishf": (flat, 40 + 20 * wave)}, "surface", step_type="avg"),
+    ]
+    return [*forecast, *fields(0)]
+
+
 def temp_workdir() -> str:
     """Change to a new temporary folder and return the folder you left."""
     previous = os.getcwd()
