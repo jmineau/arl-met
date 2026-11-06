@@ -37,12 +37,13 @@ src/arlmet/
   exceptions.py, _io.py, _time.py   ARLFormatError/Warning; atomic outputs; timestamps
   archives.py; directoryindex.py    NOAA archive downloads and sync (Archive, ARCHIVES, get_archive); index, DirectoryIndex
   ops/                              extract_subset, sample_points, concat, concat_by_time
+  converters/                       from_era5: other models' output to write_dataset's Dataset
   xarray/                           open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl
 ```
 
 `ops/` and `xarray/` sit on top of `file.py`; `File` imports them inside its
-methods, keeping the import graph one-way. `archives.py` imports `fsspec` only
-when it downloads, so it imports without the `archives` extra.
+methods, keeping the import graph one-way; `converters/` sits on `xarray/`.
+`archives.py` imports `fsspec` only when it downloads (no `archives` extra needed).
 
 ## ARL format rules
 
@@ -155,7 +156,7 @@ when it downloads, so it imports without the `archives` extra.
     `Header` and `IndexRecord` are frozen dataclasses, and `VerticalAxis` blocks
     assignment and keeps `levels` read-only. Hashing and `cached_property`
     (`Grid.crs`, `Grid.origin`) rely on this; build a new value instead.
-11. **The public API is explicit.** The three `__init__.py` files re-export it,
+11. **The public API is explicit.** The four `__init__.py` files re-export it,
     and every module but `_io`, `_time` and `_entrypoint` defines `__all__`.
     Options after the obvious leading arguments are keyword-only, except that
     `unpack` keeps six positional arguments (the wheel smoke test in

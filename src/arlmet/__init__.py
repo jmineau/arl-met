@@ -7,6 +7,7 @@ packed meteorological data files used by HYSPLIT and other atmospheric transport
 
 import importlib.metadata
 
+from . import converters
 from .directoryindex import DirectoryIndex, index
 from .exceptions import ARLFormatError, ARLFormatWarning
 from .file import File
@@ -65,4 +66,5 @@ __all__ = [
     "Probe",
     "ARLFormatError",
     "ARLFormatWarning",
+    "converters",
 ]

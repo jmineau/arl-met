@@ -19,6 +19,7 @@ format used by HYSPLIT and related workflows. It supports:
 - low-level record-preserving reads and writes through `File`, `RecordSet`, and `DataRecord`
 - xarray Dataset reads and common-case writes through `open_dataset()` and `write_dataset()`, plus an xarray backend (`xr.open_dataset(path, engine="arl")`)
 - downloading from NOAA's ARL archives (HRRR, NAM, GDAS, GFS, ...) with optional crop-on-download, and keeping a local mirror complete and checked against NOAA's MD5 list with `Archive.sync()`
+- converting other models' output, opened with xarray, to ARL files (Python versions of HYSPLIT's `data2arl` programs): ERA5 on pressure levels with `converters.from_era5()`
 - crop-before-unpack subset extraction with `extract_subset()`
 - vertical helper functions such as `pressure()`, `z_agl()`, and `z_msl()`
 - point sampling with `sample_points()`
@@ -111,6 +112,18 @@ arlmet.extract_subset(
 ```
 
 A `bbox` is in degrees unless `bbox_crs=` names its coordinate system (`bbox_crs="EPSG:32612"` for UTM 12N meters).
+
+Convert ERA5 from the Copernicus Climate Data Store (pressure levels and single levels) to an ARL file:
+
+```python
+import xarray as xr
+import arlmet
+
+pressure_levels = xr.open_dataset("era5_pressure_levels.nc", chunks={})
+single_levels = xr.open_dataset("era5_single_levels.nc", chunks={})
+ds = arlmet.converters.from_era5(pressure_levels, single_levels)
+arlmet.write_dataset(ds, "era5.arl")
+```
 
 Join short files into longer ones (HYSPLIT accepts at most 128 met files for one grid, and 12 when each file is its own grid):
 

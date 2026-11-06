@@ -141,6 +141,73 @@ def sample_file(
     return Path(path)
 
 
+def era5_sample() -> tuple[xr.Dataset, xr.Dataset]:
+    """
+    Return made-up ERA5 pressure-level and single-level Datasets.
+
+    They are named and laid out as xarray opens a Climate Data Store netCDF
+    download: ``valid_time``, ``pressure_level`` and ``latitude`` from north to
+    south, values in ERA5's units (geopotential, Pa, J m-2 in the hour). Three
+    hours of a July morning over Utah on a 0.25 degree grid.
+    """
+    gravity = 9.80665
+    times = pd.date_range("2024-07-18 15:00", periods=3, freq="1h")
+    lat = np.arange(44.0, 37.99, -0.25)
+    lon = np.arange(-116.0, -109.99, 0.25)
+    levels = np.array([1000.0, 850.0, 700.0, 500.0])
+    hours = np.arange(len(times))[:, None, None]
+    lon2, lat2 = np.meshgrid(lon, lat)
+    wave = np.sin(np.deg2rad(4 * lon2 + 6 * lat2))
+    terrain = 1300 + 150 * np.exp(-(((lon2 + 111.3) / 0.5) ** 2))
+
+    hpa = levels[None, :, None, None]
+    height = 44330.8 * (1 - (hpa / 1013.25) ** 0.190263) + 0 * wave
+    upper = {
+        "z": gravity * height,
+        "t": 296 - 0.0065 * height + 0.5 * (40 - lat2),
+        "u": 5 + 3 * wave + (850 - hpa) / 50,
+        "v": -2 + 2 * np.cos(np.deg2rad(5 * lat2)) + 0 * hpa,
+        "w": 1.0 * wave + 0 * hpa,  # Pa s-1
+        "r": 40 + 20 * wave + 0 * hpa,
+    }
+    sunshine = 600 + 100 * hours  # W m-2
+    surface = {
+        "sp": 101325 * (1 - terrain / 44330.8) ** 5.255 + 0 * hours,
+        "z": gravity * terrain + 0 * hours,
+        "t2m": 298 - 0.0065 * terrain + 2 * hours,
+        "u10": 2 + wave + 0 * hours,
+        "v10": -1 + 0 * wave + 0 * hours,
+        "tp": 0.0002 * np.clip(wave, 0, None) + 0 * hours,  # m in the hour
+        "sshf": -3600 * 0.3 * sunshine * (1 + 0.1 * wave),  # downward positive
+        "ssrd": 3600 * sunshine * (1 + 0 * wave),
+    }
+    coords = {"valid_time": times, "latitude": lat, "longitude": lon}
+    shape = (len(times), len(levels), lat.size, lon.size)
+    pressure_levels = xr.Dataset(
+        {
+            name: (
+                ("valid_time", "pressure_level", "latitude", "longitude"),
+                np.broadcast_to(field, shape).astype("float32"),
+            )
+            for name, field in upper.items()
+        },
+        coords={**coords, "pressure_level": levels},
+    )
+    single_levels = xr.Dataset(
+        {
+            name: (
+                ("valid_time", "latitude", "longitude"),
+                np.broadcast_to(field, (len(times), lat.size, lon.size)).astype(
+                    "float32"
+                ),
+            )
+            for name, field in surface.items()
+        },
+        coords=coords,
+    )
+    return pressure_levels, single_levels
+
+
 def temp_workdir() -> str:
     """Change to a new temporary folder and return the folder you left."""
     previous = os.getcwd()
