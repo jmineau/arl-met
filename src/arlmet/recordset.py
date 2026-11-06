@@ -15,7 +15,12 @@ from arlmet.collection import VariableAccessor
 from arlmet.grid import Grid
 from arlmet.header import Header, split_grid_component
 from arlmet.indexrecord import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
-from arlmet.record import DataRecord, _check_dif_parent, _require_mode
+from arlmet.record import (
+    DataRecord,
+    _check_dif_parent,
+    _check_field_shape,
+    _require_mode,
+)
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
@@ -191,8 +196,9 @@ class RecordSet:
         Raises
         ------
         ValueError
-            If ``variable`` is a ``DIF*`` name, or a ``diff`` name is not one
-            the name table pairs with ``variable`` at ``level``.
+            If ``variable`` is a ``DIF*`` name, a ``diff`` name is not one the
+            name table pairs with ``variable`` at ``level``, or ``data`` does
+            not have the grid's ``(ny, nx)`` shape.
         """
         _require_mode(self, "w")
         if variable.startswith("DIF"):
@@ -202,6 +208,10 @@ class RecordSet:
         diff_names = (diff,) if isinstance(diff, str) else tuple(diff or ())
         for name in diff_names:
             _check_dif_parent(name, variable, level)
+        if data is not None:
+            # Check before the record joins this time step, so a refused one
+            # leaves nothing behind.
+            data = _check_field_shape(data, self.grid, variable, level)
         dr = self._create_datarecord(
             position=-1, variable=variable, level=level, forecast=forecast
         )

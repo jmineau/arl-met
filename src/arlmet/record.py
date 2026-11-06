@@ -104,6 +104,20 @@ def _check_dif_parent(dif: str, parent: str, level: int) -> None:
         )
 
 
+def _check_field_shape(
+    value: Any, grid: Grid, variable: str, level: int
+) -> npt.NDArray[Any]:
+    """Return *value* as an array, or raise if it is not the grid's ``(ny, nx)``."""
+    array = np.asarray(value)
+    shape = (grid.ny, grid.nx)
+    if array.shape != shape:
+        raise ValueError(
+            f"Data for {variable} at level {level} has shape {array.shape}, "
+            f"but the grid is {shape} (ny, nx)."
+        )
+    return array
+
+
 def _require_mode(obj: Any, *allowed_modes: str) -> None:
     """Raise UnsupportedOperation when *obj.mode* is not in *allowed_modes*."""
     if not hasattr(obj, "mode") or obj.mode not in allowed_modes:
@@ -600,7 +614,9 @@ class DataRecord:
             is_full_slice = key == slice(None)
             if key is Ellipsis or is_full_slice:
                 # Setting the entire array
-                self._unpacked = np.asarray(value)
+                self._unpacked = _check_field_shape(
+                    value, self.grid, self.variable, self.level
+                )
             else:
                 raise ValueError("Data must be initialized before setting slices.")
 
