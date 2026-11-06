@@ -2,9 +2,10 @@ Sampling Points
 ===============
 
 Use :func:`arlmet.sample_points` to interpolate meteorological variables at
-arbitrary ``(lon, lat, z, time)`` points. This is the direct path when you have
-trajectory points, station locations, or receptors and want field values at
-each one without building a full Dataset.
+arbitrary ``(lon, lat, z)`` points at the valid times of the file. This is the
+direct path when you have trajectory points, station locations, or receptors and
+want field values at each one without building a full Dataset. It interpolates
+in space, not in time: each point's time must be a valid time of the file.
 
 The examples run when the docs are built, on ``met.arl``, a small file of made-up
 values that the build writes with :func:`arlmet.write_dataset`
@@ -385,8 +386,11 @@ Each point's valid time comes from exactly one place:
 
 Passing both a ``time`` column and ``time=`` is ambiguous and raises
 ``ValueError``, as does giving neither for inputs that hold more than one time.
-A point time that no input file contains raises ``ValueError`` naming the
-missing times.
+Time is not interpolated: each point's time must be one of the valid times of
+the input file(s), so a point at 03:00 in a file with steps at 00:00 and 06:00
+raises ``ValueError`` naming the time and listing the times the files hold. To
+get a value between two steps, sample both and interpolate yourself, or
+interpolate the Dataset from :func:`arlmet.open_dataset` with xarray.
 
 Here ``single_time.arl`` is a made-up file like ``met.arl`` with one time step,
 and ``met.arl`` holds four:
@@ -443,7 +447,8 @@ Limitations
 
 - Each timestamp must be present in at most one input file; overlapping times
   raise ``ValueError``.
-- Point times not covered by any input file raise ``ValueError``.
+- Point times that are not a valid time of any input file raise ``ValueError``
+  (time is not interpolated).
 - ``z_kind="agl"`` and ``"msl"`` use different field requirements depending on
   the vertical flag: pressure files (flag=2) require ``HGTS`` and ``SHGT``; sigma/hybrid
   files (flag=1/4) use hypsometric integration from ``PRSS`` and ``TEMP``;
