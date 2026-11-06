@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=21ca5cd7"></script>
+    <script src="_static/documentation_options.js?v=55c50c90"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev8+g2dc1a4686" />
+  <meta name="docsearch:version" content="0.1.0b9.dev9+g577f4a7c8" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -464,6 +464,8 @@ it and change it before anything is written.</p>
 levels, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">era52arl</span></code> converts it.</p></li>
 <li><p><a class="reference internal" href="_autosummary/arlmet.converters.from_gfs.html#arlmet.converters.from_gfs" title="arlmet.converters.from_gfs"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.converters.from_gfs()</span></code></a>: NCEP’s GFS forecasts and GDAS analyses
 on pressure levels (<code class="docutils literal notranslate"><span class="pre">pgrb2</span></code> files), as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">api2arl</span></code> converts them.</p></li>
+<li><p><a class="reference internal" href="_autosummary/arlmet.converters.from_wrf.html#arlmet.converters.from_wrf" title="arlmet.converters.from_wrf"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.converters.from_wrf()</span></code></a>: WRF-ARW output (<code class="docutils literal notranslate"><span class="pre">wrfout</span></code> files) on its
+own grid and model levels, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code> converts it.</p></li>
 </ul>
 <section id="era5">
 <h2>ERA5<a class="headerlink" href="#era5" title="Link to this heading">#</a></h2>
@@ -723,6 +725,81 @@ as <code class="docutils literal notranslate"><span class="pre">unknown</span></
 total cloud cover is missing at every point, so they give no <code class="docutils literal notranslate"><span class="pre">TCLD</span></code>. Like
 <code class="docutils literal notranslate"><span class="pre">api2arl</span></code>, it writes no <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> records.</p>
 </section>
+<section id="wrf">
+<h2>WRF<a class="headerlink" href="#wrf" title="Link to this heading">#</a></h2>
+<p><a class="reference internal" href="_autosummary/arlmet.converters.from_wrf.html#arlmet.converters.from_wrf" title="arlmet.converters.from_wrf"><code class="xref py py-func docutils literal notranslate"><span class="pre">from_wrf()</span></code></a> converts WRF-ARW’s <code class="docutils literal notranslate"><span class="pre">wrfout</span></code> netCDF files
+on the model’s own grid (Lambert conformal, polar stereographic or Mercator)
+and levels, as <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code> does with its default variables. Open the files of
+one run together, joined along <code class="docutils literal notranslate"><span class="pre">Time</span></code>, so that each hour’s precipitation can
+be taken from the run’s accumulated totals:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+
+<span class="n">wrf</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_mfdataset</span><span class="p">(</span>
+    <span class="s2">"wrfout_d01_2013-06-30_*"</span><span class="p">,</span> <span class="n">combine</span><span class="o">=</span><span class="s2">"nested"</span><span class="p">,</span> <span class="n">concat_dim</span><span class="o">=</span><span class="s2">"Time"</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Here a small made-up run, laid out as xarray opens <code class="docutils literal notranslate"><span class="pre">wrfout</span></code> files, stands in
+for them:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [16]: </span><span class="n">wrf</span> <span class="o">=</span> <span class="n">docs_examples</span><span class="o">.</span><span class="n">wrf_sample</span><span class="p">()</span>
+
+<span class="gp">In [17]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_wrf</span><span class="p">(</span><span class="n">wrf</span><span class="p">)</span>
+
+<span class="gp">In [18]: </span><span class="n">ds</span>
+<span class="gh">Out[18]: </span>
+<span class="go">&lt;xarray.Dataset&gt; Size: 274kB</span>
+<span class="go">Dimensions:        (y: 25, x: 30, time: 3, level: 4)</span>
+<span class="go">Coordinates:</span>
+<span class="go">  * y              (y) float64 200B 0.0 1.2e+04 2.4e+04 ... 2.76e+05 2.88e+05</span>
+<span class="go">  * x              (x) float64 240B 0.0 1.2e+04 2.4e+04 ... 3.36e+05 3.48e+05</span>
+<span class="go">    lon            (y, x) float64 6kB -113.6 -113.4 -113.3 ... -109.5 -109.3</span>
+<span class="go">    lat            (y, x) float64 6kB 38.65 38.65 38.65 ... 41.32 41.32 41.31</span>
+<span class="go">  * time           (time) datetime64[us] 24B 2013-06-30 ... 2013-06-30T02:00:00</span>
+<span class="go">    forecast_hour  (time) int64 24B 6 7 8</span>
+<span class="go">  * level          (level) int64 32B 1 2 3 4</span>
+<span class="go">    sigma          (level) float64 32B 0.99 0.95 0.85 0.7</span>
+<span class="go">    arl_grid       int64 8B 0</span>
+<span class="go">Data variables:</span>
+<span class="go">    SHGT           (time, y, x) float32 9kB 1.3e+03 1.341e+03 ... 1.497e+03</span>
+<span class="go">    PRSS           (time, y, x) float32 9kB 870.0 865.9 861.8 ... 853.6 850.3</span>
+<span class="go">    TPP1           (time, y, x) float64 18kB 0.0 0.0 0.0 ... 0.0005471 0.000657</span>
+<span class="go">    T02M           (time, y, x) float32 9kB 295.0 294.7 294.5 ... 295.9 295.7</span>
+<span class="go">    PRES           (time, level, y, x) float32 36kB 1.003e+03 ... 709.6</span>
+<span class="go">    TEMP           (time, level, y, x) float32 36kB 300.4 300.5 ... 275.2 275.3</span>
+<span class="go">    UWND           (time, level, y, x) float32 36kB 5.0 5.412 ... 10.64 10.97</span>
+<span class="go">    VWND           (time, level, y, x) float32 36kB -2.5 -2.706 ... -5.485</span>
+<span class="go">    WWND           (time, level, y, x) float32 36kB -0.0 -0.001564 ... -0.005775</span>
+<span class="go">    SPHU           (time, level, y, x) float32 36kB 0.00495 0.00495 ... 0.0035</span>
+<span class="go">Attributes:</span>
+<span class="go">    source:         AWRF</span>
+<span class="go">    vertical_flag:  1</span>
+
+<span class="gp">In [19]: </span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">grid</span>
+<span class="gh">Out[19]: </span><span class="go">Grid(lcc 12km, 30×25)</span>
+
+<span class="gp">In [20]: </span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">vertical_axis</span>  <span class="c1"># sigma levels, with the model top as offset</span>
+<span class="gh">Out[20]: </span><span class="go">SigmaAxis(n=5)</span>
+</pre></div>
+</div>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"wrf.arl"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The file has source <code class="docutils literal notranslate"><span class="pre">AWRF</span></code>, which HYSPLIT reads as WRF. It keeps WRF’s
+staggered winds where WRF puts them, <code class="docutils literal notranslate"><span class="pre">UWND</span></code> on the west and <code class="docutils literal notranslate"><span class="pre">VWND</span></code> on the
+south face of each cell, and HYSPLIT (and <a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a>) read
+them there. <code class="docutils literal notranslate"><span class="pre">WWND</span></code> is WRF’s vertical velocity as a pressure tendency
+(hPa s-1), and <code class="docutils literal notranslate"><span class="pre">TPP1</span></code> the precipitation since the time step before, per
+hour, each with a <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> record. The first time step has no precipitation,
+as <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code> writes it when it has no earlier file.</p>
+<p>Converted alongside <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code> from the same four hours of a 12 km WRF run,
+every field matched its file but the two it computes, <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> and <code class="docutils literal notranslate"><span class="pre">WWND</span></code>,
+which differ in the last bits of single precision, as Fortran’s and NumPy’s
+arithmetic do: <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> mostly by 1e-4 K, and by one packing step (0.125 K)
+at 0.006 % of its values; <code class="docutils literal notranslate"><span class="pre">WWND</span></code> by at most 6e-5 hPa s-1. <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code> keeps the
+lowest 50 levels unless told otherwise; all are kept here, and
+<code class="docutils literal notranslate"><span class="pre">ds.isel(level=slice(0,</span> <span class="pre">50))</span></code> keeps fewer. Its other two variable lists, the
+mass-coupled time-averaged winds and TKE, are not converted.</p>
+</section>
 </section>
 
 
@@ -778,6 +855,7 @@ total cloud cover is missing at every point, so they give no <code class="docuti
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gfs-and-gdas">GFS and GDAS</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wrf">WRF</a></li>
 </ul>
   </nav></div>
 
