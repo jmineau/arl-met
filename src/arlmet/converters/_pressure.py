@@ -1,0 +1,214 @@
+"""Build an ARL pressure-level Dataset from fields on a regular lat/lon grid."""
+
+from __future__ import annotations
+
+from collections.abc import Container, Hashable, Iterable, Mapping, Sequence
+from typing import NamedTuple
+
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+from arlmet.vertical import PressureAxis
+from arlmet.xarray._coords import (
+    add_cf_spatial_attrs,
+    grid_to_coord,
+    physical_coord_for_vaxis,
+)
+
+from ._latlon import latlon_grid
+
+__all__ = ["Field", "pressure_level_dataset", "standardize"]
+
+TIME_DIMS = ("valid_time", "time")
+LEVEL_DIMS = ("pressure_level", "isobaricInhPa", "level")
+LAT_DIMS = ("latitude", "lat")
+LON_DIMS = ("longitude", "lon")
+
+
+class Field(NamedTuple):
+    """How one input variable becomes an ARL variable: ``ARL = input * scale``."""
+
+    name: str
+    scale: float
+    units: str
+    diff: str | None = None
+
+
+def _pick(
+    names: tuple[str, ...], available: Container[Hashable], what: str, label: str
+) -> str:
+    """Return the first of ``names`` in ``available``, or raise naming them."""
+    for name in names:
+        if name in available:
+            return name
+    raise ValueError(
+        f"{label} has no {what} dimension (looked for {', '.join(names)})."
+    )
+
+
+def standardize(
+    ds: xr.Dataset, names: Iterable[str], *, upper: bool, label: str
+) -> xr.Dataset:
+    """
+    Keep the variables ``names`` with dims ``time``, (``level``,) ``lat``, ``lon``.
+
+    The coordinates are the valid times (``valid_time`` when there is one,
+    as cfgrib gives a forecast's), the pressures (hPa), and the cell centers
+    from south to north; every other coordinate (``number``, ``expver``,
+    ``step``, ...) is dropped. A single time step may be a scalar coordinate.
+    """
+    if not isinstance(ds, xr.Dataset):
+        raise TypeError(f"{label} must be an xarray.Dataset, got {type(ds).__name__}.")
+    wanted = list(names)
+    known = [name for name in wanted if name in ds.data_vars]
+    if not known:
+        raise ValueError(
+            f"{label} holds none of the variables arlmet converts "
+            f"({', '.join(wanted)}); found "
+            f"{', '.join(map(str, ds.data_vars)) or 'none'}."
+        )
+    ds = ds[known]
+
+    if not any(name in ds.dims for name in TIME_DIMS):
+        # One time step, as a scalar coordinate.
+        scalar = _pick(TIME_DIMS, ds.coords, "time", label)
+        ds = ds.expand_dims(scalar)
+    time_dim = _pick(TIME_DIMS, ds.dims, "time", label)
+    valid = ds.coords.get("valid_time")
+    times = (
+        valid if valid is not None and valid.dims == (time_dim,) else ds[time_dim]
+    ).values
+
+    dims = {time_dim: "time"}
+    coords: dict[str, np.ndarray] = {"time": pd.to_datetime(times).values}
+    if upper:
+        level_dim = _pick(LEVEL_DIMS, ds.dims, "pressure-level", label)
+        dims[level_dim] = "level"
+        coords["level"] = np.asarray(ds[level_dim].values, dtype=float)
+    lat_dim = _pick(LAT_DIMS, ds.dims, "latitude", label)
+    lon_dim = _pick(LON_DIMS, ds.dims, "longitude", label)
+    dims[lat_dim], dims[lon_dim] = "lat", "lon"
+    coords["lat"] = np.asarray(ds[lat_dim].values, dtype=float)
+    coords["lon"] = np.asarray(ds[lon_dim].values, dtype=float)
+
+    for name in known:
+        extra = set(map(str, ds[name].dims)) - set(dims)
+        if extra:
+            hint = (
+                " (a 'step' dimension: select or stack valid times first)"
+                if "step" in extra
+                else ""
+            )
+            raise ValueError(
+                f"{label} variable '{name}' has dimensions {sorted(extra)} besides "
+                f"time, {'pressure level, ' if upper else ''}latitude and longitude{hint}."
+            )
+        if dims.keys() - set(map(str, ds[name].dims)):
+            raise ValueError(
+                f"{label} variable '{name}' has dims {ds[name].dims}; expected "
+                f"{tuple(dims)}."
+            )
+
+    renames = {old: new for old, new in dims.items() if old != new}
+    ds = ds.drop_vars(list(ds.coords)).rename_dims(renames).assign_coords(coords)
+    if pd.Index(ds["time"].values).has_duplicates:
+        raise ValueError(f"{label} has repeated valid times.")
+    return ds.sortby("lat")
+
+
+def _field_variable(
+    da: xr.DataArray, field: Field, dims: tuple[str, ...]
+) -> xr.Variable:
+    """Scale ``da`` to the ARL field, keeping a lazy array lazy where possible."""
+    if field.scale != 1.0:
+        da = da * field.scale
+    variable = da.transpose(*dims).variable.copy(deep=False)
+    attrs: dict[str, str] = {"units": field.units}
+    if field.diff is not None:
+        attrs["diff"] = field.diff
+    variable.attrs = attrs
+    return variable
+
+
+def pressure_level_dataset(
+    upper: xr.Dataset,
+    surface: xr.Dataset,
+    upper_fields: Mapping[str, Field],
+    surface_fields: Mapping[str, Field],
+    *,
+    source: str,
+    forecast_hours: Sequence[int] | None = None,
+    labels: tuple[str, str] = ("pressure_levels", "single_levels"),
+) -> xr.Dataset:
+    """
+    Build the ARL Dataset (vertical flag 2) from two :func:`standardize`'d Datasets.
+
+    ``surface`` must be on ``upper``'s grid and hold each of its valid times;
+    its other times are left out. Each variable of ``upper_fields`` and
+    ``surface_fields`` the inputs hold is scaled and named as its
+    :class:`Field` says. Levels are written from the highest pressure up, and
+    ``forecast_hours`` (one per valid time, else 0) is the index records'.
+    """
+    upper_label, surface_label = labels
+    for axis in ("lat", "lon"):
+        a, b = upper[axis].values, surface[axis].values
+        if a.shape != b.shape or not np.allclose(
+            (a - b + 180.0) % 360.0 - 180.0, 0.0, atol=1e-6
+        ):
+            raise ValueError(
+                f"{upper_label} and {surface_label} are on different grids "
+                f"({axis} differs)."
+            )
+    missing = pd.Index(upper["time"].values).difference(
+        pd.Index(surface["time"].values)
+    )
+    if len(missing):
+        raise ValueError(
+            f"{surface_label} lacks {len(missing)} valid time(s) of {upper_label}, "
+            f"the first {missing[0]}."
+        )
+    surface = surface.sel(time=upper["time"].values)
+    upper = upper.sortby("level", ascending=False)
+
+    grid = latlon_grid(upper["lat"].values, upper["lon"].values)
+    pressures = [float(p) for p in upper["level"].values]
+    level_numbers = list(range(1, len(pressures) + 1))
+    vertical_axis = PressureAxis(levels=[0.0, *pressures])
+    times = upper["time"].values
+    hours = (
+        np.zeros(len(times), dtype=int) if forecast_hours is None else forecast_hours
+    )
+
+    ds = add_cf_spatial_attrs(xr.Dataset(coords=grid.calculate_coords()))
+    phys_name, phys_coord = physical_coord_for_vaxis(vertical_axis, level_numbers)
+    ds = ds.assign_coords(
+        time=xr.Variable("time", times, attrs={"standard_name": "time", "axis": "T"}),
+        forecast_hour=xr.Variable(
+            "time",
+            np.asarray(hours, dtype=int),
+            attrs={"long_name": "ARL index record forecast hour", "units": "hours"},
+        ),
+        level=xr.Variable(
+            "level", level_numbers, attrs={"standard_name": "model_level_number"}
+        ),
+        arl_grid=grid_to_coord(grid),
+    )
+    ds = ds.assign_coords({phys_name: phys_coord})
+
+    upper = upper.drop_vars(["lat", "lon", "level", "time"])
+    surface = surface.drop_vars(["lat", "lon", "time"])
+    for name, field in upper_fields.items():
+        if name in upper:
+            ds[field.name] = _field_variable(
+                upper[name], field, ("time", "level", "lat", "lon")
+            )
+    for name, field in surface_fields.items():
+        if name in surface:
+            ds[field.name] = _field_variable(
+                surface[name], field, ("time", "lat", "lon")
+            )
+
+    ds.attrs["source"] = source
+    ds.attrs["vertical_flag"] = vertical_axis.flag
+    return ds
