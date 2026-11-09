@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=98fc24f4"></script>
+    <script src="../../../_static/documentation_options.js?v=f9c4f9cf"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev13+gf6465d56e" />
+  <meta name="docsearch:version" content="0.1.0b9.dev14+g1adad9ecb" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -456,6 +456,8 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">concat</span><span class="p">(</span>
     <span class="n">paths</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
     <span class="n">dest</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Concatenate multiple ARL files into a single ARL file.</span>
@@ -479,6 +481,11 @@
 <span class="sd">        Output ARL file. It is written to a hidden ``.partial`` file beside</span>
 <span class="sd">        it and renamed once complete, so it replaces an existing file only on</span>
 <span class="sd">        success. Must not be one of ``paths``.</span>
+<span class="sd">    overwrite : bool, default True</span>
+<span class="sd">        Replace an existing ``dest``. With False an existing ``dest`` is</span>
+<span class="sd">        returned as it is, without reading the inputs, so a rerun skips</span>
+<span class="sd">        finished work; nothing checks that it came from the same inputs and</span>
+<span class="sd">        arguments.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -528,6 +535,8 @@
             <span class="sa">f</span><span class="s2">"dest </span><span class="si">{</span><span class="n">dest</span><span class="si">}</span><span class="s2"> is also one of the input paths; "</span>
             <span class="s2">"concatenating a file onto itself is not allowed."</span>
         <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="n">dest</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">dest</span>
 
     <span class="n">steps</span> <span class="o">=</span> <span class="n">_scan_inputs</span><span class="p">(</span><span class="n">input_paths</span><span class="p">)</span>
 
@@ -642,6 +651,7 @@
     <span class="n">start</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">end</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"{time:%Y%m</span><span class="si">%d</span><span class="s2">}_arl"</span><span class="p">,</span>
+    <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Group every ARL file in a directory by valid time and concatenate each group.</span>
@@ -676,11 +686,16 @@
 <span class="sd">        as ``time`` (a ``pandas.Timestamp``), e.g. ``"{time:%Y%m%d}_hrrr"``. It</span>
 <span class="sd">        must encode enough resolution to keep bins distinct at ``freq``; two</span>
 <span class="sd">        bins that format to the same filename raise ``ValueError``.</span>
+<span class="sd">    overwrite : bool, default True</span>
+<span class="sd">        Replace existing output files. With False a bin whose output file</span>
+<span class="sd">        exists is left as it is (and still listed), so rerunning after a</span>
+<span class="sd">        failure writes only the missing bins; nothing checks that an existing</span>
+<span class="sd">        file holds the bin's current inputs.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    list[pathlib.Path]</span>
-<span class="sd">        The written output paths, one per non-empty time bin, in time order.</span>
+<span class="sd">        The output paths, one per non-empty time bin, in time order.</span>
 
 <span class="sd">    Raises</span>
 <span class="sd">    ------</span>
@@ -753,7 +768,7 @@
 
     <span class="n">outputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">bin_start</span><span class="p">,</span> <span class="n">out_path</span> <span class="ow">in</span> <span class="n">out_paths</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">concat</span><span class="p">(</span><span class="n">groups</span><span class="p">[</span><span class="n">bin_start</span><span class="p">],</span> <span class="n">out_path</span><span class="p">))</span>
+        <span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">concat</span><span class="p">(</span><span class="n">groups</span><span class="p">[</span><span class="n">bin_start</span><span class="p">],</span> <span class="n">out_path</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">outputs</span></div>
 
 
