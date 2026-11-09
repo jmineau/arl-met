@@ -325,7 +325,8 @@ def wrf_sample() -> xr.Dataset:
     Return a made-up WRF run, laid out as xarray opens ``wrfout`` files.
 
     Three hours on a 12 km Lambert conformal grid over Utah with four model
-    levels, WRF's staggered dimensions and its global map attributes.
+    levels, WRF's staggered dimensions and its global map attributes, with
+    both the instantaneous and the mass-coupled averaged winds.
     """
     nx, ny, nt = 30, 25, 3
     start = pd.Timestamp("2013-06-29 18:00")
@@ -365,6 +366,15 @@ def wrf_sample() -> xr.Dataset:
         "RAINC": (flat, 0.2 * rain),
         "RAINNC": (flat, 0.8 * rain),
         "T2": (flat, 295 - 2 * wave[None] + hours[:, 0]),
+        # The mass-coupled averages (do_avgflx_em = 1): the winds times the column mass.
+        "AVGFLX_RUM": (("Time", "bottom_top", "south_north", "west_east_stag"), stag(8.5e4 * winds, 3)),
+        "AVGFLX_RVM": (("Time", "bottom_top", "south_north_stag", "west_east"), stag(-4.2e4 * winds, 2)),
+        "AVGFLX_WWM": (("Time", "bottom_top_stag", "south_north", "west_east"), stag(8.5e3 * wave + 0 * base, 1)),
+        "MUU": (("Time", "south_north", "west_east_stag"), stag(85000 + 0 * hours[:, 0] + 0 * wave[None], 2)),
+        "MUV": (("Time", "south_north_stag", "west_east"), stag(85000 + 0 * hours[:, 0] + 0 * wave[None], 1)),
+        "MAPFAC_M": (flat, 1.0 + 0 * hours[:, 0] + 0 * wave[None]),
+        "MAPFAC_U": (("Time", "south_north", "west_east_stag"), stag(1.0 + 0 * hours[:, 0] + 0 * wave[None], 2)),
+        "MAPFAC_V": (("Time", "south_north_stag", "west_east"), stag(1.0 + 0 * hours[:, 0] + 0 * wave[None], 1)),
     }  # fmt: skip
     return xr.Dataset(
         {name: (dims, np.asarray(values, dtype=np.float32) if values.dtype.kind == "f" else values)

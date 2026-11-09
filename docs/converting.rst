@@ -326,8 +326,24 @@ which differ in the last bits of single precision, as Fortran's and NumPy's
 arithmetic do: ``TEMP`` mostly by 1e-4 K, and by one packing step (0.125 K)
 at 0.006 % of its values; ``WWND`` by at most 6e-5 hPa s-1. ``arw2arl`` keeps the
 lowest 50 levels unless told otherwise; all are kept here, and
-``ds.isel(level=slice(0, 50))`` keeps fewer. Its other two variable lists, the
-mass-coupled time-averaged winds and TKE, are not converted.
+``ds.isel(level=slice(0, 50))`` keeps fewer.
+
+A run made with ``do_avgflx_em = 1`` also writes winds averaged over each
+output interval and coupled to the column mass (``AVGFLX_RUM``, ...), which
+``arw2arl -c2`` converts (NOAA's notes on its own WRF ARL files say HYSPLIT
+did slightly better with them in limited testing). ``winds="averaged"``
+writes those instead, as stored, with the fields HYSPLIT decouples them with
+(``MUU0``, ``MUV0``, ``MSFT``, ``MSFU``, ``MSFV``); :func:`arlmet.sample_points`
+decouples them too, while :func:`arlmet.open_dataset` returns the stored
+values:
+
+.. ipython:: python
+
+   averaged = arlmet.converters.from_wrf(wrf, winds="averaged")
+   averaged["UWND"].attrs  # mass-coupled, as stored
+   sorted(set(averaged.data_vars) - set(ds.data_vars))
+
+``arw2arl``'s TKE list is not converted.
 
 .. ipython:: python
    :suppress:
