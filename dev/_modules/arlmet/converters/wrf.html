@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=f3471472"></script>
+    <script src="../../../_static/documentation_options.js?v=5b418dd6"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev16+g667999b86" />
+  <meta name="docsearch:version" content="0.1.0b9.dev17+gd9f3bc8c0" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -420,7 +420,7 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
@@ -465,7 +465,27 @@
     <span class="s2">"SPHU"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"SPHU"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"kg kg-1"</span><span class="p">),</span>
 <span class="p">}</span>
 
-<span class="n">_REQUIRED</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"Times"</span><span class="p">,</span> <span class="s2">"ZNU"</span><span class="p">,</span> <span class="s2">"P_TOP"</span><span class="p">,</span> <span class="s2">"P"</span><span class="p">,</span> <span class="s2">"PB"</span><span class="p">,</span> <span class="s2">"T"</span><span class="p">,</span> <span class="s2">"U"</span><span class="p">,</span> <span class="s2">"V"</span><span class="p">,</span> <span class="s2">"W"</span><span class="p">,</span> <span class="s2">"QVAPOR"</span><span class="p">)</span>
+<span class="n">_REQUIRED</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"Times"</span><span class="p">,</span> <span class="s2">"ZNU"</span><span class="p">,</span> <span class="s2">"P_TOP"</span><span class="p">,</span> <span class="s2">"P"</span><span class="p">,</span> <span class="s2">"PB"</span><span class="p">,</span> <span class="s2">"T"</span><span class="p">,</span> <span class="s2">"QVAPOR"</span><span class="p">)</span>
+<span class="c1">#: The winds of each of ``arw2arl``'s variable lists: (U, V, W) and, for the</span>
+<span class="c1">#: mass-coupled averages, the fields HYSPLIT decouples them with.</span>
+<span class="n">_WINDS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"instantaneous"</span><span class="p">:</span> <span class="p">((</span><span class="s2">"U"</span><span class="p">,</span> <span class="s2">"V"</span><span class="p">,</span> <span class="s2">"W"</span><span class="p">),</span> <span class="p">()),</span>
+    <span class="s2">"averaged"</span><span class="p">:</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s2">"AVGFLX_RUM"</span><span class="p">,</span> <span class="s2">"AVGFLX_RVM"</span><span class="p">,</span> <span class="s2">"AVGFLX_WWM"</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"MUU"</span><span class="p">,</span> <span class="s2">"MUV"</span><span class="p">,</span> <span class="s2">"MAPFAC_M"</span><span class="p">,</span> <span class="s2">"MAPFAC_U"</span><span class="p">,</span> <span class="s2">"MAPFAC_V"</span><span class="p">),</span>
+    <span class="p">),</span>
+<span class="p">}</span>
+
+<span class="c1">#: The surface fields the averaged winds add (``arw2arl -c2``), by WRF name:</span>
+<span class="c1">#: (ARL field, the staggered dimension to cut to the mass points).</span>
+<span class="n">AVERAGED_SURFACE_FIELDS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Field</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"ZNT"</span><span class="p">:</span> <span class="p">(</span><span class="n">Field</span><span class="p">(</span><span class="s2">"RGHS"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">),</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="s2">"MUU"</span><span class="p">:</span> <span class="p">(</span><span class="n">Field</span><span class="p">(</span><span class="s2">"MUU0"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"Pa"</span><span class="p">),</span> <span class="s2">"west_east_stag"</span><span class="p">),</span>
+    <span class="s2">"MUV"</span><span class="p">:</span> <span class="p">(</span><span class="n">Field</span><span class="p">(</span><span class="s2">"MUV0"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"Pa"</span><span class="p">),</span> <span class="s2">"south_north_stag"</span><span class="p">),</span>
+    <span class="s2">"MAPFAC_M"</span><span class="p">:</span> <span class="p">(</span><span class="n">Field</span><span class="p">(</span><span class="s2">"MSFT"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">),</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="s2">"MAPFAC_U"</span><span class="p">:</span> <span class="p">(</span><span class="n">Field</span><span class="p">(</span><span class="s2">"MSFU"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">),</span> <span class="s2">"west_east_stag"</span><span class="p">),</span>
+    <span class="s2">"MAPFAC_V"</span><span class="p">:</span> <span class="p">(</span><span class="n">Field</span><span class="p">(</span><span class="s2">"MSFV"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">),</span> <span class="s2">"south_north_stag"</span><span class="p">),</span>
+<span class="p">}</span>
 <span class="n">_DIMS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"Time"</span><span class="p">:</span> <span class="s2">"time"</span><span class="p">,</span> <span class="s2">"bottom_top"</span><span class="p">:</span> <span class="s2">"level"</span><span class="p">,</span> <span class="s2">"south_north"</span><span class="p">:</span> <span class="s2">"y"</span><span class="p">,</span> <span class="s2">"west_east"</span><span class="p">:</span> <span class="s2">"x"</span><span class="p">}</span>
 
 
@@ -495,6 +515,7 @@
 <span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">value</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the global attribute ``name`` as a float, or raise naming it."""</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The WRF Dataset has no '</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">' attribute."</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">attrs</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
@@ -565,12 +586,15 @@
 
 <div class="viewcode-block" id="from_wrf">
 <a class="viewcode-back" href="../../../_autosummary/arlmet.converters.from_wrf.html#arlmet.converters.from_wrf">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">from_wrf</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_wrf</span><span class="p">(</span>
+    <span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">winds</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"instantaneous"</span><span class="p">,</span> <span class="s2">"averaged"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"instantaneous"</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Convert WRF-ARW output to a Dataset that :func:`arlmet.write_dataset` writes.</span>
 
 <span class="sd">    This is HYSPLIT's ``arw2arl`` with its default variables (instantaneous</span>
-<span class="sd">    winds), taking WRF's ``wrfout`` files as xarray opens them: one file, or</span>
+<span class="sd">    winds) or, with ``winds="averaged"``, its mass-coupled time-averaged winds</span>
+<span class="sd">    (``arw2arl -c2``), taking WRF's ``wrfout`` files as xarray opens them: one file, or</span>
 <span class="sd">    several joined along ``Time`` (``xr.open_mfdataset(files,</span>
 <span class="sd">    combine="nested", concat_dim="Time")``). The result has source ``AWRF``</span>
 <span class="sd">    (which HYSPLIT and :func:`arlmet.sample_points` read as WRF), WRF's own</span>
@@ -608,35 +632,49 @@
 <span class="sd">    before, scaled to one hour; the first time step has none, so join every</span>
 <span class="sd">    file of a run before converting.</span>
 
+<span class="sd">    With ``winds="averaged"`` (a run with ``do_avgflx_em = 1``), ``UWND``,</span>
+<span class="sd">    ``VWND`` and ``WWND`` are WRF's ``AVGFLX_RUM``, ``AVGFLX_RVM`` and</span>
+<span class="sd">    ``AVGFLX_WWM`` as stored: averaged over the output interval and coupled to</span>
+<span class="sd">    the column mass (no ``DIFW``, as ``arw2arl -c2`` writes them). The file</span>
+<span class="sd">    also gets what HYSPLIT decouples them with: ``MUU0`` and ``MUV0`` (WRF's</span>
+<span class="sd">    ``MUU``, ``MUV``), ``MSFT``, ``MSFU`` and ``MSFV`` (``MAPFAC_M``,</span>
+<span class="sd">    ``MAPFAC_U``, ``MAPFAC_V``), all at the mass points' faces as stored,</span>
+<span class="sd">    and ``RGHS`` (``ZNT``) where the run has it. HYSPLIT and</span>
+<span class="sd">    :func:`arlmet.sample_points` use ``UWND * MSFU / MUU0``, ...;</span>
+<span class="sd">    :func:`arlmet.open_dataset` returns the stored values.</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    ds : xarray.Dataset</span>
 <span class="sd">        WRF output with its global attributes (``MAP_PROJ``, ``CEN_LAT``,</span>
 <span class="sd">        ``DX``, ...) and at least ``Times``, ``ZNU``, ``P_TOP``, ``P``, ``PB``,</span>
-<span class="sd">        ``T``, ``U``, ``V``, ``W`` and ``QVAPOR``. Single-level variables</span>
-<span class="sd">        not in it are left out.</span>
+<span class="sd">        ``T``, ``QVAPOR`` and the winds. Single-level variables not in it are</span>
+<span class="sd">        left out.</span>
+<span class="sd">    winds : {"instantaneous", "averaged"}, default "instantaneous"</span>
+<span class="sd">        Which winds to write: WRF's ``U``, ``V`` and ``W`` at the output time,</span>
+<span class="sd">        or the mass-coupled averages over the interval before it (above).</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    xarray.Dataset</span>
 <span class="sd">        The fields in :func:`arlmet.open_dataset`'s layout (dims ``time``,</span>
 <span class="sd">        ``level``, ``y``, ``x``), with each variable's ARL ``units`` and</span>
-<span class="sd">        ``attrs["diff"]`` on ``WWND`` and ``TPP1``. Every model level is kept</span>
+<span class="sd">        ``attrs["diff"]`` on ``TPP1`` and, for instantaneous winds, ``WWND``.</span>
+<span class="sd">        Every model level is kept</span>
 <span class="sd">        (``arw2arl`` keeps 50 unless told otherwise); ``ds.isel(level=...)``</span>
 <span class="sd">        keeps fewer.</span>
 
 <span class="sd">    Raises</span>
 <span class="sd">    ------</span>
 <span class="sd">    ValueError</span>
-<span class="sd">        If a required variable or attribute is missing, or ``MAP_PROJ`` is</span>
-<span class="sd">        not 1, 2 or 3.</span>
+<span class="sd">        If a required variable or attribute is missing, ``MAP_PROJ`` is not</span>
+<span class="sd">        1, 2 or 3, or ``winds`` is neither "instantaneous" nor "averaged".</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
-<span class="sd">    ``arw2arl``'s other variable lists, the mass-coupled time-averaged winds</span>
-<span class="sd">    (``AVGFLX_RUM``, ... with ``MUU0``, ``MSFU``, ...) and TKE, are not</span>
-<span class="sd">    converted. :func:`arlmet.open_dataset` and :func:`arlmet.sample_points`</span>
-<span class="sd">    read the winds of the result where WRF put them (``AWRF``).</span>
+<span class="sd">    ``arw2arl``'s TKE list is not converted. :func:`arlmet.open_dataset` and</span>
+<span class="sd">    :func:`arlmet.sample_points` read the winds of the result where WRF put</span>
+<span class="sd">    them (``AWRF``).</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -650,7 +688,11 @@
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"from_wrf() takes an xarray.Dataset, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
-    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_REQUIRED</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">winds</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_WINDS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"winds must be 'instantaneous' or 'averaged', got </span><span class="si">{</span><span class="n">winds</span><span class="si">!r}</span><span class="s2">."</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">u_name</span><span class="p">,</span> <span class="n">v_name</span><span class="p">,</span> <span class="n">w_name</span><span class="p">),</span> <span class="n">couplers</span> <span class="o">=</span> <span class="n">_WINDS</span><span class="p">[</span><span class="n">winds</span><span class="p">]</span>
+    <span class="n">required</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">_REQUIRED</span><span class="p">,</span> <span class="n">u_name</span><span class="p">,</span> <span class="n">v_name</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="o">*</span><span class="n">couplers</span><span class="p">)</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">required</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The WRF Dataset lacks </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
     <span class="k">if</span> <span class="s2">"Time"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"T"</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
@@ -700,17 +742,22 @@
 
     <span class="n">pressure</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"P"</span><span class="p">]</span> <span class="o">+</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"PB"</span><span class="p">]</span>  <span class="c1"># Pa</span>
     <span class="n">temperature</span> <span class="o">=</span> <span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">"T"</span><span class="p">]</span> <span class="o">+</span> <span class="mf">300.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">pressure</span> <span class="o">/</span> <span class="mf">1.0e5</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="n">R_DRY</span> <span class="o">/</span> <span class="n">CP</span><span class="p">)</span>
-    <span class="n">w</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"W"</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">bottom_top_stag</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nz</span><span class="p">))</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">bottom_top_stag</span><span class="o">=</span><span class="s2">"bottom_top"</span><span class="p">)</span>
-    <span class="n">omega</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="o">-</span><span class="n">w</span>
-        <span class="o">*</span> <span class="n">GRAVITY</span>
-        <span class="o">*</span> <span class="n">pressure</span>
-        <span class="o">*</span> <span class="mf">0.01</span>
-        <span class="o">/</span> <span class="p">(</span><span class="n">R_DRY</span> <span class="o">*</span> <span class="n">temperature</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.6077</span> <span class="o">*</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"QVAPOR"</span><span class="p">]))</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">ds</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
+        <span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">bottom_top_stag</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nz</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">bottom_top_stag</span><span class="o">=</span><span class="s2">"bottom_top"</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="n">u</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"U"</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">west_east_stag</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nx</span><span class="p">))</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">west_east_stag</span><span class="o">=</span><span class="s2">"west_east"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">winds</span> <span class="o">==</span> <span class="s2">"instantaneous"</span><span class="p">:</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="o">-</span><span class="n">w</span>
+            <span class="o">*</span> <span class="n">GRAVITY</span>
+            <span class="o">*</span> <span class="n">pressure</span>
+            <span class="o">*</span> <span class="mf">0.01</span>
+            <span class="o">/</span> <span class="p">(</span><span class="n">R_DRY</span> <span class="o">*</span> <span class="n">temperature</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.6077</span> <span class="o">*</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"QVAPOR"</span><span class="p">]))</span>
+        <span class="p">)</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">u_name</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">west_east_stag</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nx</span><span class="p">))</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">west_east_stag</span><span class="o">=</span><span class="s2">"west_east"</span><span class="p">)</span>
     <span class="n">v</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">ds</span><span class="p">[</span><span class="s2">"V"</span><span class="p">]</span>
+        <span class="n">ds</span><span class="p">[</span><span class="n">v_name</span><span class="p">]</span>
         <span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">south_north_stag</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ny</span><span class="p">))</span>
         <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">south_north_stag</span><span class="o">=</span><span class="s2">"south_north"</span><span class="p">)</span>
     <span class="p">)</span>
@@ -719,14 +766,29 @@
         <span class="s2">"TEMP"</span><span class="p">:</span> <span class="n">temperature</span><span class="p">,</span>
         <span class="s2">"UWND"</span><span class="p">:</span> <span class="n">u</span><span class="p">,</span>
         <span class="s2">"VWND"</span><span class="p">:</span> <span class="n">v</span><span class="p">,</span>
-        <span class="s2">"WWND"</span><span class="p">:</span> <span class="n">omega</span><span class="p">,</span>
+        <span class="s2">"WWND"</span><span class="p">:</span> <span class="n">w</span><span class="p">,</span>
         <span class="s2">"SPHU"</span><span class="p">:</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"QVAPOR"</span><span class="p">],</span>
     <span class="p">}</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">da</span> <span class="ow">in</span> <span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">bad</span> <span class="o">=</span> <span class="p">{</span><span class="n">d</span><span class="p">:</span> <span class="n">s</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sizes_ok</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">dims</span> <span class="ow">and</span> <span class="n">da</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">!=</span> <span class="n">s</span><span class="p">}</span>
         <span class="k">if</span> <span class="n">bad</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"WRF's </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> has unexpected sizes </span><span class="si">{</span><span class="n">bad</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
-        <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">field_variable</span><span class="p">(</span><span class="n">arl</span><span class="p">(</span><span class="n">da</span><span class="p">),</span> <span class="n">LEVEL_FIELDS</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">upper_dims</span><span class="p">)</span>
+        <span class="n">field</span> <span class="o">=</span> <span class="n">LEVEL_FIELDS</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">winds</span> <span class="o">==</span> <span class="s2">"averaged"</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">,</span> <span class="s2">"WWND"</span><span class="p">}:</span>
+            <span class="c1"># Mass-coupled, as stored (WRF's units).</span>
+            <span class="n">field</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"Pa s-1"</span> <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">"WWND"</span> <span class="k">else</span> <span class="s2">"Pa m s-1"</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">field_variable</span><span class="p">(</span><span class="n">arl</span><span class="p">(</span><span class="n">da</span><span class="p">),</span> <span class="n">field</span><span class="p">,</span> <span class="n">upper_dims</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">winds</span> <span class="o">==</span> <span class="s2">"averaged"</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">staggered</span><span class="p">)</span> <span class="ow">in</span> <span class="n">AVERAGED_SURFACE_FIELDS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">da</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">staggered</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">size</span> <span class="o">=</span> <span class="n">nx</span> <span class="k">if</span> <span class="n">staggered</span> <span class="o">==</span> <span class="s2">"west_east_stag"</span> <span class="k">else</span> <span class="n">ny</span>
+                <span class="n">da</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">isel</span><span class="p">({</span><span class="n">staggered</span><span class="p">:</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">size</span><span class="p">)})</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+                    <span class="p">{</span><span class="n">staggered</span><span class="p">:</span> <span class="n">staggered</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="s2">"_stag"</span><span class="p">)}</span>
+                <span class="p">)</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">field_variable</span><span class="p">(</span><span class="n">arl</span><span class="p">(</span><span class="n">da</span><span class="p">),</span> <span class="n">field</span><span class="p">,</span> <span class="n">surface_dims</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span></div>
 
 </pre></div>

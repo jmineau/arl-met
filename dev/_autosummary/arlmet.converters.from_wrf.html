@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=f3471472"></script>
+    <script src="../_static/documentation_options.js?v=5b418dd6"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev16+g667999b86" />
+  <meta name="docsearch:version" content="0.1.0b9.dev17+gd9f3bc8c0" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -638,10 +638,11 @@
 <h1>arlmet.converters.from_wrf<a class="headerlink" href="#arlmet-converters-from-wrf" title="Link to this heading">#</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="arlmet.converters.from_wrf">
-<span class="sig-prename descclassname"><span class="pre">arlmet.converters.</span></span><span class="sig-name descname"><span class="pre">from_wrf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/converters/wrf.html#from_wrf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.converters.from_wrf" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">arlmet.converters.</span></span><span class="sig-name descname"><span class="pre">from_wrf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">winds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'instantaneous'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/converters/wrf.html#from_wrf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.converters.from_wrf" title="Link to this definition">#</a></dt>
 <dd><p>Convert WRF-ARW output to a Dataset that <a class="reference internal" href="arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> writes.</p>
 <p>This is HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code> with its default variables (instantaneous
-winds), taking WRF’s <code class="docutils literal notranslate"><span class="pre">wrfout</span></code> files as xarray opens them: one file, or
+winds) or, with <code class="docutils literal notranslate"><span class="pre">winds=&quot;averaged&quot;</span></code>, its mass-coupled time-averaged winds
+(<code class="docutils literal notranslate"><span class="pre">arw2arl</span> <span class="pre">-c2</span></code>), taking WRF’s <code class="docutils literal notranslate"><span class="pre">wrfout</span></code> files as xarray opens them: one file, or
 several joined along <code class="docutils literal notranslate"><span class="pre">Time</span></code> (<code class="docutils literal notranslate"><span class="pre">xr.open_mfdataset(files,</span>
 <span class="pre">combine=&quot;nested&quot;,</span> <span class="pre">concat_dim=&quot;Time&quot;)</span></code>). The result has source <code class="docutils literal notranslate"><span class="pre">AWRF</span></code>
 (which HYSPLIT and <a class="reference internal" href="arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> read as WRF), WRF’s own
@@ -726,17 +727,32 @@ WRF’s hybrid coordinate (<code class="docutils literal notranslate"><span clas
 (flag 5). The precipitation of a time step is what fell since the one
 before, scaled to one hour; the first time step has none, so join every
 file of a run before converting.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">winds=&quot;averaged&quot;</span></code> (a run with <code class="docutils literal notranslate"><span class="pre">do_avgflx_em</span> <span class="pre">=</span> <span class="pre">1</span></code>), <code class="docutils literal notranslate"><span class="pre">UWND</span></code>,
+<code class="docutils literal notranslate"><span class="pre">VWND</span></code> and <code class="docutils literal notranslate"><span class="pre">WWND</span></code> are WRF’s <code class="docutils literal notranslate"><span class="pre">AVGFLX_RUM</span></code>, <code class="docutils literal notranslate"><span class="pre">AVGFLX_RVM</span></code> and
+<code class="docutils literal notranslate"><span class="pre">AVGFLX_WWM</span></code> as stored: averaged over the output interval and coupled to
+the column mass (no <code class="docutils literal notranslate"><span class="pre">DIFW</span></code>, as <code class="docutils literal notranslate"><span class="pre">arw2arl</span> <span class="pre">-c2</span></code> writes them). The file
+also gets what HYSPLIT decouples them with: <code class="docutils literal notranslate"><span class="pre">MUU0</span></code> and <code class="docutils literal notranslate"><span class="pre">MUV0</span></code> (WRF’s
+<code class="docutils literal notranslate"><span class="pre">MUU</span></code>, <code class="docutils literal notranslate"><span class="pre">MUV</span></code>), <code class="docutils literal notranslate"><span class="pre">MSFT</span></code>, <code class="docutils literal notranslate"><span class="pre">MSFU</span></code> and <code class="docutils literal notranslate"><span class="pre">MSFV</span></code> (<code class="docutils literal notranslate"><span class="pre">MAPFAC_M</span></code>,
+<code class="docutils literal notranslate"><span class="pre">MAPFAC_U</span></code>, <code class="docutils literal notranslate"><span class="pre">MAPFAC_V</span></code>), all at the mass points’ faces as stored,
+and <code class="docutils literal notranslate"><span class="pre">RGHS</span></code> (<code class="docutils literal notranslate"><span class="pre">ZNT</span></code>) where the run has it. HYSPLIT and
+<a class="reference internal" href="arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> use <code class="docutils literal notranslate"><span class="pre">UWND</span> <span class="pre">*</span> <span class="pre">MSFU</span> <span class="pre">/</span> <span class="pre">MUU0</span></code>, …;
+<a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a> returns the stored values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>ds</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html#xarray.Dataset" title="(in xarray v2026.9.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a></span>) – WRF output with its global attributes (<code class="docutils literal notranslate"><span class="pre">MAP_PROJ</span></code>, <code class="docutils literal notranslate"><span class="pre">CEN_LAT</span></code>,
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html#xarray.Dataset" title="(in xarray v2026.9.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a></span>) – WRF output with its global attributes (<code class="docutils literal notranslate"><span class="pre">MAP_PROJ</span></code>, <code class="docutils literal notranslate"><span class="pre">CEN_LAT</span></code>,
 <code class="docutils literal notranslate"><span class="pre">DX</span></code>, …) and at least <code class="docutils literal notranslate"><span class="pre">Times</span></code>, <code class="docutils literal notranslate"><span class="pre">ZNU</span></code>, <code class="docutils literal notranslate"><span class="pre">P_TOP</span></code>, <code class="docutils literal notranslate"><span class="pre">P</span></code>, <code class="docutils literal notranslate"><span class="pre">PB</span></code>,
-<code class="docutils literal notranslate"><span class="pre">T</span></code>, <code class="docutils literal notranslate"><span class="pre">U</span></code>, <code class="docutils literal notranslate"><span class="pre">V</span></code>, <code class="docutils literal notranslate"><span class="pre">W</span></code> and <code class="docutils literal notranslate"><span class="pre">QVAPOR</span></code>. Single-level variables
-not in it are left out.</p>
+<code class="docutils literal notranslate"><span class="pre">T</span></code>, <code class="docutils literal notranslate"><span class="pre">QVAPOR</span></code> and the winds. Single-level variables not in it are
+left out.</p></li>
+<li><p><strong>winds</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'instantaneous'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'averaged'</span></span></code></span>]</span>) – Which winds to write: WRF’s <code class="docutils literal notranslate"><span class="pre">U</span></code>, <code class="docutils literal notranslate"><span class="pre">V</span></code> and <code class="docutils literal notranslate"><span class="pre">W</span></code> at the output time,
+or the mass-coupled averages over the interval before it (above).</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The fields in <a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a>’s layout (dims <code class="docutils literal notranslate"><span class="pre">time</span></code>,
 <code class="docutils literal notranslate"><span class="pre">level</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>), with each variable’s ARL <code class="docutils literal notranslate"><span class="pre">units</span></code> and
-<code class="docutils literal notranslate"><span class="pre">attrs[&quot;diff&quot;]</span></code> on <code class="docutils literal notranslate"><span class="pre">WWND</span></code> and <code class="docutils literal notranslate"><span class="pre">TPP1</span></code>. Every model level is kept
+<code class="docutils literal notranslate"><span class="pre">attrs[&quot;diff&quot;]</span></code> on <code class="docutils literal notranslate"><span class="pre">TPP1</span></code> and, for instantaneous winds, <code class="docutils literal notranslate"><span class="pre">WWND</span></code>.
+Every model level is kept
 (<code class="docutils literal notranslate"><span class="pre">arw2arl</span></code> keeps 50 unless told otherwise); <code class="docutils literal notranslate"><span class="pre">ds.isel(level=...)</span></code>
 keeps fewer.</p>
 </dd>
@@ -744,15 +760,14 @@ keeps fewer.</p>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html#xarray.Dataset" title="(in xarray v2026.9.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a></span></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If a required variable or attribute is missing, or <code class="docutils literal notranslate"><span class="pre">MAP_PROJ</span></code> is
-    not 1, 2 or 3.</p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If a required variable or attribute is missing, <code class="docutils literal notranslate"><span class="pre">MAP_PROJ</span></code> is not
+    1, 2 or 3, or <code class="docutils literal notranslate"><span class="pre">winds</span></code> is neither “instantaneous” nor “averaged”.</p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
-<p><code class="docutils literal notranslate"><span class="pre">arw2arl</span></code>’s other variable lists, the mass-coupled time-averaged winds
-(<code class="docutils literal notranslate"><span class="pre">AVGFLX_RUM</span></code>, … with <code class="docutils literal notranslate"><span class="pre">MUU0</span></code>, <code class="docutils literal notranslate"><span class="pre">MSFU</span></code>, …) and TKE, are not
-converted. <a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a> and <a class="reference internal" href="arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a>
-read the winds of the result where WRF put them (<code class="docutils literal notranslate"><span class="pre">AWRF</span></code>).</p>
+<p><code class="docutils literal notranslate"><span class="pre">arw2arl</span></code>’s TKE list is not converted. <a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a> and
+<a class="reference internal" href="arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> read the winds of the result where WRF put
+them (<code class="docutils literal notranslate"><span class="pre">AWRF</span></code>).</p>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>

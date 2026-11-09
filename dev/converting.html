@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=f3471472"></script>
+    <script src="_static/documentation_options.js?v=5b418dd6"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev16+g667999b86" />
+  <meta name="docsearch:version" content="0.1.0b9.dev17+gd9f3bc8c0" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -866,8 +866,25 @@ which differ in the last bits of single precision, as Fortran’s and NumPy’s
 arithmetic do: <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> mostly by 1e-4 K, and by one packing step (0.125 K)
 at 0.006 % of its values; <code class="docutils literal notranslate"><span class="pre">WWND</span></code> by at most 6e-5 hPa s-1. <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code> keeps the
 lowest 50 levels unless told otherwise; all are kept here, and
-<code class="docutils literal notranslate"><span class="pre">ds.isel(level=slice(0,</span> <span class="pre">50))</span></code> keeps fewer. Its other two variable lists, the
-mass-coupled time-averaged winds and TKE, are not converted.</p>
+<code class="docutils literal notranslate"><span class="pre">ds.isel(level=slice(0,</span> <span class="pre">50))</span></code> keeps fewer.</p>
+<p>A run made with <code class="docutils literal notranslate"><span class="pre">do_avgflx_em</span> <span class="pre">=</span> <span class="pre">1</span></code> also writes winds averaged over each
+output interval and coupled to the column mass (<code class="docutils literal notranslate"><span class="pre">AVGFLX_RUM</span></code>, …), which
+<code class="docutils literal notranslate"><span class="pre">arw2arl</span> <span class="pre">-c2</span></code> converts (NOAA’s notes on its own WRF ARL files say HYSPLIT
+did slightly better with them in limited testing). <code class="docutils literal notranslate"><span class="pre">winds=&quot;averaged&quot;</span></code>
+writes those instead, as stored, with the fields HYSPLIT decouples them with
+(<code class="docutils literal notranslate"><span class="pre">MUU0</span></code>, <code class="docutils literal notranslate"><span class="pre">MUV0</span></code>, <code class="docutils literal notranslate"><span class="pre">MSFT</span></code>, <code class="docutils literal notranslate"><span class="pre">MSFU</span></code>, <code class="docutils literal notranslate"><span class="pre">MSFV</span></code>); <a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a>
+decouples them too, while <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a> returns the stored
+values:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [27]: </span><span class="n">averaged</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_wrf</span><span class="p">(</span><span class="n">wrf</span><span class="p">,</span> <span class="n">winds</span><span class="o">=</span><span class="s2">"averaged"</span><span class="p">)</span>
+
+<span class="gp">In [28]: </span><span class="n">averaged</span><span class="p">[</span><span class="s2">"UWND"</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span>  <span class="c1"># mass-coupled, as stored</span>
+<span class="gh">Out[28]: </span><span class="go">{'units': 'Pa m s-1'}</span>
+
+<span class="gp">In [29]: </span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">averaged</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">))</span>
+<span class="gh">Out[29]: </span><span class="go">['MSFT', 'MSFU', 'MSFV', 'MUU0', 'MUV0']</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">arw2arl</span></code>’s TKE list is not converted.</p>
 </section>
 </section>
 
