@@ -26,3 +26,14 @@ def ensure_timestamp(value: Any, *, floor: str | None = None) -> pd.Timestamp:
                 f"Invalid timestamp value after floor({floor!r}): {value!r}"
             )
     return ts
+
+
+def utc_times(index: Any) -> pd.DatetimeIndex:
+    """
+    Return times without a time zone, in UTC, as every ARL time is.
+
+    Pass a coordinate's index (``coord.to_index()``), not ``.values``: pandas 3
+    warns that ``DatetimeIndex.values`` drops the time zone of an aware index.
+    """
+    times = pd.DatetimeIndex(pd.to_datetime(index))
+    return times.tz_convert(None) if times.tz is not None else times

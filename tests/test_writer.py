@@ -277,6 +277,18 @@ class TestWriter:
         np.testing.assert_allclose(reopened["PRSS"].values, ds["PRSS"].values)
         np.testing.assert_allclose(reopened["TEMP"].values, ds["TEMP"].values)
 
+    def test_write_dataset_converts_aware_times_to_utc_without_warning(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path).load()
+        utc = pd.DatetimeIndex(ds.time.values)
+        ds = ds.assign_coords(time=utc.tz_localize("UTC").tz_convert("America/Denver"))
+
+        write_dataset(ds, written_path)  # warnings are errors in the tests
+
+        assert list(File(written_path).times) == list(utc)
+
     @pytest.mark.parametrize("dim", ["lat", "lon"])
     def test_write_dataset_rejects_a_descending_coordinate(self, tmp_path, dim):
         """Rows and columns are written in array order, so a flipped Dataset is refused."""
