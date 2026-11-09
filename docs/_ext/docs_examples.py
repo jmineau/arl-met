@@ -320,6 +320,57 @@ def gfs_sample() -> list[xr.Dataset]:
     return [*forecast, *fields(0)]
 
 
+def icon_sample() -> list[xr.Dataset]:
+    """
+    Return made-up ICON-EU Datasets, laid out as ``cfgrib.open_datasets`` returns them.
+
+    They stand in for DWD's files of the 2026-11-06 00 UTC forecast, steps 0
+    to 3: one Dataset per variable, pressure level and step, rows from south
+    to north on a 0.5 degree grid over central Europe, with the terrain height
+    in one time-invariant file and the precipitation and latent heat flux as
+    a total and a mean from the start of the forecast.
+    """
+    start = pd.Timestamp("2026-11-06 00:00")
+    lat = np.arange(44.0, 56.01, 0.5)
+    lon = np.arange(0.0, 20.01, 0.5)
+    levels = [1000.0, 850.0, 700.0, 500.0]
+    lon2, lat2 = np.meshgrid(lon, lat)
+    wave = np.sin(np.deg2rad(12 * lon2 + 15 * lat2))
+    terrain = 200 + 1800 * np.exp(-(((lat2 - 47.0) / 1.0) ** 2)) * (lon2 > 6)
+    rain = np.clip(wave, 0, None)  # mm in each hour
+    flat = ("latitude", "longitude")
+
+    def cube(name, values, step, type_of_level, level=0.0, step_type="instant"):
+        step = pd.Timedelta(hours=step)
+        attrs = {"GRIB_typeOfLevel": type_of_level, "GRIB_stepType": step_type}
+        coords = {"time": start, "step": step, "valid_time": start + step,
+                  "latitude": lat, "longitude": lon, type_of_level: level}  # fmt: skip
+        data = (flat, np.asarray(values, dtype="float32"), attrs)
+        return xr.Dataset({name: data}, coords=coords)
+
+    datasets = [cube("HSURF", terrain, 0, "surface")]
+    for step in range(4):
+        for p in levels:
+            height = 44330.8 * (1 - (p / 1013.25) ** 0.190263) + 20 * wave
+            for name, values in {
+                "z": 9.80665 * height,
+                "t": 284 - 0.0065 * height + 0.3 * (50 - lat2),
+                "u": 8 + 4 * wave + (850 - p) / 40,
+                "v": -1 + 3 * np.cos(np.deg2rad(6 * lon2)),
+                "w": 0.3 * wave,  # Pa s-1
+                "r": 60 + 25 * wave,
+            }.items():
+                datasets.append(cube(name, values, step, "isobaricInhPa", p))
+        datasets += [
+            cube("sp", 101325 * (1 - terrain / 44330.8) ** 5.255, step, "surface"),
+            cube("t2m", 283 - 0.0065 * terrain, step, "heightAboveGround", 2.0),
+            cube("tp", step * rain, step, "surface", step_type="accum"),
+            # Positive downward, as ICON's fluxes: evaporation is negative.
+            cube("avg_slhtf", -40 - 20 * wave, step, "surface", step_type="avg"),
+        ]
+    return datasets
+
+
 def wrf_sample() -> xr.Dataset:
     """
     Return a made-up WRF run, laid out as xarray opens ``wrfout`` files.
