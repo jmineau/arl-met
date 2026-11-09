@@ -389,6 +389,44 @@ class TestWriter:
             write_dataset(ds, out)
         assert not out.exists()
 
+    def test_masked_cells_are_missing_not_their_fill_value(self, tmp_path):
+        """A masked array's mask counts; the 1e20 fill under it must not be packed."""
+        grid = make_test_grid()
+        axis = PressureAxis(levels=[0.0, 1000.0])
+        field = np.ma.masked_array(np.full((20, 20), 280.0), mask=False)
+        field.data[2:4, 3:6] = 1e20
+        field[2:4, 3:6] = np.ma.masked
+
+        # Some cells masked: refused, naming the field, instead of 1e20 packed.
+        with (
+            pytest.raises(ValueError, match="TEMP at level 1 has 6 missing"),
+            File(
+                tmp_path / "a.arl",
+                mode="w",
+                source="TEST",
+                grid=grid,
+                vertical_axis=axis,
+            ) as arl,
+        ):
+            rs = arl.create_recordset(pd.Timestamp("2024-07-18"), forecast=0)
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=np.ones((20, 20)))
+            rs.create_datarecord("TEMP", level=1, forecast=0, data=field)
+
+        # Every cell masked: a missing field, as an all-NaN one is. Assigning
+        # through record[:] reads the mask too.
+        everything = np.ma.masked_all((20, 20))
+        everything.data[:] = 1e20
+        path = tmp_path / "b.arl"
+        with File(path, mode="w", source="TEST", grid=grid, vertical_axis=axis) as arl:
+            rs = arl.create_recordset(pd.Timestamp("2024-07-18"), forecast=0)
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=np.ones((20, 20)))
+            rs.create_datarecord("TEMP", level=1, forecast=0, data=everything)
+            record = rs.create_datarecord("RELH", level=1, forecast=0)
+            record[:] = everything
+        ds = open_dataset(path)
+        assert np.isnan(ds["TEMP"].values).all()
+        assert np.isnan(ds["RELH"].values).all()
+
     def test_create_datarecord_rejects_data_of_the_wrong_shape(self, tmp_path):
         grid = make_test_grid()
         axis = PressureAxis(levels=[0.0, 1000.0])

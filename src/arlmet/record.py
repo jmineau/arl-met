@@ -113,11 +113,25 @@ def _check_variable_name(variable: str) -> None:
         )
 
 
+def _fill_masked(value: Any) -> Any:
+    """
+    Return a masked array with its masked cells as NaN; anything else unchanged.
+
+    ``np.asarray`` drops a mask and keeps the values under it (netCDF readers
+    leave a fill value such as 1e20 there), and one such value ruins a packed
+    field. A masked cell is a missing one, which the writers already handle as NaN.
+    """
+    if np.ma.isMaskedArray(value):
+        floats = value.astype(np.result_type(value.dtype, np.float32))
+        return np.ma.filled(floats, np.nan)
+    return value
+
+
 def _check_field_shape(
     value: Any, grid: Grid, variable: str, level: int
 ) -> npt.NDArray[Any]:
     """Return *value* as an array, or raise if it is not the grid's ``(ny, nx)``."""
-    array = np.asarray(value)
+    array = np.asarray(_fill_masked(value))
     shape = (grid.ny, grid.nx)
     if array.shape != shape:
         raise ValueError(
@@ -629,7 +643,7 @@ class DataRecord:
             else:
                 raise ValueError("Data must be initialized before setting slices.")
 
-        self._unpacked[key] = value
+        self._unpacked[key] = _fill_masked(value)
         self._invalidate_write_cache()
 
     def _invalidate_write_cache(self) -> None:
@@ -668,6 +682,13 @@ class DataRecord:
             if np.isnan(self._unpacked).all():
                 # A field of NaN is missing data, as a missing record reads.
                 return self._pack_missing()
+            n_missing = int(np.isnan(self._unpacked).sum())
+            if n_missing:
+                raise ValueError(
+                    f"{self.variable} at level {self.level} has {n_missing} missing "
+                    "(NaN or masked) cells; an ARL field has no missing cells, so it "
+                    "must be complete or entirely missing."
+                )
             packed, precision, exponent, initial_value = pack(self._unpacked)
             self._packed = packed
             self._header["precision"] = precision
