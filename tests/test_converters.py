@@ -264,6 +264,154 @@ class TestFromEra5:
             from_era5("era5.nc", sfc)  # pyrefly: ignore[bad-argument-type]
 
 
+MODEL_LEVELS = np.array([100, 120, 130, 137])  # top down, as the CDS lists them
+
+
+def era5_model_levels(levels=MODEL_LEVELS, *, level_dim="model_level"):
+    """Made-up ERA5 model-level fields, named as a CDS netCDF download has them."""
+    rng = np.random.default_rng(2)
+    shape = (len(TIMES), len(levels), len(LATS), len(LONS))
+    dims = ("valid_time", level_dim, "latitude", "longitude")
+    data = {
+        "t": _field(rng, 250.0, 40.0, shape),
+        "u": _field(rng, -10.0, 20.0, shape),
+        "v": _field(rng, -10.0, 20.0, shape),
+        "w": _field(rng, -0.5, 1.0, shape),
+        "q": _field(rng, 0.0, 0.01, shape),
+        "clwc": _field(rng, 0.0, 1e-4, shape),  # not converted
+    }
+    return xr.Dataset(
+        {name: (dims, values) for name, values in data.items()},
+        coords={
+            "valid_time": TIMES,
+            level_dim: levels,
+            "latitude": LATS,
+            "longitude": LONS,
+        },
+    )
+
+
+def _nint(x):
+    """Fortran's NINT: the nearest whole number, halves away from zero."""
+    return float(np.sign(x) * np.floor(abs(x) + 0.5))
+
+
+def api2arl_levels(pv):
+    """
+    Return HYSPLIT's ``api2arl`` levels from the lowest model level up.
+
+    Its ECMWF hybrid section, transcribed: ``pv`` is a GRIB message's ``a``
+    then ``b`` of every half level, top down.
+    """
+    n = len(pv) // 2
+    height = [0.0, *pv]  # Fortran's height(1:2n)
+    sigmaz = [0.0] * (n + 1)
+    for k in range(n, 1, -1):
+        offset = _nint(0.5 * (height[k] + height[k - 1]) / 100.0)
+        sigmav = 0.5 * (height[k + n] + height[k + n - 1])
+        sigmaz[n - k + 1] = offset + sigmav
+    return sigmaz[1:n]
+
+
+class TestFromEra5ModelLevels:
+    def test_l137_coefficients_are_ecmwfs(self):
+        from arlmet.converters._l137 import L137_A, L137_B
+
+        assert len(L137_A) == len(L137_B) == 138
+        # ECMWF's L137 table: half levels 0, 1, 86 and the last two.
+        assert (L137_A[0], L137_A[1], L137_A[86]) == (0.0, 2.000365, 20442.078125)
+        assert (L137_B[0], L137_B[136], L137_B[137]) == (0.0, 0.99763, 1.0)
+        assert L137_A[137] == 0.0
+        assert L137_B[54] == 0.0 < L137_B[55]
+        # Half-level pressures fall from the ground up at any surface pressure.
+        for sp in (50000.0, 101325.0):
+            p = np.asarray(L137_A) + np.asarray(L137_B) * sp
+            assert np.all(np.diff(p) > 0)
+
+    def test_levels_are_api2arls(self):
+        from arlmet.converters._l137 import L137_A, L137_B
+        from arlmet.converters.era5 import _hybrid_levels
+
+        expected = api2arl_levels([*L137_A, *L137_B])
+        assert len(expected) == 137
+        assert _hybrid_levels(range(137, 0, -1)) == expected
+
+    def test_layout_is_a_hybrid_open_dataset(self, sfc):
+        ds = from_era5(era5_model_levels(), sfc)
+        assert ds.attrs["source"] == "ERA5"
+        assert ds.attrs["vertical_flag"] == 4
+        assert ds["TEMP"].dims == ("time", "level", "lat", "lon")
+        assert ds["level"].values.tolist() == [1, 2, 3, 4]
+        axis = ds.arl.vertical_axis
+        assert isinstance(axis, arlmet.HybridAxis)
+        # The ground first as 1, then model levels 137, 130, 120, 100.
+        from arlmet.converters.era5 import _hybrid_levels
+
+        np.testing.assert_allclose(
+            axis.levels[1:], _hybrid_levels([137, 130, 120, 100]), atol=5e-3
+        )
+        assert axis.levels[0] == 1.0
+        assert set(ds.data_vars) == {
+            "TEMP", "UWND", "VWND", "WWND", "SPHU",
+            "PRSS", "SHGT", "T02M", "DP2M", "U10M", "V10M", "PBLH",
+            "CAPE", "TCLD", "TPP1", "SHTF", "LHTF", "DSWF", "USTR",
+        }  # fmt: skip
+
+    def test_values_from_the_lowest_level_up(self, sfc):
+        ml = era5_model_levels()
+        ds = from_era5(ml, sfc)
+        # Level 1 is model level 137 (ERA5's last); rows south to north.
+        np.testing.assert_allclose(
+            ds["TEMP"].isel(time=1, level=0).values,
+            ml["t"].isel(valid_time=1, model_level=3).values[::-1],
+        )
+        np.testing.assert_allclose(
+            ds["WWND"].values, ml["w"].values[:, ::-1, ::-1] * 0.01, rtol=1e-6
+        )
+        assert ds["WWND"].attrs == {"units": "hPa s-1", "diff": "DIFW"}
+        np.testing.assert_allclose(ds["SPHU"].values, ml["q"].values[:, ::-1, ::-1])
+
+    def test_cfgrib_names(self, sfc):
+        expected = from_era5(era5_model_levels(), sfc)
+        cfgrib = era5_model_levels(level_dim="hybrid")
+        xr.testing.assert_identical(from_era5(cfgrib, sfc), expected)
+
+    def test_written_file_is_hybrid_and_reads_back(self, sfc, tmp_path):
+        ds = from_era5(era5_model_levels(), sfc)
+        dest = tmp_path / "era5_ml.arl"
+        arlmet.write_dataset(ds, dest)
+        with arlmet.File(dest) as met:
+            axis = met.vertical_axis
+            assert isinstance(axis, arlmet.HybridAxis)
+            # Stored as api2arl's six characters: model level 137 is .99882.
+            assert axis.levels.tolist()[:2] == [1.0, 0.99882]
+            # HYSPLIT's pressure of level 137 at 1013.25 hPa, as ERA5's within
+            # the rounding of the stored sigma.
+            p = axis.to_pressure(surface_pressure=1013.25)
+            assert abs(p[1] - (0.5 * (1.0 + 0.99763) * 1013.25)) < 0.01
+        back = arlmet.open_dataset(dest)
+        np.testing.assert_allclose(back["WWND"].values, ds["WWND"].values, atol=1e-6)
+
+    def test_top_levels_that_round_together_raise(self, sfc):
+        ml = era5_model_levels(np.arange(1, 138))
+        with pytest.raises(ValueError, match="model level 23 is stored as the same"):
+            from_era5(ml, sfc)
+
+    def test_lowest_usable_top_converts(self):
+        from arlmet.converters.era5 import _hybrid_axis
+
+        axis = _hybrid_axis(list(range(137, 23, -1)))
+        assert len(axis.levels) == 115
+
+    def test_level_outside_l137_raises(self, sfc):
+        with pytest.raises(ValueError, match="1 to 137, got 138"):
+            from_era5(era5_model_levels(np.array([130, 138])), sfc)
+
+    def test_no_surface_pressure_raises(self, sfc):
+        with pytest.raises(ValueError, match="no surface pressure 'sp'"):
+            from_era5(era5_model_levels(), sfc.drop_vars("sp"))
+
+
 class TestLatlonGrid:
     def test_wraps_across_greenwich(self):
         grid = latlon_grid([0.0, 1.0], [350.0, 355.0, 0.0, 5.0])

@@ -208,6 +208,44 @@ def era5_sample() -> tuple[xr.Dataset, xr.Dataset]:
     return pressure_levels, single_levels
 
 
+def era5_model_level_sample() -> xr.Dataset:
+    """
+    Return made-up ERA5 fields on five model levels (100 to 137), on :func:`era5_sample`'s grid.
+
+    Laid out as xarray opens a model-level netCDF download from the Climate
+    Data Store: ``valid_time``, ``model_level`` (1 at the top, 137 at the
+    ground) and ``latitude`` from north to south, values in ERA5's units.
+    """
+    pressure_levels, _ = era5_sample()
+    levels = np.array([100, 110, 120, 130, 137])
+    # Roughly the pressures of those levels over the sample's terrain.
+    hpa = np.array([585.0, 710.0, 820.0, 900.0, 870.0])[None, :, None, None]
+    sample = pressure_levels.isel(pressure_level=0, drop=True)
+    height = 44330.8 * (1 - (hpa / 1013.25) ** 0.190263)
+    lat = sample["latitude"].values[None, None, :, None]
+    shape = (sample.sizes["valid_time"], len(levels), *sample["t"].shape[1:])
+    fields = {
+        "t": 296 - 0.0065 * height + 0.5 * (40 - lat),
+        "u": 5 + (850 - hpa) / 50 + 0 * lat,
+        "v": -2 + 0 * hpa + 0 * lat,
+        "w": 0.5 * np.cos(np.deg2rad(6 * lat)) + 0 * hpa,  # Pa s-1
+        "q": 0.008 * hpa / 1000 + 0 * lat,  # kg kg-1
+    }
+    dims = ("valid_time", "model_level", "latitude", "longitude")
+    return xr.Dataset(
+        {
+            name: (dims, np.broadcast_to(field, shape).astype("float32"))
+            for name, field in fields.items()
+        },
+        coords={
+            "valid_time": sample["valid_time"].values,
+            "model_level": levels,
+            "latitude": sample["latitude"].values,
+            "longitude": sample["longitude"].values,
+        },
+    )
+
+
 def gfs_sample() -> list[xr.Dataset]:
     """
     Return made-up GDAS Datasets, laid out as ``cfgrib.open_datasets`` returns them.

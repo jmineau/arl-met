@@ -13,7 +13,8 @@ it and change it before anything is written.
 The converters so far:
 
 - :func:`arlmet.converters.from_era5`: ECMWF's ERA5 reanalysis on pressure
-  levels, as HYSPLIT's ``era52arl`` converts it.
+  levels, as HYSPLIT's ``era52arl`` converts it, and on its model levels, as
+  HYSPLIT's ``api2arl`` converts ECMWF's hybrid levels.
 - :func:`arlmet.converters.from_gfs`: NCEP's GFS forecasts and GDAS analyses
   on pressure levels (``pgrb2`` files), as HYSPLIT's ``api2arl`` converts them.
 - :func:`arlmet.converters.from_wrf`: WRF-ARW output (``wrfout`` files) on its
@@ -133,6 +134,9 @@ writes:
 
 - geopotential becomes height through ECMWF's gravity, 9.80665 m s-2
   (``era52arl`` multiplies by 0.102);
+- the hourly totals of the heat fluxes and the downward solar radiation become
+  W m-2 by dividing by 3600 s (``era52arl`` multiplies by 0.00028, so its
+  ``DSWF`` is 0.8 % high);
 - total cloud cover ``TCLD`` is in percent, as HYSPLIT reads it
   (``era52arl`` writes the 0 to 1 fraction);
 - the heat fluxes ``SHTF`` and ``LHTF`` are positive upward, as HYSPLIT takes
@@ -146,12 +150,77 @@ As ``era52arl`` does, it writes a ``DIFW`` record after each ``WWND`` and a
 What it does not do
 ~~~~~~~~~~~~~~~~~~~
 
-- ERA5 on model levels (HYSPLIT's hybrid levels, vertical flag 4), the ensemble
-  (a ``number`` dimension), and forecast-step layouts (a ``step`` dimension):
-  each raises ``ValueError``. Select one ensemble member, or the valid times,
-  first.
+- The ensemble (a ``number`` dimension) and forecast-step layouts (a ``step``
+  dimension): each raises ``ValueError``. Select one ensemble member, or the
+  valid times, first.
 - Regridding: the converter writes the grid the input is on, which must be a
   regular latitude/longitude grid.
+
+ERA5 on model levels
+~~~~~~~~~~~~~~~~~~~~
+
+ERA5's own vertical grid is 137 hybrid sigma-pressure levels, which follow the
+terrain near the ground: model level 137 is about 10 m above it. HYSPLIT reads
+them as its hybrid levels (vertical flag 4), which is what
+:func:`~arlmet.converters.from_era5` writes when the first Dataset is on model
+levels. The Climate Data Store serves them from ECMWF's archive as
+``reanalysis-era5-complete``, in GRIB, with a request in MARS's keywords:
+
+.. code-block:: python
+
+   client.retrieve(
+       "reanalysis-era5-complete",
+       {
+           "class": "ea", "expver": "1", "stream": "oper", "type": "an",
+           "date": "2024-07-18", "time": "00:00:00/to/23:00:00",
+           "levtype": "ml", "levelist": "80/to/137",
+           "param": "130/131/132/133/135",  # t, u, v, q, w
+           "grid": "0.25/0.25", "area": "44/-116/38/-110",
+       },
+       "era5_model_levels.grib",
+   )
+
+Open it with cfgrib, which names the level dimension ``hybrid``, and pass the
+single-level fields of the same hours, which must include the surface pressure
+``sp``: HYSPLIT finds each level's pressure from it.
+
+.. code-block:: python
+
+   model_levels = xr.open_dataset(
+       "era5_model_levels.grib",
+       engine="cfgrib",
+       backend_kwargs={"filter_by_keys": {"typeOfLevel": "hybrid"}},
+   )
+   ds = arlmet.converters.from_era5(model_levels, single_levels)
+
+A made-up Dataset on five model levels stands in for the download here:
+
+.. ipython:: python
+
+   model_levels = docs_examples.era5_model_level_sample()
+   ds = arlmet.converters.from_era5(model_levels, single_levels)
+   ds.attrs["vertical_flag"]
+   arlmet.write_dataset(ds, "era5_ml.arl")
+   with arlmet.File("era5_ml.arl") as met:
+       print(met.vertical_axis.levels)  # the ground as 1, then levels 137 to 100
+
+Each ARL hybrid level is one number, as HYSPLIT's ``api2arl`` writes it: a
+pressure offset in whole hPa plus a sigma, so that the level's pressure is
+``offset + sigma * surface pressure`` (model level 120 is ``29.881``). Two
+limits of that format decide which levels can be written:
+
+- The offsets of the levels above about model level 24 (near 5 hPa) round to
+  the same whole hPa, so ``from_era5`` refuses them and names the first.
+  Keep levels 24 to 137, or fewer.
+- The index record at the start of each time step lists every level's
+  variables and must fit in one record of ``nx * ny`` bytes, so a small crop
+  holds fewer levels: a 61 x 61 cell grid holds about 60 levels of five
+  variables. :func:`arlmet.write_dataset` says when it does not fit.
+
+The level is written in six characters, so where its offset is 100 hPa or
+more its sigma keeps two decimals, and HYSPLIT reads some mid-troposphere
+levels up to about 5 hPa from ERA5's pressure. ``api2arl``'s files are rounded
+the same way.
 
 GFS and GDAS
 ------------
