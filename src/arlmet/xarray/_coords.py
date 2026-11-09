@@ -183,6 +183,42 @@ def _extract_dataset_vertical_axis(
     )
 
 
+def _check_vertical_axis_agrees(ds: xr.Dataset, axis: VerticalAxis) -> None:
+    """
+    Raise if *axis* disagrees with the physical coordinate the Dataset carries.
+
+    ``open_dataset`` gives the ``level`` dimension a physical coordinate
+    (``pressure``, ``sigma``, ``height`` or ``eta``, with the surface value in
+    ``attrs["surface"]``). The axis written to the file must be the one that
+    coordinate describes: otherwise the data is labeled with other levels. A
+    Dataset with no such coordinate has nothing to disagree with.
+    """
+    for name, coord in ds.coords.items():
+        if coord.dims != ("level",) or "surface" not in coord.attrs:
+            continue
+        expected = _PHYS_COORD.get(axis.flag)
+        if expected is None or name != expected[0]:
+            raise ValueError(
+                f"The Dataset's vertical coordinate '{name}' does not match the "
+                f"vertical axis to write (flag {axis.flag}"
+                + (f", a '{expected[0]}' axis" if expected else "")
+                + "). Fix attrs['vertical_flag'] or vertical_axis=, or drop the "
+                f"'{name}' coordinate."
+            )
+        values = np.asarray(coord.values, dtype=float)
+        surface = float(coord.attrs["surface"])
+        if not np.allclose(
+            np.concatenate([[surface], values]), axis.levels, rtol=1e-6, atol=1e-6
+        ):
+            raise ValueError(
+                f"The vertical axis to write has levels {axis.levels.tolist()}, but "
+                f"the Dataset's '{name}' coordinate is {[surface, *values.tolist()]} "
+                "(surface first). Writing it would label the data with other levels; "
+                f"pass the matching vertical_axis= or drop the '{name}' coordinate."
+            )
+        return
+
+
 def _extract_dataset_forecast_hours(
     ds: xr.Dataset, times: pd.DatetimeIndex
 ) -> list[int]:
