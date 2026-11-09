@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Container, Hashable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Container, Hashable, Iterable, Mapping, Sequence
 from typing import NamedTuple
 
 import numpy as np
@@ -24,6 +24,7 @@ __all__ = [
     "Field",
     "arl_dataset",
     "field_variable",
+    "pressure_axis",
     "pressure_level_dataset",
     "standardize",
 ]
@@ -56,13 +57,20 @@ def _pick(
 
 
 def standardize(
-    ds: xr.Dataset, names: Iterable[str], *, upper: bool, label: str
+    ds: xr.Dataset,
+    names: Iterable[str],
+    *,
+    upper: bool,
+    label: str,
+    level_dims: tuple[str, ...] = LEVEL_DIMS,
+    level_kind: str = "pressure-level",
 ) -> xr.Dataset:
     """
     Keep the variables ``names`` with dims ``time``, (``level``,) ``lat``, ``lon``.
 
     The coordinates are the valid times (``valid_time`` when there is one,
-    as cfgrib gives a forecast's), the pressures (hPa), and the cell centers
+    as cfgrib gives a forecast's), the levels (the first of ``level_dims``
+    the Dataset has: pressures in hPa by default), and the cell centers
     from south to north; every other coordinate (``number``, ``expver``,
     ``step``, ...) is dropped. A single time step may be a scalar coordinate.
     """
@@ -91,7 +99,7 @@ def standardize(
     dims = {time_dim: "time"}
     coords: dict[str, np.ndarray] = {"time": pd.to_datetime(times).values}
     if upper:
-        level_dim = _pick(LEVEL_DIMS, ds.dims, "pressure-level", label)
+        level_dim = _pick(level_dims, ds.dims, level_kind, label)
         dims[level_dim] = "level"
         coords["level"] = np.asarray(ds[level_dim].values, dtype=float)
     lat_dim = _pick(LAT_DIMS, ds.dims, "latitude", label)
@@ -110,7 +118,8 @@ def standardize(
             )
             raise ValueError(
                 f"{label} variable '{name}' has dimensions {sorted(extra)} besides "
-                f"time, {'pressure level, ' if upper else ''}latitude and longitude{hint}."
+                f"time, {level_kind.replace('-', ' ') + ', ' if upper else ''}"
+                f"latitude and longitude{hint}."
             )
         if dims.keys() - set(map(str, ds[name].dims)):
             raise ValueError(
@@ -180,6 +189,11 @@ def arl_dataset(
     return ds
 
 
+def pressure_axis(pressures: Sequence[float]) -> VerticalAxis:
+    """Return the ARL pressure axis (flag 2) of ``pressures`` [hPa], the surface first as 0."""
+    return PressureAxis(levels=[0.0, *pressures])
+
+
 def pressure_level_dataset(
     upper: xr.Dataset,
     surface: xr.Dataset,
@@ -189,14 +203,17 @@ def pressure_level_dataset(
     source: str,
     forecast_hours: Sequence[int] | None = None,
     labels: tuple[str, str] = ("pressure_levels", "single_levels"),
+    vertical_axis: Callable[[Sequence[float]], VerticalAxis] = pressure_axis,
 ) -> xr.Dataset:
     """
-    Build the ARL Dataset (vertical flag 2) from two :func:`standardize`'d Datasets.
+    Build the ARL Dataset from two :func:`standardize`'d Datasets.
 
     ``surface`` must be on ``upper``'s grid and hold each of its valid times;
     its other times are left out. Each variable of ``upper_fields`` and
     ``surface_fields`` the inputs hold is scaled and named as its
-    :class:`Field` says. Levels are written from the highest pressure up, and
+    :class:`Field` says. Levels are written from the largest ``level`` value
+    up (the highest pressure, or the lowest model level), and their axis is
+    ``vertical_axis`` of those values (by default pressure, flag 2).
     ``forecast_hours`` (one per valid time, else 0) is the index records'.
     """
     upper_label, surface_label = labels
@@ -221,11 +238,10 @@ def pressure_level_dataset(
     upper = upper.sortby("level", ascending=False)
 
     grid = latlon_grid(upper["lat"].values, upper["lon"].values)
-    pressures = [float(p) for p in upper["level"].values]
-    vertical_axis = PressureAxis(levels=[0.0, *pressures])
+    axis = vertical_axis([float(value) for value in upper["level"].values])
     ds = arl_dataset(
         grid,
-        vertical_axis,
+        axis,
         upper["time"].values,
         source=source,
         forecast_hours=forecast_hours,
