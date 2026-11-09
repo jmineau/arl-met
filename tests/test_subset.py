@@ -128,6 +128,33 @@ def test_file_extract_subset_method_matches_module_function(tmp_path):
         assert set(ds.data_vars) >= {"PRSS", "UWND"}
 
 
+def test_extract_subset_without_overwrite_returns_an_existing_dest(tmp_path):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+    destination.write_bytes(b"kept")
+
+    out = extract_subset(source, destination, levels=[0, 1], overwrite=False)
+    assert out == destination
+    assert destination.read_bytes() == b"kept"
+    with File(source) as src:
+        assert src.extract_subset(destination, overwrite=False) == destination
+    assert destination.read_bytes() == b"kept"
+
+    extract_subset(source, destination, levels=[0, 1])  # the default replaces it
+    with File(destination) as cropped:
+        assert len(cropped.vertical_axis.levels) == 2
+
+
+def test_extract_subset_without_overwrite_still_refuses_a_directory_dest(tmp_path):
+    source = tmp_path / "source.arl"
+    write_subset_source(source)
+    (tmp_path / "out").mkdir()
+
+    with pytest.raises(IsADirectoryError, match="dest .*out.* is a directory"):
+        extract_subset(source, tmp_path / "out", levels=[0, 1], overwrite=False)
+
+
 def test_extract_subset_rejects_out_of_bounds_levels(tmp_path):
     source = tmp_path / "source.arl"
     destination = tmp_path / "subset.arl"

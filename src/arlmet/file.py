@@ -1015,6 +1015,7 @@ class File:
         bbox_crs: Any = None,
         levels: Iterable[int] | None = None,
         variables: str | Iterable[str] | None = None,
+        overwrite: bool = True,
     ) -> Path:
         """
         Write a spatial/vertical subset of this file to a new ARL file.
@@ -1025,8 +1026,7 @@ class File:
         Parameters
         ----------
         dest : path-like
-            Output ARL file. Overwrites any existing file. Must not be this
-            file.
+            Output ARL file. Must not be this file.
         bbox : tuple[float, float, float, float], optional
             Geographic bounding box ``(west, south, east, north)`` in degrees.
             On a projected grid the crop is the smallest rectangle of cells
@@ -1042,6 +1042,9 @@ class File:
         variables : str or iterable of str, optional
             Variable names to keep, as the file spells them; a single string
             is one name. All variables are included by default.
+        overwrite : bool, default True
+            Replace an existing ``dest``; with False an existing ``dest`` is
+            returned as it is, without reading this file.
 
         Returns
         -------
@@ -1064,6 +1067,7 @@ class File:
             bbox_crs=bbox_crs,
             levels=levels,
             variables=variables,
+            overwrite=overwrite,
         )
 
     def __getitem__(self, key: str | int | pd.Timestamp) -> RecordSet:

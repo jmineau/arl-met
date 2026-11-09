@@ -120,6 +120,15 @@ def _repeat_step(path, dest, k):
     return dest
 
 
+def test_concat_without_overwrite_still_refuses_a_directory_dest(tmp_path):
+    early = write_arl(tmp_path / "early.arl", ["2024-01-01 00:00"])
+    late = write_arl(tmp_path / "late.arl", ["2024-01-01 06:00"])
+    (tmp_path / "out").mkdir()
+
+    with pytest.raises(IsADirectoryError, match="dest .*out.* is a directory"):
+        concat([early, late], tmp_path / "out", overwrite=False)
+
+
 def test_concat_writes_a_repeated_time_step_once(tmp_path):
     # As about nine NOAA HRRR archive files do, 14:00 is on disk twice.
     clean = write_arl(
@@ -315,6 +324,25 @@ def test_concat_by_time_groups_by_day(tmp_path):
             pd.Timestamp("2024-01-02 00:00"),
             pd.Timestamp("2024-01-02 06:00"),
         ]
+
+
+def test_concat_by_time_without_overwrite_writes_only_missing_bins(tmp_path):
+    src = tmp_path / "hrrr"
+    out = tmp_path / "daily"
+    populate_hrrr_dir(src)
+    kwargs = {"freq": "1D", "pattern": "*_hrrr", "template": "{time:%Y%m%d}_hrrr"}
+    first, second = concat_by_time(src, out, **kwargs)
+    first.write_bytes(b"kept")  # stands for a finished bin
+    second.unlink()  # a bin the failed run did not reach
+
+    written = concat_by_time(src, out, overwrite=False, **kwargs)
+
+    assert written == [first, second]
+    assert first.read_bytes() == b"kept"
+    with File(second) as day2:
+        assert len(day2.times) == 2
+    concat_by_time(src, out, **kwargs)  # the default replaces it
+    assert first.read_bytes() != b"kept"
 
 
 def test_concat_by_time_respects_freq(tmp_path):
