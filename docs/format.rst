@@ -171,11 +171,12 @@ previous value as a reader will rebuild it, and values are packed as they are
 
 Packing rounds each value to the record's precision, the half step of its byte
 scale. A value read back is within one precision of the value packed, and
-within two near zero, where values under the precision read as zero; over 200
-random fields the largest errors were 0.99 and 1.93 times the precision. The
-precision depends on the field's largest jump between neighbors, so a field
-with a sharp gradient packs more coarsely, and the same values packed into a
-smaller window (a crop) may get a different precision than in the full file.
+within two near zero, where values under the precision read as zero (in every
+column but the first); over 200 random fields the largest errors were 0.99 and
+1.93 times the precision. The precision depends on the field's largest jump
+between neighbors, so a field with a sharp gradient packs more coarsely, and the
+same values packed into a smaller window (a crop) may get a different precision
+than in the full file.
 
 Malformed files
 ~~~~~~~~~~~~~~~
