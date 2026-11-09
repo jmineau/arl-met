@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=f9c4f9cf"></script>
+    <script src="../_static/documentation_options.js?v=68ee6e53"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev14+g1adad9ecb" />
+  <meta name="docsearch:version" content="0.1.0b9.dev15+g568f49dd0" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -643,7 +643,9 @@
 <p>Accepts a single ARL file or a sequence of files spanning different time
 periods. Each may be an open <a class="reference internal" href="arlmet.File.html#arlmet.File" title="arlmet.file.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">File</span></code></a> or a path to an
 ARL file; paths are opened (read mode) and closed automatically, while
-already-open Files are left open for the caller to manage. Each point is
+already-open Files are left open for the caller to manage. A path is
+opened and its index records read on every call, so in a loop over many
+calls on one file pass an open File. Each point is
 sampled from the file that contains its valid time. Time is not
 interpolated: each point’s time must be one of the valid times of the
 files, and a point between two valid times raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>

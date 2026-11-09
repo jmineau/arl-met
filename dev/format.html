@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=f9c4f9cf"></script>
+    <script src="_static/documentation_options.js?v=68ee6e53"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev14+g1adad9ecb" />
+  <meta name="docsearch:version" content="0.1.0b9.dev15+g568f49dd0" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -588,7 +588,7 @@ reads back with the same pairs.</p>
 │ HEADER (50 bytes)    │ PACKED DATA (nx × ny bytes)  │
 │ - Variable ID (4)    │ - One byte per grid point    │
 │ - Date/Time          │ - Difference encoding        │
-│ - Level indicator    │ - Precision maintained       │
+│ - Level indicator    │ - Kept to the precision      │
 │ - Packing scale      │                              │
 └──────────────────────┴──────────────────────────────┘
 </pre></div>
@@ -613,6 +613,14 @@ largest difference between neighbors, each byte is the difference from the
 previous value as a reader will rebuild it, and values are packed as they are
 (the initial value is the first cell’s, even when it is below the precision).
 <a class="reference internal" href="_autosummary/arlmet.pack.html#arlmet.pack" title="arlmet.pack"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.pack()</span></code></a> gives the same bytes, exponent, precision and initial value.</p>
+<p>Packing rounds each value to the record’s precision, the half step of its byte
+scale. A value read back is within one precision of the value packed, and
+within two near zero, where values under the precision read as zero (in every
+column but the first); over 200 random fields the largest errors were 0.99 and
+1.93 times the precision. The precision depends on the field’s largest jump
+between neighbors, so a field with a sharp gradient packs more coarsely, and the
+same values packed into a smaller window (a crop) may get a different precision
+than in the full file.</p>
 </section>
 <section id="malformed-files">
 <h3>Malformed files<a class="headerlink" href="#malformed-files" title="Link to this heading">#</a></h3>
@@ -731,7 +739,7 @@ source workflow that produced it.</p>
 <h2>Key Features<a class="headerlink" href="#key-features" title="Link to this heading">#</a></h2>
 <p>This hierarchical structure provides:</p>
 <ul class="simple">
-<li><p><strong>Efficient Storage</strong>: 1 byte per grid point with maintained precision</p></li>
+<li><p><strong>Efficient Storage</strong>: 1 byte per grid point, each value kept to the record’s precision</p></li>
 <li><p><strong>Fast Access</strong>: Direct access to any variable at any level/time</p></li>
 <li><p><strong>Flexibility</strong>: Support for multiple grids and coordinate systems</p></li>
 <li><p><strong>Portability</strong>: Platform-independent binary format</p></li>
