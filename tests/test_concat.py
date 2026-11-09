@@ -120,6 +120,15 @@ def _repeat_step(path, dest, k):
     return dest
 
 
+def test_concat_without_overwrite_still_refuses_a_directory_dest(tmp_path):
+    early = write_arl(tmp_path / "early.arl", ["2024-01-01 00:00"])
+    late = write_arl(tmp_path / "late.arl", ["2024-01-01 06:00"])
+    (tmp_path / "out").mkdir()
+
+    with pytest.raises(IsADirectoryError, match="dest .*out.* is a directory"):
+        concat([early, late], tmp_path / "out", overwrite=False)
+
+
 def test_concat_writes_a_repeated_time_step_once(tmp_path):
     # As about nine NOAA HRRR archive files do, 14:00 is on disk twice.
     clean = write_arl(

@@ -463,7 +463,7 @@ def extract_subset(
     >>> ds = arlmet.open_dataset(out)
     """
     reject_same_file(path, dest)
-    if not overwrite and Path(dest).exists():
+    if not overwrite and Path(dest).is_file():
         return Path(dest)
     if isinstance(variables, str):
         variables = [variables]  # one name, not its letters

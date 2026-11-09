@@ -146,6 +146,15 @@ def test_extract_subset_without_overwrite_returns_an_existing_dest(tmp_path):
         assert len(cropped.vertical_axis.levels) == 2
 
 
+def test_extract_subset_without_overwrite_still_refuses_a_directory_dest(tmp_path):
+    source = tmp_path / "source.arl"
+    write_subset_source(source)
+    (tmp_path / "out").mkdir()
+
+    with pytest.raises(IsADirectoryError, match="dest .*out.* is a directory"):
+        extract_subset(source, tmp_path / "out", levels=[0, 1], overwrite=False)
+
+
 def test_extract_subset_rejects_out_of_bounds_levels(tmp_path):
     source = tmp_path / "source.arl"
     destination = tmp_path / "subset.arl"

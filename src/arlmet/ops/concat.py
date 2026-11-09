@@ -117,7 +117,7 @@ def concat(
             f"dest {dest} is also one of the input paths; "
             "concatenating a file onto itself is not allowed."
         )
-    if not overwrite and dest.exists():
+    if not overwrite and dest.is_file():
         return dest
 
     steps = _scan_inputs(input_paths)
