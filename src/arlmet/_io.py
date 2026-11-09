@@ -41,6 +41,14 @@ def atomic_output(dest: str | os.PathLike[str]) -> Iterator[Path]:
     finished output.
     """
     dest = Path(dest)
+    # Checked here, before any work, so the error names dest and not the
+    # temporary file the rename would fail on.
+    if dest.is_dir():
+        raise IsADirectoryError(f"dest {str(dest)!r} is a directory; give a file name.")
+    if not dest.parent.is_dir():
+        raise FileNotFoundError(
+            f"The folder of dest {str(dest)!r} does not exist: {str(dest.parent)!r}."
+        )
     # A random name rather than tempfile.mkstemp: mkstemp creates the file with
     # mode 0600, which would strip group read from outputs in shared
     # directories. The writer creates this file normally, honoring the umask.

@@ -7,6 +7,7 @@ coordinates live in ``arlmet.vertical``.
 """
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from functools import cached_property
 from typing import Any, ClassVar
@@ -829,7 +830,8 @@ class Grid:
                     f"bbox {bbox}: west must be less than or equal to east in bbox_crs."
                 )
             return self._window_around(
-                *self._crs_box_points_on_grid(crs, west, south, east, north)
+                *self._crs_box_points_on_grid(crs, west, south, east, north),
+                miss=lambda: self._bbox_misses(bbox, bbox_crs),
             )
 
         # From here on west <= east: ``west > east`` crosses the dateline, so the
@@ -846,7 +848,8 @@ class Grid:
 
         if not self.is_latlon:
             return self._window_around(
-                *self._bbox_points_on_grid(west, south, east, north)
+                *self._bbox_points_on_grid(west, south, east, north),
+                miss=lambda: self._bbox_misses(bbox, None),
             )
 
         # Lat/lon grids only reach here, so lon/lat are 1-D.
@@ -877,7 +880,7 @@ class Grid:
         y_idx = np.flatnonzero(lat_mask)
 
         if x_idx.size == 0 or y_idx.size == 0:
-            raise ValueError("bbox does not intersect the grid.")
+            raise self._bbox_misses(bbox, None)
 
         x_start, x_stop = int(x_idx.min()), int(x_idx.max()) + 1
         gap = np.flatnonzero(~lon_mask[x_start:x_stop])
@@ -1053,16 +1056,50 @@ class Grid:
             ys.append(np.clip(y0[keep] + t * dy[keep], lo, y_hi))
         return np.concatenate(xs), np.concatenate(ys)
 
-    def _window_around(self, x: npt.NDArray[Any], y: npt.NDArray[Any]) -> GridWindow:
+    def _bbox_misses(self, bbox: Any, bbox_crs: Any) -> ValueError:
+        """
+        Return the error for a bbox with no cell of the grid in it.
+
+        It names the box, the grid's extent and the order of the edges, since a
+        box that misses is most often in (south, west, ...) order or in meters.
+        """
+        coords = self.calculate_coords()
+        lons, lats = coords["lon"][1], coords["lat"][1]
+        extent = (
+            f"longitudes {np.nanmin(lons):.6g} to {np.nanmax(lons):.6g} and "
+            f"latitudes {np.nanmin(lats):.6g} to {np.nanmax(lats):.6g}"
+        )
+        if bbox_crs is None:
+            order = (
+                "A bbox is (west, south, east, north) in degrees; pass bbox_crs= "
+                "for one in another coordinate system."
+            )
+        else:
+            order = (
+                f"In bbox_crs={bbox_crs!r} a bbox is (xmin, ymin, xmax, ymax) in "
+                "that system's units, easting first."
+            )
+        return ValueError(
+            f"bbox {tuple(bbox)} does not intersect the grid, which covers {extent}. "
+            f"{order}"
+        )
+
+    def _window_around(
+        self,
+        x: npt.NDArray[Any],
+        y: npt.NDArray[Any],
+        *,
+        miss: Callable[[], ValueError],
+    ) -> GridWindow:
         """
         Return the smallest window of cells that holds points on the grid.
 
         The points are fractional indices in ``[-0.5, n - 0.5]``; the lowest
         and highest on each axis are rounded to a cell like Fortran ``NINT``.
-        Raises ``ValueError`` when there are none (the box missed the grid).
+        Raises ``miss()`` when there are none (the box missed the grid).
         """
         if x.size == 0:
-            raise ValueError("bbox does not intersect the grid.")
+            raise miss()
 
         def nint(value: float) -> int:
             """Round like Fortran NINT (the 1-based values here are >= 0.5)."""

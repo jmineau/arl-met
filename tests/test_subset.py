@@ -146,6 +146,33 @@ def test_extract_subset_rejects_non_intersecting_bbox(tmp_path):
         extract_subset(source, destination, bbox=(200.0, 50.0, 201.0, 51.0))
 
 
+def test_a_bbox_that_misses_names_the_grid_extent_and_the_order(tmp_path):
+    """A box in (south, west, north, east) order says so, with the grid's extent."""
+    source = tmp_path / "source.arl"
+    write_subset_source(source)
+    grid = File(source).grid
+    lons = grid.calculate_coords()["lon"][1]
+    lats = grid.calculate_coords()["lat"][1]
+    swapped = (float(lats[2]), float(lons[2]), float(lats[5]), float(lons[5]))
+
+    with pytest.raises(ValueError, match=r"\(west, south, east, north\)") as err:
+        extract_subset(source, tmp_path / "subset.arl", bbox=swapped)
+    assert f"latitudes {lats.min():.6g} to {lats.max():.6g}" in str(err.value)
+    assert str(swapped) in str(err.value)
+
+
+def test_a_dest_that_is_a_directory_or_in_a_missing_folder_names_dest(tmp_path):
+    source = tmp_path / "source.arl"
+    write_subset_source(source)
+    (tmp_path / "out").mkdir()
+
+    with pytest.raises(IsADirectoryError, match="dest .*out.* is a directory"):
+        extract_subset(source, tmp_path / "out", levels=[0, 1])
+    with pytest.raises(FileNotFoundError, match="folder of dest .*does not exist"):
+        extract_subset(source, tmp_path / "missing" / "subset.arl", levels=[0, 1])
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["out", "source.arl"]
+
+
 def test_extract_subset_rejects_subset_too_small_for_index_record(tmp_path):
     source = tmp_path / "source.arl"
     destination = tmp_path / "subset.arl"
