@@ -331,6 +331,30 @@ class TestWriter:
         with File(written_path) as reopened:
             assert [reopened[time].forecast for time in reopened.times] == [0, 0]
 
+    @pytest.mark.parametrize("name", ["O3", "T", "TMPXX"])
+    def test_variable_names_not_four_characters_are_refused(self, tmp_path, name):
+        """A short name would be padded in the file and fail to match when read back."""
+        grid = make_test_grid()
+        axis = PressureAxis(levels=[0.0, 1000.0])
+        field = np.ones((20, 20), "float32")
+
+        with File(
+            tmp_path / "a.arl", mode="w", source="TEST", grid=grid, vertical_axis=axis
+        ) as arl:
+            rs = arl.create_recordset(pd.Timestamp("2024-07-18"), forecast=0)
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=field)
+            with pytest.raises(ValueError, match="exactly 4 characters"):
+                rs.create_datarecord(name, level=1, forecast=0, data=field)
+            assert len(rs) == 1  # the refused record was not added
+
+        source = tmp_path / "source.arl"
+        self.write_sample_file(source)
+        ds = open_dataset(source).load().rename({"TEMP": name})
+        out = tmp_path / "b.arl"
+        with pytest.raises(ValueError, match="exactly 4 characters"):
+            write_dataset(ds, out)
+        assert not out.exists()
+
     def test_create_datarecord_rejects_data_of_the_wrong_shape(self, tmp_path):
         grid = make_test_grid()
         axis = PressureAxis(levels=[0.0, 1000.0])

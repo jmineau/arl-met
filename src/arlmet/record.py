@@ -104,6 +104,15 @@ def _check_dif_parent(dif: str, parent: str, level: int) -> None:
         )
 
 
+def _check_variable_name(variable: str) -> None:
+    """Raise ValueError unless *variable* is exactly four characters, as ARL stores it."""
+    if len(variable) != 4:
+        raise ValueError(
+            f"Variable names must be exactly 4 characters, got '{variable}': "
+            "a shorter name would be padded in the file and not match when read back."
+        )
+
+
 def _check_field_shape(
     value: Any, grid: Grid, variable: str, level: int
 ) -> npt.NDArray[Any]:

@@ -19,6 +19,7 @@ from arlmet.record import (
     DataRecord,
     _check_dif_parent,
     _check_field_shape,
+    _check_variable_name,
     _require_mode,
 )
 from arlmet.vertical import VerticalAxis
@@ -164,7 +165,8 @@ class RecordSet:
         Parameters
         ----------
         variable : str
-            Four-character ARL variable name.
+            Four-character ARL variable name; one of any other length is
+            refused, because the name is stored padded to four characters.
         level : int
             ARL level index for the record.
         forecast : int
@@ -196,11 +198,12 @@ class RecordSet:
         Raises
         ------
         ValueError
-            If ``variable`` is a ``DIF*`` name, a ``diff`` name is not one the
+            If ``variable`` is not four characters, is a ``DIF*`` name, a ``diff`` name is not one the
             name table pairs with ``variable`` at ``level``, or ``data`` does
             not have the grid's ``(ny, nx)`` shape.
         """
         _require_mode(self, "w")
+        _check_variable_name(variable)
         if variable.startswith("DIF"):
             raise ValueError(
                 "Create DIF records through the parent record using diff='DIF...'."
@@ -266,10 +269,7 @@ class RecordSet:
             return record.forecast
 
         for dr in self.records:
-            if len(dr.variable) > 4:
-                raise ValueError(
-                    f"Variable names must be 4 characters or fewer, got '{dr.variable}'."
-                )
+            _check_variable_name(dr.variable)
             if dr._unpacked is None:
                 raise ValueError(
                     f"Writable DataRecord '{dr.variable}' at level {dr.level} has no data."
