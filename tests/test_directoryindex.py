@@ -592,8 +592,8 @@ class TestLinksAndFolders:
             idx.covering("2024-07-01 06:00", "2024-07-01 07:00")
 
     def test_hidden_folders_are_not_read(self, archive):
-        (archive / ".snapshot").mkdir()
-        shutil.copy(archive / "20240701_06", archive / ".snapshot" / "20240701_06")
+        (archive / ".hidden").mkdir()
+        shutil.copy(archive / "20240701_06", archive / ".hidden" / "20240701_06")
 
         assert len(index(archive, recursive=True)) == 4
 
