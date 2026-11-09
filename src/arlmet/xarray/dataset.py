@@ -15,6 +15,7 @@ from xarray.core import indexing
 
 from arlmet._io import atomic_output, reject_same_file
 from arlmet._time import ensure_timestamp, utc_times
+from arlmet.grid import Grid
 from arlmet.header import check_year
 from arlmet.ops.sample import _mass_coupled
 from arlmet.ops.subset import normalize_levels, resolve_window, select_records
@@ -202,6 +203,37 @@ def _read_slice(
     return np.asarray(selected.values, dtype=np.float32)
 
 
+def _check_grid_coords(ds: xr.Dataset, grid: Grid) -> None:
+    """
+    Raise if a horizontal coordinate of *ds* disagrees with the grid it will be written on.
+
+    The file's grid comes from ``arl_grid`` alone, so an edited ``lat``, ``lon``,
+    ``x`` or ``y`` would otherwise be dropped without a word. A coordinate whose
+    shape differs is left to the dimension size check. Longitudes compare modulo
+    360 degrees.
+    """
+    # Tolerances sit far below a cell and above float32 storage error.
+    spacing = grid.projection.grid_size * 1000
+    tolerance = {"lat": 1e-4, "lon": 1e-4, "x": 1e-3 * spacing, "y": 1e-3 * spacing}
+    for name, (_, expected) in grid.calculate_coords().items():
+        if name not in ds.coords:
+            continue
+        actual = np.asarray(ds.coords[name].values, dtype=float)
+        if actual.shape != expected.shape:
+            continue
+        diff = actual - expected
+        if name == "lon":
+            diff = (diff + 180.0) % 360.0 - 180.0
+        worst = float(np.nanmax(np.abs(diff))) if diff.size else 0.0
+        if not worst <= tolerance[name]:
+            raise ValueError(
+                f"Dataset coordinate '{name}' disagrees with the 'arl_grid' "
+                f"coordinate by up to {worst:g}; write_dataset() writes the grid "
+                f"that 'arl_grid' describes. Set '{name}' back to the grid's "
+                "values or drop it."
+            )
+
+
 def open_dataset(
     filename_or_obj: str | os.PathLike[str],
     *,
@@ -352,7 +384,9 @@ def write_dataset(
         If the Dataset does not match the layout above (including a ``lat``,
         ``lon``, ``y`` or ``x`` coordinate that does not increase), has no time
         steps, a time is outside 1940 to 2039 (a label's two-digit year cannot
-        hold it), a slice is partly NaN or non-finite, an ``attrs["diff"]`` name
+        hold it), a ``lat``, ``lon``, ``x`` or ``y`` coordinate disagrees with
+        the grid the ``arl_grid`` coordinate describes, a slice is partly NaN
+        or non-finite, an ``attrs["diff"]`` name
         is not one the name table pairs with its variable, or
         ``filename_or_obj`` is the file ``ds`` was opened from.
 
@@ -474,6 +508,9 @@ def write_dataset(
             transposed = da.transpose("time", *h_dims, missing_dims="raise")
             slots = [(None, 0)]
         variables.append((var_name, transposed, slots))
+
+    # After the per-variable checks, so a descending coordinate gets its own message.
+    _check_grid_coords(ds, grid)
 
     # First pass: a (variable, level) that holds data at any time step is a
     # slot at every time step. Each slice is read and checked here, so a
