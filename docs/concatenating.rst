@@ -88,7 +88,8 @@ Before writing, the inputs are scanned and joined only if they form one coherent
 record stream. ``concat()`` raises ``ValueError`` when:
 
 - the inputs disagree on grid or vertical axis (different grids produce different
-  record lengths, which would corrupt the stream)
+  record lengths, which would corrupt the stream), or on source ID (the output
+  could not be opened)
 - the same valid time appears in more than one input (HYSPLIT behavior on
   repeated times is undefined)
 - an input file is empty, or the output path is also one of the inputs
@@ -151,7 +152,7 @@ time falls outside those inclusive bounds (either may be left open):
 Limitations
 -----------
 
-- Concatenated files must share one grid and one vertical axis.
+- Concatenated files must share one grid, one vertical axis and one source ID.
 - Valid times must not repeat across the inputs of a single output file.
 - ``concat_by_time`` does not split files, so no input may cross a ``freq`` bin
   boundary (e.g. use ``freq="1D"`` for 6-hourly inputs, not ``freq="1h"``).

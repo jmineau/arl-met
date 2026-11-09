@@ -50,8 +50,8 @@ def concat(
     so the output must hold its time steps in order: inputs whose hours
     interleave are merged hour by hour, and a time step an input repeats byte
     for byte (as some NOAA HRRR archive files do) is written once. The inputs
-    are first scanned to ensure they share one grid and vertical axis and do
-    not repeat valid times, since a concatenated ARL file must be a single
+    are first scanned to ensure they share one grid, vertical axis and source
+    ID and do not repeat valid times, since a concatenated ARL file must be a single
     coherent record stream.
 
     Parameters
@@ -80,7 +80,7 @@ def concat(
         If ``paths`` is a single path rather than an iterable of paths.
     ValueError
         If ``paths`` is empty, if ``dest`` is also an input, if any input is
-        empty, if the inputs disagree on grid or vertical axis, or if the same
+        empty, if the inputs disagree on grid, vertical axis or source ID, or if the same
         valid time appears in more than one input.
 
     Examples
@@ -161,8 +161,8 @@ def _scan_inputs(paths: list[Path]) -> list[tuple[pd.Timestamp, Path, int, int]]
     Read each input's index records to validate compatibility and order by time.
 
     Returns every time step to write as ``(time, path, position, n_bytes)``,
-    in valid-time order, each once. Raises if any input is empty, the grids or
-    vertical axes disagree, or a valid time is shared across inputs.
+    in valid-time order, each once. Raises if any input is empty, the grids,
+    vertical axes or sources disagree, or a valid time is shared across inputs.
     """
     scanned = []
     for path in paths:
@@ -170,17 +170,18 @@ def _scan_inputs(paths: list[Path]) -> list[tuple[pd.Timestamp, Path, int, int]]
             times = src.times
             grid = src.grid
             axis = src.vertical_axis
+            source = src.source
             # File raised if a repeated time step differs, so a repeat is a
             # byte-identical copy: write the first one only.
             steps: dict[pd.Timestamp, tuple[pd.Timestamp, Path, int, int]] = {}
             for time, position, n_bytes in src._steps:
                 steps.setdefault(time, (time, path, position, n_bytes))
 
-        scanned.append((path, times, grid, axis, steps))
+        scanned.append((path, times, grid, axis, source, steps))
 
     # paths is non-empty (checked by concat), so scanned[0] exists.
-    reference_path, _, reference_grid, reference_axis, _ = scanned[0]
-    for path, _times, grid, axis, _ in scanned[1:]:
+    reference_path, _, reference_grid, reference_axis, reference_source, _ = scanned[0]
+    for path, _times, grid, axis, source, _ in scanned[1:]:
         if grid != reference_grid:
             raise ValueError(
                 f"Grid mismatch: {path} has grid {grid.nx}x{grid.ny}, "
@@ -196,8 +197,14 @@ def _scan_inputs(paths: list[Path]) -> list[tuple[pd.Timestamp, Path, int, int]]
                 f"{len(reference_axis.levels)} levels). Concatenated ARL "
                 "files must share a single vertical axis."
             )
+        if source != reference_source:
+            raise ValueError(
+                f"Source mismatch: {path} has source {source!r}, incompatible "
+                f"with {reference_path} ({reference_source!r}). Concatenated ARL "
+                "files must share a single source ID."
+            )
 
-    _reject_duplicate_times([(path, times) for path, times, _, _, _ in scanned])
+    _reject_duplicate_times([(path, times) for path, times, *_ in scanned])
 
     # Valid times are unique across the inputs now, so this is a total order.
     return sorted(

@@ -237,6 +237,18 @@ def test_concat_rejects_vertical_axis_mismatch(tmp_path):
         concat([a, b], out)
 
 
+def test_concat_rejects_source_mismatch(tmp_path):
+    a = write_arl(tmp_path / "a.arl", ["2024-01-01 00:00"], source="TEST")
+    b = write_arl(tmp_path / "b.arl", ["2024-01-01 06:00"], source="OTHR")
+    out = tmp_path / "out.arl"
+
+    with pytest.raises(
+        ValueError, match="Source mismatch.*b.arl.*'OTHR'.*a.arl.*'TEST'"
+    ):
+        concat([a, b], out)
+    assert not out.exists()
+
+
 def test_concat_rejects_duplicate_times(tmp_path):
     a = write_arl(tmp_path / "a.arl", ["2024-01-01 00:00", "2024-01-01 06:00"])
     b = write_arl(tmp_path / "b.arl", ["2024-01-01 06:00", "2024-01-01 12:00"])
