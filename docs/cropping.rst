@@ -74,6 +74,13 @@ can pass it straight to :func:`arlmet.open_dataset` or :class:`arlmet.File`.
 The subset is written one time step at a time, so memory use is bounded by a
 single cropped time step rather than the whole output file.
 
+A crop with ``bbox`` unpacks each record's window and packs it again, so its
+values can move by about one packing step of the new record (its precision,
+see :doc:`format`): up to 0.2 m/s for ``UWND`` on a reanalysis crop, where the
+crop's own first column holds the jet's gradient. Without ``bbox`` (only
+``levels`` or ``variables``) the records are copied byte for byte and no value
+changes.
+
 .. ipython:: python
 
    out = arlmet.extract_subset(

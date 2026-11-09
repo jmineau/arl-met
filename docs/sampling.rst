@@ -66,6 +66,17 @@ If you already have an open file, pass it instead of a path. The
 A file you open yourself is left open for you to manage; only paths that
 ``sample_points`` opens internally are closed for you.
 
+When you call ``sample_points`` many times on one file (once per receptor, say),
+open it once and pass the :class:`arlmet.File`. A path is opened, and its index
+records read, on every call: on a 124-step file that is about 116 ms a call,
+against 8 ms with an open file.
+
+.. ipython:: python
+
+   with arlmet.File("met.arl") as met:
+       rows = [met.sample_points(points.iloc[[i]], ["TEMP"]) for i in range(len(points))]
+   rows[0]
+
 Choosing the vertical coordinate
 ---------------------------------
 

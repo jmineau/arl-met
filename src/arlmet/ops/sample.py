@@ -1721,7 +1721,9 @@ def sample_points(
     Accepts a single ARL file or a sequence of files spanning different time
     periods. Each may be an open :class:`~arlmet.file.File` or a path to an
     ARL file; paths are opened (read mode) and closed automatically, while
-    already-open Files are left open for the caller to manage. Each point is
+    already-open Files are left open for the caller to manage. A path is
+    opened and its index records read on every call, so in a loop over many
+    calls on one file pass an open File. Each point is
     sampled from the file that contains its valid time. Time is not
     interpolated: each point's time must be one of the valid times of the
     files, and a point between two valid times raises ``ValueError``.
