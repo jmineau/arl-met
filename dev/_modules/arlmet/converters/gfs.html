@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=5b418dd6"></script>
+    <script src="../../../_static/documentation_options.js?v=45a955a2"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev17+gd9f3bc8c0" />
+  <meta name="docsearch:version" content="0.1.0b9.dev18+g7379e2d40" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -419,13 +419,18 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">NamedTuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NamedTuple</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">._pressure</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span><span class="p">,</span> <span class="n">pressure_level_dataset</span><span class="p">,</span> <span class="n">standardize</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._pressure</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Field</span><span class="p">,</span>
+    <span class="n">pressure_level_dataset</span><span class="p">,</span>
+    <span class="n">scalar_coord</span><span class="p">,</span>
+    <span class="n">stack_times</span><span class="p">,</span>
+    <span class="n">standardize</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"from_gfs"</span><span class="p">]</span>
 
@@ -487,14 +492,6 @@
 <span class="n">_SINGLE_LEVEL_FIELDS</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="o">.</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">field</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">SINGLE_LEVEL_SOURCES</span><span class="p">}</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_scalar</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Return the value of a scalar coordinate of ``ds`` (any dtype), or None without one."""</span>
-    <span class="n">coord</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">coord</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">coord</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="n">coord</span><span class="o">.</span><span class="n">values</span><span class="p">[()]</span>
-
-
 <span class="k">def</span><span class="w"> </span><span class="nf">_arl_name</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">da</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Return the ARL name ``ds[name]`` converts to, or None if it is not converted."""</span>
     <span class="n">type_of_level</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"GRIB_typeOfLevel"</span><span class="p">)</span>
@@ -511,7 +508,7 @@
             <span class="ow">and</span> <span class="n">step_type</span> <span class="o">==</span> <span class="n">source</span><span class="o">.</span><span class="n">step_type</span>
         <span class="p">):</span>
             <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">level</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">level</span> <span class="o">=</span> <span class="n">_scalar</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">source</span><span class="o">.</span><span class="n">type_of_level</span><span class="p">)</span>
+                <span class="n">level</span> <span class="o">=</span> <span class="n">scalar_coord</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">source</span><span class="o">.</span><span class="n">type_of_level</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">level</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">float</span><span class="p">(</span><span class="n">level</span><span class="p">)</span> <span class="o">!=</span> <span class="n">source</span><span class="o">.</span><span class="n">level</span><span class="p">:</span>
                     <span class="k">continue</span>
             <span class="k">return</span> <span class="n">source</span><span class="o">.</span><span class="n">field</span><span class="o">.</span><span class="n">name</span>
@@ -624,14 +621,14 @@
         <span class="p">}</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">names</span><span class="p">:</span>
             <span class="k">continue</span>
-        <span class="n">valid_time</span> <span class="o">=</span> <span class="n">_scalar</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"valid_time"</span><span class="p">)</span>
+        <span class="n">valid_time</span> <span class="o">=</span> <span class="n">scalar_coord</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"valid_time"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">valid_time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">"Each Dataset needs a scalar 'valid_time', as cfgrib.open_datasets() "</span>
                 <span class="sa">f</span><span class="s2">"gives one per GRIB file; got one with dims </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">)</span><span class="si">}</span><span class="s2">."</span>
             <span class="p">)</span>
         <span class="n">time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">valid_time</span><span class="p">)</span>
-        <span class="n">step_value</span> <span class="o">=</span> <span class="n">_scalar</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"step"</span><span class="p">)</span>
+        <span class="n">step_value</span> <span class="o">=</span> <span class="n">scalar_coord</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"step"</span><span class="p">)</span>
         <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="mi">0</span> <span class="k">if</span> <span class="n">step_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">step_value</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">arl</span> <span class="ow">in</span> <span class="n">names</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">da</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -658,36 +655,15 @@
         <span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">times</span>
     <span class="p">]</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">stack</span><span class="p">(</span>
-        <span class="n">found</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">]],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""One Dataset of the fields by ARL name, NaN where a time step has none."""</span>
-        <span class="n">variables</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">arl</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">name</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">found</span><span class="p">}):</span>
-            <span class="n">template</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">da</span> <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">da</span><span class="p">)</span> <span class="ow">in</span> <span class="n">found</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="n">arl</span><span class="p">)</span>
-            <span class="n">slices</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">found</span><span class="p">[(</span><span class="n">time</span><span class="p">,</span> <span class="n">arl</span><span class="p">)][</span><span class="mi">1</span><span class="p">]</span>
-                <span class="k">if</span> <span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">arl</span><span class="p">)</span> <span class="ow">in</span> <span class="n">found</span>
-                <span class="k">else</span> <span class="n">xr</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">times</span>
-            <span class="p">]</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">variables</span><span class="p">[</span><span class="n">arl</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">slices</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="s2">"time"</span><span class="p">,</span> <span class="n">join</span><span class="o">=</span><span class="s2">"exact"</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"The time steps hold '</span><span class="si">{</span><span class="n">arl</span><span class="si">}</span><span class="s2">' on different grids or pressure levels."</span>
-                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
-        <span class="k">return</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">(</span><span class="n">times</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
-
     <span class="n">upper_ds</span> <span class="o">=</span> <span class="n">standardize</span><span class="p">(</span>
-        <span class="n">stack</span><span class="p">(</span><span class="n">upper</span><span class="p">),</span>
+        <span class="n">stack_times</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">da</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">da</span><span class="p">)</span> <span class="ow">in</span> <span class="n">upper</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span> <span class="n">times</span><span class="p">),</span>
         <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">PRESSURE_LEVEL_FIELDS</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span>
         <span class="n">upper</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">label</span><span class="o">=</span><span class="s2">"pressure levels"</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">surface_ds</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">standardize</span><span class="p">(</span>
-            <span class="n">stack</span><span class="p">(</span><span class="n">surface</span><span class="p">),</span>
+            <span class="n">stack_times</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">da</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">da</span><span class="p">)</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span> <span class="n">times</span><span class="p">),</span>
             <span class="nb">list</span><span class="p">(</span><span class="n">_SINGLE_LEVEL_FIELDS</span><span class="p">),</span>
             <span class="n">upper</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="n">label</span><span class="o">=</span><span class="s2">"single levels"</span><span class="p">,</span>

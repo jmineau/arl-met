@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=5b418dd6"></script>
+    <script src="_static/documentation_options.js?v=45a955a2"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev17+gd9f3bc8c0" />
+  <meta name="docsearch:version" content="0.1.0b9.dev18+g7379e2d40" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -453,7 +453,7 @@
 <p>HYSPLIT reads only ARL files, and NOAA publishes them for a few products (HRRR,
 NAM, GDAS, GFS, …; see <a class="reference internal" href="downloading.html"><span class="doc">Downloading Archived Meteorology</span></a>). For any other model, HYSPLIT ships
 one Fortran <code class="docutils literal notranslate"><span class="pre">data2arl</span></code> program per product. <code class="xref py py-mod docutils literal notranslate"><span class="pre">arlmet.converters</span></code> holds
-Python versions of them. Each takes the product’s own output, opened with
+Python versions of them, and converters for products HYSPLIT has none for. Each takes the product’s own output, opened with
 xarray, and returns a Dataset in the layout <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> writes:
 ARL’s four-character names, the units HYSPLIT reads, rows from south to north,
 and the vertical axis HYSPLIT expects for the product. You can look at it, plot
@@ -465,6 +465,9 @@ levels, as HYSPLIT’s <code class="docutils literal notranslate"><span class="p
 HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">api2arl</span></code> converts ECMWF’s hybrid levels.</p></li>
 <li><p><a class="reference internal" href="_autosummary/arlmet.converters.from_gfs.html#arlmet.converters.from_gfs" title="arlmet.converters.from_gfs"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.converters.from_gfs()</span></code></a>: NCEP’s GFS forecasts and GDAS analyses
 on pressure levels (<code class="docutils literal notranslate"><span class="pre">pgrb2</span></code> files), as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">api2arl</span></code> converts them.</p></li>
+<li><p><a class="reference internal" href="_autosummary/arlmet.converters.from_icon.html#arlmet.converters.from_icon" title="arlmet.converters.from_icon"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.converters.from_icon()</span></code></a>: DWD’s ICON-EU and ICON-D2 forecasts on
+their regular lat/lon grids and pressure levels, which HYSPLIT has no
+converter for.</p></li>
 <li><p><a class="reference internal" href="_autosummary/arlmet.converters.from_wrf.html#arlmet.converters.from_wrf" title="arlmet.converters.from_wrf"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.converters.from_wrf()</span></code></a>: WRF-ARW output (<code class="docutils literal notranslate"><span class="pre">wrfout</span></code> files) on its
 own grid and model levels, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">arw2arl</span></code> converts it.</p></li>
 </ul>
@@ -794,6 +797,93 @@ as <code class="docutils literal notranslate"><span class="pre">unknown</span></
 total cloud cover is missing at every point, so they give no <code class="docutils literal notranslate"><span class="pre">TCLD</span></code>. Like
 <code class="docutils literal notranslate"><span class="pre">api2arl</span></code>, it writes no <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> records.</p>
 </section>
+<section id="icon">
+<h2>ICON<a class="headerlink" href="#icon" title="Link to this heading">#</a></h2>
+<p>DWD’s ICON-EU (Europe, about 6.5 km) and ICON-D2 (Germany, about 2.2 km) are
+published free at <code class="docutils literal notranslate"><span class="pre">https://opendata.dwd.de/weather/nwp/</span></code>, each forecast on
+its own grid and on a regular lat/lon grid; <a class="reference internal" href="_autosummary/arlmet.converters.from_icon.html#arlmet.converters.from_icon" title="arlmet.converters.from_icon"><code class="xref py py-func docutils literal notranslate"><span class="pre">from_icon()</span></code></a>
+converts the lat/lon files on pressure levels. DWD keeps a forecast for about
+a day. Each file holds one variable at one level and one forecast step,
+compressed with bzip2:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>icon-eu/grib/00/t/icon-eu_europe_regular-lat-lon_pressure-level_2026110600_003_850_T.grib2.bz2
+icon-eu/grib/00/tot_prec/icon-eu_europe_regular-lat-lon_single-level_2026110600_003_TOT_PREC.grib2.bz2
+icon-eu/grib/00/hsurf/icon-eu_europe_regular-lat-lon_time-invariant_2026110600_HSURF.grib2.bz2
+</pre></div>
+</div>
+<p>The pressure-level variables are <code class="docutils literal notranslate"><span class="pre">fi</span></code>, <code class="docutils literal notranslate"><span class="pre">t</span></code>, <code class="docutils literal notranslate"><span class="pre">u</span></code>, <code class="docutils literal notranslate"><span class="pre">v</span></code>, <code class="docutils literal notranslate"><span class="pre">omega</span></code> and
+<code class="docutils literal notranslate"><span class="pre">relhum</span></code>; the API page of <a class="reference internal" href="_autosummary/arlmet.converters.from_icon.html#arlmet.converters.from_icon" title="arlmet.converters.from_icon"><code class="xref py py-func docutils literal notranslate"><span class="pre">from_icon()</span></code></a> lists the
+single-level ones it reads. Download those you need for every step, unpack
+them (<code class="docutils literal notranslate"><span class="pre">bunzip2</span></code>) and open each with cfgrib, passing all the Datasets
+together:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">glob</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">cfgrib</span>
+
+<span class="n">files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"icon-eu_europe_regular-lat-lon_*.grib2"</span><span class="p">))</span>
+<span class="n">datasets</span> <span class="o">=</span> <span class="p">[</span><span class="n">ds</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span> <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">open_datasets</span><span class="p">(</span><span class="n">f</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>The levels of each variable are stacked, and each valid time becomes one time
+step. ICON’s precipitation and surface fluxes are totals and means from the
+start of the forecast (a 3-hour file holds hours 0 to 3); each is written as
+the total or mean since the step before. <code class="docutils literal notranslate"><span class="pre">TPP1</span></code> is that precipitation per
+hour, so 3-hourly steps (ICON-EU’s after 78 hours) give the hourly mean of
+each 3 hours. A forecast’s step 0 has no such interval, so its precipitation
+and fluxes are missing records; as in <a class="reference internal" href="_autosummary/arlmet.converters.from_gfs.html#arlmet.converters.from_gfs" title="arlmet.converters.from_gfs"><code class="xref py py-func docutils literal notranslate"><span class="pre">from_gfs()</span></code></a>,
+where two forecasts hold a field at the same valid time the shorter step is
+used, so the first 6 hours of each run joined together give every time step
+its fields. ICON’s fluxes are positive downward; <code class="docutils literal notranslate"><span class="pre">SHTF</span></code> and <code class="docutils literal notranslate"><span class="pre">LHTF</span></code> are
+written positive upward, as HYSPLIT takes them. Here made-up Datasets laid out
+as cfgrib returns DWD’s files stand in for one forecast’s steps 0 to 3:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="n">datasets</span> <span class="o">=</span> <span class="n">docs_examples</span><span class="o">.</span><span class="n">icon_sample</span><span class="p">()</span>
+
+<span class="gp">In [22]: </span><span class="nb">len</span><span class="p">(</span><span class="n">datasets</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
+<span class="gh">Out[22]: </span><span class="go">(113, ['avg_slhtf'])</span>
+
+<span class="gp">In [23]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_icon</span><span class="p">(</span><span class="n">datasets</span><span class="p">)</span>
+
+<span class="gp">In [24]: </span><span class="n">ds</span>
+<span class="gh">Out[24]: </span>
+<span class="go">&lt;xarray.Dataset&gt; Size: 509kB</span>
+<span class="go">Dimensions:        (lon: 41, lat: 25, time: 4, level: 4)</span>
+<span class="go">Coordinates:</span>
+<span class="go">  * lon            (lon) float64 328B 0.0 0.5 1.0 1.5 ... 18.5 19.0 19.5 20.0</span>
+<span class="go">  * lat            (lat) float64 200B 44.0 44.5 45.0 45.5 ... 55.0 55.5 56.0</span>
+<span class="go">  * time           (time) datetime64[us] 32B 2026-11-06 ... 2026-11-06T03:00:00</span>
+<span class="go">    forecast_hour  (time) int64 32B 0 1 2 3</span>
+<span class="go">  * level          (level) int64 32B 1 2 3 4</span>
+<span class="go">    pressure       (level) float64 32B 1e+03 850.0 700.0 500.0</span>
+<span class="go">    arl_grid       int64 8B 0</span>
+<span class="go">Data variables:</span>
+<span class="go">    HGTS           (time, level, lat, lon) float32 66kB 93.56 94.7 ... 5.574e+03</span>
+<span class="go">    TEMP           (time, level, lat, lon) float32 66kB 285.2 285.2 ... 246.0</span>
+<span class="go">    UWND           (time, level, lat, lon) float32 66kB 0.7859 1.014 ... 16.75</span>
+<span class="go">    VWND           (time, level, lat, lon) float32 66kB 2.0 1.996 ... -2.5</span>
+<span class="go">    WWND           (time, level, lat, lon) float32 66kB -0.002598 ... -2.204e-18</span>
+<span class="go">    RELH           (time, level, lat, lon) float32 66kB 38.35 39.77 ... 60.0</span>
+<span class="go">    PRSS           (time, lat, lon) float32 16kB 989.5 989.5 ... 989.5 989.5</span>
+<span class="go">    SHGT           (time, lat, lon) float32 16kB 200.0 200.0 ... 200.0 200.0</span>
+<span class="go">    T02M           (time, lat, lon) float32 16kB 281.7 281.7 ... 281.7 281.7</span>
+<span class="go">    TPP1           (time, lat, lon) float64 33kB nan nan nan nan ... 0.0 0.0 0.0</span>
+<span class="go">    LHTF           (time, lat, lon) float64 33kB nan nan nan ... 37.91 40.0</span>
+<span class="go">Attributes:</span>
+<span class="go">    source:         ICON</span>
+<span class="go">    vertical_flag:  2</span>
+
+<span class="gp">In [25]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">"TPP1"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="s2">"lat"</span><span class="p">,</span> <span class="s2">"lon"</span><span class="p">])</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># m per hour; none at step 0</span>
+<span class="gh">Out[25]: </span><span class="go">array([       nan, 0.00037703, 0.00037703, 0.00037703])</span>
+</pre></div>
+</div>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [26]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"icon-eu.arl"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>ICON’s own grid (icosahedral, the only one DWD publishes for global ICON) and
+its model levels (heights that follow the terrain, which no ARL vertical
+coordinate describes) are not converted: remap the output to a lat/lon grid
+and pressure levels first (for example with CDO) and write it as GRIB2 with
+DWD’s variable names. HYSPLIT has no ICON converter to compare with; the
+files written are read by HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">hycs_std</span></code>.</p>
+</section>
 <section id="wrf">
 <h2>WRF<a class="headerlink" href="#wrf" title="Link to this heading">#</a></h2>
 <p><a class="reference internal" href="_autosummary/arlmet.converters.from_wrf.html#arlmet.converters.from_wrf" title="arlmet.converters.from_wrf"><code class="xref py py-func docutils literal notranslate"><span class="pre">from_wrf()</span></code></a> converts WRF-ARW’s <code class="docutils literal notranslate"><span class="pre">wrfout</span></code> netCDF files
@@ -810,12 +900,12 @@ be taken from the run’s accumulated totals:</p>
 </div>
 <p>Here a small made-up run, laid out as xarray opens <code class="docutils literal notranslate"><span class="pre">wrfout</span></code> files, stands in
 for them:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="n">wrf</span> <span class="o">=</span> <span class="n">docs_examples</span><span class="o">.</span><span class="n">wrf_sample</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [27]: </span><span class="n">wrf</span> <span class="o">=</span> <span class="n">docs_examples</span><span class="o">.</span><span class="n">wrf_sample</span><span class="p">()</span>
 
-<span class="gp">In [22]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_wrf</span><span class="p">(</span><span class="n">wrf</span><span class="p">)</span>
+<span class="gp">In [28]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_wrf</span><span class="p">(</span><span class="n">wrf</span><span class="p">)</span>
 
-<span class="gp">In [23]: </span><span class="n">ds</span>
-<span class="gh">Out[23]: </span>
+<span class="gp">In [29]: </span><span class="n">ds</span>
+<span class="gh">Out[29]: </span>
 <span class="go">&lt;xarray.Dataset&gt; Size: 274kB</span>
 <span class="go">Dimensions:        (y: 25, x: 30, time: 3, level: 4)</span>
 <span class="go">Coordinates:</span>
@@ -843,14 +933,14 @@ for them:</p>
 <span class="go">    source:         AWRF</span>
 <span class="go">    vertical_flag:  1</span>
 
-<span class="gp">In [24]: </span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">grid</span>
-<span class="gh">Out[24]: </span><span class="go">Grid(lcc 12km, 30×25)</span>
+<span class="gp">In [30]: </span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">grid</span>
+<span class="gh">Out[30]: </span><span class="go">Grid(lcc 12km, 30×25)</span>
 
-<span class="gp">In [25]: </span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">vertical_axis</span>  <span class="c1"># sigma levels, with the model top as offset</span>
-<span class="gh">Out[25]: </span><span class="go">SigmaAxis(n=5)</span>
+<span class="gp">In [31]: </span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">vertical_axis</span>  <span class="c1"># sigma levels, with the model top as offset</span>
+<span class="gh">Out[31]: </span><span class="go">SigmaAxis(n=5)</span>
 </pre></div>
 </div>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [26]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"wrf.arl"</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [32]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"wrf.arl"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The file has source <code class="docutils literal notranslate"><span class="pre">AWRF</span></code>, which HYSPLIT reads as WRF. It keeps WRF’s
@@ -875,13 +965,13 @@ writes those instead, as stored, with the fields HYSPLIT decouples them with
 (<code class="docutils literal notranslate"><span class="pre">MUU0</span></code>, <code class="docutils literal notranslate"><span class="pre">MUV0</span></code>, <code class="docutils literal notranslate"><span class="pre">MSFT</span></code>, <code class="docutils literal notranslate"><span class="pre">MSFU</span></code>, <code class="docutils literal notranslate"><span class="pre">MSFV</span></code>); <a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a>
 decouples them too, while <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a> returns the stored
 values:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [27]: </span><span class="n">averaged</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_wrf</span><span class="p">(</span><span class="n">wrf</span><span class="p">,</span> <span class="n">winds</span><span class="o">=</span><span class="s2">"averaged"</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [33]: </span><span class="n">averaged</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_wrf</span><span class="p">(</span><span class="n">wrf</span><span class="p">,</span> <span class="n">winds</span><span class="o">=</span><span class="s2">"averaged"</span><span class="p">)</span>
 
-<span class="gp">In [28]: </span><span class="n">averaged</span><span class="p">[</span><span class="s2">"UWND"</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span>  <span class="c1"># mass-coupled, as stored</span>
-<span class="gh">Out[28]: </span><span class="go">{'units': 'Pa m s-1'}</span>
+<span class="gp">In [34]: </span><span class="n">averaged</span><span class="p">[</span><span class="s2">"UWND"</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span>  <span class="c1"># mass-coupled, as stored</span>
+<span class="gh">Out[34]: </span><span class="go">{'units': 'Pa m s-1'}</span>
 
-<span class="gp">In [29]: </span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">averaged</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">))</span>
-<span class="gh">Out[29]: </span><span class="go">['MSFT', 'MSFU', 'MSFV', 'MUU0', 'MUV0']</span>
+<span class="gp">In [35]: </span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">averaged</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">))</span>
+<span class="gh">Out[35]: </span><span class="go">['MSFT', 'MSFU', 'MSFV', 'MUU0', 'MUV0']</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">arw2arl</span></code>’s TKE list is not converted.</p>
@@ -942,6 +1032,7 @@ values:</p>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gfs-and-gdas">GFS and GDAS</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#icon">ICON</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wrf">WRF</a></li>
 </ul>
   </nav></div>
