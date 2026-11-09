@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from arlmet._time import utc_times
 from arlmet.grid import Grid, Projection
 from arlmet.vertical import VerticalAxis
 
@@ -198,7 +199,7 @@ def _extract_dataset_forecast_hours(
     if forecast.dims != ("time",):
         raise ValueError("Dataset 'forecast_hour' must have dims ('time',).")
 
-    coord_times = pd.to_datetime(forecast.coords["time"].values)
+    coord_times = utc_times(forecast.coords["time"].to_index())
     if not coord_times.equals(times):
         raise ValueError(
             "Dataset 'forecast_hour' must align exactly with the dataset time coordinate."

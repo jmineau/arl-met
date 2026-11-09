@@ -14,7 +14,7 @@ import xarray as xr
 from xarray.core import indexing
 
 from arlmet._io import atomic_output, reject_same_file
-from arlmet._time import ensure_timestamp
+from arlmet._time import ensure_timestamp, utc_times
 from arlmet.header import check_year
 from arlmet.ops.sample import _mass_coupled
 from arlmet.ops.subset import normalize_levels, resolve_window, select_records
@@ -371,7 +371,7 @@ def write_dataset(
 
     if "time" not in ds.coords:
         raise ValueError("Dataset must define a 'time' coordinate.")
-    times = pd.to_datetime(ds.coords["time"].values)
+    times = utc_times(ds.coords["time"].to_index())
     if len(times) == 0:
         raise ValueError("Dataset has no time steps to write.")
 
@@ -454,7 +454,7 @@ def write_dataset(
             raise ValueError(
                 f"Variable '{var_name}' data must include the 'time' dimension."
             )
-        data_times = pd.to_datetime(da.coords["time"].values)
+        data_times = utc_times(da.coords["time"].to_index())
         if not data_times.equals(times):
             raise ValueError(
                 f"Variable '{var_name}' time coordinate must align exactly with the dataset time coordinate."
