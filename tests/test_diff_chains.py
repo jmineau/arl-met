@@ -1727,22 +1727,19 @@ class TestPairByName:
                     np.testing.assert_allclose(record.read(), target, rtol=0, atol=atol)
 
     @pytest.mark.parametrize("bbox", [None, WIDE_CROP], ids=["copy", "crop"])
-    def test_a_subset_that_moves_a_dif_to_the_surface_is_refused(self, tmp_path, bbox):
-        # Leaving out level 0 makes level 1 the surface, where a DIFW record
-        # would correct nothing (HYSPLIT's xtrct_grid always keeps level 0).
+    def test_a_subset_without_the_surface_is_refused(self, tmp_path, bbox):
+        # Leaving out level 0 would make level 1 the surface, where a DIFW
+        # record corrects nothing (HYSPLIT's xtrct_grid always keeps level 0).
         source = tmp_path / "era5_like.arl"
         subset = tmp_path / "subset.arl"
         write_era5_like_file(source, n_steps=1)
 
-        with pytest.raises(ValueError, match="puts level 1 at level 0") as caught:
+        with pytest.raises(ValueError, match="levels must include 0"):
             extract_subset(source, subset, bbox=bbox, levels=[1, 2])
-        assert "DIFW record of WWND would correct nothing" in str(caught.value)
         assert not subset.exists()
 
-        # Without the records that carry a DIF, the same levels are fine.
-        extract_subset(source, subset, bbox=bbox, levels=[1, 2], variables=["RELH"])
+        # With the surface kept, the DIF records travel with their parents.
+        extract_subset(source, subset, bbox=bbox, levels=[0, 1], variables=["WWND"])
         with File(subset) as out:
-            assert [(r.level, r.variable) for r in out[TIME0]] == [
-                (0, "RELH"),
-                (1, "RELH"),
-            ]
+            assert [(r.level, r.variable) for r in out[TIME0]] == [(1, "WWND")]
+            assert [d.variable for d in out[TIME0][1, "WWND"].diffs] == ["DIFW"]
