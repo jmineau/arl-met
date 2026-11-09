@@ -385,6 +385,7 @@ def extract_subset(
     bbox_crs: Any = None,
     levels: Iterable[int] | None = None,
     variables: str | Iterable[str] | None = None,
+    overwrite: bool = True,
 ) -> Path:
     """
     Extract a spatial/vertical subset from an ARL file into a new ARL file.
@@ -394,7 +395,7 @@ def extract_subset(
     path : path-like
         Input ARL file.
     dest : path-like
-        Output ARL file. Overwrites any existing file. Must not be ``path``.
+        Output ARL file. Must not be ``path``.
     bbox : tuple[float, float, float, float], optional
         Geographic bounding box ``(west, south, east, north)`` in degrees.
         On a projected grid the crop is the smallest rectangle of cells
@@ -413,6 +414,11 @@ def extract_subset(
         holds is accepted, but naming it selects nothing: a ``DIF*`` record is
         written with its parent record, when the parent is selected. All
         variables are included by default.
+    overwrite : bool, default True
+        Replace an existing ``dest``. With False an existing ``dest`` is
+        returned as it is, without reading the input, so a rerun skips
+        finished work; nothing checks that it came from the same inputs and
+        arguments.
 
     Returns
     -------
@@ -457,6 +463,8 @@ def extract_subset(
     >>> ds = arlmet.open_dataset(out)
     """
     reject_same_file(path, dest)
+    if not overwrite and Path(dest).exists():
+        return Path(dest)
     if isinstance(variables, str):
         variables = [variables]  # one name, not its letters
     variable_names = None if variables is None else set(variables)

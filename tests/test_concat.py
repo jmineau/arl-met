@@ -317,6 +317,25 @@ def test_concat_by_time_groups_by_day(tmp_path):
         ]
 
 
+def test_concat_by_time_without_overwrite_writes_only_missing_bins(tmp_path):
+    src = tmp_path / "hrrr"
+    out = tmp_path / "daily"
+    populate_hrrr_dir(src)
+    kwargs = {"freq": "1D", "pattern": "*_hrrr", "template": "{time:%Y%m%d}_hrrr"}
+    first, second = concat_by_time(src, out, **kwargs)
+    first.write_bytes(b"kept")  # stands for a finished bin
+    second.unlink()  # a bin the failed run did not reach
+
+    written = concat_by_time(src, out, overwrite=False, **kwargs)
+
+    assert written == [first, second]
+    assert first.read_bytes() == b"kept"
+    with File(second) as day2:
+        assert len(day2.times) == 2
+    concat_by_time(src, out, **kwargs)  # the default replaces it
+    assert first.read_bytes() != b"kept"
+
+
 def test_concat_by_time_respects_freq(tmp_path):
     src = tmp_path / "hrrr"
     out = tmp_path / "halfday"

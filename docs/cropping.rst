@@ -82,6 +82,18 @@ single cropped time step rather than the whole output file.
    ds = arlmet.open_dataset(out)
    ds.sizes
 
+``extract_subset()`` replaces an existing output. In a batch you may rerun after a
+failure, pass ``overwrite=False`` to keep the crops already written: an existing
+``dest`` is returned as it is, without reading the input. Nothing checks that it
+was cropped with the same arguments, so use it only when the output name says
+what went into it.
+
+.. ipython:: python
+
+   arlmet.extract_subset(
+       "met.arl", "cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0), overwrite=False
+   )
+
 When you already hold an open :class:`arlmet.File`, the same operation is
 available as a method:
 
