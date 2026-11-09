@@ -256,7 +256,10 @@ def concat_by_time(
         last valid times floor to different bins raises ``ValueError``.
     pattern : str, default "*"
         Glob (relative to ``directory``) selecting input files. Scope it to ARL
-        files; every match must be a readable ARL file.
+        files; every match must be a readable ARL file. Hidden files (names
+        starting with ``.``, such as the ``.partial`` file an interrupted run
+        leaves) are skipped unless the pattern itself starts a name with a dot,
+        like ``".*.arl"``.
     start, end : str or pandas.Timestamp, optional
         Inclusive bounds on each file's first valid time; files outside them
         are skipped. Either may be omitted to leave that side open.
@@ -304,7 +307,14 @@ def concat_by_time(
     directory = Path(directory)
     dest_dir = Path(dest_dir)
 
-    candidates = sorted(p for p in directory.glob(pattern) if p.is_file())
+    # Hidden files (an interrupted run's ``.<name>.<hash>.partial``) are not inputs
+    # unless the pattern itself names hidden files, as ``arlmet.index`` does.
+    hidden_ok = Path(pattern).name.startswith(".")
+    candidates = sorted(
+        p
+        for p in directory.glob(pattern)
+        if p.is_file() and (hidden_ok or not p.name.startswith("."))
+    )
     if not candidates:
         raise ValueError(f"No files matched pattern {pattern!r} in {directory}.")
 
