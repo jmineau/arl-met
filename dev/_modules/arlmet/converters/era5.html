@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=68ee6e53"></script>
+    <script src="../../../_static/documentation_options.js?v=f3471472"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev15+g568f49dd0" />
+  <meta name="docsearch:version" content="0.1.0b9.dev16+g667999b86" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -414,12 +414,19 @@
                 <article class="bd-article">
                   
   <h1>Source code for arlmet.converters.era5</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""Convert ERA5 pressure-level and single-level fields, as HYSPLIT's ``era52arl``."""</span>
+<span></span><span class="sd">"""Convert ERA5 fields on pressure or model levels, as HYSPLIT's ``era52arl`` and ``api2arl``."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.indexrecord</span><span class="w"> </span><span class="kn">import</span> <span class="n">format_fixed_width_float</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">VerticalAxis</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._l137</span><span class="w"> </span><span class="kn">import</span> <span class="n">L137_A</span><span class="p">,</span> <span class="n">L137_B</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._pressure</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span><span class="p">,</span> <span class="n">pressure_level_dataset</span><span class="p">,</span> <span class="n">standardize</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"from_era5"</span><span class="p">]</span>
@@ -440,6 +447,19 @@
     <span class="s2">"r"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"RELH"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"%"</span><span class="p">),</span>
     <span class="s2">"q"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"SPHU"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"kg kg-1"</span><span class="p">),</span>
 <span class="p">}</span>
+
+<span class="c1">#: ERA5 model-level variables (netCDF and cfgrib names) and their ARL fields,</span>
+<span class="c1">#: as HYSPLIT's ``api2arl`` converts them.</span>
+<span class="n">MODEL_LEVEL_FIELDS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"t"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"TEMP"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"K"</span><span class="p">),</span>
+    <span class="s2">"u"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
+    <span class="s2">"v"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"VWND"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
+    <span class="s2">"w"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"WWND"</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s2">"hPa s-1"</span><span class="p">,</span> <span class="s2">"DIFW"</span><span class="p">),</span>
+    <span class="s2">"q"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"SPHU"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"kg kg-1"</span><span class="p">),</span>
+<span class="p">}</span>
+
+<span class="c1">#: Names of the model-level dimension: the CDS's netCDF, cfgrib.</span>
+<span class="n">MODEL_LEVEL_DIMS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"model_level"</span><span class="p">,</span> <span class="s2">"hybrid"</span><span class="p">)</span>
 
 <span class="c1">#: ERA5 single-level variables and their ARL fields. Accumulations are over the</span>
 <span class="c1">#: hour before the valid time; ECMWF's fluxes are positive downward, HYSPLIT's</span>
@@ -462,59 +482,123 @@
 <span class="p">}</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_levels</span><span class="p">(</span><span class="n">model_levels</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Return the ARL level values of ERA5 model levels, as HYSPLIT's ``api2arl`` writes them.</span>
+
+<span class="sd">    A hybrid (flag 4) ARL level is one number: its whole part is a pressure</span>
+<span class="sd">    offset in hPa and its fraction a sigma, so that the level's pressure is</span>
+<span class="sd">    ``offset + sigma * surface pressure`` (HYSPLIT's ``prfecm``). For model</span>
+<span class="sd">    level ``n`` of ECMWF's 137 (1 at the top, 137 at the ground) the offset is</span>
+<span class="sd">    the mean of the ``a`` coefficients of half levels ``n - 1`` and ``n`` in</span>
+<span class="sd">    hPa, rounded to the nearest whole hPa, and sigma the mean of their ``b``.</span>
+<span class="sd">    Raises if a level is not a whole number from 1 to 137.</span>
+<span class="sd">    """</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">model_levels</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">level</span> <span class="ow">or</span> <span class="ow">not</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="mi">137</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"ERA5 model levels are whole numbers from 1 to 137, got </span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s2">."</span>
+            <span class="p">)</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">L137_A</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">L137_A</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">/</span> <span class="mf">100.0</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">offset</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">L137_B</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">L137_B</span><span class="p">[</span><span class="n">n</span><span class="p">])))</span>
+    <span class="k">return</span> <span class="n">values</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_axis</span><span class="p">(</span><span class="n">model_levels</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">VerticalAxis</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Return the hybrid axis of ``model_levels`` (lowest first), the ground first as 1.</span>
+
+<span class="sd">    Raises if two levels are stored as the same pressure: a level above about</span>
+<span class="sd">    model level 24 rounds to the same whole hPa as the one below it.</span>
+<span class="sd">    """</span>
+    <span class="n">stored</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="nb">float</span><span class="p">(</span><span class="n">format_fixed_width_float</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">_hybrid_levels</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">model_levels</span><span class="p">])</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">below</span><span class="p">,</span> <span class="n">above</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">stored</span><span class="p">,</span> <span class="n">stored</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">model_levels</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">_pressure_at</span><span class="p">(</span><span class="n">above</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">_pressure_at</span><span class="p">(</span><span class="n">below</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"ERA5 model level </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="si">}</span><span class="s2"> is stored as the same pressure as the "</span>
+                <span class="sa">f</span><span class="s2">"level below it: an ARL hybrid level holds its pressure offset in "</span>
+                <span class="sa">f</span><span class="s2">"whole hPa. Leave out level </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="si">}</span><span class="s2"> and those above it (keep "</span>
+                <span class="sa">f</span><span class="s2">"levels </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> to 137)."</span>
+            <span class="p">)</span>
+    <span class="k">return</span> <span class="n">HybridAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">*</span><span class="n">stored</span><span class="p">])</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_pressure_at</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">surface_pressure</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1013.25</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the pressure [hPa] HYSPLIT reads from a hybrid level value."""</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">value</span> <span class="o">-</span> <span class="n">offset</span><span class="p">)</span> <span class="o">*</span> <span class="n">surface_pressure</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="from_era5">
 <a class="viewcode-back" href="../../../_autosummary/arlmet.converters.from_era5.html#arlmet.converters.from_era5">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">from_era5</span><span class="p">(</span><span class="n">pressure_levels</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">single_levels</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_era5</span><span class="p">(</span><span class="n">levels</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">single_levels</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Convert ERA5 hourly fields to a Dataset that :func:`arlmet.write_dataset` writes.</span>
 
-<span class="sd">    This is HYSPLIT's ``era52arl`` for ERA5 on pressure levels, taking the two</span>
-<span class="sd">    Datasets of a Copernicus Climate Data Store download (``reanalysis-era5-</span>
-<span class="sd">    pressure-levels`` and ``reanalysis-era5-single-levels``) as xarray opens</span>
-<span class="sd">    them, from netCDF or, with ``cfgrib``, from GRIB. The result is an ARL</span>
-<span class="sd">    pressure-level Dataset (vertical flag 2) on the same lat/lon grid, rows</span>
-<span class="sd">    south to north, levels from the highest pressure up; nothing is read until</span>
-<span class="sd">    it is written, when the inputs are lazy (opened with ``chunks=``).</span>
+<span class="sd">    This is HYSPLIT's ``era52arl`` for ERA5 on pressure levels and its</span>
+<span class="sd">    ``api2arl`` for ERA5 on model levels, taking two Datasets of a Copernicus</span>
+<span class="sd">    Climate Data Store download as xarray opens them, from netCDF or, with</span>
+<span class="sd">    ``cfgrib``, from GRIB: ``levels`` (``reanalysis-era5-pressure-levels``,</span>
+<span class="sd">    or model levels from ``reanalysis-era5-complete``) and ``single_levels``</span>
+<span class="sd">    (``reanalysis-era5-single-levels``). The result is on the same lat/lon</span>
+<span class="sd">    grid, rows south to north, levels from the ground up; nothing is read</span>
+<span class="sd">    until it is written, when the inputs are lazy (opened with ``chunks=``).</span>
+
+<span class="sd">    - **Pressure levels** give an ARL pressure-level Dataset (vertical flag</span>
+<span class="sd">      2), its levels from the highest pressure up.</span>
+<span class="sd">    - **Model levels** (a ``model_level`` or cfgrib's ``hybrid`` dimension,</span>
+<span class="sd">      1 at the top to 137 at the ground) give an ARL hybrid Dataset (flag 4),</span>
+<span class="sd">      its levels from model level 137 up, each written as ``api2arl``</span>
+<span class="sd">      writes it (Notes). HYSPLIT finds each level's pressure</span>
+<span class="sd">      from the surface pressure, so ``single_levels`` must hold ``sp``.</span>
+<span class="sd">      Levels above about model level 24 cannot be written: their pressure</span>
+<span class="sd">      offsets round to the same whole hPa (see Raises).</span>
 
 <span class="sd">    The variables converted are those of ``era52arl``'s default list, plus</span>
-<span class="sd">    specific humidity. Each is written when the input has it; others are</span>
-<span class="sd">    ignored.</span>
+<span class="sd">    specific humidity, and on model levels those of ``api2arl``'s. Each is</span>
+<span class="sd">    written when the input has it; others are ignored.</span>
 
-<span class="sd">    ============  ======  ===========================================</span>
-<span class="sd">    ERA5          ARL     conversion</span>
-<span class="sd">    ============  ======  ===========================================</span>
-<span class="sd">    ``z``         HGTS    geopotential / 9.80665 (m)</span>
-<span class="sd">    ``t``         TEMP    K</span>
-<span class="sd">    ``u``, ``v``  UWND,   m s-1</span>
-<span class="sd">                  VWND</span>
-<span class="sd">    ``w``         WWND    Pa s-1 to hPa s-1, with a ``DIFW`` record</span>
-<span class="sd">    ``r``         RELH    %</span>
-<span class="sd">    ``q``         SPHU    kg kg-1</span>
-<span class="sd">    ``sp``        PRSS    Pa to hPa</span>
-<span class="sd">    ``z``         SHGT    surface geopotential / 9.80665 (m)</span>
-<span class="sd">    ``t2m``       T02M    K</span>
-<span class="sd">    ``d2m``       DP2M    K</span>
-<span class="sd">    ``u10``,      U10M,   m s-1</span>
-<span class="sd">    ``v10``       V10M</span>
-<span class="sd">    ``blh``       PBLH    m</span>
-<span class="sd">    ``cape``      CAPE    J kg-1</span>
-<span class="sd">    ``tcc``       TCLD    fraction to %</span>
-<span class="sd">    ``tp``        TPP1    m in the hour, with a ``DIFR`` record</span>
-<span class="sd">    ``sshf``      SHTF    J m-2 in the hour to W m-2, positive upward</span>
-<span class="sd">    ``slhf``      LHTF    J m-2 in the hour to W m-2, positive upward</span>
-<span class="sd">    ``ssrd``      DSWF    J m-2 in the hour to W m-2</span>
-<span class="sd">    ``zust``      USTR    m s-1</span>
-<span class="sd">    ============  ======  ===========================================</span>
+<span class="sd">    ==============  ======  ===========================================</span>
+<span class="sd">    ERA5            ARL     conversion</span>
+<span class="sd">    ==============  ======  ===========================================</span>
+<span class="sd">    ``z``           HGTS    geopotential / 9.80665 (m; pressure levels)</span>
+<span class="sd">    ``t``           TEMP    K</span>
+<span class="sd">    ``u``, ``v``    UWND,   m s-1</span>
+<span class="sd">                    VWND</span>
+<span class="sd">    ``w``           WWND    Pa s-1 to hPa s-1, with a ``DIFW`` record</span>
+<span class="sd">    ``r``           RELH    % (pressure levels)</span>
+<span class="sd">    ``q``           SPHU    kg kg-1</span>
+<span class="sd">    ``sp``          PRSS    Pa to hPa</span>
+<span class="sd">    ``z``           SHGT    surface geopotential / 9.80665 (m)</span>
+<span class="sd">    ``t2m``         T02M    K</span>
+<span class="sd">    ``d2m``         DP2M    K</span>
+<span class="sd">    ``u10``,        U10M,   m s-1</span>
+<span class="sd">    ``v10``         V10M</span>
+<span class="sd">    ``blh``         PBLH    m</span>
+<span class="sd">    ``cape``        CAPE    J kg-1</span>
+<span class="sd">    ``tcc``         TCLD    fraction to %</span>
+<span class="sd">    ``tp``          TPP1    m in the hour, with a ``DIFR`` record</span>
+<span class="sd">    ``sshf``        SHTF    J m-2 in the hour to W m-2, positive upward</span>
+<span class="sd">    ``slhf``        LHTF    J m-2 in the hour to W m-2, positive upward</span>
+<span class="sd">    ``ssrd``        DSWF    J m-2 in the hour to W m-2</span>
+<span class="sd">    ``zust``        USTR    m s-1</span>
+<span class="sd">    ==============  ======  ===========================================</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    pressure_levels : xarray.Dataset</span>
-<span class="sd">        ERA5 fields on pressure levels, with dims valid time (``valid_time``</span>
-<span class="sd">        or ``time``), pressure (``pressure_level``, ``isobaricInhPa`` or</span>
-<span class="sd">        ``level``, in hPa), ``latitude`` and ``longitude``.</span>
+<span class="sd">    levels : xarray.Dataset</span>
+<span class="sd">        ERA5 fields on pressure levels or on model levels, with dims valid</span>
+<span class="sd">        time (``valid_time`` or ``time``), the level (``pressure_level``,</span>
+<span class="sd">        ``isobaricInhPa`` or ``level``, in hPa; or ``model_level`` or</span>
+<span class="sd">        ``hybrid``), ``latitude`` and ``longitude``.</span>
 <span class="sd">    single_levels : xarray.Dataset</span>
 <span class="sd">        ERA5 single-level fields on the same grid, at every valid time of</span>
-<span class="sd">        ``pressure_levels`` (it may hold others, which are left out). A CDS</span>
+<span class="sd">        ``levels`` (it may hold others, which are left out). A CDS</span>
 <span class="sd">        netCDF download comes as two files, the instantaneous and the</span>
 <span class="sd">        accumulated fields: merge them first (:func:`xarray.merge`).</span>
 
@@ -531,15 +615,31 @@
 <span class="sd">        If a Dataset has none of the variables above, a dimension is missing</span>
 <span class="sd">        or extra (an ensemble ``number``, a forecast ``step``), the latitudes</span>
 <span class="sd">        or longitudes are not equally spaced, the two grids differ, or</span>
-<span class="sd">        ``single_levels`` lacks a valid time of ``pressure_levels``.</span>
+<span class="sd">        ``single_levels`` lacks a valid time of ``levels``. On model levels,</span>
+<span class="sd">        also if ``single_levels`` has no ``sp``, or two of the levels would be</span>
+<span class="sd">        stored as the same pressure (any above about model level 24): select</span>
+<span class="sd">        the levels below, for example ``levels.sel(model_level=slice(24,</span>
+<span class="sd">        None))``.</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
 <span class="sd">    Where this differs from ``era52arl``: ``era52arl`` divides geopotential</span>
-<span class="sd">    by 9.8 (a factor of 0.102), writes ``TCLD`` as a fraction where HYSPLIT</span>
+<span class="sd">    by 9.8 (a factor of 0.102), turns the hourly totals of the heat fluxes and</span>
+<span class="sd">    solar radiation into W m-2 with a factor of 0.00028 for 1/3600 (so its</span>
+<span class="sd">    ``DSWF`` is 0.8 % high), writes ``TCLD`` as a fraction where HYSPLIT</span>
 <span class="sd">    reads percent, keeps ECMWF's downward-positive heat fluxes where HYSPLIT</span>
 <span class="sd">    takes them positive upward, and names the latent heat flux ``LTHF``,</span>
-<span class="sd">    a name HYSPLIT does not read.</span>
+<span class="sd">    a name HYSPLIT does not read. ``era52arl`` does not convert model levels.</span>
+
+<span class="sd">    An ARL hybrid level is one number, a pressure offset in whole hPa plus a</span>
+<span class="sd">    sigma, the level's pressure being ``offset + sigma * surface pressure``</span>
+<span class="sd">    (HYSPLIT's ``prfecm``). As in ``api2arl``, model level ``n``'s offset is</span>
+<span class="sd">    the mean ``a`` of its two half levels in hPa, rounded, and its sigma their</span>
+<span class="sd">    mean ``b`` (ECMWF's L137 coefficients). The index record holds each level</span>
+<span class="sd">    in six characters, so above an offset of 100 hPa sigma keeps two</span>
+<span class="sd">    decimals: HYSPLIT reads some mid-troposphere levels up to about 5 hPa</span>
+<span class="sd">    from ERA5's pressure (model level 100: 584.6 hPa for 589.7 at a surface</span>
+<span class="sd">    pressure of 1013.25 hPa). ``api2arl``'s files are rounded the same way.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -552,15 +652,56 @@
 <span class="sd">    ... )</span>
 <span class="sd">    &gt;&gt;&gt; ds = arlmet.converters.from_era5(pl, sfc)  # doctest: +SKIP</span>
 <span class="sd">    &gt;&gt;&gt; arlmet.write_dataset(ds, "era5.arl")  # doctest: +SKIP</span>
+
+<span class="sd">    On model levels, from GRIB (``cfgrib`` names the dimension ``hybrid``):</span>
+
+<span class="sd">    &gt;&gt;&gt; ml = xr.open_dataset(  # doctest: +SKIP</span>
+<span class="sd">    ...     "era5_model_levels.grib",</span>
+<span class="sd">    ...     engine="cfgrib",</span>
+<span class="sd">    ...     backend_kwargs={"filter_by_keys": {"typeOfLevel": "hybrid"}},</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; ds = arlmet.converters.from_era5(</span>
+<span class="sd">    ...     ml.sel(hybrid=slice(60, None)), sfc</span>
+<span class="sd">    ... )  # doctest: +SKIP</span>
 <span class="sd">    """</span>
-    <span class="n">upper</span> <span class="o">=</span> <span class="n">standardize</span><span class="p">(</span>
-        <span class="n">pressure_levels</span><span class="p">,</span> <span class="n">PRESSURE_LEVEL_FIELDS</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"pressure_levels"</span>
-    <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">levels</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"levels must be an xarray.Dataset, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">."</span>
+        <span class="p">)</span>
     <span class="n">surface</span> <span class="o">=</span> <span class="n">standardize</span><span class="p">(</span>
         <span class="n">single_levels</span><span class="p">,</span> <span class="n">SINGLE_LEVEL_FIELDS</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"single_levels"</span>
     <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">dim</span> <span class="ow">in</span> <span class="n">levels</span><span class="o">.</span><span class="n">dims</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">MODEL_LEVEL_DIMS</span><span class="p">):</span>
+        <span class="n">upper</span> <span class="o">=</span> <span class="n">standardize</span><span class="p">(</span><span class="n">levels</span><span class="p">,</span> <span class="n">PRESSURE_LEVEL_FIELDS</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"levels"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pressure_level_dataset</span><span class="p">(</span>
+            <span class="n">upper</span><span class="p">,</span>
+            <span class="n">surface</span><span class="p">,</span>
+            <span class="n">PRESSURE_LEVEL_FIELDS</span><span class="p">,</span>
+            <span class="n">SINGLE_LEVEL_FIELDS</span><span class="p">,</span>
+            <span class="n">source</span><span class="o">=</span><span class="s2">"ERA5"</span><span class="p">,</span>
+            <span class="n">labels</span><span class="o">=</span><span class="p">(</span><span class="s2">"levels"</span><span class="p">,</span> <span class="s2">"single_levels"</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"sp"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">surface</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"single_levels has no surface pressure 'sp', which ERA5 on model "</span>
+            <span class="s2">"levels needs: HYSPLIT finds the levels' pressures from it."</span>
+        <span class="p">)</span>
+    <span class="n">upper</span> <span class="o">=</span> <span class="n">standardize</span><span class="p">(</span>
+        <span class="n">levels</span><span class="p">,</span>
+        <span class="n">MODEL_LEVEL_FIELDS</span><span class="p">,</span>
+        <span class="n">upper</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">"levels"</span><span class="p">,</span>
+        <span class="n">level_dims</span><span class="o">=</span><span class="n">MODEL_LEVEL_DIMS</span><span class="p">,</span>
+        <span class="n">level_kind</span><span class="o">=</span><span class="s2">"model-level"</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="k">return</span> <span class="n">pressure_level_dataset</span><span class="p">(</span>
-        <span class="n">upper</span><span class="p">,</span> <span class="n">surface</span><span class="p">,</span> <span class="n">PRESSURE_LEVEL_FIELDS</span><span class="p">,</span> <span class="n">SINGLE_LEVEL_FIELDS</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">"ERA5"</span>
+        <span class="n">upper</span><span class="p">,</span>
+        <span class="n">surface</span><span class="p">,</span>
+        <span class="n">MODEL_LEVEL_FIELDS</span><span class="p">,</span>
+        <span class="n">SINGLE_LEVEL_FIELDS</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="s2">"ERA5"</span><span class="p">,</span>
+        <span class="n">labels</span><span class="o">=</span><span class="p">(</span><span class="s2">"levels"</span><span class="p">,</span> <span class="s2">"single_levels"</span><span class="p">),</span>
+        <span class="n">vertical_axis</span><span class="o">=</span><span class="n">_hybrid_axis</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 </pre></div>

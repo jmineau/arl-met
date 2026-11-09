@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=68ee6e53"></script>
+    <script src="_static/documentation_options.js?v=f3471472"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev15+g568f49dd0" />
+  <meta name="docsearch:version" content="0.1.0b9.dev16+g667999b86" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -461,7 +461,8 @@ it and change it before anything is written.</p>
 <p>The converters so far:</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="_autosummary/arlmet.converters.from_era5.html#arlmet.converters.from_era5" title="arlmet.converters.from_era5"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.converters.from_era5()</span></code></a>: ECMWF’s ERA5 reanalysis on pressure
-levels, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">era52arl</span></code> converts it.</p></li>
+levels, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">era52arl</span></code> converts it, and on its model levels, as
+HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">api2arl</span></code> converts ECMWF’s hybrid levels.</p></li>
 <li><p><a class="reference internal" href="_autosummary/arlmet.converters.from_gfs.html#arlmet.converters.from_gfs" title="arlmet.converters.from_gfs"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.converters.from_gfs()</span></code></a>: NCEP’s GFS forecasts and GDAS analyses
 on pressure levels (<code class="docutils literal notranslate"><span class="pre">pgrb2</span></code> files), as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">api2arl</span></code> converts them.</p></li>
 <li><p><a class="reference internal" href="_autosummary/arlmet.converters.from_wrf.html#arlmet.converters.from_wrf" title="arlmet.converters.from_wrf"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.converters.from_wrf()</span></code></a>: WRF-ARW output (<code class="docutils literal notranslate"><span class="pre">wrfout</span></code> files) on its
@@ -613,6 +614,9 @@ writes:</p>
 <ul class="simple">
 <li><p>geopotential becomes height through ECMWF’s gravity, 9.80665 m s-2
 (<code class="docutils literal notranslate"><span class="pre">era52arl</span></code> multiplies by 0.102);</p></li>
+<li><p>the hourly totals of the heat fluxes and the downward solar radiation become
+W m-2 by dividing by 3600 s (<code class="docutils literal notranslate"><span class="pre">era52arl</span></code> multiplies by 0.00028, so its
+<code class="docutils literal notranslate"><span class="pre">DSWF</span></code> is 0.8 % high);</p></li>
 <li><p>total cloud cover <code class="docutils literal notranslate"><span class="pre">TCLD</span></code> is in percent, as HYSPLIT reads it
 (<code class="docutils literal notranslate"><span class="pre">era52arl</span></code> writes the 0 to 1 fraction);</p></li>
 <li><p>the heat fluxes <code class="docutils literal notranslate"><span class="pre">SHTF</span></code> and <code class="docutils literal notranslate"><span class="pre">LHTF</span></code> are positive upward, as HYSPLIT takes
@@ -626,13 +630,78 @@ names it <code class="docutils literal notranslate"><span class="pre">LTHF</span
 <section id="what-it-does-not-do">
 <h3>What it does not do<a class="headerlink" href="#what-it-does-not-do" title="Link to this heading">#</a></h3>
 <ul class="simple">
-<li><p>ERA5 on model levels (HYSPLIT’s hybrid levels, vertical flag 4), the ensemble
-(a <code class="docutils literal notranslate"><span class="pre">number</span></code> dimension), and forecast-step layouts (a <code class="docutils literal notranslate"><span class="pre">step</span></code> dimension):
-each raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. Select one ensemble member, or the valid times,
-first.</p></li>
+<li><p>The ensemble (a <code class="docutils literal notranslate"><span class="pre">number</span></code> dimension) and forecast-step layouts (a <code class="docutils literal notranslate"><span class="pre">step</span></code>
+dimension): each raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. Select one ensemble member, or the
+valid times, first.</p></li>
 <li><p>Regridding: the converter writes the grid the input is on, which must be a
 regular latitude/longitude grid.</p></li>
 </ul>
+</section>
+<section id="era5-on-model-levels">
+<h3>ERA5 on model levels<a class="headerlink" href="#era5-on-model-levels" title="Link to this heading">#</a></h3>
+<p>ERA5’s own vertical grid is 137 hybrid sigma-pressure levels, which follow the
+terrain near the ground: model level 137 is about 10 m above it. HYSPLIT reads
+them as its hybrid levels (vertical flag 4), which is what
+<a class="reference internal" href="_autosummary/arlmet.converters.from_era5.html#arlmet.converters.from_era5" title="arlmet.converters.from_era5"><code class="xref py py-func docutils literal notranslate"><span class="pre">from_era5()</span></code></a> writes when the first Dataset is on model
+levels. The Climate Data Store serves them from ECMWF’s archive as
+<code class="docutils literal notranslate"><span class="pre">reanalysis-era5-complete</span></code>, in GRIB, with a request in MARS’s keywords:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">client</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span>
+    <span class="s2">"reanalysis-era5-complete"</span><span class="p">,</span>
+    <span class="p">{</span>
+        <span class="s2">"class"</span><span class="p">:</span> <span class="s2">"ea"</span><span class="p">,</span> <span class="s2">"expver"</span><span class="p">:</span> <span class="s2">"1"</span><span class="p">,</span> <span class="s2">"stream"</span><span class="p">:</span> <span class="s2">"oper"</span><span class="p">,</span> <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"an"</span><span class="p">,</span>
+        <span class="s2">"date"</span><span class="p">:</span> <span class="s2">"2024-07-18"</span><span class="p">,</span> <span class="s2">"time"</span><span class="p">:</span> <span class="s2">"00:00:00/to/23:00:00"</span><span class="p">,</span>
+        <span class="s2">"levtype"</span><span class="p">:</span> <span class="s2">"ml"</span><span class="p">,</span> <span class="s2">"levelist"</span><span class="p">:</span> <span class="s2">"80/to/137"</span><span class="p">,</span>
+        <span class="s2">"param"</span><span class="p">:</span> <span class="s2">"130/131/132/133/135"</span><span class="p">,</span>  <span class="c1"># t, u, v, q, w</span>
+        <span class="s2">"grid"</span><span class="p">:</span> <span class="s2">"0.25/0.25"</span><span class="p">,</span> <span class="s2">"area"</span><span class="p">:</span> <span class="s2">"44/-116/38/-110"</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">"era5_model_levels.grib"</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Open it with cfgrib, which names the level dimension <code class="docutils literal notranslate"><span class="pre">hybrid</span></code>, and pass the
+single-level fields of the same hours, which must include the surface pressure
+<code class="docutils literal notranslate"><span class="pre">sp</span></code>: HYSPLIT finds each level’s pressure from it.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_levels</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
+    <span class="s2">"era5_model_levels.grib"</span><span class="p">,</span>
+    <span class="n">engine</span><span class="o">=</span><span class="s2">"cfgrib"</span><span class="p">,</span>
+    <span class="n">backend_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"filter_by_keys"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"typeOfLevel"</span><span class="p">:</span> <span class="s2">"hybrid"</span><span class="p">}},</span>
+<span class="p">)</span>
+<span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_era5</span><span class="p">(</span><span class="n">model_levels</span><span class="p">,</span> <span class="n">single_levels</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A made-up Dataset on five model levels stands in for the download here:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">model_levels</span> <span class="o">=</span> <span class="n">docs_examples</span><span class="o">.</span><span class="n">era5_model_level_sample</span><span class="p">()</span>
+
+<span class="gp">In [11]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_era5</span><span class="p">(</span><span class="n">model_levels</span><span class="p">,</span> <span class="n">single_levels</span><span class="p">)</span>
+
+<span class="gp">In [12]: </span><span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"vertical_flag"</span><span class="p">]</span>
+<span class="gh">Out[12]: </span><span class="go">4</span>
+
+<span class="gp">In [13]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"era5_ml.arl"</span><span class="p">)</span>
+
+<span class="gp">In [14]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"era5_ml.arl"</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ....: </span>    <span class="nb">print</span><span class="p">(</span><span class="n">met</span><span class="o">.</span><span class="n">vertical_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span>  <span class="c1"># the ground as 1, then levels 137 to 100</span>
+<span class="gp">   ....: </span>
+<span class="go">[  1.        0.99882   4.9723   29.881    85.693   159.42   ]</span>
+</pre></div>
+</div>
+<p>Each ARL hybrid level is one number, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">api2arl</span></code> writes it: a
+pressure offset in whole hPa plus a sigma, so that the level’s pressure is
+<code class="docutils literal notranslate"><span class="pre">offset</span> <span class="pre">+</span> <span class="pre">sigma</span> <span class="pre">*</span> <span class="pre">surface</span> <span class="pre">pressure</span></code> (model level 120 is <code class="docutils literal notranslate"><span class="pre">29.881</span></code>). Two
+limits of that format decide which levels can be written:</p>
+<ul class="simple">
+<li><p>The offsets of the levels above about model level 24 (near 5 hPa) round to
+the same whole hPa, so <code class="docutils literal notranslate"><span class="pre">from_era5</span></code> refuses them and names the first.
+Keep levels 24 to 137, or fewer.</p></li>
+<li><p>The index record at the start of each time step lists every level’s
+variables and must fit in one record of <code class="docutils literal notranslate"><span class="pre">nx</span> <span class="pre">*</span> <span class="pre">ny</span></code> bytes, so a small crop
+holds fewer levels: a 61 x 61 cell grid holds about 60 levels of five
+variables. <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> says when it does not fit.</p></li>
+</ul>
+<p>The level is written in six characters, so where its offset is 100 hPa or
+more its sigma keeps two decimals, and HYSPLIT reads some mid-troposphere
+levels up to about 5 hPa from ERA5’s pressure. <code class="docutils literal notranslate"><span class="pre">api2arl</span></code>’s files are rounded
+the same way.</p>
 </section>
 </section>
 <section id="gfs-and-gdas">
@@ -666,10 +735,10 @@ made. GFS empties its precipitation bucket every 6 hours (a 3-hour forecast
 holds hours 0 to 3, a 6-hour forecast 0 to 6), which is what HYSPLIT reads in
 <code class="docutils literal notranslate"><span class="pre">TPP6</span></code>. Here made-up Datasets laid out as cfgrib returns them stand in for
 those two files:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">datasets</span> <span class="o">=</span> <span class="n">docs_examples</span><span class="o">.</span><span class="n">gfs_sample</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">datasets</span> <span class="o">=</span> <span class="n">docs_examples</span><span class="o">.</span><span class="n">gfs_sample</span><span class="p">()</span>
 
-<span class="gp">In [11]: </span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">]</span>
-<span class="gh">Out[11]: </span>
+<span class="gp">In [16]: </span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">]</span>
+<span class="gh">Out[16]: </span>
 <span class="go">[['gh', 't', 'u', 'v', 'w', 'r'],</span>
 <span class="go"> ['sp', 'orog'],</span>
 <span class="go"> ['t2m'],</span>
@@ -679,10 +748,10 @@ those two files:</p>
 <span class="go"> ['sp', 'orog'],</span>
 <span class="go"> ['t2m']]</span>
 
-<span class="gp">In [12]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_gfs</span><span class="p">(</span><span class="n">datasets</span><span class="p">)</span>
+<span class="gp">In [17]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_gfs</span><span class="p">(</span><span class="n">datasets</span><span class="p">)</span>
 
-<span class="gp">In [13]: </span><span class="n">ds</span>
-<span class="gh">Out[13]: </span>
+<span class="gp">In [18]: </span><span class="n">ds</span>
+<span class="gh">Out[18]: </span>
 <span class="go">&lt;xarray.Dataset&gt; Size: 61kB</span>
 <span class="go">Dimensions:        (lon: 25, lat: 21, time: 1, level: 4)</span>
 <span class="go">Coordinates:</span>
@@ -709,11 +778,11 @@ those two files:</p>
 <span class="go">    source:         GFS</span>
 <span class="go">    vertical_flag:  2</span>
 
-<span class="gp">In [14]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">"forecast_hour"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># the analysis's</span>
-<span class="gh">Out[14]: </span><span class="go">array([0])</span>
+<span class="gp">In [19]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">"forecast_hour"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># the analysis's</span>
+<span class="gh">Out[19]: </span><span class="go">array([0])</span>
 </pre></div>
 </div>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"gdas.arl"</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"gdas.arl"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The API page of <a class="reference internal" href="_autosummary/arlmet.converters.from_gfs.html#arlmet.converters.from_gfs" title="arlmet.converters.from_gfs"><code class="xref py py-func docutils literal notranslate"><span class="pre">from_gfs()</span></code></a> lists the GRIB2 variables
@@ -741,12 +810,12 @@ be taken from the run’s accumulated totals:</p>
 </div>
 <p>Here a small made-up run, laid out as xarray opens <code class="docutils literal notranslate"><span class="pre">wrfout</span></code> files, stands in
 for them:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [16]: </span><span class="n">wrf</span> <span class="o">=</span> <span class="n">docs_examples</span><span class="o">.</span><span class="n">wrf_sample</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="n">wrf</span> <span class="o">=</span> <span class="n">docs_examples</span><span class="o">.</span><span class="n">wrf_sample</span><span class="p">()</span>
 
-<span class="gp">In [17]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_wrf</span><span class="p">(</span><span class="n">wrf</span><span class="p">)</span>
+<span class="gp">In [22]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_wrf</span><span class="p">(</span><span class="n">wrf</span><span class="p">)</span>
 
-<span class="gp">In [18]: </span><span class="n">ds</span>
-<span class="gh">Out[18]: </span>
+<span class="gp">In [23]: </span><span class="n">ds</span>
+<span class="gh">Out[23]: </span>
 <span class="go">&lt;xarray.Dataset&gt; Size: 274kB</span>
 <span class="go">Dimensions:        (y: 25, x: 30, time: 3, level: 4)</span>
 <span class="go">Coordinates:</span>
@@ -774,14 +843,14 @@ for them:</p>
 <span class="go">    source:         AWRF</span>
 <span class="go">    vertical_flag:  1</span>
 
-<span class="gp">In [19]: </span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">grid</span>
-<span class="gh">Out[19]: </span><span class="go">Grid(lcc 12km, 30×25)</span>
+<span class="gp">In [24]: </span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">grid</span>
+<span class="gh">Out[24]: </span><span class="go">Grid(lcc 12km, 30×25)</span>
 
-<span class="gp">In [20]: </span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">vertical_axis</span>  <span class="c1"># sigma levels, with the model top as offset</span>
-<span class="gh">Out[20]: </span><span class="go">SigmaAxis(n=5)</span>
+<span class="gp">In [25]: </span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">vertical_axis</span>  <span class="c1"># sigma levels, with the model top as offset</span>
+<span class="gh">Out[25]: </span><span class="go">SigmaAxis(n=5)</span>
 </pre></div>
 </div>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"wrf.arl"</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [26]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"wrf.arl"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The file has source <code class="docutils literal notranslate"><span class="pre">AWRF</span></code>, which HYSPLIT reads as WRF. It keeps WRF’s
@@ -852,6 +921,7 @@ mass-coupled time-averaged winds and TKE, are not converted.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#era5">ERA5</a><ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#how-it-differs-from-era52arl">How it differs from <code class="docutils literal notranslate"><span class="pre">era52arl</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#what-it-does-not-do">What it does not do</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#era5-on-model-levels">ERA5 on model levels</a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gfs-and-gdas">GFS and GDAS</a></li>
