@@ -255,6 +255,12 @@ def z_msl(ds: xr.Dataset) -> xr.DataArray:
         raise ValueError(
             "z_msl() requires 'SHGT' (terrain height in meters) in dataset."
         )
-    result = z_agl(ds) + ds["SHGT"]
+    try:
+        agl = z_agl(ds)
+    except ValueError as err:
+        raise ValueError(
+            f"z_msl() adds SHGT to the heights above ground: {err}"
+        ) from err
+    result = agl + ds["SHGT"]
     result.attrs = {"units": "m", "long_name": "height above mean sea level"}
     return result

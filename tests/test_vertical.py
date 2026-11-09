@@ -669,6 +669,21 @@ class TestZMslHelper:
         with pytest.raises(ValueError, match="SHGT"):
             arlmet.z_msl(ds)
 
+    def test_z_msl_names_itself_when_z_agl_cannot_run(self, tmp_path):
+        path = tmp_path / "test.arl"
+        _write_pressure_file(
+            path,
+            prss_val=1013.0,
+            temp_val=280.0,
+            shgt_val=0.0,
+            pressure_levels=[1000.0],
+            with_hgts=True,
+            hgts_values=[100.0],
+        )
+        ds = arlmet.open_dataset(path).drop_vars("HGTS")
+        with pytest.raises(ValueError, match=r"^z_msl\(\) .*requires 'HGTS'"):
+            arlmet.z_msl(ds)
+
 
 # ---------------------------------------------------------------------------
 # WRF (flag 5) files: written by arlmet, as HYSPLIT's arw2arl lays them out
