@@ -58,7 +58,7 @@ Dataset write contract
 ----------------------
 
 - ``time`` and ``arl_grid`` must be present
-- ``source`` must be in ``ds.attrs``
+- ``source`` must be in ``ds.attrs`` (``arlmet_version`` there is not written)
 - ``forecast_hour(time)``, a coordinate, is the ARL index-record forecast hour
   (0 when absent)
 - surface variables use dims ``(time, lat, lon)`` or ``(time, y, x)``

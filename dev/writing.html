@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=efeafa1d"></script>
+    <script src="_static/documentation_options.js?v=fb1f2c0b"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev27+g15ff32ef4" />
+  <meta name="docsearch:version" content="0.1.0b9.dev28+g44672701f" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -502,7 +502,7 @@ parent DataArray’s <code class="docutils literal notranslate"><span class="pre
 <h2>Dataset write contract<a class="headerlink" href="#dataset-write-contract" title="Link to this heading">#</a></h2>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">time</span></code> and <code class="docutils literal notranslate"><span class="pre">arl_grid</span></code> must be present</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">source</span></code> must be in <code class="docutils literal notranslate"><span class="pre">ds.attrs</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">source</span></code> must be in <code class="docutils literal notranslate"><span class="pre">ds.attrs</span></code> (<code class="docutils literal notranslate"><span class="pre">arlmet_version</span></code> there is not written)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">forecast_hour(time)</span></code>, a coordinate, is the ARL index-record forecast hour
 (0 when absent)</p></li>
 <li><p>surface variables use dims <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">lat,</span> <span class="pre">lon)</span></code> or <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">y,</span> <span class="pre">x)</span></code></p></li>
