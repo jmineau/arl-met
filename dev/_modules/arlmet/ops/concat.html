@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=8d0581b7"></script>
+    <script src="../../../_static/documentation_options.js?v=3ea1de1e"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev19+gf2781c13a" />
+  <meta name="docsearch:version" content="0.1.0b9.dev20+ga1e463ac1" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -468,8 +468,8 @@
 <span class="sd">    so the output must hold its time steps in order: inputs whose hours</span>
 <span class="sd">    interleave are merged hour by hour, and a time step an input repeats byte</span>
 <span class="sd">    for byte (as some NOAA HRRR archive files do) is written once. The inputs</span>
-<span class="sd">    are first scanned to ensure they share one grid and vertical axis and do</span>
-<span class="sd">    not repeat valid times, since a concatenated ARL file must be a single</span>
+<span class="sd">    are first scanned to ensure they share one grid, vertical axis and source</span>
+<span class="sd">    ID and do not repeat valid times, since a concatenated ARL file must be a single</span>
 <span class="sd">    coherent record stream.</span>
 
 <span class="sd">    Parameters</span>
@@ -498,7 +498,7 @@
 <span class="sd">        If ``paths`` is a single path rather than an iterable of paths.</span>
 <span class="sd">    ValueError</span>
 <span class="sd">        If ``paths`` is empty, if ``dest`` is also an input, if any input is</span>
-<span class="sd">        empty, if the inputs disagree on grid or vertical axis, or if the same</span>
+<span class="sd">        empty, if the inputs disagree on grid, vertical axis or source ID, or if the same</span>
 <span class="sd">        valid time appears in more than one input.</span>
 
 <span class="sd">    Examples</span>
@@ -580,8 +580,8 @@
 <span class="sd">    Read each input's index records to validate compatibility and order by time.</span>
 
 <span class="sd">    Returns every time step to write as ``(time, path, position, n_bytes)``,</span>
-<span class="sd">    in valid-time order, each once. Raises if any input is empty, the grids or</span>
-<span class="sd">    vertical axes disagree, or a valid time is shared across inputs.</span>
+<span class="sd">    in valid-time order, each once. Raises if any input is empty, the grids,</span>
+<span class="sd">    vertical axes or sources disagree, or a valid time is shared across inputs.</span>
 <span class="sd">    """</span>
     <span class="n">scanned</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
@@ -589,17 +589,18 @@
             <span class="n">times</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">times</span>
             <span class="n">grid</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">grid</span>
             <span class="n">axis</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">vertical_axis</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">source</span>
             <span class="c1"># File raised if a repeated time step differs, so a repeat is a</span>
             <span class="c1"># byte-identical copy: write the first one only.</span>
             <span class="n">steps</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="n">Path</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="k">for</span> <span class="n">time</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">n_bytes</span> <span class="ow">in</span> <span class="n">src</span><span class="o">.</span><span class="n">_steps</span><span class="p">:</span>
                 <span class="n">steps</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">n_bytes</span><span class="p">))</span>
 
-        <span class="n">scanned</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">path</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">steps</span><span class="p">))</span>
+        <span class="n">scanned</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">path</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">steps</span><span class="p">))</span>
 
     <span class="c1"># paths is non-empty (checked by concat), so scanned[0] exists.</span>
-    <span class="n">reference_path</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">reference_grid</span><span class="p">,</span> <span class="n">reference_axis</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">scanned</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">_times</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">scanned</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+    <span class="n">reference_path</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">reference_grid</span><span class="p">,</span> <span class="n">reference_axis</span><span class="p">,</span> <span class="n">reference_source</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">scanned</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">_times</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">scanned</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
         <span class="k">if</span> <span class="n">grid</span> <span class="o">!=</span> <span class="n">reference_grid</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"Grid mismatch: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> has grid </span><span class="si">{</span><span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="si">}</span><span class="s2">, "</span>
@@ -615,8 +616,14 @@
                 <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">reference_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span><span class="si">}</span><span class="s2"> levels). Concatenated ARL "</span>
                 <span class="s2">"files must share a single vertical axis."</span>
             <span class="p">)</span>
+        <span class="k">if</span> <span class="n">source</span> <span class="o">!=</span> <span class="n">reference_source</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Source mismatch: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> has source </span><span class="si">{</span><span class="n">source</span><span class="si">!r}</span><span class="s2">, incompatible "</span>
+                <span class="sa">f</span><span class="s2">"with </span><span class="si">{</span><span class="n">reference_path</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">reference_source</span><span class="si">!r}</span><span class="s2">). Concatenated ARL "</span>
+                <span class="s2">"files must share a single source ID."</span>
+            <span class="p">)</span>
 
-    <span class="n">_reject_duplicate_times</span><span class="p">([(</span><span class="n">path</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">scanned</span><span class="p">])</span>
+    <span class="n">_reject_duplicate_times</span><span class="p">([(</span><span class="n">path</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="ow">in</span> <span class="n">scanned</span><span class="p">])</span>
 
     <span class="c1"># Valid times are unique across the inputs now, so this is a total order.</span>
     <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
