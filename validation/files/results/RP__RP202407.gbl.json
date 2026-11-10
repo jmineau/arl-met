@@ -1,0 +1,202 @@
+{
+ "path_name": "RP202407.gbl",
+ "size": 123110672,
+ "arlmet": {
+  "source": "CDC1",
+  "flag": 2,
+  "nlev": 18,
+  "levels": [
+   0.0,
+   1000.0,
+   925.0,
+   850.0,
+   700.0,
+   600.0,
+   500.0,
+   400.0,
+   300.0,
+   250.0,
+   200.0,
+   150.0,
+   100.0,
+   70.0,
+   50.0,
+   30.0,
+   20.0,
+   10.0
+  ],
+  "offset": 0.0,
+  "nx": 144,
+  "ny": 73,
+  "projection": "{'ellps': 'WGS84', 'R': 6371200.0, 'proj': 'latlong'}",
+  "times": [
+   "2024-07-01 00:00:00",
+   "2024-07-31 18:00:00"
+  ],
+  "n_times": 124,
+  "check": [],
+  "warnings": []
+ },
+ "labels": {
+  "n_index": 124,
+  "n_data_records_checked": 11532,
+  "record_forecasts": [
+   0
+  ],
+  "index_forecasts": [
+   0
+  ],
+  "problems": [],
+  "n_problems": 0,
+  "seconds": 0.4
+ },
+ "grid": {
+  "hysplit": {
+   "model_number": [
+    "CDC1",
+    "99"
+   ],
+   "proj": [
+    "9.00000000E+01",
+    "3.57500000E+02",
+    "2.50000000E+00",
+    "2.50000000E+00",
+    "2.77996063E+02",
+    "0.00000000E+00",
+    "0.00000000E+00",
+    "1.00000000E+00",
+    "1.00000000E+00",
+    "-9.00000000E+01",
+    "0.00000000E+00",
+    "0.00000000E+00"
+   ],
+   "nxyz": [
+    "144",
+    "73",
+    "18"
+   ],
+   "latlon_prime_gbldat_global": [
+    "T",
+    "F",
+    "T",
+    "F"
+   ],
+   "gbase": [
+    "0.00000000E+00",
+    "0.00000000E+00",
+    "0.00000000E+00",
+    "0.00000000E+00",
+    "0.00000000E+00",
+    "0.00000000E+00",
+    "0.00000000E+00",
+    "0.00000000E+00",
+    "0.00000000E+00"
+   ],
+   "zflag_recper_delta_offset_reclen_endrec": [
+    "2",
+    "94",
+    "360",
+    "0",
+    "10562",
+    "11656"
+   ],
+   "first": [
+    "24",
+    "7",
+    "1",
+    "0",
+    "0",
+    "0"
+   ],
+   "last": [
+    "24",
+    "7",
+    "31",
+    "18",
+    "0",
+    "0"
+   ],
+   "flags_prss_shgt_zflg_qflg_uflg_tflg_mixd_tken_velv_dzdt": [
+    "T",
+    "F",
+    "F",
+    "F",
+    "T",
+    "T",
+    "F",
+    "F",
+    "F",
+    "F"
+   ],
+   "wrf": [
+    "0"
+   ]
+  },
+  "max_abs_dlat_deg": 7.650000000580803e-06,
+  "max_abs_dlon_deg": 1.5999999959603883e-05,
+  "dataset_coord_max_dlat": 0.0,
+  "dataset_coord_max_dlon": 0.0,
+  "inverse_max_dx_cells": 0.0,
+  "inverse_max_dy_cells": 0.0,
+  "metini_latlon_size_km": 277.996063,
+  "problems": []
+ },
+ "values": {
+  "n_records": 226,
+  "n_file_records": 11656,
+  "bit_equal": 226,
+  "differ": 0,
+  "dif_pairs_checked": 0,
+  "dif_pairs_equal": 0,
+  "notes": []
+ },
+ "column": {
+  "time": "2024-07-16 12:00:00",
+  "step": 63,
+  "cells": [
+   {
+    "cell": [
+     72,
+     37
+    ],
+    "error": "ValueError: Terrain field SHGT is required at time 2024-07-16 12:00:00."
+   },
+   {
+    "cell": [
+     120,
+     59
+    ],
+    "error": "ValueError: Terrain field SHGT is required at time 2024-07-16 12:00:00."
+   },
+   {
+    "cell": [
+     39,
+     34
+    ],
+    "error": "ValueError: Terrain field SHGT is required at time 2024-07-16 12:00:00."
+   },
+   {
+    "cell": [
+     17,
+     8
+    ],
+    "error": "ValueError: Terrain field SHGT is required at time 2024-07-16 12:00:00."
+   },
+   {
+    "cell": [
+     44,
+     25
+    ],
+    "error": "ValueError: Terrain field SHGT is required at time 2024-07-16 12:00:00."
+   },
+   {
+    "cell": [
+     60,
+     44
+    ],
+    "error": "ValueError: Terrain field SHGT is required at time 2024-07-16 12:00:00."
+   }
+  ]
+ },
+ "seconds": 2.7
+}

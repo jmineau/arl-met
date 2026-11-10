@@ -1,0 +1,207 @@
+{
+ "path_name": "NARR197901",
+ "size": 2998740360,
+ "arlmet": {
+  "source": "NARR",
+  "flag": 2,
+  "nlev": 24,
+  "levels": [
+   0.0,
+   1000.0,
+   975.0,
+   950.0,
+   925.0,
+   900.0,
+   875.0,
+   850.0,
+   825.0,
+   800.0,
+   775.0,
+   750.0,
+   725.0,
+   700.0,
+   650.0,
+   600.0,
+   550.0,
+   500.0,
+   450.0,
+   400.0,
+   350.0,
+   300.0,
+   200.0,
+   100.0
+  ],
+  "offset": 0.0,
+  "nx": 309,
+  "ny": 237,
+  "projection": "{'ellps': 'WGS84', 'R': 6371200.0, 'units': 'm', 'proj': 'lcc', 'lat_0': 50.0, 'lon_0': -107.0, 'lat_1': 50.0, 'k_0': 1.0}",
+  "times": [
+   "1979-01-01 00:00:00",
+   "1979-01-31 21:00:00"
+  ],
+  "n_times": 248,
+  "check": [],
+  "warnings": []
+ },
+ "labels": {
+  "n_index": 248,
+  "n_data_records_checked": 40672,
+  "record_forecasts": [
+   0
+  ],
+  "index_forecasts": [
+   0
+  ],
+  "problems": [],
+  "n_problems": 0,
+  "seconds": 2.4
+ },
+ "grid": {
+  "hysplit": {
+   "model_number": [
+    "NARR",
+    "18"
+   ],
+   "proj": [
+    "9.00000000E+01",
+    "0.00000000E+00",
+    "5.00000000E+01",
+    "-1.07000000E+02",
+    "3.24599991E+01",
+    "0.00000000E+00",
+    "5.00000000E+01",
+    "1.00000000E+00",
+    "1.00000000E+00",
+    "6.98000002E+00",
+    "-1.43759995E+02",
+    "0.00000000E+00"
+   ],
+   "nxyz": [
+    "309",
+    "237",
+    "24"
+   ],
+   "latlon_prime_gbldat_global": [
+    "F",
+    "F",
+    "F",
+    "F"
+   ],
+   "gbase": [
+    "7.66044438E-01",
+    "-1.07000000E+02",
+    "1.54524872E+02",
+    "-6.94088593E+01",
+    "1.00000000E+00",
+    "-0.00000000E+00",
+    "2.32829475E+01",
+    "1.30449331E+00",
+    "-1.86307056E+03"
+   ],
+   "zflag_recper_delta_offset_reclen_endrec": [
+    "2",
+    "165",
+    "180",
+    "0",
+    "73283",
+    "40920"
+   ],
+   "first": [
+    "79",
+    "1",
+    "1",
+    "0",
+    "0",
+    "0"
+   ],
+   "last": [
+    "79",
+    "1",
+    "31",
+    "21",
+    "0",
+    "0"
+   ],
+   "flags_prss_shgt_zflg_qflg_uflg_tflg_mixd_tken_velv_dzdt": [
+    "T",
+    "F",
+    "F",
+    "T",
+    "T",
+    "T",
+    "T",
+    "T",
+    "F",
+    "F"
+   ],
+   "wrf": [
+    "0"
+   ]
+  },
+  "max_abs_dlat_deg": 2.1585292088843744e-05,
+  "max_abs_dlon_deg": 4.557661733883833e-05,
+  "dataset_coord_max_dlat": 1.9996286397372387e-05,
+  "dataset_coord_max_dlon": 4.258366973886041e-05,
+  "inverse_max_dx_cells": 7.093692482840197e-05,
+  "inverse_max_dy_cells": 4.9274900391083065e-05,
+  "problems": []
+ },
+ "values": {
+  "n_records": 368,
+  "n_file_records": 40920,
+  "bit_equal": 368,
+  "differ": 0,
+  "dif_pairs_checked": 0,
+  "dif_pairs_equal": 0,
+  "notes": []
+ },
+ "column": {
+  "time": "1979-01-16 12:00:00",
+  "step": 125,
+  "cells": [
+   {
+    "cell": [
+     155,
+     119
+    ],
+    "error": "ValueError: Terrain field SHGT is required at time 1979-01-16 12:00:00."
+   },
+   {
+    "cell": [
+     259,
+     193
+    ],
+    "error": "ValueError: Terrain field SHGT is required at time 1979-01-16 12:00:00."
+   },
+   {
+    "cell": [
+     82,
+     108
+    ],
+    "error": "ValueError: Terrain field SHGT is required at time 1979-01-16 12:00:00."
+   },
+   {
+    "cell": [
+     35,
+     23
+    ],
+    "error": "ValueError: Terrain field SHGT is required at time 1979-01-16 12:00:00."
+   },
+   {
+    "cell": [
+     93,
+     80
+    ],
+    "error": "ValueError: Terrain field SHGT is required at time 1979-01-16 12:00:00."
+   },
+   {
+    "cell": [
+     129,
+     143
+    ],
+    "error": "ValueError: Terrain field SHGT is required at time 1979-01-16 12:00:00."
+   }
+  ]
+ },
+ "seconds": 11.4
+}

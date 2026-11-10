@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import perf_counter
-from urllib.request import urlopen
 
 import numpy as np
 import pytest
@@ -14,8 +14,11 @@ import pytest
 from arlmet import File, extract_subset, open_dataset
 from arlmet.archives import GDASArchive, HRRRArchive
 
-_XTRCT_GRID_URL = (
-    "https://raw.githubusercontent.com/uataq/stilt/main/bin/linux_x64/xtrct_grid"
+# HYSPLIT's own xtrct_grid, built by validation/build.sh (or $ARLMET_XTRCT_GRID, a binary of
+# your own build); the test is skipped where there is none.
+_XTRCT_GRID = Path(
+    os.environ.get("ARLMET_XTRCT_GRID")
+    or Path(__file__).resolve().parents[1] / "validation" / "build" / "xtrct_grid"
 )
 
 _HRRR_TEST_TIME = "2024-07-18 03:00"
@@ -31,13 +34,12 @@ _SUBSET_CASES = [
 
 
 @pytest.fixture(scope="session")
-def xtrct_grid_binary(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    binary = tmp_path_factory.mktemp("xtrct-grid") / "xtrct_grid"
-    if not binary.exists():
-        with urlopen(_XTRCT_GRID_URL) as response:
-            binary.write_bytes(response.read())
-        binary.chmod(binary.stat().st_mode | 0o111)
-    return binary
+def xtrct_grid_binary() -> Path:
+    if not _XTRCT_GRID.is_file():
+        pytest.skip(
+            f"no xtrct_grid at {_XTRCT_GRID}: run validation/build.sh or set ARLMET_XTRCT_GRID"
+        )
+    return _XTRCT_GRID
 
 
 def _run_xtrct_grid(

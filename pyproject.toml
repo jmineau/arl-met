@@ -136,6 +136,9 @@ ignore = [
 
 [tool.ruff]
 # target-version comes from project.requires-python
+# validation/ holds scripts that are run by hand against HYSPLIT, not package code
+extend-exclude = ["validation"]
+force-exclude = true
 
 [tool.ruff.format]
 docstring-code-format = true
