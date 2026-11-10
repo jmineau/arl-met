@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import operator
 import os
 from collections.abc import Iterable, Sequence
 from pathlib import Path
@@ -14,7 +15,7 @@ from arlmet.grid import Grid, GridWindow
 from arlmet.header import Header, record_length_from_grid, split_grid_component
 from arlmet.indexrecord import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
 from arlmet.packing import calculate_checksum
-from arlmet.record import DataRecord, _corrects, _dif_parents
+from arlmet.record import DataRecord
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
@@ -32,7 +33,15 @@ def normalize_levels(
     if levels is None:
         return tuple(range(len(vertical_axis.levels)))
 
-    normalized = tuple(sorted({int(level) for level in levels}))
+    if isinstance(levels, (str, bytes)):
+        raise TypeError(f"levels must be integer level indices, not {levels!r}.")
+    try:
+        # operator.index takes integers (NumPy's too) and refuses 1.5 or "1".
+        normalized = tuple(sorted({operator.index(level) for level in levels}))
+    except TypeError:
+        raise TypeError(
+            f"levels must be integer level indices, got {list(levels)!r}."
+        ) from None
     if not normalized:
         raise ValueError("levels must include at least one level index.")
 
@@ -225,33 +234,6 @@ def validate_subset_record_length(
             )
 
 
-def validate_subset_difs(
-    selected_recordsets: Sequence[tuple[RecordSet, Sequence[DataRecord]]],
-    *,
-    level_map: dict[int, int],
-) -> None:
-    """
-    Fail early when renumbering levels would leave a DIF record unpaired.
-
-    Leaving out level 0 makes the lowest kept level the subset's surface,
-    where HYSPLIT's name table pairs a ``DIF*`` record only with ``TPP*`` or
-    ``PRT*``, so a ``DIFW`` there would correct nothing on read.
-    """
-    for _, selected_records in selected_recordsets:
-        for record in selected_records:
-            level = level_map[record.level]
-            for dif in record.diffs:
-                if not _corrects(dif.variable, record.variable, level):
-                    raise ValueError(
-                        f"The subset puts level {record.level} at level {level}, "
-                        f"where a {dif.variable} record corrects "
-                        f"{_dif_parents(dif.variable, level)}, so the "
-                        f"{dif.variable} record of {record.variable} would "
-                        "correct nothing. Keep level 0, or leave out "
-                        f"{record.variable} with variables=."
-                    )
-
-
 # Byte offsets of the level field in a record header (see Header.FIELDS).
 _LEVEL_START, _LEVEL_STOP = Header.FIELDS["level"][:2]
 
@@ -406,8 +388,9 @@ def extract_subset(
         ``(xmin, ymin, xmax, ymax)`` in its units; the default is degrees
         (:meth:`arlmet.Grid.window_from_bbox`).
     levels : iterable of int, optional
-        ARL level indices to keep. Output levels are compacted and renumbered
-        from zero while preserving the selected level heights.
+        Integer ARL level indices to keep, which must include 0, the surface.
+        Output levels are compacted and renumbered from zero while preserving
+        the selected level heights.
     variables : str or iterable of str, optional
         Variable names to keep, as the file spells them (``"TEMP"``, not
         ``"temp"``); a single string is one name. A ``DIF*`` name the file
@@ -428,11 +411,13 @@ def extract_subset(
 
     Raises
     ------
+    TypeError
+        If ``levels`` holds anything but integers (a string, or 1.5).
     ValueError
         If ``dest`` is the same file as ``path``, the cropped grid is too
-        small to hold the ARL index record, ``levels`` leaves out level 0
-        and so moves a record with ``DIF*`` records to the surface, where
-        HYSPLIT's name table would not pair them with it, ``variables`` is
+        small to hold the ARL index record, ``levels`` leaves out level 0 (the
+        surface: the output is renumbered from zero, so the lowest kept level
+        would become the surface), ``variables`` is
         empty or names a variable the file does not hold (every unknown name
         is listed, also when others are known), or the selected levels and
         variables leave no record in any time step, so there is nothing to
@@ -472,6 +457,13 @@ def extract_subset(
     with File(path) as src:
         window = resolve_window(src, bbox, bbox_crs)
         selected_levels = normalize_levels(src.vertical_axis, levels)
+        if 0 not in selected_levels:
+            raise ValueError(
+                "levels must include 0, the surface: the output is renumbered from "
+                "zero, and level 0 of an ARL file holds the surface fields, so "
+                f"leaving it out would turn level {selected_levels[0]} into the "
+                "surface. Add 0 to levels (variables= limits what is written)."
+            )
         selected_level_set = set(selected_levels)
         level_map = {
             old_level: new_level for new_level, old_level in enumerate(selected_levels)
@@ -501,7 +493,6 @@ def extract_subset(
                 "so there is nothing to write."
             )
 
-        validate_subset_difs(selected_recordsets, level_map=level_map)
         validate_subset_record_length(
             selected_recordsets,
             subset_grid=subset_grid,

@@ -241,7 +241,10 @@ What changes in the output file
 -------------------------------
 
 When levels are selected, the output file is renumbered from zero upward while
-preserving the original level values in the vertical axis metadata.
+preserving the original level values in the vertical axis metadata. ``levels``
+must be integers and must include 0, the surface: level 0 of an ARL file holds
+the surface fields, so a selection without it would turn the lowest kept level
+into the surface (HYSPLIT's ``xtrct_grid`` always keeps level 0 too).
 
 When variables are selected, only those variables are written into each output
 time step. Forecast hours are preserved, the index records' and each data

@@ -606,8 +606,8 @@ def extract_both_paths(monkeypatch, source, tmp_path, **kwargs):
     [
         {},
         {"levels": [0, 2, 4]},
-        {"levels": [3, 1]},
-        {"levels": [1, 3], "variables": ["WWND"]},
+        {"levels": [3, 1, 0]},
+        {"levels": [0, 1, 3], "variables": ["WWND"]},
         {"variables": ["PRSS", "TEMP", "UWND"]},
         {"levels": [0, 2, 3], "variables": ["T02M", "WWND", "UWND"]},
         {"bbox": (19.5, -10.5, 39.5, 9.5)},
@@ -741,11 +741,33 @@ def test_extract_subset_rejects_selection_with_no_records(tmp_path):
     """Known variables that sit only on levels the crop leaves out."""
     source = tmp_path / "source.arl"
     destination = tmp_path / "subset.arl"
-    write_subset_source(source)  # PRSS is on level 0 only
+    write_subset_source(source)  # UWND is on level 2 only
 
     with pytest.raises(ValueError, match="nothing to write"):
-        extract_subset(source, destination, levels=[1, 2], variables=["PRSS"])
+        extract_subset(source, destination, levels=[0, 1], variables=["UWND"])
 
+    assert not destination.exists()
+
+
+def test_extract_subset_requires_the_surface_level(tmp_path):
+    """Without level 0 the first upper level would be renumbered into the surface."""
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+
+    with pytest.raises(ValueError, match="levels must include 0"):
+        extract_subset(source, destination, levels=[1, 2])
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize("levels", [[1.5], [0, 1.0], "012", "0", ["1"]])
+def test_extract_subset_refuses_levels_that_are_not_integers(tmp_path, levels):
+    source = tmp_path / "source.arl"
+    destination = tmp_path / "subset.arl"
+    write_subset_source(source)
+
+    with pytest.raises(TypeError, match="integer level indices"):
+        extract_subset(source, destination, levels=levels)
     assert not destination.exists()
 
 
