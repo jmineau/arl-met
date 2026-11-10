@@ -597,6 +597,27 @@ class TestWriter:
             write_dataset(ds, source_path)
         assert source_path.stat().st_size == size
 
+    def test_write_dataset_refuses_an_axis_that_relabels_the_levels(self, tmp_path):
+        """The file's axis must be the one the Dataset's pressure coordinate describes."""
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path).load()  # one upper level, 1000 hPa
+
+        with pytest.raises(ValueError, match=r"levels \[0.0, 925.0\].*'pressure'"):
+            write_dataset(ds, written_path, vertical_axis=PressureAxis([0.0, 925.0]))
+        with pytest.raises(ValueError, match="surface first"):
+            write_dataset(ds, written_path, vertical_axis=PressureAxis([500.0, 1000.0]))
+        flagged = ds.copy()
+        flagged.attrs["vertical_flag"] = 1  # pressure values as a sigma axis
+        with pytest.raises(ValueError, match="'pressure' does not match"):
+            write_dataset(flagged, written_path)
+        assert not written_path.exists()
+
+        # The axis the coordinate describes, given explicitly, writes.
+        write_dataset(ds, written_path, vertical_axis=PressureAxis([0.0, 1000.0]))
+        assert File(written_path).vertical_axis.levels.tolist() == [0.0, 1000.0]
+
     def test_write_dataset_checks_explicit_vertical_axis_size(self, tmp_path):
         source_path = tmp_path / "source.arl"
         self.write_sample_file(source_path)

@@ -24,6 +24,7 @@ from arlmet.vertical import VerticalAxis
 
 from ._backend import ArlVariableArray
 from ._coords import (
+    _check_vertical_axis_agrees,
     _extract_dataset_forecast_hours,
     _extract_dataset_vertical_axis,
     add_cf_spatial_attrs,
@@ -373,7 +374,9 @@ def write_dataset(
     vertical_axis : VerticalAxis, optional
         Vertical axis to write. By default it is rebuilt from the Dataset's
         ``level`` coordinates. Required for surface-only Datasets; otherwise it
-        must have one level per ``level`` coordinate value plus the surface.
+        must have one level per ``level`` coordinate value plus the surface,
+        and agree with the Dataset's ``pressure``, ``sigma``, ``height`` or
+        ``eta`` coordinate when it has one.
 
     Returns
     -------
@@ -386,7 +389,8 @@ def write_dataset(
         ``lon``, ``y`` or ``x`` coordinate that does not increase), has no time
         steps, a time is outside 1940 to 2039 (a label's two-digit year cannot
         hold it), a ``lat``, ``lon``, ``x`` or ``y`` coordinate disagrees with
-        the grid the ``arl_grid`` coordinate describes, a slice is partly NaN
+        the grid the ``arl_grid`` coordinate describes, the vertical axis
+        disagrees with the Dataset's own vertical coordinate, a slice is partly NaN
         or non-finite, an ``attrs["diff"]`` name
         is not one the name table pairs with its variable, or
         ``filename_or_obj`` is the file ``ds`` was opened from.
@@ -427,6 +431,7 @@ def write_dataset(
             f"Dataset needs {n_upper_levels + 1} (the surface plus one per 'level' "
             "coordinate value)."
         )
+    _check_vertical_axis_agrees(ds, resolved_vertical_axis)
     if len(times):
         check_year(times.min().year)
         check_year(times.max().year)
