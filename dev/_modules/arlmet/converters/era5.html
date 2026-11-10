@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=763b568f"></script>
+    <script src="../../../_static/documentation_options.js?v=efeafa1d"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev26+gdc3057337" />
+  <meta name="docsearch:version" content="0.1.0b9.dev27+g15ff32ef4" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -628,7 +628,9 @@
 <span class="sd">    solar radiation into W m-2 with a factor of 0.00028 for 1/3600 (so its</span>
 <span class="sd">    ``DSWF`` is 0.8 % high), writes ``TCLD`` as a fraction where HYSPLIT</span>
 <span class="sd">    reads percent, keeps ECMWF's downward-positive heat fluxes where HYSPLIT</span>
-<span class="sd">    takes them positive upward, and names the latent heat flux ``LTHF``,</span>
+<span class="sd">    takes them positive upward (``stbanl.f``; HYSPLIT changes the sign only</span>
+<span class="sd">    for ``ETA`` files, in ``prfcom.f``), so HYSPLIT reads a sunny afternoon in</span>
+<span class="sd">    an ``era52arl`` file as stable, and names the latent heat flux ``LTHF``,</span>
 <span class="sd">    a name HYSPLIT does not read. ``era52arl`` does not convert model levels.</span>
 
 <span class="sd">    An ARL hybrid level is one number, a pressure offset in whole hPa plus a</span>

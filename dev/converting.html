@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=763b568f"></script>
+    <script src="_static/documentation_options.js?v=efeafa1d"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev26+gdc3057337" />
+  <meta name="docsearch:version" content="0.1.0b9.dev27+g15ff32ef4" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -623,7 +623,11 @@ W m-2 by dividing by 3600 s (<code class="docutils literal notranslate"><span cl
 <li><p>total cloud cover <code class="docutils literal notranslate"><span class="pre">TCLD</span></code> is in percent, as HYSPLIT reads it
 (<code class="docutils literal notranslate"><span class="pre">era52arl</span></code> writes the 0 to 1 fraction);</p></li>
 <li><p>the heat fluxes <code class="docutils literal notranslate"><span class="pre">SHTF</span></code> and <code class="docutils literal notranslate"><span class="pre">LHTF</span></code> are positive upward, as HYSPLIT takes
-them (ERA5’s, and <code class="docutils literal notranslate"><span class="pre">era52arl</span></code>’s, are positive downward);</p></li>
+them: its stability routine (<code class="docutils literal notranslate"><span class="pre">stbanl.f</span></code>) reads a positive <code class="docutils literal notranslate"><span class="pre">SHTF</span></code> as the
+ground heating the air, and HYSPLIT changes the sign only for NAM’s <code class="docutils literal notranslate"><span class="pre">ETA</span></code>
+files (<code class="docutils literal notranslate"><span class="pre">prfcom.f</span></code>). ERA5’s fluxes, and <code class="docutils literal notranslate"><span class="pre">era52arl</span></code>’s, are positive
+downward, so HYSPLIT reads a sunny afternoon in an <code class="docutils literal notranslate"><span class="pre">era52arl</span></code> file as a
+stable surface layer;</p></li>
 <li><p>the latent heat flux is named <code class="docutils literal notranslate"><span class="pre">LHTF</span></code>, which HYSPLIT reads (<code class="docutils literal notranslate"><span class="pre">era52arl</span></code>
 names it <code class="docutils literal notranslate"><span class="pre">LTHF</span></code>).</p></li>
 </ul>
