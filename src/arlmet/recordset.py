@@ -177,7 +177,8 @@ class RecordSet:
             :meth:`DataRecord.read` returns NaN for it.
         data : numpy.ndarray, optional
             Initial ``(ny, nx)`` field values to assign. When omitted, assign
-            the whole field later with ``record[:] = values``.
+            the whole field later with ``record[:] = values``. The masked cells
+            of a masked array are taken as NaN, not the values under the mask.
         diff : str or sequence of str, optional
             Name of a trailing DIF record to derive from the parent field: the
             field minus the packed parent, what packing lost. Give several
