@@ -14,6 +14,7 @@ import numpy.typing as npt
 import pandas as pd
 
 from arlmet._time import ensure_timestamp
+from arlmet._version import __version__
 from arlmet.grid import Grid, GridWindow
 from arlmet.vertical import (
     _DEFAULT_MODEL_TOP,
@@ -1801,6 +1802,7 @@ def sample_points(
         vertical range are NaN. A point within 1e-6 cells of the grid's edge
         is on it, so a projected grid's edge nodes, given by the longitude and
         latitude :meth:`arlmet.Grid.calculate_coords` reports, have values.
+        ``result.attrs["arlmet_version"]`` is the arlmet version that sampled.
 
     Raises
     ------
@@ -1889,6 +1891,7 @@ def sample_points(
 
         for name, values in columns.items():
             result[name] = values
+        result.attrs["arlmet_version"] = __version__
         return result
     finally:
         for handle in opened:

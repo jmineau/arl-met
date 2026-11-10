@@ -278,6 +278,16 @@ class TestPointSampling:
         result = sample_points(path, points, ["TEMP"], z_kind="pressure")
         np.testing.assert_allclose(result["TEMP"].to_numpy(), [290.5])
 
+    def test_result_records_the_arlmet_version(self, tmp_path):
+        path = tmp_path / "version.arl"
+        time = pd.Timestamp("2024-07-18 00:00")
+        write_sampling_file(path, time=time)
+        points = pd.DataFrame(
+            {"lon": [20.5], "lat": [-9.5], "z": [950.0], "time": [time]}
+        )
+        result = sample_points(path, points, ["TEMP"], z_kind="pressure")
+        assert result.attrs["arlmet_version"] == arlmet.__version__
+
     def test_module_sample_points_accepts_sequence_of_paths(self, tmp_path):
         path0 = tmp_path / "p0.arl"
         path1 = tmp_path / "p1.arl"

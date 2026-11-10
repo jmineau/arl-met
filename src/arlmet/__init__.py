@@ -5,9 +5,8 @@ This package provides tools to read, parse, and work with ARL (Air Resources Lab
 packed meteorological data files used by HYSPLIT and other atmospheric transport models.
 """
 
-import importlib.metadata
-
 from . import converters
+from ._version import __version__ as __version__
 from .directoryindex import DirectoryIndex, index
 from .exceptions import ARLFormatError, ARLFormatWarning
 from .file import File
@@ -29,7 +28,6 @@ from .vertical import (
 )
 from .xarray import open_dataset, pressure, write_dataset, z_agl, z_msl
 
-__version__ = importlib.metadata.version("arlmet")
 __author__ = "James Mineau"
 __email__ = "jameskmineau@gmail.com"
 

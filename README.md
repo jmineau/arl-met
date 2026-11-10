@@ -224,6 +224,14 @@ Related project:
 
 - [ARLreader](https://github.com/martin-rdz/ARLreader), which focuses on GDAS1 files, while `arl-met` targets a broader ARL/xarray workflow.
 
+## Citing
+
+Cite arl-met with the DOI above, which always points to the latest release, and
+say which version you used. Each Dataset from `arlmet.open_dataset` and
+`arlmet.converters` carries it in `ds.attrs["arlmet_version"]`, each
+`arlmet.sample_points` result in `result.attrs["arlmet_version"]`, and
+`arlmet.__version__` gives it. Zenodo lists a DOI for every version.
+
 ## Release notes
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.

@@ -6,6 +6,7 @@ import pytest
 import xarray as xr
 from xarray.core import indexing
 
+import arlmet
 from arlmet import File, open_dataset, write_dataset
 from arlmet.grid import Grid, Projection
 from arlmet.indexrecord import IndexRecord
@@ -725,6 +726,11 @@ class TestWriter:
         while hasattr(backend, "array"):
             backend = backend.array
         assert backend.__class__.__name__ == "ArlVariableArray"
+
+    def test_open_dataset_records_the_arlmet_version(self, tmp_path):
+        path = tmp_path / "sample.arl"
+        self.write_sample_file(path)
+        assert open_dataset(path).attrs["arlmet_version"] == arlmet.__version__
 
     def test_open_dataset_sfc_vars_have_no_level_dim(self, tmp_path):
         path = tmp_path / "sample.arl"
