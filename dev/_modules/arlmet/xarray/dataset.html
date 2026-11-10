@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=e2a1891c"></script>
+    <script src="../../../_static/documentation_options.js?v=f41450b8"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev24+ge7f5b6af9" />
+  <meta name="docsearch:version" content="0.1.0b9.dev25+g5a4132f6f" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -440,6 +440,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">._backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArlVariableArray</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._coords</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_check_vertical_axis_agrees</span><span class="p">,</span>
     <span class="n">_extract_dataset_forecast_hours</span><span class="p">,</span>
     <span class="n">_extract_dataset_vertical_axis</span><span class="p">,</span>
     <span class="n">add_cf_spatial_attrs</span><span class="p">,</span>
@@ -794,7 +795,9 @@
 <span class="sd">    vertical_axis : VerticalAxis, optional</span>
 <span class="sd">        Vertical axis to write. By default it is rebuilt from the Dataset's</span>
 <span class="sd">        ``level`` coordinates. Required for surface-only Datasets; otherwise it</span>
-<span class="sd">        must have one level per ``level`` coordinate value plus the surface.</span>
+<span class="sd">        must have one level per ``level`` coordinate value plus the surface,</span>
+<span class="sd">        and agree with the Dataset's ``pressure``, ``sigma``, ``height`` or</span>
+<span class="sd">        ``eta`` coordinate when it has one.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -807,7 +810,8 @@
 <span class="sd">        ``lon``, ``y`` or ``x`` coordinate that does not increase), has no time</span>
 <span class="sd">        steps, a time is outside 1940 to 2039 (a label's two-digit year cannot</span>
 <span class="sd">        hold it), a ``lat``, ``lon``, ``x`` or ``y`` coordinate disagrees with</span>
-<span class="sd">        the grid the ``arl_grid`` coordinate describes, a slice is partly NaN</span>
+<span class="sd">        the grid the ``arl_grid`` coordinate describes, the vertical axis</span>
+<span class="sd">        disagrees with the Dataset's own vertical coordinate, a slice is partly NaN</span>
 <span class="sd">        or non-finite, an ``attrs["diff"]`` name</span>
 <span class="sd">        is not one the name table pairs with its variable, or</span>
 <span class="sd">        ``filename_or_obj`` is the file ``ds`` was opened from.</span>
@@ -848,6 +852,7 @@
             <span class="sa">f</span><span class="s2">"Dataset needs </span><span class="si">{</span><span class="n">n_upper_levels</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> (the surface plus one per 'level' "</span>
             <span class="s2">"coordinate value)."</span>
         <span class="p">)</span>
+    <span class="n">_check_vertical_axis_agrees</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">resolved_vertical_axis</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
         <span class="n">check_year</span><span class="p">(</span><span class="n">times</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
         <span class="n">check_year</span><span class="p">(</span><span class="n">times</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
