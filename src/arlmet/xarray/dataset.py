@@ -18,6 +18,7 @@ from arlmet._time import ensure_timestamp, utc_times
 from arlmet.header import check_year
 from arlmet.ops.sample import _mass_coupled
 from arlmet.ops.subset import normalize_levels, resolve_window, select_records
+from arlmet.record import _check_variable_name
 from arlmet.vertical import VerticalAxis
 
 from ._backend import ArlVariableArray
@@ -422,10 +423,7 @@ def write_dataset(
     variables: list[tuple[str, xr.DataArray, list[tuple[int | None, int]]]] = []
     for var_name in data_vars:
         var_name = str(var_name)
-        if len(var_name) > 4:
-            raise ValueError(
-                f"Variable names must be 4 characters or fewer, got '{var_name}'."
-            )
+        _check_variable_name(var_name)
         if var_name.startswith("DIF"):
             raise ValueError(
                 "Dataset DIF generation is parent-led; set attrs['diff'] on the parent variable instead of writing a DIF* data variable."
