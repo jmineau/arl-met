@@ -7,6 +7,33 @@ file alone: the entries are written at release (`just changelog` drafts them).
 
 ## [Unreleased]
 
+## [0.1.0b9] - 2026-11-10
+
+### Added
+
+- `arlmet.converters` makes ARL files from other models' output, each following the HYSPLIT converter it is named for: `from_era5` (ERA5 on pressure levels, as `era52arl`, and on model levels as HYSPLIT's hybrid levels, as `api2arl`), `from_gfs` (GFS and GDAS GRIB2 on pressure levels), `from_wrf` (WRF-ARW output, as `arw2arl`, with `winds="averaged"` for the mass-coupled averaged winds, as `arw2arl -c2`) and `from_icon` (DWD's ICON-EU and ICON-D2 forecasts on their lat/lon grids). (#161, #169, #177, #178, #179, #181)
+- `extract_subset`, `File.extract_subset`, `concat` and `concat_by_time` take `overwrite=`. With `overwrite=False` an existing output is returned as it is, without reading the inputs, so a rerun after a failure writes only the missing crops or bins. The default is `True`: nothing changes for existing callers. (#201)
+- Datasets from `open_dataset` and the converters, and the DataFrame from `sample_points`, carry the version that made them in `attrs["arlmet_version"]`; `sample_points` at heights also records its `model_top`. (#190, #211)
+
+### Changed
+
+- **Calls that used to write a wrong file now raise.** The files they wrote were valid ARL but not what the arguments asked for:
+  - `write_dataset` refuses a `lat`, `lon`, `x` or `y` that disagrees with the `arl_grid` coordinate, a vertical axis that disagrees with the Dataset's coordinate, and a Dataset whose `lat`, `lon`, `y` or `x` does not increase (a north-up Dataset used to be written with every value on the wrong grid point; sort it first). (#170, #207, #209)
+  - `extract_subset` requires `levels` to include level 0 and to hold integers; leaving out level 0 renumbered the lowest kept level into the surface and `open_dataset` lost that level's data. (#210)
+  - A variable name that is not four characters is refused. (#203)
+  - `concat` and `concat_by_time` refuse inputs with different source IDs. (#204)
+  - `create_datarecord` refuses data of the wrong shape, and a masked array's masked cells are taken as missing (NaN) instead of the fill value under the mask; a fully masked field is written as a missing record and a partly masked one is refused. (#175, #208)
+  - Times before 1940 or after 2039, which a two-digit year cannot hold, are refused; they used to be written and read back in another century. (#176)
+  - A zero-byte file raises `ARLFormatError`, and writing no time steps is refused. (#174)
+
+### Fixed
+
+- The header writes `@` for a grid axis under 1000 beside one over it, as HYSPLIT reads the grid characters. (#180)
+- A Dataset from `open_dataset` can be copied and pickled after data has been read. (#171)
+- `sample_points` and `DirectoryIndex` convert time-zone-aware times to UTC, and `open_dataset` reads a time-zone-aware time coordinate without pandas' deprecation warning. (#172, #199)
+- `concat_by_time` skips hidden files. (#205)
+- Error messages name the bbox, the grid's extent, `dest` and `z_msl` they refer to. (#200)
+
 ## [0.1.0b8] - 2026-11-05
 
 ### Added
