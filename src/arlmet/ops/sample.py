@@ -1803,6 +1803,9 @@ def sample_points(
         is on it, so a projected grid's edge nodes, given by the longitude and
         latitude :meth:`arlmet.Grid.calculate_coords` reports, have values.
         ``result.attrs["arlmet_version"]`` is the arlmet version that sampled.
+        At heights (``z_kind`` ``"agl"`` or ``"msl"``) with a ``model_top``,
+        ``result.attrs["model_top"]`` is the one used [m]; with ``model_top=None``
+        or at pressures it is absent.
 
     Raises
     ------
@@ -1892,6 +1895,8 @@ def sample_points(
         for name, values in columns.items():
             result[name] = values
         result.attrs["arlmet_version"] = __version__
+        if z_kind in ("agl", "msl") and model_top is not None:
+            result.attrs["model_top"] = float(model_top)
         return result
     finally:
         for handle in opened:
