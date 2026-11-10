@@ -1,0 +1,11 @@
+GDAS1	gdas1.apr15
+GDAS0p5	20171219_gdas0p5
+GFS0p25	20240718_gfs0p25
+NAM12	20240718_nam12
+NAMS-CONUS	20240718_hysplit.t00z.namsa
+WRF27km	wrfout_d01_20150101.ARL
+WRF27km	wrfout_d01_20220831.ARL
+HRRRv1	hysplit.20170717.00z.hrrra
+HRRR	20200208_00-05_hrrr
+crop	hysplit.20150902.00z.hrrra
+WRF-d03-inst	wrfout_d03_2017-03-10.arl
