@@ -143,7 +143,11 @@ writes:
 - total cloud cover ``TCLD`` is in percent, as HYSPLIT reads it
   (``era52arl`` writes the 0 to 1 fraction);
 - the heat fluxes ``SHTF`` and ``LHTF`` are positive upward, as HYSPLIT takes
-  them (ERA5's, and ``era52arl``'s, are positive downward);
+  them: its stability routine (``stbanl.f``) reads a positive ``SHTF`` as the
+  ground heating the air, and HYSPLIT changes the sign only for NAM's ``ETA``
+  files (``prfcom.f``). ERA5's fluxes, and ``era52arl``'s, are positive
+  downward, so HYSPLIT reads a sunny afternoon in an ``era52arl`` file as a
+  stable surface layer;
 - the latent heat flux is named ``LHTF``, which HYSPLIT reads (``era52arl``
   names it ``LTHF``).
 

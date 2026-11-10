@@ -210,7 +210,9 @@ def from_era5(levels: xr.Dataset, single_levels: xr.Dataset) -> xr.Dataset:
     solar radiation into W m-2 with a factor of 0.00028 for 1/3600 (so its
     ``DSWF`` is 0.8 % high), writes ``TCLD`` as a fraction where HYSPLIT
     reads percent, keeps ECMWF's downward-positive heat fluxes where HYSPLIT
-    takes them positive upward, and names the latent heat flux ``LTHF``,
+    takes them positive upward (``stbanl.f``; HYSPLIT changes the sign only
+    for ``ETA`` files, in ``prfcom.f``), so HYSPLIT reads a sunny afternoon in
+    an ``era52arl`` file as stable, and names the latent heat flux ``LTHF``,
     a name HYSPLIT does not read. ``era52arl`` does not convert model levels.
 
     An ARL hybrid level is one number, a pressure offset in whole hPa plus a
