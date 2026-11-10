@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=df508164"></script>
+    <script src="../../_static/documentation_options.js?v=e2a1891c"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev23+gd907b9843" />
+  <meta name="docsearch:version" content="0.1.0b9.dev24+ge7f5b6af9" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -529,11 +529,25 @@
         <span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_fill_masked</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Return a masked array with its masked cells as NaN; anything else unchanged.</span>
+
+<span class="sd">    ``np.asarray`` drops a mask and keeps the values under it (netCDF readers</span>
+<span class="sd">    leave a fill value such as 1e20 there), and one such value ruins a packed</span>
+<span class="sd">    field. A masked cell is a missing one, which the writers already handle as NaN.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">isMaskedArray</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+        <span class="n">floats</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">result_type</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">floats</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_check_field_shape</span><span class="p">(</span>
     <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">grid</span><span class="p">:</span> <span class="n">Grid</span><span class="p">,</span> <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">int</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Return *value* as an array, or raise if it is not the grid's ``(ny, nx)``."""</span>
-    <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">_fill_masked</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
     <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">nx</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">shape</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -1056,7 +1070,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Data must be initialized before setting slices."</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_unpacked</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unpacked</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_fill_masked</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_invalidate_write_cache</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_invalidate_write_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1095,6 +1109,13 @@
             <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unpacked</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
                 <span class="c1"># A field of NaN is missing data, as a missing record reads.</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pack_missing</span><span class="p">()</span>
+            <span class="n">n_missing</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unpacked</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">n_missing</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2"> at level </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2"> has </span><span class="si">{</span><span class="n">n_missing</span><span class="si">}</span><span class="s2"> missing "</span>
+                    <span class="s2">"(NaN or masked) cells; an ARL field has no missing cells, so it "</span>
+                    <span class="s2">"must be complete or entirely missing."</span>
+                <span class="p">)</span>
             <span class="n">packed</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">exponent</span><span class="p">,</span> <span class="n">initial_value</span> <span class="o">=</span> <span class="n">pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unpacked</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_packed</span> <span class="o">=</span> <span class="n">packed</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_header</span><span class="p">[</span><span class="s2">"precision"</span><span class="p">]</span> <span class="o">=</span> <span class="n">precision</span>

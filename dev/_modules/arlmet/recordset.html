@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=df508164"></script>
+    <script src="../../_static/documentation_options.js?v=e2a1891c"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev23+gd907b9843" />
+  <meta name="docsearch:version" content="0.1.0b9.dev24+ge7f5b6af9" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -597,7 +597,8 @@
 <span class="sd">            :meth:`DataRecord.read` returns NaN for it.</span>
 <span class="sd">        data : numpy.ndarray, optional</span>
 <span class="sd">            Initial ``(ny, nx)`` field values to assign. When omitted, assign</span>
-<span class="sd">            the whole field later with ``record[:] = values``.</span>
+<span class="sd">            the whole field later with ``record[:] = values``. The masked cells</span>
+<span class="sd">            of a masked array are taken as NaN, not the values under the mask.</span>
 <span class="sd">        diff : str or sequence of str, optional</span>
 <span class="sd">            Name of a trailing DIF record to derive from the parent field: the</span>
 <span class="sd">            field minus the packed parent, what packing lost. Give several</span>

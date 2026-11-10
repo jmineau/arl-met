@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=df508164"></script>
+    <script src="../_static/documentation_options.js?v=e2a1891c"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev23+gd907b9843" />
+  <meta name="docsearch:version" content="0.1.0b9.dev24+ge7f5b6af9" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -656,7 +656,8 @@ leaves a field it never fills (<code class="docutils literal notranslate"><span 
 no values, whatever <code class="docutils literal notranslate"><span class="pre">forecast</span></code> says. Readers skip it, and
 <a class="reference internal" href="arlmet.DataRecord.read.html#arlmet.DataRecord.read" title="arlmet.DataRecord.read"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DataRecord.read()</span></code></a> returns NaN for it.</p></li>
 <li><p><strong>data</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://numpy.org/doc/stable/reference/typing.html#numpy.typing.ArrayLike" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ArrayLike</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Initial <code class="docutils literal notranslate"><span class="pre">(ny,</span> <span class="pre">nx)</span></code> field values to assign. When omitted, assign
-the whole field later with <code class="docutils literal notranslate"><span class="pre">record[:]</span> <span class="pre">=</span> <span class="pre">values</span></code>.</p></li>
+the whole field later with <code class="docutils literal notranslate"><span class="pre">record[:]</span> <span class="pre">=</span> <span class="pre">values</span></code>. The masked cells
+of a masked array are taken as NaN, not the values under the mask.</p></li>
 <li><p><strong>diff</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>] | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Name of a trailing DIF record to derive from the parent field: the
 field minus the packed parent, what packing lost. Give several
 names to write several DIF records after the parent, in order;
