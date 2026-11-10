@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=f41450b8"></script>
+    <script src="_static/documentation_options.js?v=763b568f"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev25+g5a4132f6f" />
+  <meta name="docsearch:version" content="0.1.0b9.dev26+gdc3057337" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -669,7 +669,10 @@ south and 13 to the north. Crops of lat-lon grids (GFS, GDAS) are the same as
 <section id="what-changes-in-the-output-file">
 <h2>What changes in the output file<a class="headerlink" href="#what-changes-in-the-output-file" title="Link to this heading">#</a></h2>
 <p>When levels are selected, the output file is renumbered from zero upward while
-preserving the original level values in the vertical axis metadata.</p>
+preserving the original level values in the vertical axis metadata. <code class="docutils literal notranslate"><span class="pre">levels</span></code>
+must be integers and must include 0, the surface: level 0 of an ARL file holds
+the surface fields, so a selection without it would turn the lowest kept level
+into the surface (HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> always keeps level 0 too).</p>
 <p>When variables are selected, only those variables are written into each output
 time step. Forecast hours are preserved, the index records’ and each data
 record’s own.</p>

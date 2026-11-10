@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=f41450b8"></script>
+    <script src="../_static/documentation_options.js?v=763b568f"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev25+g5a4132f6f" />
+  <meta name="docsearch:version" content="0.1.0b9.dev26+gdc3057337" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -653,8 +653,9 @@ that holds the box’s part on the grid (<a class="reference internal" href="arl
 anything <code class="xref py py-meth docutils literal notranslate"><span class="pre">pyproj.CRS.from_user_input()</span></code> takes), making the box
 <code class="docutils literal notranslate"><span class="pre">(xmin,</span> <span class="pre">ymin,</span> <span class="pre">xmax,</span> <span class="pre">ymax)</span></code> in its units; the default is degrees
 (<a class="reference internal" href="arlmet.Grid.window_from_bbox.html#arlmet.Grid.window_from_bbox" title="arlmet.Grid.window_from_bbox"><code class="xref py py-meth docutils literal notranslate"><span class="pre">arlmet.Grid.window_from_bbox()</span></code></a>).</p></li>
-<li><p><strong>levels</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>] | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – ARL level indices to keep. Output levels are compacted and renumbered
-from zero while preserving the selected level heights.</p></li>
+<li><p><strong>levels</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>] | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Integer ARL level indices to keep, which must include 0, the surface.
+Output levels are compacted and renumbered from zero while preserving
+the selected level heights.</p></li>
 <li><p><strong>variables</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>] | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Variable names to keep, as the file spells them (<code class="docutils literal notranslate"><span class="pre">&quot;TEMP&quot;</span></code>, not
 <code class="docutils literal notranslate"><span class="pre">&quot;temp&quot;</span></code>); a single string is one name. A <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> name the file
 holds is accepted, but naming it selects nothing: a <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> record is
@@ -674,14 +675,17 @@ or <a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_data
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a></span></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">dest</span></code> is the same file as <code class="docutils literal notranslate"><span class="pre">path</span></code>, the cropped grid is too
-    small to hold the ARL index record, <code class="docutils literal notranslate"><span class="pre">levels</span></code> leaves out level 0
-    and so moves a record with <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> records to the surface, where
-    HYSPLIT’s name table would not pair them with it, <code class="docutils literal notranslate"><span class="pre">variables</span></code> is
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#TypeError" title="(in Python v3.15)"><strong>TypeError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">levels</span></code> holds anything but integers (a string, or 1.5).</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">dest</span></code> is the same file as <code class="docutils literal notranslate"><span class="pre">path</span></code>, the cropped grid is too
+    small to hold the ARL index record, <code class="docutils literal notranslate"><span class="pre">levels</span></code> leaves out level 0 (the
+    surface: the output is renumbered from zero, so the lowest kept level
+    would become the surface), <code class="docutils literal notranslate"><span class="pre">variables</span></code> is
     empty or names a variable the file does not hold (every unknown name
     is listed, also when others are known), or the selected levels and
     variables leave no record in any time step, so there is nothing to
-    write.</p>
+    write.</p></li>
+</ul>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
