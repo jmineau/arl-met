@@ -35,6 +35,10 @@ def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
 
 
 _DZ = 9.88  # m/hPa used to build synthetic HGTS for pressure-level test fixtures
+# TEMP at 950 hPa at (20.5, -9.5) in write_sampling_file: level 0 is the ground,
+# at PRSS (1001.5 hPa there) with TEMP 285.5 K, and 950 hPa is read in ln p up to
+# 900 hPa (295.5 K), as heights are (#214).
+_T950 = 285.5 + 10.0 * np.log(1001.5 / 950.0) / np.log(1001.5 / 900.0)
 
 
 def write_sampling_file(path, *, time: pd.Timestamp, temp_offset: float = 0.0):
@@ -176,7 +180,7 @@ class TestPointSampling:
 
         np.testing.assert_allclose(native["TEMP"].iloc[0], 290.5)
         np.testing.assert_allclose(native["PRSS"].iloc[0], 1001.5)
-        np.testing.assert_allclose(pressure_points["TEMP"].iloc[0], 290.5)
+        np.testing.assert_allclose(pressure_points["TEMP"].iloc[0], _T950, rtol=1e-6)
         np.testing.assert_allclose(pressure_points["pressure"].iloc[0], 950.0)
 
     def test_file_sample_points_supports_agl_and_msl_queries(self, tmp_path):
@@ -245,7 +249,9 @@ class TestPointSampling:
         with File(path0) as f0, File(path1) as f1:
             result = sample_points([f0, f1], points, ["TEMP"], z_kind="pressure")
 
-        np.testing.assert_allclose(result["TEMP"].to_numpy(), [290.5, 310.5])
+        np.testing.assert_allclose(
+            result["TEMP"].to_numpy(), [_T950, _T950 + 20.0], rtol=1e-6
+        )
 
     @pytest.mark.parametrize(
         "zoned", [pd.Timestamp("2024-07-18 00:00", tz="UTC"), "2024-07-17 18:00-06:00"]
@@ -262,8 +268,8 @@ class TestPointSampling:
             path, points, ["TEMP"], time=zoned, z_kind="pressure"
         )
 
-        np.testing.assert_allclose(by_column["TEMP"].to_numpy(), [290.5])
-        np.testing.assert_allclose(by_argument["TEMP"].to_numpy(), [290.5])
+        np.testing.assert_allclose(by_column["TEMP"].to_numpy(), [_T950], rtol=1e-6)
+        np.testing.assert_allclose(by_argument["TEMP"].to_numpy(), [_T950], rtol=1e-6)
 
     def test_module_sample_points_accepts_single_path(self, tmp_path):
         path = tmp_path / "single.arl"
@@ -276,7 +282,7 @@ class TestPointSampling:
 
         # Path is opened and closed internally; no `with` needed.
         result = sample_points(path, points, ["TEMP"], z_kind="pressure")
-        np.testing.assert_allclose(result["TEMP"].to_numpy(), [290.5])
+        np.testing.assert_allclose(result["TEMP"].to_numpy(), [_T950], rtol=1e-6)
 
     def test_result_records_the_arlmet_version(self, tmp_path):
         path = tmp_path / "version.arl"
@@ -329,7 +335,9 @@ class TestPointSampling:
         )
 
         result = sample_points([path0, path1], points, ["TEMP"], z_kind="pressure")
-        np.testing.assert_allclose(result["TEMP"].to_numpy(), [290.5, 310.5])
+        np.testing.assert_allclose(
+            result["TEMP"].to_numpy(), [_T950, _T950 + 20.0], rtol=1e-6
+        )
 
     def test_module_sample_points_leaves_caller_opened_file_open(self, tmp_path):
         path = tmp_path / "caller.arl"
@@ -344,7 +352,7 @@ class TestPointSampling:
             sample_points(f, points, ["TEMP"], z_kind="pressure")
             # The caller still owns f and it remains usable afterward.
             again = sample_points(f, points, ["TEMP"], z_kind="pressure")
-        np.testing.assert_allclose(again["TEMP"].to_numpy(), [290.5])
+        np.testing.assert_allclose(again["TEMP"].to_numpy(), [_T950], rtol=1e-6)
 
     def test_file_sample_points_supports_simple_slant_path(self, tmp_path):
         path = tmp_path / "slant.arl"
@@ -491,14 +499,17 @@ class TestSigmaSampling:
         time = pd.Timestamp("2024-07-18 00:00")
         write_sigma_sampling_file(path, time=time)
 
-        # 950 hPa is midpoint between 1000 and 900 hPa → TEMP = 285
+        # 950 hPa between 1000 and 900 hPa, read in ln p (#214): 284.87 K, not 285
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [950.0]})
         with File(path) as arl:
             result = arl.sample_points(
                 points, ["TEMP", "pressure"], time=time, z_kind="pressure"
             )
 
-        np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
+        frac = np.log(1000.0 / 950.0) / np.log(1000.0 / 900.0)
+        np.testing.assert_allclose(
+            result["TEMP"].iloc[0], 280.0 + 10.0 * frac, atol=1e-4
+        )
         np.testing.assert_allclose(result["pressure"].iloc[0], 950.0, atol=1e-4)
 
     def test_agl_z_kind(self, tmp_path):
@@ -597,14 +608,17 @@ class TestHybridSampling:
         time = pd.Timestamp("2024-07-18 00:00")
         write_hybrid_sampling_file(path, time=time)
 
-        # 950 hPa is midpoint between 1000 and 900 hPa → TEMP = 285
+        # 950 hPa between 1000 and 900 hPa, read in ln p (#214): 284.87 K, not 285
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [950.0]})
         with File(path) as arl:
             result = arl.sample_points(
                 points, ["TEMP", "pressure"], time=time, z_kind="pressure"
             )
 
-        np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
+        frac = np.log(1000.0 / 950.0) / np.log(1000.0 / 900.0)
+        np.testing.assert_allclose(
+            result["TEMP"].iloc[0], 280.0 + 10.0 * frac, atol=1e-4
+        )
         np.testing.assert_allclose(result["pressure"].iloc[0], 950.0, atol=1e-4)
 
     def test_agl_z_kind(self, tmp_path):
@@ -831,6 +845,101 @@ class TestFlag2RequiresHgts:
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
         with File(path) as arl, pytest.raises(ValueError, match="HGTS"):
             arl.sample_points(points, ["TEMP"], time=time, z_kind="msl", model_top=None)
+
+
+def write_high_ground_pressure_file(path, *, time: pd.Timestamp, prss: bool = True):
+    """
+    Pressure-level (flag=2) file over high ground, as NOAA's are (#214).
+
+    Levels [0, 1000, 900, 800] hPa (level 0 holds no pressure); PRSS 950 hPa,
+    so the 1000 hPa level is below the ground and holds a value the model
+    extrapolated (TEMP 301 K). T02M 293 K at the ground; TEMP 290, 280 K at 900
+    and 800 hPa.
+    """
+    grid = make_test_grid()
+    vertical_axis = PressureAxis(levels=[0.0, 1000.0, 900.0, 800.0])
+    field = np.ones((grid.ny, grid.nx), dtype=np.float32)
+    with File(
+        path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
+    ) as arl:
+        rs = arl.create_recordset(time)
+        rs.create_datarecord("SHGT", level=0, forecast=0, data=field * 500.0)
+        if prss:
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=field * 950.0)
+        rs.create_datarecord("T02M", level=0, forecast=0, data=field * 293.0)
+        for level, temp in zip((1, 2, 3), (301.0, 290.0, 280.0), strict=True):
+            rs.create_datarecord("TEMP", level=level, forecast=0, data=field * temp)
+
+
+class TestPressureTargets:
+    """
+    At pressures the column starts at the ground and is read in ln p (#214).
+
+    The height rule, applied to pressures: levels at or below the ground are
+    left out, a point below the ground is NaN, and values between levels are
+    linear in ln p.
+    """
+
+    TIME = pd.Timestamp("2024-07-18")
+
+    def _sample(self, path, z, variables=("TEMP", "pressure")):
+        points = pd.DataFrame({"lon": [20.0] * len(z), "lat": [-10.0] * len(z), "z": z})
+        return sample_points(
+            path, points, list(variables), time=self.TIME, z_kind="pressure"
+        )
+
+    def test_below_the_ground_is_nan(self, tmp_path):
+        path = tmp_path / "high.arl"
+        write_high_ground_pressure_file(path, time=self.TIME)
+        # 960 and 1000 hPa are under the ground (PRSS 950): no extrapolated 301 K.
+        result = self._sample(path, [960.0, 1000.0])
+        assert result["TEMP"].isna().all()
+        assert result["pressure"].isna().all()
+
+    def test_at_the_ground_is_the_ground_value(self, tmp_path):
+        path = tmp_path / "high.arl"
+        write_high_ground_pressure_file(path, time=self.TIME)
+        result = self._sample(path, [950.0])
+        np.testing.assert_allclose(result["TEMP"], [293.0], atol=1e-4)
+        np.testing.assert_allclose(result["pressure"], [950.0], atol=1e-4)
+
+    def test_between_the_ground_and_the_first_level_above_it(self, tmp_path):
+        path = tmp_path / "high.arl"
+        write_high_ground_pressure_file(path, time=self.TIME)
+        result = self._sample(path, [920.0])
+        frac = np.log(950.0 / 920.0) / np.log(950.0 / 900.0)
+        np.testing.assert_allclose(
+            result["TEMP"], [293.0 + frac * (290.0 - 293.0)], atol=1e-4
+        )
+
+    def test_between_levels_is_linear_in_ln_p(self, tmp_path):
+        path = tmp_path / "high.arl"
+        write_high_ground_pressure_file(path, time=self.TIME)
+        result = self._sample(path, [850.0])
+        frac = np.log(900.0 / 850.0) / np.log(900.0 / 800.0)  # 0.485, not 0.5
+        np.testing.assert_allclose(
+            result["TEMP"], [290.0 + frac * (280.0 - 290.0)], atol=1e-4
+        )
+        np.testing.assert_allclose(result["pressure"], [850.0])
+
+    def test_above_the_top_is_nan(self, tmp_path):
+        path = tmp_path / "high.arl"
+        write_high_ground_pressure_file(path, time=self.TIME)
+        result = self._sample(path, [700.0], variables=("TEMP",))
+        assert result["TEMP"].isna().all()
+
+    def test_requires_prss(self, tmp_path):
+        path = tmp_path / "no_prss.arl"
+        write_high_ground_pressure_file(path, time=self.TIME, prss=False)
+        with pytest.raises(ValueError, match="PRSS"):
+            self._sample(path, [850.0], variables=("TEMP",))
+
+    def test_native_levels_keep_the_stored_values(self, tmp_path):
+        path = tmp_path / "high.arl"
+        write_high_ground_pressure_file(path, time=self.TIME)
+        points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [1.0]})
+        result = sample_points(path, points, ["TEMP"], time=self.TIME, z_kind="native")
+        np.testing.assert_allclose(result["TEMP"], [301.0])
 
 
 class TestTerrainRequired:
@@ -1174,14 +1283,14 @@ class TestSigmaColumnAsHysplit:
         )
 
     def test_pressure_targets_use_pres(self, tmp_path):
-        # Halfway (linear in p) between PRES of levels 1 and 2, TEMP is halfway too.
+        # Between PRES of levels 1 and 2 TEMP is linear in ln p (#214).
         path = tmp_path / "column.arl"
         write_column_file(path)
-        result = _sample_column(
-            path, ["TEMP"], [0.5 * (_PRES[0] + _PRES[1])], z_kind="pressure"
-        )
+        target = 0.5 * (_PRES[0] + _PRES[1])
+        result = _sample_column(path, ["TEMP"], [target], z_kind="pressure")
+        frac = np.log(_PRES[0] / target) / np.log(_PRES[0] / _PRES[1])
         np.testing.assert_allclose(
-            result["TEMP"], [0.5 * (_TEMP[0] + _TEMP[1])], atol=1e-3
+            result["TEMP"], [_TEMP[0] + frac * (_TEMP[1] - _TEMP[0])], atol=1e-3
         )
 
     def test_without_pres_heights_use_the_nominal_sigma_pressure(self, tmp_path):
@@ -1249,8 +1358,12 @@ class TestWrfColumnAsHysplit:
     def test_ground_and_pres_at_pressures_and_native_levels(self, tmp_path):
         path = tmp_path / "wrf.arl"
         write_column_file(path, axis=_WRF_AXIS)
-        by_p = _sample_column(path, ["TEMP"], [0.5 * (_PRSS + _PRES[0])], "pressure")
-        np.testing.assert_allclose(by_p["TEMP"], [0.5 * (_T02M + _TEMP[0])], atol=1e-3)
+        target = 0.5 * (_PRSS + _PRES[0])
+        by_p = _sample_column(path, ["TEMP"], [target], "pressure")
+        frac = np.log(_PRSS / target) / np.log(_PRSS / _PRES[0])  # ln p (#214)
+        np.testing.assert_allclose(
+            by_p["TEMP"], [_T02M + frac * (_TEMP[0] - _T02M)], atol=1e-3
+        )
         native = _sample_column(path, ["pressure"], [0.0, 0.5, 2.0], z_kind="native")
         np.testing.assert_allclose(
             native["pressure"],
@@ -1806,12 +1919,15 @@ class TestPressureColumnAsHysplit:
         result = _sample_column(path, ["TEMP", "pressure"], [-1.0]).iloc[0]
         assert np.isnan(result["TEMP"]) and np.isnan(result["pressure"])
 
-    def test_pressure_targets_use_the_stored_levels(self, tmp_path):
-        # Sampling at pressures is unchanged: the stored levels, none skipped.
+    def test_pressure_targets_follow_the_column(self, tmp_path):
+        # At pressures as at heights (#214): 975 hPa is under the ground (PRSS
+        # 850 hPa), not the stored levels' 304 K; above the ground ln p from it.
         path = tmp_path / "prs.arl"
         write_pressure_column_file(path)
-        result = _sample_column(path, ["TEMP"], [975.0], z_kind="pressure")
-        np.testing.assert_allclose(result["TEMP"], [304.0], atol=1e-3)
+        result = _sample_column(path, ["TEMP"], [975.0, 825.0], z_kind="pressure")
+        frac = np.log(_PRSS / 825.0) / np.log(_PRSS / _PRS_LEVELS[4])
+        expected = _T02M + frac * (_PRS_TEMP[4] - _T02M)
+        np.testing.assert_allclose(result["TEMP"], [np.nan, expected], atol=1e-3)
 
 
 class TestHorizontalInterpolation:
@@ -2010,7 +2126,7 @@ class TestBetweenGridPointsAsHysplit:
         Blend each level first by hand, then read the blended column at *target*.
 
         Native levels are at one coordinate at every grid point, so sampling them
-        blends each level; the column is read linear in p (ln p for PRES).
+        blends each level; the column is read in ln p (#214), and PRES as ln p.
         """
         levels = [
             sample_points(
@@ -2021,15 +2137,16 @@ class TestBetweenGridPointsAsHysplit:
             )
             for k in range(5)
         ]
-        p = np.stack([lv["pressure"] for lv in levels], axis=1)[:, ::-1]
+        ln_p = np.log(np.stack([lv["pressure"] for lv in levels], axis=1)[:, ::-1])
+        ln_target = np.log(target)
         out = {}
         for name in variables:
             v = np.stack([lv[name] for lv in levels], axis=1)[:, ::-1]
             out[name] = [
-                np.exp(np.interp(target, pp, np.log(vv), left=np.nan, right=np.nan))
+                np.exp(np.interp(ln_target, pp, np.log(vv), left=np.nan, right=np.nan))
                 if name == "PRES"
-                else np.interp(target, pp, vv, left=np.nan, right=np.nan)
-                for pp, vv in zip(p, v, strict=True)
+                else np.interp(ln_target, pp, vv, left=np.nan, right=np.nan)
+                for pp, vv in zip(ln_p, v, strict=True)
             ]
         return pd.DataFrame(out)
 
@@ -2254,12 +2371,14 @@ class TestMultiTimeFile:
         with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
             for t, base in [(time0, 280.0), (time1, 300.0)]:
                 rs = arl.create_recordset(t)
+                prss = np.full((grid.ny, grid.nx), 1000.0, dtype=np.float32)
+                rs.create_datarecord("PRSS", level=0, forecast=0, data=prss)
                 for i, val in enumerate([base, base + 10.0, base + 20.0]):
                     data = np.full((grid.ny, grid.nx), val, dtype=np.float32)
                     rs.create_datarecord("TEMP", level=i, forecast=0, data=data)
 
-        # 950 hPa sits midway between levels 0 (1000 hPa) and 1 (900 hPa)
-        # time0: (280 + 290) / 2 = 285; time1: (300 + 310) / 2 = 305
+        # 950 hPa between the ground (PRSS 1000 hPa) and 900 hPa, in ln p (#214):
+        # time0 280 K + 10 K * 0.487, time1 20 K more
         points = pd.DataFrame(
             {
                 "time": [time0, time1],
@@ -2271,7 +2390,10 @@ class TestMultiTimeFile:
         with File(path) as arl:
             result = arl.sample_points(points, ["TEMP"], z_kind="pressure")
 
-        np.testing.assert_allclose(result["TEMP"].to_numpy(), [285.0, 305.0], atol=1e-3)
+        t950 = 280.0 + 10.0 * np.log(1000.0 / 950.0) / np.log(1000.0 / 900.0)
+        np.testing.assert_allclose(
+            result["TEMP"].to_numpy(), [t950, t950 + 20.0], atol=1e-3
+        )
 
 
 # --- result shape, time resolution, and argument validation ---
@@ -2280,13 +2402,20 @@ TIME0 = pd.Timestamp("2024-07-18 00:00")
 TIME1 = pd.Timestamp("2024-07-18 06:00")
 
 
+#: TEMP at 950 hPa in write_two_time_file at TIME0 (TIME1 is 20 K more): the
+#: ground at PRSS 1000 hPa, 280 K, read in ln p up to 900 hPa, 290 K (#214).
+T950_TWO = 280.0 + 10.0 * np.log(1000.0 / 950.0) / np.log(1000.0 / 900.0)
+
+
 def write_two_time_file(path):
-    """Write uniform TEMP that samples to 285 K (TIME0) and 305 K (TIME1) at 950 hPa."""
+    """Write uniform TEMP that samples to T950_TWO (TIME0) and 20 K more (TIME1) at 950 hPa."""
     grid = make_test_grid()
     vaxis = PressureAxis(levels=[1000.0, 900.0, 800.0])
+    prss = np.full((grid.ny, grid.nx), 1000.0, dtype=np.float32)
     with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
         for t, base in [(TIME0, 280.0), (TIME1, 300.0)]:
             rs = arl.create_recordset(t)
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=prss)
             for i, val in enumerate([base, base + 10.0, base + 20.0]):
                 data = np.full((grid.ny, grid.nx), val, dtype=np.float32)
                 rs.create_datarecord("TEMP", level=i, forecast=0, data=data)
@@ -2313,7 +2442,9 @@ class TestSampleResult:
         assert list(result.columns) == [*points.columns, "TEMP"]
         pd.testing.assert_index_equal(result.index, points.index)
         pd.testing.assert_frame_equal(result[points.columns], points)
-        np.testing.assert_allclose(result["TEMP"], [305.0, 285.0, 305.0], atol=1e-3)
+        np.testing.assert_allclose(
+            result["TEMP"], [T950_TWO + 20.0, T950_TWO, T950_TWO + 20.0], atol=1e-3
+        )
         assert "TEMP" not in points.columns  # input is not modified
 
     def test_multi_file_preserves_columns_and_order(self, tmp_path):
@@ -2374,7 +2505,7 @@ class TestSampleTimeResolution:
 
         result = sample_points(path, self.POINTS, ["TEMP"], time="2024-07-18 06:00")
 
-        np.testing.assert_allclose(result["TEMP"], [305.0], atol=1e-3)
+        np.testing.assert_allclose(result["TEMP"], [T950_TWO + 20.0], atol=1e-3)
         assert "time" not in result.columns
 
     def test_time_argument_dispatches_across_files(self, tmp_path):

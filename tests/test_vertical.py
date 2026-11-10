@@ -793,12 +793,15 @@ class TestWrfFile:
         _write_wrf_file(path)
         # A quarter of the way from level 1 to level 2: TEMP 279 -> 278 is
         # linear in the target coordinate; pressure is linear in ln p at
-        # heights, as in HYSPLIT's prfsig, and 812.5 hPa at a quarter in p.
+        # heights, as in HYSPLIT's prfsig.
         z_quarter = _WRF_Z[0] + 0.25 * (_WRF_Z[1] - _WRF_Z[0])
         p_quarter = np.exp(np.log(820.0) + 0.25 * np.log(790.0 / 820.0))  # 812.39
         point = {"lon": [-105.0], "lat": [45.0], "time": [pd.Timestamp("2024-01-01")]}
         with File(path) as f:
-            by_p = f.sample_points({**point, "z": [812.5]}, ["TEMP"], z_kind="pressure")
+            # At pressures too, ln p (#214): the pressure the heights give, the same TEMP.
+            by_p = f.sample_points(
+                {**point, "z": [p_quarter]}, ["TEMP"], z_kind="pressure"
+            )
             agl = f.sample_points(
                 {**point, "z": [z_quarter]},
                 ["TEMP", "pressure"],

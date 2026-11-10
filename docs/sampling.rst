@@ -94,8 +94,8 @@ The ``z`` column is interpreted according to ``z_kind`` (default
      - none
    * - ``"pressure"``
      - hPa
-     - ``PRSS`` for sigma/hybrid files (sigma files use ``PRES`` too when they
-       have it); ``PRES`` for WRF files (flag=5)
+     - ``PRSS`` (sigma files use ``PRES`` too when they have it); ``PRES`` for
+       WRF files (flag=5)
    * - ``"agl"``
      - meters above ground level
      - flag=2: ``HGTS`` + ``SHGT``; flag=1/4: ``PRSS`` + ``TEMP``; flag=3: ``SHGT``
@@ -123,6 +123,13 @@ model), and they are left out, so a point between the ground and the first
 level above it is interpolated from the ground values. A point under the
 lowest level at a low site gets them too, instead of NaN. At heights pressure
 is interpolated as ``ln p`` here too.
+
+Sampling at pressures follows the same rule on every file: the column starts
+at the ground (``PRSS``), the levels at or below the ground are left out, and
+values are interpolated in ``ln p``. A point below the ground (a pressure
+greater than ``PRSS``) is NaN, as is the virtual ``"pressure"`` variable
+there. HYSPLIT never samples at a pressure, so this is arl-met's rule, chosen
+to match its heights.
 
 .. ipython:: python
 
@@ -473,6 +480,6 @@ Limitations
   longitude and latitude arl-met reports for them, have values even though
   mapping them back to the grid lands about 1e-12 cells outside.
 - Sigma, hybrid and WRF files take the ground as a level, pressure-level files
-  at heights, and terrain-following files on HYSPLIT's internal levels; on a
-  terrain-following file with ``model_top=None`` a point below the lowest level
-  with data is NaN.
+  at heights and pressures, and terrain-following files on HYSPLIT's internal
+  levels; on a terrain-following file with ``model_top=None`` a point below the
+  lowest level with data is NaN.

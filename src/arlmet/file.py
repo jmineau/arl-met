@@ -868,11 +868,13 @@ class File:
             Vertical coordinate system of the ``z`` values:
 
             - ``"native"``: fractional ARL level index.
-            - ``"pressure"``: hPa. Sigma/hybrid files (flag 1/4) need
-              ``PRSS``, and sigma files use the ``PRES`` field when they have
-              it; pressure files (flag 2) use the stored levels;
-              terrain-following files (flag 3) raise ``ValueError``; WRF
-              files (flag 5) use the ``PRES`` field.
+            - ``"pressure"``: hPa, interpolated as ``ln p`` from the ground
+              (``PRSS``, required) up; a point below the ground is NaN, and
+              levels at or below the ground are left out. Sigma files use the
+              ``PRES`` field when they have it, else the levels' pressure from
+              ``PRSS``, as hybrid files (flag 4) do; pressure files (flag 2)
+              use the stored levels; terrain-following files (flag 3) raise
+              ``ValueError``; WRF files (flag 5) use the ``PRES`` field.
             - ``"agl"``: meters above ground level. Sigma/hybrid/WRF files
               integrate hypsometrically from the ground (``PRSS``, ``T02M``)
               through each level's pressure (``PRES`` on WRF files) with the
@@ -886,15 +888,16 @@ class File:
               ``"agl"``. Every file needs ``SHGT``.
 
             Each vertical coordinate system has exactly one method, as in
-            HYSPLIT; there is no fallback between them. On sigma, hybrid and
-            WRF files, and on pressure-level files at heights, level 0 is the
-            ground: a point between it and the first level is interpolated
-            from the ground values (``PRSS`` for ``PRES``, ``T02M`` for
-            ``TEMP``, ``U10M``/``V10M`` for winds), and pressure is
-            interpolated as ``ln p``, as HYSPLIT does. Where the first level
+            HYSPLIT; there is no fallback between them. At heights and
+            pressures level 0 is the ground (at native levels too, on sigma,
+            hybrid and WRF files): a point between it and the first level is
+            interpolated from the ground values (``PRSS`` for ``PRES``,
+            ``T02M`` for ``TEMP``, ``U10M``/``V10M`` for winds), and pressure
+            is interpolated as ``ln p``, as HYSPLIT does. Where the first level
             is below the ground (its ``PRES`` above ``PRSS``) the ground values
-            are passed over, as in HYSPLIT. The *Vertical Coordinates* guide
-            has the details.
+            are passed over at heights, as in HYSPLIT, and that level is left
+            out at pressures. The *Vertical Coordinates* guide has the
+            details.
         method : {"linear", "nearest"}, default "linear"
             Horizontal interpolation: bilinear or nearest grid point. At
             heights (``"agl"``, ``"msl"``), as in HYSPLIT, the column at each

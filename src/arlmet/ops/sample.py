@@ -746,8 +746,12 @@ def _vertical_coords(
 
     Dispatches to the vertical axis subclass methods, matching HYSPLIT:
 
-    - flag=2 (pressure): stored levels for pressure; for heights the *column*
-      (the ground at level 0, then HGTS, levels at or below the ground left out).
+    - flag=2 (pressure): for pressure the *column*: PRSS at level 0, the
+      ground, then the stored levels (at pressures :func:`_variable_profile`
+      leaves out the levels at or below the ground, on every flag), or the
+      stored levels alone without a *column* (the virtual pressure at native
+      levels); for heights the ground at level 0, then HGTS, levels at or below
+      the ground left out.
     - flag=1/4/5 (sigma/hybrid/WRF): the *column* (PRSS at level 0, the ground;
       PRES on sigma files that have it and on WRF files, else the axis's
       pressure; HYSPLIT's heights).
@@ -1082,14 +1086,17 @@ class _Profile:
     One variable's profile at each row of a plan, to be read at any target.
 
     *values* and *coords* are ``(rows, levels)``; pressure is held as ln p
-    (*log_p*) and read back as p. *walk*: a column from the ground up, walked
-    in level order (:func:`_interp_column`). *fixed*: a field with one value
-    per row (a surface or single-level field), the same at every target.
+    (*log_p*) and read back as p. Pressure coordinates are held as ln p too
+    (*log_coords*), and the targets, in hPa, are turned into ln p to read them.
+    *walk*: a column from the ground up, walked in level order
+    (:func:`_interp_column`). *fixed*: a field with one value per row (a
+    surface or single-level field), the same at every target.
     """
 
     values: npt.NDArray[Any] | None = None
     coords: npt.NDArray[Any] | None = None
     log_p: bool = False
+    log_coords: bool = False
     walk: bool = False
     fixed: npt.NDArray[Any] | None = None
 
@@ -1098,6 +1105,9 @@ class _Profile:
         if self.fixed is not None:
             return self.fixed
         assert self.values is not None and self.coords is not None
+        if self.log_coords:
+            with np.errstate(divide="ignore", invalid="ignore"):
+                targets = np.log(np.asarray(targets, dtype=float))
         out = _interp_profiles(self.values, self.coords, targets, column=self.walk)
         return np.exp(out) if self.log_p else out
 
@@ -1127,8 +1137,12 @@ def _sample_variable(
     out-of-range or off-grid points.
     """
     if variable == "pressure" and z_kind == "pressure":
-        # Pressure sampled in pressure space is the requested target itself.
-        return targets.astype(np.float32, copy=False)
+        # Pressure sampled in pressure space is the requested target itself,
+        # NaN below the ground (a target above PRSS) and off the grid.
+        if column is None:
+            return targets.astype(np.float32, copy=False)
+        above_ground = targets <= column.surface_pressure
+        return np.where(above_ground, targets, np.nan).astype(np.float32)
     profile = _variable_profile(
         recordset, variable, z_kind=z_kind, plan=plan, column=column
     )
@@ -1177,6 +1191,10 @@ def _variable_profile(
         the native levels of pressure-level files, whose level 0 holds no
         pressure) linearly. A terrain-following file's virtual pressure comes
         from its ``PRES`` field: NaN without one or off the internal levels.
+        At pressures the coordinate is ln p too, and a level at or below the
+        ground (its pressure at or above ``PRSS``) is left out, as
+        pressure-level files' are at heights, so a target below the ground is
+        NaN.
     """
     axis = recordset.vertical_axis
     log_p = (
@@ -1186,13 +1204,23 @@ def _variable_profile(
     )
     # At heights a column is walked in level order, as HYSPLIT does (#106).
     walk = column is not None and z_kind == "agl"
+    # At pressures the coordinate is ln p, as pressure is at heights.
+    log_coords = z_kind == "pressure"
 
     def _profile(values: npt.NDArray[Any], coords: npt.NDArray[Any]) -> _Profile:
         """Hold *values* along *coords*, as ln p for pressure."""
-        if log_p:
-            with np.errstate(divide="ignore", invalid="ignore"):
+        with np.errstate(divide="ignore", invalid="ignore"):
+            if log_p:
                 values = np.log(values)
-        return _Profile(values=values, coords=coords, log_p=log_p, walk=walk)
+            if log_coords:
+                coords = np.log(coords)
+        return _Profile(
+            values=values,
+            coords=coords,
+            log_p=log_p,
+            log_coords=log_coords,
+            walk=walk,
+        )
 
     # --- virtual "pressure" variable ---
     if variable == "pressure":
@@ -1240,6 +1268,13 @@ def _variable_profile(
         plan=plan,
         column=column,
     )
+    if z_kind == "pressure" and column is not None:
+        # A level at or below the ground (on a pressure-level file, values the
+        # model extrapolated) is left out, as prfprs leaves it out at heights
+        # (_Column._hgts_agl), so a target below the ground is NaN.
+        upper = np.asarray(levels) > 0
+        below = upper & (coords >= column.surface_pressure[:, None])
+        coords = np.where(below, np.nan, coords)
     return _profile(samples, coords)
 
 
@@ -1512,10 +1547,12 @@ def _sample_points_from_file(
         vertical axis, matching HYSPLIT, with no fallback between methods:
 
         - ``'native'``: fractional level index, for every axis.
-        - ``'pressure'``: hPa. Sigma (flag 1) uses PRES when the file has it,
-          else converts from PRSS, as hybrid (flag 4) does; pressure (flag 2)
-          uses the stored levels; terrain-following (flag 3) raises
-          ``ValueError``; WRF (flag 5) uses PRES.
+        - ``'pressure'``: hPa, interpolated as ln p from the ground (PRSS) up,
+          NaN below it. Sigma (flag 1) uses PRES when the file has it, else
+          converts from PRSS, as hybrid (flag 4) does; pressure (flag 2) uses
+          the stored levels above the ground (PRSS required);
+          terrain-following (flag 3) raises ``ValueError``; WRF (flag 5) uses
+          PRES.
         - ``'agl'``: meters above ground. Sigma/hybrid/WRF integrate
           hypsometrically from the ground (PRSS, T02M) through those
           pressures with the virtual temperature (TEMP and SPHU or RELH), as
@@ -1583,11 +1620,11 @@ def _sample_points_from_file(
         column_z_kind = z_kind
 
     # Sigma, hybrid and WRF files always start their column at the ground;
-    # pressure files do when sampled at heights (at pressures the stored levels
-    # are used), and terrain-following files on the internal levels.
+    # pressure files do at heights and at pressures (not at native levels), and
+    # terrain-following files on the internal levels.
     has_column = (
         isinstance(axis, (SigmaAxis, HybridAxis, WrfAxis))
-        or (heights and isinstance(axis, PressureAxis))
+        or (z_kind != "native" and isinstance(axis, PressureAxis))
         or (levels is not None)
     )
     # HYSPLIT's order (#116): the column at each grid point around a point is
