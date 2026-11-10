@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=80674c72"></script>
+    <script src="../../../_static/documentation_options.js?v=df508164"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev22+g981225d27" />
+  <meta name="docsearch:version" content="0.1.0b9.dev23+gd907b9843" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -431,6 +431,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_output</span><span class="p">,</span> <span class="n">reject_same_file</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._time</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_timestamp</span><span class="p">,</span> <span class="n">utc_times</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_year</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.ops.sample</span><span class="w"> </span><span class="kn">import</span> <span class="n">_mass_coupled</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.ops.subset</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize_levels</span><span class="p">,</span> <span class="n">resolve_window</span><span class="p">,</span> <span class="n">select_records</span>
@@ -619,6 +620,37 @@
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">selected</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_grid_coords</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">grid</span><span class="p">:</span> <span class="n">Grid</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Raise if a horizontal coordinate of *ds* disagrees with the grid it will be written on.</span>
+
+<span class="sd">    The file's grid comes from ``arl_grid`` alone, so an edited ``lat``, ``lon``,</span>
+<span class="sd">    ``x`` or ``y`` would otherwise be dropped without a word. A coordinate whose</span>
+<span class="sd">    shape differs is left to the dimension size check. Longitudes compare modulo</span>
+<span class="sd">    360 degrees.</span>
+<span class="sd">    """</span>
+    <span class="c1"># Tolerances sit far below a cell and above float32 storage error.</span>
+    <span class="n">spacing</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">grid_size</span> <span class="o">*</span> <span class="mi">1000</span>
+    <span class="n">tolerance</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"lat"</span><span class="p">:</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="s2">"lon"</span><span class="p">:</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">:</span> <span class="mf">1e-3</span> <span class="o">*</span> <span class="n">spacing</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">:</span> <span class="mf">1e-3</span> <span class="o">*</span> <span class="n">spacing</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span> <span class="ow">in</span> <span class="n">grid</span><span class="o">.</span><span class="n">calculate_coords</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">actual</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">actual</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">expected</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">actual</span> <span class="o">-</span> <span class="n">expected</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">"lon"</span><span class="p">:</span>
+            <span class="n">diff</span> <span class="o">=</span> <span class="p">(</span><span class="n">diff</span> <span class="o">+</span> <span class="mf">180.0</span><span class="p">)</span> <span class="o">%</span> <span class="mf">360.0</span> <span class="o">-</span> <span class="mf">180.0</span>
+        <span class="n">worst</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">diff</span><span class="p">)))</span> <span class="k">if</span> <span class="n">diff</span><span class="o">.</span><span class="n">size</span> <span class="k">else</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">worst</span> <span class="o">&lt;=</span> <span class="n">tolerance</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Dataset coordinate '</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">' disagrees with the 'arl_grid' "</span>
+                <span class="sa">f</span><span class="s2">"coordinate by up to </span><span class="si">{</span><span class="n">worst</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">; write_dataset() writes the grid "</span>
+                <span class="sa">f</span><span class="s2">"that 'arl_grid' describes. Set '</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">' back to the grid's "</span>
+                <span class="s2">"values or drop it."</span>
+            <span class="p">)</span>
+
+
 <div class="viewcode-block" id="open_dataset">
 <a class="viewcode-back" href="../../../_autosummary/arlmet.open_dataset.html#arlmet.open_dataset">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">open_dataset</span><span class="p">(</span>
@@ -774,7 +806,9 @@
 <span class="sd">        If the Dataset does not match the layout above (including a ``lat``,</span>
 <span class="sd">        ``lon``, ``y`` or ``x`` coordinate that does not increase), has no time</span>
 <span class="sd">        steps, a time is outside 1940 to 2039 (a label's two-digit year cannot</span>
-<span class="sd">        hold it), a slice is partly NaN or non-finite, an ``attrs["diff"]`` name</span>
+<span class="sd">        hold it), a ``lat``, ``lon``, ``x`` or ``y`` coordinate disagrees with</span>
+<span class="sd">        the grid the ``arl_grid`` coordinate describes, a slice is partly NaN</span>
+<span class="sd">        or non-finite, an ``attrs["diff"]`` name</span>
 <span class="sd">        is not one the name table pairs with its variable, or</span>
 <span class="sd">        ``filename_or_obj`` is the file ``ds`` was opened from.</span>
 
@@ -893,6 +927,9 @@
             <span class="n">transposed</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="s2">"time"</span><span class="p">,</span> <span class="o">*</span><span class="n">h_dims</span><span class="p">,</span> <span class="n">missing_dims</span><span class="o">=</span><span class="s2">"raise"</span><span class="p">)</span>
             <span class="n">slots</span> <span class="o">=</span> <span class="p">[(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span>
         <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">var_name</span><span class="p">,</span> <span class="n">transposed</span><span class="p">,</span> <span class="n">slots</span><span class="p">))</span>
+
+    <span class="c1"># After the per-variable checks, so a descending coordinate gets its own message.</span>
+    <span class="n">_check_grid_coords</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span>
 
     <span class="c1"># First pass: a (variable, level) that holds data at any time step is a</span>
     <span class="c1"># slot at every time step. Each slice is read and checked here, so a</span>

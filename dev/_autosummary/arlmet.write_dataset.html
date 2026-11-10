@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=80674c72"></script>
+    <script src="../_static/documentation_options.js?v=df508164"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev22+g981225d27" />
+  <meta name="docsearch:version" content="0.1.0b9.dev23+gd907b9843" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -693,7 +693,9 @@ must have one level per <code class="docutils literal notranslate"><span class="
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If the Dataset does not match the layout above (including a <code class="docutils literal notranslate"><span class="pre">lat</span></code>,
     <code class="docutils literal notranslate"><span class="pre">lon</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code> or <code class="docutils literal notranslate"><span class="pre">x</span></code> coordinate that does not increase), has no time
     steps, a time is outside 1940 to 2039 (a label’s two-digit year cannot
-    hold it), a slice is partly NaN or non-finite, an <code class="docutils literal notranslate"><span class="pre">attrs[&quot;diff&quot;]</span></code> name
+    hold it), a <code class="docutils literal notranslate"><span class="pre">lat</span></code>, <code class="docutils literal notranslate"><span class="pre">lon</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code> or <code class="docutils literal notranslate"><span class="pre">y</span></code> coordinate disagrees with
+    the grid the <code class="docutils literal notranslate"><span class="pre">arl_grid</span></code> coordinate describes, a slice is partly NaN
+    or non-finite, an <code class="docutils literal notranslate"><span class="pre">attrs[&quot;diff&quot;]</span></code> name
     is not one the name table pairs with its variable, or
     <code class="docutils literal notranslate"><span class="pre">filename_or_obj</span></code> is the file <code class="docutils literal notranslate"><span class="pre">ds</span></code> was opened from.</p>
 </dd>
