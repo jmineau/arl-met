@@ -40,15 +40,6 @@ the API reference for the full object model.
    user-guides
    api
 
-Citing
-------
-
-Cite arl-met with the DOI above, which always points to the latest release, and
-say which version you used. Each Dataset from :func:`arlmet.open_dataset` and
-:mod:`arlmet.converters` carries it in ``ds.attrs["arlmet_version"]``, each
-:func:`arlmet.sample_points` result in ``result.attrs["arlmet_version"]``, and
-``arlmet.__version__`` gives it. Zenodo lists a DOI for every version.
-
 Development
 -----------
 
