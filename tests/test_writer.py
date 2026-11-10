@@ -308,6 +308,40 @@ class TestWriter:
             open_dataset(source_path)["TEMP"].values,
         )
 
+    @pytest.mark.parametrize("dim", ["lat", "lon"])
+    def test_write_dataset_rejects_an_edited_coordinate(self, tmp_path, dim):
+        """The grid is written from arl_grid, so a lat or lon that disagrees is refused."""
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path).load()
+
+        shifted = ds.assign_coords({dim: ds[dim] + 10})
+        with pytest.raises(ValueError, match=rf"coordinate '{dim}' disagrees"):
+            write_dataset(shifted, written_path)
+        assert not written_path.exists()
+
+        # Irregular spacing is refused too, not written back as regular.
+        values = ds[dim].values.copy()
+        values[3] += 0.5 * (values[1] - values[0])
+        irregular = ds.assign_coords({dim: (dim, values)})
+        with pytest.raises(ValueError, match=rf"coordinate '{dim}' disagrees"):
+            write_dataset(irregular, written_path)
+
+        # Unedited, and with the coordinate dropped, both write.
+        write_dataset(ds, written_path)
+        write_dataset(ds.drop_vars(dim), written_path)
+
+    def test_write_dataset_accepts_longitudes_a_turn_apart(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path).load()
+
+        write_dataset(ds.assign_coords(lon=ds.lon + 360), written_path)
+
+        np.testing.assert_allclose(open_dataset(written_path).lon, ds.lon)
+
     def test_write_dataset_refuses_to_write_no_time_steps(self, tmp_path):
         source_path = tmp_path / "source.arl"
         written_path = tmp_path / "written.arl"
