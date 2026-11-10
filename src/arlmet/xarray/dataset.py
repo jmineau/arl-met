@@ -15,6 +15,7 @@ from xarray.core import indexing
 
 from arlmet._io import atomic_output, reject_same_file
 from arlmet._time import ensure_timestamp, utc_times
+from arlmet._version import __version__
 from arlmet.grid import Grid
 from arlmet.header import check_year
 from arlmet.ops.sample import _mass_coupled
@@ -176,6 +177,7 @@ def _build_dataset_from_file(
     ds = ds.assign_coords(arl_grid=grid_to_coord(selected_grid))
     ds.attrs["source"] = met.source
     ds.attrs["vertical_flag"] = met.vertical_axis.flag
+    ds.attrs["arlmet_version"] = __version__
     if "level" in ds.coords:
         # Add physical non-dim coord for upper-air levels
         upper_level_ints = [int(v) for v in ds.coords["level"].values.tolist()]
@@ -301,6 +303,8 @@ def open_dataset(
     Returns
     -------
     xarray.Dataset
+        ``attrs`` holds ``source``, ``vertical_flag`` and ``arlmet_version``,
+        the arlmet version that built the Dataset.
     """
     from arlmet.file import File
 

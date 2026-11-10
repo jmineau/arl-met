@@ -97,6 +97,7 @@ class TestFromEra5:
         ds = from_era5(pl, sfc)
         assert ds.attrs["source"] == "ERA5"
         assert ds.attrs["vertical_flag"] == 2
+        assert ds.attrs["arlmet_version"] == arlmet.__version__
         assert ds["TEMP"].dims == ("time", "level", "lat", "lon")
         assert ds["PRSS"].dims == ("time", "lat", "lon")
         assert ds["level"].values.tolist() == [1, 2, 3, 4]

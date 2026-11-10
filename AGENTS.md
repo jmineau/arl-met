@@ -157,7 +157,7 @@ methods, keeping the import graph one-way; `converters/` sits on `xarray/`.
     assignment and keeps `levels` read-only. Hashing and `cached_property`
     (`Grid.crs`, `Grid.origin`) rely on this; build a new value instead.
 11. **The public API is explicit.** The four `__init__.py` files re-export it,
-    and every module but `_io`, `_time` and `_entrypoint` defines `__all__`.
+    and every module but `_io`, `_time`, `_version` and `_entrypoint` defines `__all__`.
     Options after the obvious leading arguments are keyword-only, except that
     `unpack` keeps six positional arguments (the wheel smoke test in
     `publish.yml` calls it so).

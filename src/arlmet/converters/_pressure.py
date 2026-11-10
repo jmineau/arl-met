@@ -10,6 +10,7 @@ import numpy.typing as npt
 import pandas as pd
 import xarray as xr
 
+from arlmet._version import __version__
 from arlmet.grid import Grid
 from arlmet.vertical import PressureAxis, VerticalAxis
 from arlmet.xarray._coords import (
@@ -202,7 +203,7 @@ def arl_dataset(
     It has the grid's coordinates and ``arl_grid``, ``time``, the index records'
     ``forecast_hour`` (0 unless given), ``level`` numbered 1 to N with the
     physical coordinate of ``vertical_axis`` (whose first level is the
-    surface), and the ``source`` and ``vertical_flag`` attrs.
+    surface), and the ``source``, ``vertical_flag`` and ``arlmet_version`` attrs.
     """
     times = np.asarray(times)
     level_numbers = list(range(1, len(vertical_axis.levels)))
@@ -226,6 +227,7 @@ def arl_dataset(
     ds = ds.assign_coords({phys_name: phys_coord})
     ds.attrs["source"] = source
     ds.attrs["vertical_flag"] = vertical_axis.flag
+    ds.attrs["arlmet_version"] = __version__
     return ds
 
 
