@@ -1,0 +1,6 @@
+arlmet.Grid.rotate\_winds
+=========================
+
+.. currentmodule:: arlmet
+
+.. automethod:: Grid.rotate_winds

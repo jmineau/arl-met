@@ -1,0 +1,6 @@
+arlmet.DirectoryIndex.directory
+===============================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: DirectoryIndex.directory

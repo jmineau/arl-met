@@ -1,0 +1,6 @@
+arlmet.DataRecord.bytes
+=======================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: DataRecord.bytes

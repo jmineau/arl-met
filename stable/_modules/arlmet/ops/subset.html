@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.ops.subset &#8212; arl-met 0.1.0b8</title>
+    <title>arlmet.ops.subset &#8212; arl-met 0.1.0b9</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=630e2062"></script>
+    <script src="../../../_static/documentation_options.js?v=c776a47b"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b8';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b9';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b8" />
+  <meta name="docsearch:version" content="0.1.0b9" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -127,7 +127,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b8</p>
+    <p class="title logo__title">arl-met 0.1.0b9</p>
   
 </a></div>
     
@@ -418,6 +418,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">operator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
@@ -430,7 +431,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.header</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span><span class="p">,</span> <span class="n">record_length_from_grid</span><span class="p">,</span> <span class="n">split_grid_component</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.indexrecord</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span><span class="p">,</span> <span class="n">LvlInfo</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">,</span> <span class="n">_derive_index_forecast</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.packing</span><span class="w"> </span><span class="kn">import</span> <span class="n">calculate_checksum</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span><span class="p">,</span> <span class="n">_corrects</span><span class="p">,</span> <span class="n">_dif_parents</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerticalAxis</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
@@ -448,7 +449,15 @@
     <span class="k">if</span> <span class="n">levels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vertical_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)))</span>
 
-    <span class="n">normalized</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">({</span><span class="nb">int</span><span class="p">(</span><span class="n">level</span><span class="p">)</span> <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">}))</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">levels</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"levels must be integer level indices, not </span><span class="si">{</span><span class="n">levels</span><span class="si">!r}</span><span class="s2">."</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># operator.index takes integers (NumPy's too) and refuses 1.5 or "1".</span>
+        <span class="n">normalized</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">({</span><span class="n">operator</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">level</span><span class="p">)</span> <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">}))</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"levels must be integer level indices, got </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span><span class="si">!r}</span><span class="s2">."</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">normalized</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"levels must include at least one level index."</span><span class="p">)</span>
 
@@ -641,33 +650,6 @@
             <span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">validate_subset_difs</span><span class="p">(</span>
-    <span class="n">selected_recordsets</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">RecordSet</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">DataRecord</span><span class="p">]]],</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">level_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Fail early when renumbering levels would leave a DIF record unpaired.</span>
-
-<span class="sd">    Leaving out level 0 makes the lowest kept level the subset's surface,</span>
-<span class="sd">    where HYSPLIT's name table pairs a ``DIF*`` record only with ``TPP*`` or</span>
-<span class="sd">    ``PRT*``, so a ``DIFW`` there would correct nothing on read.</span>
-<span class="sd">    """</span>
-    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">selected_records</span> <span class="ow">in</span> <span class="n">selected_recordsets</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">selected_records</span><span class="p">:</span>
-            <span class="n">level</span> <span class="o">=</span> <span class="n">level_map</span><span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">level</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">dif</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">diffs</span><span class="p">:</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">_corrects</span><span class="p">(</span><span class="n">dif</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span> <span class="n">level</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">"The subset puts level </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2"> at level </span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s2">, "</span>
-                        <span class="sa">f</span><span class="s2">"where a </span><span class="si">{</span><span class="n">dif</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2"> record corrects "</span>
-                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_dif_parents</span><span class="p">(</span><span class="n">dif</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span><span class="w"> </span><span class="n">level</span><span class="p">)</span><span class="si">}</span><span class="s2">, so the "</span>
-                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">dif</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2"> record of </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2"> would "</span>
-                        <span class="s2">"correct nothing. Keep level 0, or leave out "</span>
-                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2"> with variables=."</span>
-                    <span class="p">)</span>
-
-
 <span class="c1"># Byte offsets of the level field in a record header (see Header.FIELDS).</span>
 <span class="n">_LEVEL_START</span><span class="p">,</span> <span class="n">_LEVEL_STOP</span> <span class="o">=</span> <span class="n">Header</span><span class="o">.</span><span class="n">FIELDS</span><span class="p">[</span><span class="s2">"level"</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span>
 
@@ -803,6 +785,7 @@
     <span class="n">bbox_crs</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">levels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">variables</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Extract a spatial/vertical subset from an ARL file into a new ARL file.</span>
@@ -812,7 +795,7 @@
 <span class="sd">    path : path-like</span>
 <span class="sd">        Input ARL file.</span>
 <span class="sd">    dest : path-like</span>
-<span class="sd">        Output ARL file. Overwrites any existing file. Must not be ``path``.</span>
+<span class="sd">        Output ARL file. Must not be ``path``.</span>
 <span class="sd">    bbox : tuple[float, float, float, float], optional</span>
 <span class="sd">        Geographic bounding box ``(west, south, east, north)`` in degrees.</span>
 <span class="sd">        On a projected grid the crop is the smallest rectangle of cells</span>
@@ -823,14 +806,20 @@
 <span class="sd">        ``(xmin, ymin, xmax, ymax)`` in its units; the default is degrees</span>
 <span class="sd">        (:meth:`arlmet.Grid.window_from_bbox`).</span>
 <span class="sd">    levels : iterable of int, optional</span>
-<span class="sd">        ARL level indices to keep. Output levels are compacted and renumbered</span>
-<span class="sd">        from zero while preserving the selected level heights.</span>
+<span class="sd">        Integer ARL level indices to keep, which must include 0, the surface.</span>
+<span class="sd">        Output levels are compacted and renumbered from zero while preserving</span>
+<span class="sd">        the selected level heights.</span>
 <span class="sd">    variables : str or iterable of str, optional</span>
 <span class="sd">        Variable names to keep, as the file spells them (``"TEMP"``, not</span>
 <span class="sd">        ``"temp"``); a single string is one name. A ``DIF*`` name the file</span>
 <span class="sd">        holds is accepted, but naming it selects nothing: a ``DIF*`` record is</span>
 <span class="sd">        written with its parent record, when the parent is selected. All</span>
 <span class="sd">        variables are included by default.</span>
+<span class="sd">    overwrite : bool, default True</span>
+<span class="sd">        Replace an existing ``dest``. With False an existing ``dest`` is</span>
+<span class="sd">        returned as it is, without reading the input, so a rerun skips</span>
+<span class="sd">        finished work; nothing checks that it came from the same inputs and</span>
+<span class="sd">        arguments.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -840,11 +829,13 @@
 
 <span class="sd">    Raises</span>
 <span class="sd">    ------</span>
+<span class="sd">    TypeError</span>
+<span class="sd">        If ``levels`` holds anything but integers (a string, or 1.5).</span>
 <span class="sd">    ValueError</span>
 <span class="sd">        If ``dest`` is the same file as ``path``, the cropped grid is too</span>
-<span class="sd">        small to hold the ARL index record, ``levels`` leaves out level 0</span>
-<span class="sd">        and so moves a record with ``DIF*`` records to the surface, where</span>
-<span class="sd">        HYSPLIT's name table would not pair them with it, ``variables`` is</span>
+<span class="sd">        small to hold the ARL index record, ``levels`` leaves out level 0 (the</span>
+<span class="sd">        surface: the output is renumbered from zero, so the lowest kept level</span>
+<span class="sd">        would become the surface), ``variables`` is</span>
 <span class="sd">        empty or names a variable the file does not hold (every unknown name</span>
 <span class="sd">        is listed, also when others are known), or the selected levels and</span>
 <span class="sd">        variables leave no record in any time step, so there is nothing to</span>
@@ -875,6 +866,8 @@
 <span class="sd">    &gt;&gt;&gt; ds = arlmet.open_dataset(out)</span>
 <span class="sd">    """</span>
     <span class="n">reject_same_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="n">variables</span><span class="p">]</span>  <span class="c1"># one name, not its letters</span>
     <span class="n">variable_names</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">variables</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">set</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
@@ -882,6 +875,13 @@
     <span class="k">with</span> <span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
         <span class="n">window</span> <span class="o">=</span> <span class="n">resolve_window</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">bbox</span><span class="p">,</span> <span class="n">bbox_crs</span><span class="p">)</span>
         <span class="n">selected_levels</span> <span class="o">=</span> <span class="n">normalize_levels</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">vertical_axis</span><span class="p">,</span> <span class="n">levels</span><span class="p">)</span>
+        <span class="k">if</span> <span class="mi">0</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">selected_levels</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"levels must include 0, the surface: the output is renumbered from "</span>
+                <span class="s2">"zero, and level 0 of an ARL file holds the surface fields, so "</span>
+                <span class="sa">f</span><span class="s2">"leaving it out would turn level </span><span class="si">{</span><span class="n">selected_levels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> into the "</span>
+                <span class="s2">"surface. Add 0 to levels (variables= limits what is written)."</span>
+            <span class="p">)</span>
         <span class="n">selected_level_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">selected_levels</span><span class="p">)</span>
         <span class="n">level_map</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">old_level</span><span class="p">:</span> <span class="n">new_level</span> <span class="k">for</span> <span class="n">new_level</span><span class="p">,</span> <span class="n">old_level</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">selected_levels</span><span class="p">)</span>
@@ -911,7 +911,6 @@
                 <span class="s2">"so there is nothing to write."</span>
             <span class="p">)</span>
 
-        <span class="n">validate_subset_difs</span><span class="p">(</span><span class="n">selected_recordsets</span><span class="p">,</span> <span class="n">level_map</span><span class="o">=</span><span class="n">level_map</span><span class="p">)</span>
         <span class="n">validate_subset_record_length</span><span class="p">(</span>
             <span class="n">selected_recordsets</span><span class="p">,</span>
             <span class="n">subset_grid</span><span class="o">=</span><span class="n">subset_grid</span><span class="p">,</span>

@@ -1,0 +1,6 @@
+arlmet.DataRecord.mode
+======================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: DataRecord.mode

@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>arlmet.Header &#8212; arl-met 0.1.0b8</title>
+    <title>arlmet.Header &#8212; arl-met 0.1.0b9</title>
   
   
   
@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=630e2062"></script>
+    <script src="../_static/documentation_options.js?v=c776a47b"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -50,7 +50,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b8';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b9';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b8" />
+  <meta name="docsearch:version" content="0.1.0b9" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -130,7 +130,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b8</p>
+    <p class="title logo__title">arl-met 0.1.0b9</p>
   
 </a></div>
     
@@ -385,6 +385,12 @@
 <li class="toctree-l1"><a class="reference internal" href="arlmet.sample_points.html">arlmet.sample_points</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.concat.html">arlmet.concat</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.concat_by_time.html">arlmet.concat_by_time</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="arlmet.converters.from_era5.html">arlmet.converters.from_era5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arlmet.converters.from_gfs.html">arlmet.converters.from_gfs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arlmet.converters.from_icon.html">arlmet.converters.from_icon</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arlmet.converters.from_wrf.html">arlmet.converters.from_wrf</a></li>
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="arlmet.index.html">arlmet.index</a></li>
@@ -649,8 +655,8 @@ so <a class="reference internal" href="arlmet.Header.tobytes.html#arlmet.Header.
 does (an index record keeps the full hour, up to 999, in its own field).</p></li>
 <li><p><strong>level</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – ARL vertical level index.</p></li>
 <li><p><strong>grid</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>]</span>) – Thousands part of the x and y grid sizes, as stored in the header’s
-two grid letters (<code class="docutils literal notranslate"><span class="pre">(1000,</span> <span class="pre">0)</span></code> for a 1799x799 grid; <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0)</span></code>
-below 1000 points). The remainders live in the index record, whose
+two grid characters (<code class="docutils literal notranslate"><span class="pre">(1000,</span> <span class="pre">0)</span></code> for a 1799x799 grid, written
+<code class="docutils literal notranslate"><span class="pre">A&#64;</span></code>; <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0)</span></code> below 1000 points, written <code class="docutils literal notranslate"><span class="pre">99</span></code>). The remainders live in the index record, whose
 <code class="docutils literal notranslate"><span class="pre">nx</span></code>/<code class="docutils literal notranslate"><span class="pre">ny</span></code> are the full sizes.</p></li>
 <li><p><strong>variable</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Four-character ARL variable name.</p></li>
 <li><p><strong>exponent</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Differential packing exponent.</p></li>

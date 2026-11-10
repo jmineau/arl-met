@@ -1,0 +1,34 @@
+﻿arlmet.IndexRecord
+==================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: IndexRecord
+   :no-members:
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+
+   ~IndexRecord.grid
+   ~IndexRecord.index_length
+   ~IndexRecord.time
+   ~IndexRecord.vertical_axis
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~IndexRecord.from_position
+   ~IndexRecord.to_record_bytes
+   ~IndexRecord.tobytes
+
+
+

@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Cropping ARL Data &#8212; arl-met 0.1.0b8</title>
+    <title>Cropping ARL Data &#8212; arl-met 0.1.0b9</title>
   
   
   
@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=630e2062"></script>
+    <script src="_static/documentation_options.js?v=c776a47b"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -50,7 +50,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b8';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b9';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b8" />
+  <meta name="docsearch:version" content="0.1.0b9" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -130,7 +130,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b8</p>
+    <p class="title logo__title">arl-met 0.1.0b9</p>
   
 </a></div>
     
@@ -380,6 +380,7 @@
 <li class="toctree-l1"><a class="reference internal" href="downloading.html">Downloading Archived Meteorology</a></li>
 <li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Cropping ARL Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="writing.html">Writing ARL Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="converting.html">Converting Other Models’ Output</a></li>
 <li class="toctree-l1"><a class="reference internal" href="concatenating.html">Concatenating ARL Files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="indexing.html">Indexing a Directory</a></li>
 <li class="toctree-l1"><a class="reference internal" href="probing.html">Probing a File</a></li>
@@ -509,6 +510,13 @@ levels (the Dataset’s <code class="docutils literal notranslate"><span class="
 can pass it straight to <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a> or <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a>.</p>
 <p>The subset is written one time step at a time, so memory use is bounded by a
 single cropped time step rather than the whole output file.</p>
+<p>A crop with <code class="docutils literal notranslate"><span class="pre">bbox</span></code> unpacks each record’s window and packs it again, so its
+values can move by about one packing step of the new record (its precision,
+see <a class="reference internal" href="format.html"><span class="doc">ARL File Format</span></a>). That precision follows the largest jump between neighbors
+inside the crop, so it can differ from the full file’s: up to 0.2 m/s for
+<code class="docutils literal notranslate"><span class="pre">UWND</span></code> on a reanalysis crop. Without <code class="docutils literal notranslate"><span class="pre">bbox</span></code> (only
+<code class="docutils literal notranslate"><span class="pre">levels</span></code> or <code class="docutils literal notranslate"><span class="pre">variables</span></code>) the records are copied byte for byte and no value
+changes.</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">out</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
 <span class="gp">   ...: </span>    <span class="s2">"met.arl"</span><span class="p">,</span> <span class="s2">"cropped.arl"</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">)</span>
 <span class="gp">   ...: </span><span class="p">)</span>
@@ -520,13 +528,25 @@ single cropped time step rather than the whole output file.</p>
 <span class="gh">Out[9]: </span><span class="go">Frozen({'lon': 41, 'lat': 31, 'level': 4, 'time': 4})</span>
 </pre></div>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">extract_subset()</span></code> replaces an existing output. In a batch you may rerun after a
+failure, pass <code class="docutils literal notranslate"><span class="pre">overwrite=False</span></code> to keep the crops already written: an existing
+<code class="docutils literal notranslate"><span class="pre">dest</span></code> is returned as it is, without reading the input. Nothing checks that it
+was cropped with the same arguments, so use it only when the output name says
+what went into it.</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
+<span class="gp">   ....: </span>    <span class="s2">"met.arl"</span><span class="p">,</span> <span class="s2">"cropped.arl"</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span>
+<span class="gp">   ....: </span><span class="p">)</span>
+<span class="gp">   ....: </span>
+<span class="gh">Out[10]: </span><span class="go">PosixPath('cropped.arl')</span>
+</pre></div>
+</div>
 <p>When you already hold an open <a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a>, the same operation is
 available as a method:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
 <span class="gp">   ....: </span>    <span class="n">out</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span><span class="s2">"cropped.arl"</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">))</span>
 <span class="gp">   ....: </span>
 
-<span class="gp">In [11]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+<span class="gp">In [12]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>A <code class="docutils literal notranslate"><span class="pre">bbox</span></code> with <code class="docutils literal notranslate"><span class="pre">west</span> <span class="pre">&gt;</span> <span class="pre">east</span></code> crosses the dateline, on any grid:
@@ -563,15 +583,15 @@ the coordinate reference system it is in: an EPSG code (<code class="docutils li
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">pyproj.CRS.from_user_input()</span></code> takes. The box is then
 <code class="docutils literal notranslate"><span class="pre">(xmin,</span> <span class="pre">ymin,</span> <span class="pre">xmax,</span> <span class="pre">ymax)</span></code> in that system’s units, easting before northing. Here
 a box of 80 by 160 km in UTM zone 12N, around Salt Lake City:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">utm</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">utm</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
 <span class="gp">   ....: </span>    <span class="s2">"met.arl"</span><span class="p">,</span>
 <span class="gp">   ....: </span>    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="mf">380_000.0</span><span class="p">,</span> <span class="mf">4_400_000.0</span><span class="p">,</span> <span class="mf">460_000.0</span><span class="p">,</span> <span class="mf">4_560_000.0</span><span class="p">),</span>
 <span class="gp">   ....: </span>    <span class="n">bbox_crs</span><span class="o">=</span><span class="s2">"EPSG:32612"</span><span class="p">,</span>
 <span class="gp">   ....: </span><span class="p">)</span>
 <span class="gp">   ....: </span>
 
-<span class="gp">In [13]: </span><span class="nb">dict</span><span class="p">(</span><span class="n">utm</span><span class="o">.</span><span class="n">sizes</span><span class="p">)</span>
-<span class="gh">Out[13]: </span><span class="go">{'lon': 10, 'lat': 16, 'level': 4, 'time': 4}</span>
+<span class="gp">In [14]: </span><span class="nb">dict</span><span class="p">(</span><span class="n">utm</span><span class="o">.</span><span class="n">sizes</span><span class="p">)</span>
+<span class="gh">Out[14]: </span><span class="go">{'lon': 10, 'lat': 16, 'level': 4, 'time': 4}</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">extract_subset()</span></code>, <code class="docutils literal notranslate"><span class="pre">File.extract_subset()</span></code>, <code class="docutils literal notranslate"><span class="pre">File.to_dataset()</span></code> and
@@ -588,7 +608,7 @@ cells times the grid spacing.</p>
 <section id="keep-only-the-levels-and-variables-you-need">
 <h2>Keep only the levels and variables you need<a class="headerlink" href="#keep-only-the-levels-and-variables-you-need" title="Link to this heading">#</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">extract_subset()</span></code> can keep only the levels and variables you need.</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [14]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
 <span class="gp">   ....: </span>    <span class="s2">"met.arl"</span><span class="p">,</span>
 <span class="gp">   ....: </span>    <span class="s2">"subset.arl"</span><span class="p">,</span>
 <span class="gp">   ....: </span>    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span>
@@ -596,10 +616,10 @@ cells times the grid spacing.</p>
 <span class="gp">   ....: </span>    <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">,</span> <span class="s2">"TEMP"</span><span class="p">],</span>
 <span class="gp">   ....: </span><span class="p">)</span>
 <span class="gp">   ....: </span>
-<span class="gh">Out[14]: </span><span class="go">PosixPath('subset.arl')</span>
+<span class="gh">Out[15]: </span><span class="go">PosixPath('subset.arl')</span>
 
-<span class="gp">In [15]: </span><span class="nb">list</span><span class="p">(</span><span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">"subset.arl"</span><span class="p">)</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
-<span class="gh">Out[15]: </span><span class="go">['TEMP', 'UWND', 'VWND']</span>
+<span class="gp">In [16]: </span><span class="nb">list</span><span class="p">(</span><span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">"subset.arl"</span><span class="p">)</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
+<span class="gh">Out[16]: </span><span class="go">['TEMP', 'UWND', 'VWND']</span>
 </pre></div>
 </div>
 <p>Without a <code class="docutils literal notranslate"><span class="pre">bbox</span></code>, selecting levels or variables does not unpack anything:
@@ -649,7 +669,10 @@ south and 13 to the north. Crops of lat-lon grids (GFS, GDAS) are the same as
 <section id="what-changes-in-the-output-file">
 <h2>What changes in the output file<a class="headerlink" href="#what-changes-in-the-output-file" title="Link to this heading">#</a></h2>
 <p>When levels are selected, the output file is renumbered from zero upward while
-preserving the original level values in the vertical axis metadata.</p>
+preserving the original level values in the vertical axis metadata. <code class="docutils literal notranslate"><span class="pre">levels</span></code>
+must be integers and must include 0, the surface: level 0 of an ARL file holds
+the surface fields, so a selection without it would turn the lowest kept level
+into the surface (HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">xtrct_grid</span></code> always keeps level 0 too).</p>
 <p>When variables are selected, only those variables are written into each output
 time step. Forecast hours are preserved, the index records’ and each data
 record’s own.</p>

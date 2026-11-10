@@ -1,0 +1,6 @@
+arlmet.RecordSet.record\_length
+===============================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: RecordSet.record_length

@@ -1,0 +1,6 @@
+arlmet.archives.Archive.source
+==============================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: Archive.source

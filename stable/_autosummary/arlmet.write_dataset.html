@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>arlmet.write_dataset &#8212; arl-met 0.1.0b8</title>
+    <title>arlmet.write_dataset &#8212; arl-met 0.1.0b9</title>
   
   
   
@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=630e2062"></script>
+    <script src="../_static/documentation_options.js?v=c776a47b"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -50,7 +50,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b8';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b9';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b8" />
+  <meta name="docsearch:version" content="0.1.0b9" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -130,7 +130,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b8</p>
+    <p class="title logo__title">arl-met 0.1.0b9</p>
   
 </a></div>
     
@@ -385,6 +385,12 @@
 <li class="toctree-l1"><a class="reference internal" href="arlmet.sample_points.html">arlmet.sample_points</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.concat.html">arlmet.concat</a></li>
 <li class="toctree-l1"><a class="reference internal" href="arlmet.concat_by_time.html">arlmet.concat_by_time</a></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="arlmet.converters.from_era5.html">arlmet.converters.from_era5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arlmet.converters.from_gfs.html">arlmet.converters.from_gfs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arlmet.converters.from_icon.html">arlmet.converters.from_icon</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arlmet.converters.from_wrf.html">arlmet.converters.from_wrf</a></li>
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="arlmet.index.html">arlmet.index</a></li>
@@ -677,17 +683,24 @@ HYSPLIT’s name table pairs with the variable: <code class="docutils literal no
 file <code class="docutils literal notranslate"><span class="pre">ds</span></code> was opened from.</p></li>
 <li><p><strong>vertical_axis</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="arlmet.VerticalAxis.html#arlmet.VerticalAxis" title="arlmet.vertical.VerticalAxis"><code class="xref py py-class docutils literal notranslate"><span class="pre">VerticalAxis</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Vertical axis to write. By default it is rebuilt from the Dataset’s
 <code class="docutils literal notranslate"><span class="pre">level</span></code> coordinates. Required for surface-only Datasets; otherwise it
-must have one level per <code class="docutils literal notranslate"><span class="pre">level</span></code> coordinate value plus the surface.</p></li>
+must have one level per <code class="docutils literal notranslate"><span class="pre">level</span></code> coordinate value plus the surface,
+and agree with the Dataset’s <code class="docutils literal notranslate"><span class="pre">pressure</span></code>, <code class="docutils literal notranslate"><span class="pre">sigma</span></code>, <code class="docutils literal notranslate"><span class="pre">height</span></code> or
+<code class="docutils literal notranslate"><span class="pre">eta</span></code> coordinate when it has one.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If the Dataset does not match the layout above, a slice is partly NaN
-    or non-finite, an <code class="docutils literal notranslate"><span class="pre">attrs[&quot;diff&quot;]</span></code> name is not one the name table
-    pairs with its variable, or <code class="docutils literal notranslate"><span class="pre">filename_or_obj</span></code> is the file <code class="docutils literal notranslate"><span class="pre">ds</span></code> was
-    opened from.</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If the Dataset does not match the layout above (including a <code class="docutils literal notranslate"><span class="pre">lat</span></code>,
+    <code class="docutils literal notranslate"><span class="pre">lon</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code> or <code class="docutils literal notranslate"><span class="pre">x</span></code> coordinate that does not increase), has no time
+    steps, a time is outside 1940 to 2039 (a label’s two-digit year cannot
+    hold it), a <code class="docutils literal notranslate"><span class="pre">lat</span></code>, <code class="docutils literal notranslate"><span class="pre">lon</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code> or <code class="docutils literal notranslate"><span class="pre">y</span></code> coordinate disagrees with
+    the grid the <code class="docutils literal notranslate"><span class="pre">arl_grid</span></code> coordinate describes, the vertical axis
+    disagrees with the Dataset’s own vertical coordinate, a slice is partly NaN
+    or non-finite, an <code class="docutils literal notranslate"><span class="pre">attrs[&quot;diff&quot;]</span></code> name
+    is not one the name table pairs with its variable, or
+    <code class="docutils literal notranslate"><span class="pre">filename_or_obj</span></code> is the file <code class="docutils literal notranslate"><span class="pre">ds</span></code> was opened from.</p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>

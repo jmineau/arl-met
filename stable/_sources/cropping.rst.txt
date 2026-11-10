@@ -74,6 +74,14 @@ can pass it straight to :func:`arlmet.open_dataset` or :class:`arlmet.File`.
 The subset is written one time step at a time, so memory use is bounded by a
 single cropped time step rather than the whole output file.
 
+A crop with ``bbox`` unpacks each record's window and packs it again, so its
+values can move by about one packing step of the new record (its precision,
+see :doc:`format`). That precision follows the largest jump between neighbors
+inside the crop, so it can differ from the full file's: up to 0.2 m/s for
+``UWND`` on a reanalysis crop. Without ``bbox`` (only
+``levels`` or ``variables``) the records are copied byte for byte and no value
+changes.
+
 .. ipython:: python
 
    out = arlmet.extract_subset(
@@ -81,6 +89,18 @@ single cropped time step rather than the whole output file.
    )
    ds = arlmet.open_dataset(out)
    ds.sizes
+
+``extract_subset()`` replaces an existing output. In a batch you may rerun after a
+failure, pass ``overwrite=False`` to keep the crops already written: an existing
+``dest`` is returned as it is, without reading the input. Nothing checks that it
+was cropped with the same arguments, so use it only when the output name says
+what went into it.
+
+.. ipython:: python
+
+   arlmet.extract_subset(
+       "met.arl", "cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0), overwrite=False
+   )
 
 When you already hold an open :class:`arlmet.File`, the same operation is
 available as a method:
@@ -221,7 +241,10 @@ What changes in the output file
 -------------------------------
 
 When levels are selected, the output file is renumbered from zero upward while
-preserving the original level values in the vertical axis metadata.
+preserving the original level values in the vertical axis metadata. ``levels``
+must be integers and must include 0, the surface: level 0 of an ARL file holds
+the surface fields, so a selection without it would turn the lowest kept level
+into the surface (HYSPLIT's ``xtrct_grid`` always keeps level 0 too).
 
 When variables are selected, only those variables are written into each output
 time step. Forecast hours are preserved, the index records' and each data

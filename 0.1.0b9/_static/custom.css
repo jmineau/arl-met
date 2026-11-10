@@ -1,0 +1,67 @@
+:root {
+  --arlmet-noaa-blue: #3b80d0;
+  --arlmet-noaa-blue-deep: #2b3990;
+  --arlmet-noaa-blue-link: #245ca8;
+}
+
+.arlmet-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin: 1.75rem 0 2.25rem;
+}
+
+.arlmet-card {
+  display: block;
+  padding: 1.25rem 1.25rem 1.1rem;
+  border: 1px solid var(--pst-color-border, #d0d7de);
+  border-radius: 0.9rem;
+  background: linear-gradient(180deg, rgba(59, 128, 208, 0.1), rgba(43, 57, 144, 0.03));
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.arlmet-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(43, 57, 144, 0.16);
+  border-color: var(--arlmet-noaa-blue);
+  text-decoration: none;
+}
+
+.arlmet-card__eyebrow {
+  margin-bottom: 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--arlmet-noaa-blue-deep);
+}
+
+.arlmet-card__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  color: var(--pst-color-text-base, #1f2937);
+}
+
+.arlmet-card__body {
+  margin: 0;
+  color: var(--pst-color-text-muted, #4b5563);
+  line-height: 1.55;
+}
+
+html[data-theme="dark"] .arlmet-card {
+  background: linear-gradient(180deg, rgba(59, 128, 208, 0.2), rgba(43, 57, 144, 0.08));
+  border-color: rgba(148, 163, 184, 0.32);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.28);
+}
+
+html[data-theme="dark"] .arlmet-card:hover {
+  border-color: #62a8f0;
+  box-shadow: 0 16px 36px rgba(30, 64, 175, 0.3);
+}
+
+html[data-theme="dark"] .arlmet-card__eyebrow {
+  color: #8bc2ff;
+}

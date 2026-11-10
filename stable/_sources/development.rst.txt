@@ -12,7 +12,11 @@ HYSPLIT routines arl-met mirrors
 --------------------------------
 
 arl-met follows HYSPLIT's own reader and writer wherever the format leaves room
-for choice. The Fortran routines it matches:
+for choice. Every agreement figure below comes from HYSPLIT v5.3.2's own
+library, run by the Fortran drivers in ``validation/`` (the files, the points
+and HYSPLIT's values are there, with the steps to run them again);
+``extract_subset`` is checked against ``xtrct_grid`` built from the same
+HYSPLIT source. The Fortran routines it matches:
 
 .. list-table::
    :header-rows: 1

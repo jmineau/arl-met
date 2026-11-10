@@ -1,0 +1,6 @@
+﻿arlmet.converters.from\_icon
+============================
+
+.. currentmodule:: arlmet.converters
+
+.. autofunction:: from_icon

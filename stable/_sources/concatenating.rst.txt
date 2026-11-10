@@ -88,7 +88,8 @@ Before writing, the inputs are scanned and joined only if they form one coherent
 record stream. ``concat()`` raises ``ValueError`` when:
 
 - the inputs disagree on grid or vertical axis (different grids produce different
-  record lengths, which would corrupt the stream)
+  record lengths, which would corrupt the stream), or on source ID (the output
+  could not be opened)
 - the same valid time appears in more than one input (HYSPLIT behavior on
   repeated times is undefined)
 - an input file is empty, or the output path is also one of the inputs
@@ -120,7 +121,13 @@ same bin, or ``concat_by_time()`` raises ``ValueError`` before writing anything.
 start time as ``time`` (a :class:`pandas.Timestamp`). It must keep bins distinct
 at ``freq`` — ``"{time:%Y%m%d}_hrrr"`` with ``freq="6h"`` would name four bins
 the same, which raises ``ValueError``. ``concat_by_time()`` returns the list of
-written paths, in time order.
+output paths, in time order.
+
+It rewrites every bin's file. To rerun after a failure without redoing finished
+bins, pass ``overwrite=False``: a bin whose output file exists is left as it is
+(and still listed), so only the missing ones are written. :func:`arlmet.concat`
+takes the same keyword. Nothing checks that an existing file holds the bin's
+current inputs, so remove the files of bins whose inputs changed.
 
 Limit the range with ``start=`` and ``end=`` to skip files whose first valid
 time falls outside those inclusive bounds (either may be left open):
@@ -145,9 +152,11 @@ time falls outside those inclusive bounds (either may be left open):
 Limitations
 -----------
 
-- Concatenated files must share one grid and one vertical axis.
+- Concatenated files must share one grid, one vertical axis and one source ID.
 - Valid times must not repeat across the inputs of a single output file.
 - ``concat_by_time`` does not split files, so no input may cross a ``freq`` bin
   boundary (e.g. use ``freq="1D"`` for 6-hourly inputs, not ``freq="1h"``).
 - ``pattern`` should match only ARL files; a matched file that cannot be read as
-  ARL raises :class:`arlmet.ARLFormatError` (a ``ValueError``).
+  ARL raises :class:`arlmet.ARLFormatError` (a ``ValueError``). Hidden files
+  (names starting with ``.``, such as the ``.partial`` file an interrupted run
+  leaves) are skipped unless the pattern itself starts a name with a dot.
