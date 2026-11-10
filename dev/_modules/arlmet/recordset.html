@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=45a955a2"></script>
+    <script src="../../_static/documentation_options.js?v=8d0581b7"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev18+g7379e2d40" />
+  <meta name="docsearch:version" content="0.1.0b9.dev19+gf2781c13a" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -435,6 +435,7 @@
     <span class="n">DataRecord</span><span class="p">,</span>
     <span class="n">_check_dif_parent</span><span class="p">,</span>
     <span class="n">_check_field_shape</span><span class="p">,</span>
+    <span class="n">_check_variable_name</span><span class="p">,</span>
     <span class="n">_require_mode</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerticalAxis</span>
@@ -584,7 +585,8 @@
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        variable : str</span>
-<span class="sd">            Four-character ARL variable name.</span>
+<span class="sd">            Four-character ARL variable name; one of any other length is</span>
+<span class="sd">            refused, because the name is stored padded to four characters.</span>
 <span class="sd">        level : int</span>
 <span class="sd">            ARL level index for the record.</span>
 <span class="sd">        forecast : int</span>
@@ -616,11 +618,12 @@
 <span class="sd">        Raises</span>
 <span class="sd">        ------</span>
 <span class="sd">        ValueError</span>
-<span class="sd">            If ``variable`` is a ``DIF*`` name, a ``diff`` name is not one the</span>
+<span class="sd">            If ``variable`` is not four characters, is a ``DIF*`` name, a ``diff`` name is not one the</span>
 <span class="sd">            name table pairs with ``variable`` at ``level``, or ``data`` does</span>
 <span class="sd">            not have the grid's ``(ny, nx)`` shape.</span>
 <span class="sd">        """</span>
         <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
+        <span class="n">_check_variable_name</span><span class="p">(</span><span class="n">variable</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">variable</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"DIF"</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">"Create DIF records through the parent record using diff='DIF...'."</span>
@@ -687,10 +690,7 @@
             <span class="k">return</span> <span class="n">record</span><span class="o">.</span><span class="n">forecast</span>
 
         <span class="k">for</span> <span class="n">dr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dr</span><span class="o">.</span><span class="n">variable</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"Variable names must be 4 characters or fewer, got '</span><span class="si">{</span><span class="n">dr</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">'."</span>
-                <span class="p">)</span>
+            <span class="n">_check_variable_name</span><span class="p">(</span><span class="n">dr</span><span class="o">.</span><span class="n">variable</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">dr</span><span class="o">.</span><span class="n">_unpacked</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">"Writable DataRecord '</span><span class="si">{</span><span class="n">dr</span><span class="o">.</span><span class="n">variable</span><span class="si">}</span><span class="s2">' at level </span><span class="si">{</span><span class="n">dr</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2"> has no data."</span>

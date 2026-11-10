@@ -92,7 +92,9 @@ Write constraints
 -----------------
 
 - ``forecast_hour`` must be a coordinate with dims ``("time",)`` when present
-- variable names must be 4 characters or fewer
+- variable names must be exactly 4 characters, as ARL stores them (a shorter
+  name such as ``O3`` is refused rather than padded, since the padded name would
+  not match the data variable when read back)
 - each 2D slice must be finite, or entirely NaN, while a partly-NaN slice
   raises. A (variable, level) that holds data at some time step is written at
   every time step, and where its slice is entirely NaN (as a record flagged

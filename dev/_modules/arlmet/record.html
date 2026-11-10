@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=45a955a2"></script>
+    <script src="../../_static/documentation_options.js?v=8d0581b7"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev18+g7379e2d40" />
+  <meta name="docsearch:version" content="0.1.0b9.dev19+gf2781c13a" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -517,6 +517,15 @@
             <span class="sa">f</span><span class="s2">"A </span><span class="si">{</span><span class="n">dif</span><span class="si">}</span><span class="s2"> record at level </span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s2"> corrects </span><span class="si">{</span><span class="n">_dif_parents</span><span class="p">(</span><span class="n">dif</span><span class="p">,</span><span class="w"> </span><span class="n">level</span><span class="p">)</span><span class="si">}</span><span class="s2">, "</span>
             <span class="sa">f</span><span class="s2">"not </span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s2">: a DIF record is paired with its parent by HYSPLIT's "</span>
             <span class="s2">"name table."</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_variable_name</span><span class="p">(</span><span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Raise ValueError unless *variable* is exactly four characters, as ARL stores it."""</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">variable</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Variable names must be exactly 4 characters, got '</span><span class="si">{</span><span class="n">variable</span><span class="si">}</span><span class="s2">': "</span>
+            <span class="s2">"a shorter name would be padded in the file and not match when read back."</span>
         <span class="p">)</span>
 
 
