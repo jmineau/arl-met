@@ -157,4 +157,6 @@ Limitations
 - ``concat_by_time`` does not split files, so no input may cross a ``freq`` bin
   boundary (e.g. use ``freq="1D"`` for 6-hourly inputs, not ``freq="1h"``).
 - ``pattern`` should match only ARL files; a matched file that cannot be read as
-  ARL raises :class:`arlmet.ARLFormatError` (a ``ValueError``).
+  ARL raises :class:`arlmet.ARLFormatError` (a ``ValueError``). Hidden files
+  (names starting with ``.``, such as the ``.partial`` file an interrupted run
+  leaves) are skipped unless the pattern itself starts a name with a dot.

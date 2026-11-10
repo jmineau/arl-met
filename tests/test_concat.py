@@ -338,6 +338,27 @@ def test_concat_by_time_groups_by_day(tmp_path):
         ]
 
 
+def test_concat_by_time_skips_hidden_files(tmp_path):
+    """A killed run's hidden ``.partial`` file in the input folder is not an input."""
+    src = tmp_path / "hrrr"
+    populate_hrrr_dir(src)
+    # Same valid time as an input, and a truncated copy: either would raise.
+    (src / ".20240101_00_hrrr.abc123.partial").write_bytes(
+        (src / "20240101_00_hrrr").read_bytes()[:100]
+    )
+
+    written = concat_by_time(src, tmp_path / "daily")
+
+    assert [p.name for p in written] == ["20240101_arl", "20240102_arl"]
+
+    # A pattern that asks for hidden files gets them.
+    hidden = tmp_path / "hidden"
+    hidden.mkdir()
+    write_arl(hidden / ".met.arl", ["2024-01-01 00:00"])
+    written = concat_by_time(hidden, tmp_path / "hid_out", pattern=".*.arl")
+    assert [p.name for p in written] == ["20240101_arl"]
+
+
 def test_concat_by_time_without_overwrite_writes_only_missing_bins(tmp_path):
     src = tmp_path / "hrrr"
     out = tmp_path / "daily"
