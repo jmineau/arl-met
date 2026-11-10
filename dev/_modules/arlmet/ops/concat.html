@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=3ea1de1e"></script>
+    <script src="../../../_static/documentation_options.js?v=913a7c6a"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9.dev20+ga1e463ac1" />
+  <meta name="docsearch:version" content="0.1.0b9.dev21+gf65e36fc8" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -684,7 +684,10 @@
 <span class="sd">        last valid times floor to different bins raises ``ValueError``.</span>
 <span class="sd">    pattern : str, default "*"</span>
 <span class="sd">        Glob (relative to ``directory``) selecting input files. Scope it to ARL</span>
-<span class="sd">        files; every match must be a readable ARL file.</span>
+<span class="sd">        files; every match must be a readable ARL file. Hidden files (names</span>
+<span class="sd">        starting with ``.``, such as the ``.partial`` file an interrupted run</span>
+<span class="sd">        leaves) are skipped unless the pattern itself starts a name with a dot,</span>
+<span class="sd">        like ``".*.arl"``.</span>
 <span class="sd">    start, end : str or pandas.Timestamp, optional</span>
 <span class="sd">        Inclusive bounds on each file's first valid time; files outside them</span>
 <span class="sd">        are skipped. Either may be omitted to leave that side open.</span>
@@ -732,7 +735,14 @@
     <span class="n">directory</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
     <span class="n">dest_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest_dir</span><span class="p">)</span>
 
-    <span class="n">candidates</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">directory</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">())</span>
+    <span class="c1"># Hidden files (an interrupted run's ``.&lt;name&gt;.&lt;hash&gt;.partial``) are not inputs</span>
+    <span class="c1"># unless the pattern itself names hidden files, as ``arlmet.index`` does.</span>
+    <span class="n">hidden_ok</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="n">p</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">directory</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span><span class="n">hidden_ok</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"."</span><span class="p">))</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">candidates</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No files matched pattern </span><span class="si">{</span><span class="n">pattern</span><span class="si">!r}</span><span class="s2"> in </span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
 
