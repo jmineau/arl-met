@@ -1,0 +1,188 @@
+{
+ "case": "hrrr",
+ "file": "20240718_00-05_hrrr",
+ "archive": "HRRRArchive",
+ "time": "2024-07-18 03:00",
+ "bbox": [
+  -114.0,
+  39.5,
+  -110.5,
+  42.0
+ ],
+ "levels": 18,
+ "arlmet": "0.1.0b10.dev1+g464cdcebf",
+ "xtrct_grid": "/scratch/general/vast/u6036966/worktrees/arl-met-xtrct/validation/build/xtrct_grid",
+ "xtrct_grid_cells": {
+  "x": [
+   0,
+   113
+  ],
+  "y": [
+   16,
+   93
+  ]
+ },
+ "extract_subset_shape": {
+  "y": 109,
+  "x": 113,
+  "level": 17,
+  "time": 6
+ },
+ "xtrct_grid_shape": {
+  "y": 77,
+  "x": 113,
+  "level": 17,
+  "time": 6
+ },
+ "xtrct_grid_seconds": 68.11929489398608,
+ "extract_subset_seconds": 1.9346123590366915,
+ "source_bytes": 3417912654,
+ "xtrct_grid_bytes": 8138430,
+ "extract_subset_bytes": 11501310,
+ "variables": {
+  "CAPE": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 16.12598
+  },
+  "DSWF": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 2.015748
+  },
+  "LHTF": {
+   "xtrct_grid_error": 2.0,
+   "extract_subset_error": 2.0,
+   "crop_difference": 2.0,
+   "precision": 4.031496
+  },
+  "MSLP": {
+   "xtrct_grid_error": 0.00048828125,
+   "extract_subset_error": 0.00042724609375,
+   "crop_difference": 0.00091552734375,
+   "precision": 0.000984252
+  },
+  "PBLH": {
+   "xtrct_grid_error": 0.00048828125,
+   "extract_subset_error": 0.00048828125,
+   "crop_difference": 0.000244140625,
+   "precision": 16.12598
+  },
+  "PRES": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 0.503937
+  },
+  "PRSS": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 0.503937
+  },
+  "REFC": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 0.2519685
+  },
+  "RGHS": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 1.4901161193847656e-08,
+   "crop_difference": 1.4901161193847656e-08,
+   "precision": 0.003937008
+  },
+  "RH2M": {
+   "xtrct_grid_error": 3.814697265625e-06,
+   "extract_subset_error": 3.814697265625e-06,
+   "crop_difference": 0.0,
+   "precision": 0.2519685
+  },
+  "SHGT": {
+   "xtrct_grid_error": 0.000244140625,
+   "extract_subset_error": 0.000244140625,
+   "crop_difference": 0.0,
+   "precision": 4.031496
+  },
+  "SHTF": {
+   "xtrct_grid_error": 1.0,
+   "extract_subset_error": 1.0,
+   "crop_difference": 1.0,
+   "precision": 2.015748
+  },
+  "SPHU": {
+   "xtrct_grid_error": 9.313225746154785e-10,
+   "extract_subset_error": 9.313225746154785e-10,
+   "crop_difference": 1.862645149230957e-09,
+   "precision": 6.151575e-05
+  },
+  "T02M": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 0.06299213
+  },
+  "TCLD": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 0.503937
+  },
+  "TEMP": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 0.06299213
+  },
+  "TKEN": {
+   "xtrct_grid_error": 5.0067901611328125e-05,
+   "extract_subset_error": 5.0127506256103516e-05,
+   "crop_difference": 5.0127506256103516e-05,
+   "precision": 0.06299213
+  },
+  "TPP1": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 1.537894e-05
+  },
+  "U10M": {
+   "xtrct_grid_error": 0.0385284423828125,
+   "extract_subset_error": 0.0385279655456543,
+   "crop_difference": 4.76837158203125e-07,
+   "precision": 0.06299213
+  },
+  "USTR": {
+   "xtrct_grid_error": 0.005625009536743164,
+   "extract_subset_error": 0.005625009536743164,
+   "crop_difference": 0.005625009536743164,
+   "precision": 0.007874016
+  },
+  "UWND": {
+   "xtrct_grid_error": 0.05748182535171509,
+   "extract_subset_error": 0.057482004165649414,
+   "crop_difference": 0.032382965087890625,
+   "precision": 0.06299213
+  },
+  "V10M": {
+   "xtrct_grid_error": 0.035839080810546875,
+   "extract_subset_error": 0.06232595443725586,
+   "crop_difference": 0.0625,
+   "precision": 0.06299213
+  },
+  "VWND": {
+   "xtrct_grid_error": 0.053424835205078125,
+   "extract_subset_error": 0.053424835205078125,
+   "crop_difference": 0.0625,
+   "precision": 0.06299213
+  },
+  "WWND": {
+   "xtrct_grid_error": 3.051804378628731e-05,
+   "extract_subset_error": 3.0413269996643066e-05,
+   "crop_difference": 3.052316606044769e-05,
+   "precision": 0.001968504
+  }
+ }
+}
