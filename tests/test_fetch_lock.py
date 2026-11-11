@@ -233,12 +233,14 @@ def test_a_lock_with_nothing_growing_is_taken_over(
 def test_a_lock_is_not_taken_over_while_the_download_grows(
     tmp_path, opened, monkeypatch
 ):
-    monkeypatch.setattr(archives, "_FETCH_STALL", 0.3)
+    # The stall limit must exceed any pause of the holder thread on a loaded
+    # runner, or the waiter rightly takes it for dead (#228: 0.3 s was not).
+    monkeypatch.setattr(archives, "_FETCH_STALL", 2.0)
     _left_by_a_killed_caller(tmp_path)
     temp = tmp_path / f".{NAME}.{HEX}.partial"
 
     def holder():
-        for _ in range(30):  # 1.5 s, five times the stall limit
+        for _ in range(60):  # 3 s, past the longest limit (2.4 s with jitter)
             with open(temp, "ab") as f:
                 f.write(b"more")
             time.sleep(0.05)
