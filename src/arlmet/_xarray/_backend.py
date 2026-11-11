@@ -32,10 +32,12 @@ class ArlVariableArray(BackendArray):
         self.window = window
 
     def __getitem__(self, key: indexing.ExplicitIndexer) -> npt.NDArray[Any]:
+        # OUTER, not OUTER_1VECTOR: _getitem takes an array on every axis, so
+        # xarray need not index (and copy) the result a second time.
         return indexing.explicit_indexing_adapter(
             key,
             self.shape,
-            indexing.IndexingSupport.OUTER_1VECTOR,
+            indexing.IndexingSupport.OUTER,
             self._getitem,
         )
 
@@ -48,26 +50,33 @@ class ArlVariableArray(BackendArray):
         z_idx, z_scalar = _normalize_backend_indexer(key[1], self.shape[1])
         y_idx, y_scalar = _normalize_backend_indexer(key[2], self.shape[2])
         x_idx, x_scalar = _normalize_backend_indexer(key[3], self.shape[3])
+        # Slices keep the field's rows and columns a view; arrays copy them.
+        y_key = _field_key(key[2])
+        x_key = _field_key(key[3])
 
-        out = np.full(
-            (len(t_idx), len(z_idx), len(y_idx), len(x_idx)),
-            np.nan,
-            dtype=np.float32,
+        out = np.empty(
+            (len(t_idx), len(z_idx), len(y_idx), len(x_idx)), dtype=np.float32
         )
         for time_pos, time_idx in enumerate(t_idx):
             for level_pos, level_idx in enumerate(z_idx):
                 record = self.records.get((int(time_idx), int(level_idx)))
                 if record is None:
+                    out[time_pos, level_pos] = np.nan
                     continue
                 field = record.read(window=self.window)
-                out[time_pos, level_pos] = field[np.ix_(y_idx, x_idx)]
+                out[time_pos, level_pos] = field[y_key][:, x_key]
 
-        for axis, is_scalar in reversed(
-            list(enumerate((t_scalar, z_scalar, y_scalar, x_scalar)))
-        ):
-            if is_scalar:
-                out = np.take(out, 0, axis=axis)
-        return out
+        scalars = (t_scalar, z_scalar, y_scalar, x_scalar)
+        return np.asarray(
+            out[tuple(0 if is_scalar else slice(None) for is_scalar in scalars)]
+        )
+
+
+def _field_key(indexer: slice | npt.NDArray[Any] | int) -> slice | npt.NDArray[Any]:
+    """One axis of a 2D field's indexer, as a slice or array that keeps the axis."""
+    if isinstance(indexer, slice | np.ndarray):
+        return indexer
+    return slice(int(indexer), int(indexer) + 1)
 
 
 def _normalize_backend_indexer(
