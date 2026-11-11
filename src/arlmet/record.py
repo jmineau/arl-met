@@ -594,10 +594,12 @@ class DataRecord:
         if _is_missing(header):
             return None
 
+        # A memoryview, as slicing bytes would copy the whole field.
+        payload = memoryview(raw)[Header.N_BYTES :]
         parts = (None,) if window is None else _split_at_seam(window, self.grid)
         pieces = [
             unpack(
-                packed=raw[Header.N_BYTES :],
+                packed=payload,
                 nx=self.grid.nx,
                 ny=self.grid.ny,
                 precision=header.precision,

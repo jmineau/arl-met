@@ -367,6 +367,14 @@ class TestUnpackMatchesPakinp:
         want = _pakinp_python(packed, nx, ny, precision, exponent, var1, window)
         np.testing.assert_array_equal(got.view(np.uint32), want.view(np.uint32))
 
+    def test_memoryview_of_a_record_payload(self):
+        # DataRecord passes a view past the 50-byte header, not a copy.
+        packed, nx, ny, precision, exponent, var1 = _EDGE_RECORDS["random_exp0"]
+        payload = memoryview(bytes(50) + packed)[50:]
+        got = unpack(payload, nx, ny, precision, exponent, var1)
+        want = unpack(packed, nx, ny, precision, exponent, var1)
+        np.testing.assert_array_equal(got.view(np.uint32), want.view(np.uint32))
+
     def test_window_is_the_full_grid_cut(self):
         packed, nx, ny, precision, exponent, var1 = _EDGE_RECORDS["random_exp0"]
         full = unpack(packed, nx, ny, precision, exponent, var1)
