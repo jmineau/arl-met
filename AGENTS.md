@@ -36,7 +36,7 @@ src/arlmet/
   collection.py                        RecordCollection protocol, VariableView, VariableAccessor
   _exceptions.py, _io.py, _time.py     ARLFormatError/Warning; atomic outputs; timestamps
   archives.py; _inventory.py, _probe.py  NOAA archive downloads and sync; inventory, Inventory; probe, Probe
-  _ops/                                extract_subset, sample_points, concat, concat_by_time
+  _ops/                                extract_subset, sample_points (in `sample/`), concat, concat_by_time
   converters/                          from_era5, from_gfs, from_icon, from_wrf (in `_era5.py`, ...)
   _xarray/                             open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl
 ```
@@ -161,7 +161,7 @@ methods, keeping the import graph one-way; `converters/` sits on `_xarray/`.
     `Header` and `IndexRecord` are frozen dataclasses, and `VerticalAxis` blocks
     assignment and keeps `levels` read-only. Hashing and `cached_property`
     (`Grid.crs`, `Grid.origin`) rely on this; build a new value instead.
-11. **The public API is explicit.** The four `__init__.py` files re-export it,
+11. **The public API is explicit.** The `__init__.py` files re-export it,
     and every module but `_io`, `_time`, `_version` and `_entrypoint` defines `__all__`.
     The byte-level codec is public only in `arlmet.record` (`Header`, `IndexRecord`, `LvlInfo`,
     `VarInfo`, beside `DataRecord`; code in `_header.py`, `_indexrecord.py`) and `arlmet.packing`,
