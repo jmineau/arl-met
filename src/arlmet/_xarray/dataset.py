@@ -16,7 +16,7 @@ from xarray.core import indexing
 from arlmet._grid import Grid
 from arlmet._header import check_year
 from arlmet._io import atomic_output, reject_same_file
-from arlmet._ops.sample import _mass_coupled
+from arlmet._ops.sample.fields import mass_coupled
 from arlmet._ops.subset import normalize_levels, resolve_window, select_records
 from arlmet._time import ensure_timestamp, utc_times
 from arlmet._version import __version__
@@ -153,7 +153,7 @@ def _build_dataset_from_file(
             window=read_window,
         )
         ds[name] = xr.Variable(dims, indexing.LazilyIndexedArray(backend))
-    if met.times and _mass_coupled(met[met.times[0]]):
+    if met.times and mass_coupled(met[met.times[0]]):
         for name, description in _MASS_COUPLED_WINDS.items():
             if name in ds:
                 ds[name].attrs["description"] = description
