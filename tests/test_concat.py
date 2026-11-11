@@ -11,8 +11,8 @@ from arlmet import ARLFormatError, ARLFormatWarning, File, concat, concat_by_tim
 from arlmet._grid import Grid, Projection
 from arlmet.vertical import PressureAxis
 
-# The module, not the function arlmet.ops re-exports under the same name.
-concat_module = importlib.import_module("arlmet.ops.concat")
+# The module, not the function arlmet._ops re-exports under the same name.
+concat_module = importlib.import_module("arlmet._ops.concat")
 
 
 def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:

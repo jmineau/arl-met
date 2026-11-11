@@ -14,11 +14,11 @@ from ._exceptions import ARLFormatError, ARLFormatWarning
 from ._file import File
 from ._grid import Grid, GridWindow, Projection
 from ._inventory import Inventory, inventory
+from ._ops import concat, concat_by_time, extract_subset, sample_points
 from ._probe import Probe, probe
 from ._recordset import RecordSet
 from ._version import __version__ as __version__
 from ._xarray import open_dataset, pressure, write_dataset, z_agl, z_msl
-from .ops import concat, concat_by_time, extract_subset, sample_points
 from .record import DataRecord
 from .vertical import (
     HybridAxis,

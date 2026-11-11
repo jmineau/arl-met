@@ -648,7 +648,7 @@ class TestFetchHelpers:
         monkeypatch.setattr(self.src, "_download", fake_download)
         monkeypatch.setitem(
             sys.modules,
-            "arlmet.ops.subset",
+            "arlmet._ops.subset",
             types.SimpleNamespace(extract_subset=fake_extract_subset),
         )
 
@@ -689,7 +689,7 @@ class TestFetchHelpers:
         monkeypatch.setattr(self.src, "_download", fake_download)
         monkeypatch.setitem(
             sys.modules,
-            "arlmet.ops.subset",
+            "arlmet._ops.subset",
             types.SimpleNamespace(extract_subset=fake_extract_subset),
         )
 

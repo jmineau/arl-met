@@ -166,7 +166,7 @@ def main():
            "has_shgt": (0, "SHGT") in f[t], "has_u10m": (0, "U10M") in f[t],
            "hyrun_seconds": t_h, "vars": {}}
     if has_top:
-        from arlmet.ops.sample import _InternalLevels
+        from arlmet._ops.sample import _InternalLevels
         try:
             il = _InternalLevels.for_axis(f.vertical_axis, zdata)
             out["levels_arlmet"] = {"zmdl": il.zmdl, "nlvl": len(il.heights),

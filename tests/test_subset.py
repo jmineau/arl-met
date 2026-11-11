@@ -9,7 +9,7 @@ import pytest
 from arlmet import File, extract_subset, open_dataset
 from arlmet._exceptions import ARLFormatError
 from arlmet._grid import Grid, Projection
-from arlmet.ops import subset as subset_module
+from arlmet._ops import subset as subset_module
 from arlmet.record import IndexRecord
 from arlmet.vertical import PressureAxis, SigmaAxis
 

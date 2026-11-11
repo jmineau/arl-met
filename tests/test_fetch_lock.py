@@ -102,7 +102,7 @@ def test_threads_fetching_a_crop_download_and_crop_it_once(
 
     monkeypatch.setitem(
         sys.modules,
-        "arlmet.ops.subset",
+        "arlmet._ops.subset",
         types.SimpleNamespace(extract_subset=fake_extract_subset),
     )
     box = (-112.0, 40.0, -111.0, 41.0)

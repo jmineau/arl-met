@@ -955,7 +955,7 @@ class File:
         """
         # Delayed import: ops sit on top of file, so file's use of the sampling
         # op is lazy to avoid a file <-> ops import cycle (see File.extract_subset).
-        from arlmet.ops.sample import sample_points
+        from arlmet._ops.sample import sample_points
 
         return sample_points(
             self,
@@ -1061,7 +1061,7 @@ class File:
         ...     out = met.extract_subset("subset.arl", bbox=(-114, 39, -110, 42))
         >>> ds = arlmet.open_dataset(out)
         """
-        from arlmet.ops.subset import extract_subset
+        from arlmet._ops.subset import extract_subset
 
         return extract_subset(
             self.path,

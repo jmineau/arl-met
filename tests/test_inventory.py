@@ -648,7 +648,6 @@ class TestNames:
             "archives",
             "collection",
             "converters",
-            "ops",
             "packing",
             "record",
             "vertical",

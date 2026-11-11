@@ -36,7 +36,7 @@ src/arlmet/
   collection.py                        RecordCollection protocol, VariableView, VariableAccessor
   _exceptions.py, _io.py, _time.py     ARLFormatError/Warning; atomic outputs; timestamps
   archives.py; _inventory.py, _probe.py  NOAA archive downloads and sync; inventory, Inventory; probe, Probe
-  ops/                                 extract_subset, sample_points, concat, concat_by_time
+  _ops/                                extract_subset, sample_points, concat, concat_by_time
   converters/                          from_era5, from_gfs, from_icon, from_wrf (in `_era5.py`, ...)
   _xarray/                             open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl
 ```
@@ -46,7 +46,7 @@ src/arlmet/
 so the release's promise (names in a public `__all__`) is not made twice for each top-level name.
 A new module is private unless it holds such a name.
 
-`ops/` and `_xarray/` sit on top of `_file.py`; `File` imports them inside its
+`_ops/` and `_xarray/` sit on top of `_file.py`; `File` imports them inside its
 methods, keeping the import graph one-way; `converters/` sits on `_xarray/`.
 `archives.py` imports `fsspec` only when it downloads (no `archives` extra needed).
 
@@ -56,7 +56,7 @@ methods, keeping the import graph one-way; `converters/` sits on `_xarray/`.
   `Header.N_BYTES + nx * ny` bytes (50 + nx*ny), one 2D field each. Each time
   step starts with an index record (`INDX`: grid, vertical axis, each level's
   variables), which must fit in one record; `validate_subset_record_length`
-  (`ops/subset.py`) refuses a crop too small for it before writing anything.
+  (`_ops/subset.py`) refuses a crop too small for it before writing anything.
 - **Forecast hours.** The 50-byte label has two characters for the hour, the index
   record three: `Header.tobytes` writes `min(hour, 99)` (HYSPLIT's `pakrec`), the index
   record keeps the full hour and raises above 999.
