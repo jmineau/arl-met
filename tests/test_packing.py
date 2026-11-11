@@ -56,6 +56,10 @@ def _pack_fields() -> dict[str, np.ndarray]:
     fields["negative"] = -1000 + rng.normal(0, 200, (14, 9))
     fields["constant"] = np.full((5, 6), 3.25)
     fields["zeros"] = np.zeros((5, 6))
+    # pack_core packs 8 rows at a time: fewer rows than that, and no columns past
+    # the first.
+    fields["one_row"] = 20 + rng.normal(0, 1, (1, 7)).cumsum(axis=1)
+    fields["one_column"] = 20 + rng.normal(0, 1, (17, 1)).cumsum(axis=0)
     return {name: np.asarray(f, dtype=np.float32) for name, f in fields.items()}
 
 
