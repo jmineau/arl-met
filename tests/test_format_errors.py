@@ -13,7 +13,7 @@ from arlmet import (
     extract_subset,
     open_dataset,
 )
-from arlmet.grid import Grid, Projection
+from arlmet._grid import Grid, Projection
 from arlmet.record import Header
 from arlmet.vertical import PressureAxis
 

@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from arlmet import ARLFormatError, File, Probe, probe
-from arlmet.grid import Grid, Projection
+from arlmet._grid import Grid, Projection
 from arlmet.record import Header
 from arlmet.vertical import PressureAxis
 

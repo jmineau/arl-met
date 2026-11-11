@@ -5,8 +5,8 @@ from typing import Any
 import numpy as np
 from numpy import typing as npt
 
+from arlmet._grid import GridWindow
 from arlmet._pack import pack_core as _pack_core
-from arlmet.grid import GridWindow
 
 __all__ = ["pack", "unpack", "calculate_checksum"]
 

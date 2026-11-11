@@ -22,10 +22,10 @@ from typing import Any
 
 import pandas as pd
 
+from arlmet._exceptions import ARLFormatError
+from arlmet._file import File, _at, _span
 from arlmet._io import atomic_output
 from arlmet._time import ensure_timestamp
-from arlmet.exceptions import ARLFormatError
-from arlmet.file import File, _at, _span
 
 __all__ = ["Inventory", "inventory"]
 

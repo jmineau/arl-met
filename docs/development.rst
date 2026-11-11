@@ -192,29 +192,30 @@ Module layout
 
    src/arlmet/
      __init__.py    public exports
-     file.py        File: file handle, scan of index records, check(), factories
-     recordset.py   RecordSet: the records of one valid time
+     _file.py       File: file handle, scan of index records, check(), factories
+     _recordset.py  RecordSet: the records of one valid time
      record.py      DataRecord (one packed 2D field); public home of Header,
                     IndexRecord, LvlInfo, VarInfo
      collection.py  RecordCollection protocol, VariableView, VariableAccessor
      _header.py     Header: the 50-byte record header codec, grid letter helpers
      _indexrecord.py IndexRecord, VarInfo, LvlInfo: the index record codec
-     grid.py        Projection, Grid, GridWindow: horizontal geometry only
+     _grid.py       Projection, Grid, GridWindow: horizontal geometry only
      vertical.py    VerticalAxis (abstract) and SigmaAxis, PressureAxis,
                     TerrainAxis, HybridAxis, WrfAxis
      packing.py     pack(), unpack(), calculate_checksum()
      _pack.c        C extension arlmet._pack: pack_core, HYSPLIT's pakout
-     exceptions.py  ARLFormatError, ARLFormatWarning
+     _exceptions.py ARLFormatError, ARLFormatWarning
      _io.py         atomic_output(), reject_same_file(): safe output paths
      _time.py       ensure_timestamp()
      archives.py    Archive, HRRRArchive, NAMArchive, GDASArchive, ...;
                     ARCHIVES registry, get_archive(): NOAA archive downloads
      _inventory.py  inventory(), Inventory: a folder's files by their headers
+     _probe.py      probe(), Probe: one file from two index records
      ops/
        subset.py    extract_subset(), resolve_window(), normalize_levels()
        sample.py    sample_points()
        concat.py    concat(), concat_by_time()
-     xarray/
+     _xarray/
        dataset.py     open_dataset(), write_dataset(): the flat Dataset path
        _entrypoint.py ARLBackendEntrypoint: xr.open_dataset(path, engine="arl")
        _backend.py    ArlVariableArray (xarray BackendArray)
@@ -230,25 +231,28 @@ means inside a function body):
 
 .. code-block:: text
 
-   vertical, exceptions, _io, _time        no arlmet imports
-   grid           (pyproj)
-   packing      → _pack (C extension), grid
-   header       → _time, exceptions, grid
-   index        → _time, exceptions, grid, header, vertical
-   record       → exceptions, grid, header, packing, vertical; lazy: xarray
-   collection   → grid, record, vertical
-   recordset    → collection, grid, header, index, record, vertical
-   file         → _time, collection, exceptions, grid, header, index, record,
-                  recordset, vertical, xarray.backends.CachingFileManager;
-                  lazy: ops.sample, ops.subset, xarray.dataset
-   ops.subset   → _io, exceptions, file, grid, header, index, packing, record, vertical
-   ops.sample   → _time, grid, vertical; lazy: file
-   ops.concat   → exceptions, file
-   xarray.*     → _io, _time, grid, ops.subset, vertical; lazy: file
+   vertical, _exceptions, _io, _time      no arlmet imports
+   _grid          (pyproj)
+   packing      → _pack (C extension), _grid
+   _header      → _time, _exceptions, _grid
+   _indexrecord → _time, _exceptions, _grid, _header, vertical
+   record       → _exceptions, _grid, _header, _indexrecord, packing, vertical
+   collection   → _grid, record, vertical
+   _recordset   → collection, _grid, _header, _indexrecord, record, vertical
+   _file        → _time, collection, _exceptions, _grid, _header, _indexrecord,
+                  record, _recordset, vertical;
+                  lazy: ops.sample, ops.subset, _xarray.dataset
+   _probe       → _exceptions, _grid, _header, _indexrecord
+   _inventory   → _exceptions, _file, _io, _time
+   ops.subset   → _io, _exceptions, _file, _grid, _header, _indexrecord, packing, record, vertical
+   ops.sample   → _time, _grid, vertical; lazy: _file
+   ops.concat   → _exceptions, _file, _io
+   _xarray.*    → _io, _time, _grid, _header, record, ops.sample, ops.subset, vertical; lazy: _file
+   converters.* → _grid, _header, _indexrecord, _xarray._coords, vertical
    archives     → _time; lazy: fsspec, ops.subset
 
-``file`` imports the operations and the Dataset builder lazily because they
-import ``file``. ``archives`` is not imported by ``import arlmet``, and imports
+``_file`` imports the operations and the Dataset builder lazily because they
+import ``_file``. ``archives`` is not imported by ``import arlmet``, and imports
 ``fsspec`` only when it downloads.
 
 Memory tests

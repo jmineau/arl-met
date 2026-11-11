@@ -162,7 +162,7 @@ class Projection:
 
     Examples
     --------
-    >>> from arlmet.grid import Projection
+    >>> from arlmet._grid import Projection
     >>> proj = Projection(
     ...     pole_lat=90.0,
     ...     pole_lon=180.0,
@@ -426,7 +426,7 @@ class Grid:
 
     Examples
     --------
-    >>> from arlmet.grid import Grid, Projection
+    >>> from arlmet._grid import Grid, Projection
     >>> proj = Projection(
     ...     pole_lat=90.0,
     ...     pole_lon=180.0,

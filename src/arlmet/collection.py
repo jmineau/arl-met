@@ -10,7 +10,7 @@ import numpy.typing as npt
 import pandas as pd
 from typing_extensions import override
 
-from arlmet.grid import Grid
+from arlmet._grid import Grid
 from arlmet.record import DataRecord
 from arlmet.vertical import VerticalAxis
 

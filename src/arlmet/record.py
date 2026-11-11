@@ -18,17 +18,17 @@ import numpy.typing as npt
 import pandas as pd
 from typing_extensions import override
 
+from arlmet._exceptions import ARLFormatError
+from arlmet._grid import Grid, GridWindow, _split_at_seam
 from arlmet._header import Header, record_length_from_grid, split_grid_component
 from arlmet._indexrecord import IndexRecord, LvlInfo, VarInfo
-from arlmet.exceptions import ARLFormatError
-from arlmet.grid import Grid, GridWindow, _split_at_seam
 from arlmet.packing import calculate_checksum, pack, unpack
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
     import xarray as xr
 
-    from arlmet.recordset import RecordSet
+    from arlmet._recordset import RecordSet
 
 __all__ = ["DataRecord", "Header", "IndexRecord", "LvlInfo", "VarInfo"]
 

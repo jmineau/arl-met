@@ -7,7 +7,7 @@ import pytest
 
 import arlmet
 from arlmet import File, sample_points
-from arlmet.grid import Grid, Projection
+from arlmet._grid import Grid, Projection
 from arlmet.vertical import (
     HybridAxis,
     PressureAxis,

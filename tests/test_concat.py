@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from arlmet import ARLFormatError, ARLFormatWarning, File, concat, concat_by_time
-from arlmet.grid import Grid, Projection
+from arlmet._grid import Grid, Projection
 from arlmet.vertical import PressureAxis
 
 # The module, not the function arlmet.ops re-exports under the same name.

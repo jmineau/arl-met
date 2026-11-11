@@ -10,7 +10,7 @@ from xarray.backends.common import BackendArray
 from xarray.core import indexing
 
 if TYPE_CHECKING:
-    from arlmet.grid import GridWindow
+    from arlmet._grid import GridWindow
     from arlmet.record import DataRecord
 
 __all__ = ["ArlVariableArray"]

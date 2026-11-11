@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 from arlmet import File, extract_subset, open_dataset, write_dataset
-from arlmet.grid import Grid, Projection
+from arlmet._grid import Grid, Projection
 from arlmet.vertical import PressureAxis
 
 N_TIMES = 12

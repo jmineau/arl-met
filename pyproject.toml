@@ -63,7 +63,7 @@ dev = [
 ]
 
 [project.entry-points."xarray.backends"]
-arl = "arlmet.xarray._entrypoint:ARLBackendEntrypoint"
+arl = "arlmet._xarray._entrypoint:ARLBackendEntrypoint"
 
 [project.urls]
 Homepage = "https://github.com/jmineau/arl-met"

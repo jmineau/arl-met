@@ -10,15 +10,16 @@ The byte-level codec is not imported here: ``Header`` and ``IndexRecord`` are in
 """
 
 from . import converters
+from ._exceptions import ARLFormatError, ARLFormatWarning
+from ._file import File
+from ._grid import Grid, GridWindow, Projection
 from ._inventory import Inventory, inventory
+from ._probe import Probe, probe
+from ._recordset import RecordSet
 from ._version import __version__ as __version__
-from .exceptions import ARLFormatError, ARLFormatWarning
-from .file import File
-from .grid import Grid, GridWindow, Projection
+from ._xarray import open_dataset, pressure, write_dataset, z_agl, z_msl
 from .ops import concat, concat_by_time, extract_subset, sample_points
-from .probe import Probe, probe
 from .record import DataRecord
-from .recordset import RecordSet
 from .vertical import (
     HybridAxis,
     PressureAxis,
@@ -27,7 +28,6 @@ from .vertical import (
     VerticalAxis,
     WrfAxis,
 )
-from .xarray import open_dataset, pressure, write_dataset, z_agl, z_msl
 
 __author__ = "James Mineau"
 __email__ = "jameskmineau@gmail.com"

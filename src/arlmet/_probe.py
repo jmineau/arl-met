@@ -9,10 +9,10 @@ from typing import BinaryIO
 
 import pandas as pd
 
+from arlmet._exceptions import ARLFormatError
+from arlmet._grid import Grid
 from arlmet._header import record_length_from_grid
 from arlmet._indexrecord import IndexRecord
-from arlmet.exceptions import ARLFormatError
-from arlmet.grid import Grid
 
 __all__ = ["Probe", "probe"]
 

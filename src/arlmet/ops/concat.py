@@ -28,9 +28,9 @@ from typing import BinaryIO
 
 import pandas as pd
 
+from arlmet._exceptions import ARLFormatError
+from arlmet._file import File
 from arlmet._io import atomic_output
-from arlmet.exceptions import ARLFormatError
-from arlmet.file import File
 
 __all__ = ["concat", "concat_by_time"]
 

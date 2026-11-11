@@ -32,7 +32,7 @@ from arlmet import (
     open_dataset,
     write_dataset,
 )
-from arlmet.grid import Grid, GridWindow, Projection
+from arlmet._grid import Grid, GridWindow, Projection
 from arlmet.packing import calculate_checksum
 from arlmet.record import Header, IndexRecord, LvlInfo, VarInfo
 from arlmet.vertical import PressureAxis

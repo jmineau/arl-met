@@ -17,14 +17,14 @@ from typing_extensions import override
 from xarray.backends import CachingFileManager
 from xarray.backends.locks import SerializableLock
 
+from arlmet._exceptions import ARLFormatError, ARLFormatWarning
+from arlmet._grid import Grid, Projection
 from arlmet._header import check_year, record_length_from_grid
 from arlmet._indexrecord import IndexRecord
+from arlmet._recordset import RecordSet
 from arlmet._time import ensure_timestamp
 from arlmet.collection import VariableAccessor
-from arlmet.exceptions import ARLFormatError, ARLFormatWarning
-from arlmet.grid import Grid, Projection
 from arlmet.record import DataRecord, _corrects, _is_missing, _require_mode
-from arlmet.recordset import RecordSet
 from arlmet.vertical import _DEFAULT_MODEL_TOP, VerticalAxis
 
 if TYPE_CHECKING:
@@ -1000,7 +1000,7 @@ class File:
         xarray.Dataset
             See :func:`arlmet.open_dataset` for the layout.
         """
-        from arlmet.xarray.dataset import _build_dataset_from_file
+        from arlmet._xarray.dataset import _build_dataset_from_file
 
         return _build_dataset_from_file(
             self,

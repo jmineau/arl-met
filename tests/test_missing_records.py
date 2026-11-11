@@ -6,7 +6,7 @@ import pytest
 
 import arlmet
 from arlmet import File, extract_subset, open_dataset, sample_points
-from arlmet.grid import Grid, Projection
+from arlmet._grid import Grid, Projection
 from arlmet.record import Header
 from arlmet.vertical import PressureAxis
 

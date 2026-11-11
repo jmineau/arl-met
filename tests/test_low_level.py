@@ -9,12 +9,12 @@ import pytest
 import xarray as xr
 
 from arlmet import ARLFormatError, ARLFormatWarning, File
+from arlmet._grid import Grid, GridWindow, Projection
+from arlmet._xarray._backend import ArlVariableArray, _normalize_backend_indexer
 from arlmet.collection import VariableAccessor
-from arlmet.grid import Grid, GridWindow, Projection
 from arlmet.packing import unpack
 from arlmet.record import DataRecord, Header, LvlInfo, VarInfo
 from arlmet.vertical import PressureAxis
-from arlmet.xarray._backend import ArlVariableArray, _normalize_backend_indexer
 
 
 def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
@@ -888,7 +888,9 @@ class TestFileLowLevelBehavior:
         def fake_from_position(fh, position):
             return next(indices)
 
-        monkeypatch.setattr("arlmet.file.IndexRecord.from_position", fake_from_position)
+        monkeypatch.setattr(
+            "arlmet._file.IndexRecord.from_position", fake_from_position
+        )
 
         with pytest.raises(ARLFormatError, match="vertical axis mismatch"):
             File(path)
@@ -917,7 +919,9 @@ class TestFileLowLevelBehavior:
         def fake_from_position(fh, position):
             return index
 
-        monkeypatch.setattr("arlmet.file.IndexRecord.from_position", fake_from_position)
+        monkeypatch.setattr(
+            "arlmet._file.IndexRecord.from_position", fake_from_position
+        )
 
         with (
             pytest.warns(ARLFormatWarning, match=r"1 DIF record\(s\) .* not applied"),
@@ -934,7 +938,7 @@ class TestFileLowLevelBehavior:
         def eof_from_position(fh, position):
             raise EOFError
 
-        monkeypatch.setattr("arlmet.file.IndexRecord.from_position", eof_from_position)
+        monkeypatch.setattr("arlmet._file.IndexRecord.from_position", eof_from_position)
         with pytest.raises(ARLFormatError, match="holds no index record"):
             File(eof_path)
 
@@ -966,7 +970,9 @@ class TestFileLowLevelBehavior:
                 return index
             raise EOFError
 
-        monkeypatch.setattr("arlmet.file.IndexRecord.from_position", diff_from_position)
+        monkeypatch.setattr(
+            "arlmet._file.IndexRecord.from_position", diff_from_position
+        )
         with File(diff_path) as arl:
             record = arl[pd.Timestamp("2024-07-18 00:00")][(0, "TPP1")]
             assert record._diffs

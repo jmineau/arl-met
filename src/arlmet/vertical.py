@@ -2,7 +2,7 @@
 Vertical coordinate helpers for ARL meteorology grids.
 
 This module keeps vertical metadata separate from the horizontal grid model in
-``arlmet.grid`` and provides lightweight helpers for deriving level
+``arlmet._grid`` and provides lightweight helpers for deriving level
 coordinates.
 """
 

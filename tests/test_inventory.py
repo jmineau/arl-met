@@ -633,3 +633,26 @@ class TestNames:
                 assert not hasattr(arlmet, name)
         assert {"R_D", "G"} <= set(vertical.__all__)
         assert {"inventory", "Inventory", "probe", "Probe"} <= set(arlmet.__all__)
+
+    def test_only_modules_with_names_of_their_own_are_public(self):
+        import pkgutil
+
+        from arlmet import converters
+
+        public = {
+            m.name
+            for m in pkgutil.iter_modules(arlmet.__path__)
+            if not m.name.startswith("_")
+        }
+        assert public == {
+            "archives",
+            "collection",
+            "converters",
+            "ops",
+            "packing",
+            "record",
+            "vertical",
+        }
+        assert all(
+            m.name.startswith("_") for m in pkgutil.iter_modules(converters.__path__)
+        )
