@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>arlmet._ops.sample.points &#8212; arl-met dev</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=283e4333" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
+
+    <script src="../../../../_static/documentation_options.js?v=ec57e5c2"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/arlmet/_ops/sample/points';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            true;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.0b10.dev3+g409f45cf3" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">arl-met dev</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-3"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-3"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-3"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-3">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">arlmet._ops.sample.points</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for arlmet._ops.sample.points</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""</span>
+<span class="sd">:func:`sample_points`: the values HYSPLIT uses at any (lon, lat, z, time).</span>
+
+<span class="sd">How one time step is sampled (:func:`_sample_time`):</span>
+
+<span class="sd">1. Place the points on the grid (:mod:`.horizontal`).</span>
+<span class="sd">2. Build the column of the time step at the grid points around each point</span>
+<span class="sd">   (:mod:`.column`), whose fields are read as HYSPLIT reads them (:mod:`.fields`).</span>
+<span class="sd">3. Interpolate each variable's profile (:mod:`.profile`) to the point's ``z``</span>
+<span class="sd">   at each of those grid points, on HYSPLIT's internal levels at heights</span>
+<span class="sd">   (:mod:`.internal`), and blend the grid points' values.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExitStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">get_args</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">npt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._time</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_timestamp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._version</span><span class="w"> </span><span class="kn">import</span> <span class="n">__version__</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">_DEFAULT_MODEL_TOP</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.column</span><span class="w"> </span><span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">column_for</span><span class="p">,</span> <span class="n">terrain_at</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.horizontal</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">WIND_PAIRS</span><span class="p">,</span>
+    <span class="n">WRF_STAGGER</span><span class="p">,</span>
+    <span class="n">Plan</span><span class="p">,</span>
+    <span class="n">SampleMethod</span><span class="p">,</span>
+    <span class="n">blend</span><span class="p">,</span>
+    <span class="n">build_plan</span><span class="p">,</span>
+    <span class="n">node_plan</span><span class="p">,</span>
+    <span class="n">rotate_winds</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.internal</span><span class="w"> </span><span class="kn">import</span> <span class="n">InternalLevels</span><span class="p">,</span> <span class="n">sample_on_internal_levels</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.profile</span><span class="w"> </span><span class="kn">import</span> <span class="n">ColumnZKind</span><span class="p">,</span> <span class="n">sample_variable</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"sample_points"</span><span class="p">]</span>
+
+<span class="c1"># One sampling input: an open File or a path to an ARL file.</span>
+<span class="n">FileLike</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="s2">"File"</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">"os.PathLike[str]"</span><span class="p">]</span>
+
+<span class="c1">#: Vertical coordinate systems accepted for the ``z`` of sample points.</span>
+<span class="n">ZKind</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"native"</span><span class="p">,</span> <span class="s2">"pressure"</span><span class="p">,</span> <span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_points</span><span class="p">(</span>
+    <span class="n">points</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">variable_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">implied_time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Validate *points* and split it into the result frame and sampling coordinates.</span>
+
+<span class="sd">    Returns ``(result, coords)``. *result* is a copy of *points* as a DataFrame,</span>
+<span class="sd">    with every column and the index preserved, that the sampled variables are</span>
+<span class="sd">    added to. *coords* has a positional ``RangeIndex`` aligned row-for-row with</span>
+<span class="sd">    *result* and holds float ``lon``/``lat``/``z`` and Timestamp ``time``</span>
+<span class="sd">    columns.</span>
+
+<span class="sd">    The point time comes from the ``time`` column, else from *time*, else from</span>
+<span class="sd">    *implied_time* (the single valid time of the inputs). Giving both a</span>
+<span class="sd">    ``time`` column and *time* is ambiguous and raises ``ValueError``.</span>
+<span class="sd">    """</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">points</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+
+    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"lon"</span><span class="p">,</span> <span class="s2">"lat"</span><span class="p">,</span> <span class="s2">"z"</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"Point sampling requires 'lon', 'lat', and 'z' columns, "</span>
+            <span class="sa">f</span><span class="s2">"missing </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">missing</span><span class="p">)</span><span class="si">}</span><span class="s2">."</span>
+        <span class="p">)</span>
+
+    <span class="n">clashes</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">variable_names</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">clashes</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"Requested variables collide with existing columns of points: "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">clashes</span><span class="p">)</span><span class="si">}</span><span class="s2">. Rename or drop those "</span>
+            <span class="s2">"columns before sampling."</span>
+        <span class="p">)</span>
+
+    <span class="n">has_time_column</span> <span class="o">=</span> <span class="s2">"time"</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
+    <span class="k">if</span> <span class="n">has_time_column</span> <span class="ow">and</span> <span class="n">time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"points has a 'time' column and time= was also given; pass only one."</span>
+        <span class="p">)</span>
+
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">"lon"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"lon"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+            <span class="s2">"lat"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"lat"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+            <span class="s2">"z"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"z"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">has_time_column</span><span class="p">:</span>
+        <span class="n">point_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"time"</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">point_times</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">point_times</span> <span class="o">=</span> <span class="n">point_times</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz_convert</span><span class="p">(</span><span class="s2">"UTC"</span><span class="p">)</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="n">coords</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span> <span class="o">=</span> <span class="n">point_times</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">coords</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">implied_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">coords</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span> <span class="o">=</span> <span class="n">implied_time</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"Point sampling needs a time: add a 'time' column to points or pass "</span>
+            <span class="s2">"time=, unless the input file(s) contain exactly one valid time."</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="s2">"time"</span><span class="p">])):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"points has missing (NaT) values in its 'time' column."</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">coords</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_wind_pairs</span><span class="p">(</span><span class="n">variable_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Return the wind pairs present in *variable_names*; raise if a component lacks its partner."""</span>
+    <span class="n">requested</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">variable_names</span><span class="p">)</span>
+    <span class="n">pairs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">u_name</span><span class="p">,</span> <span class="n">v_name</span> <span class="ow">in</span> <span class="n">WIND_PAIRS</span><span class="p">:</span>
+        <span class="n">has_u</span> <span class="o">=</span> <span class="n">u_name</span> <span class="ow">in</span> <span class="n">requested</span>
+        <span class="n">has_v</span> <span class="o">=</span> <span class="n">v_name</span> <span class="ow">in</span> <span class="n">requested</span>
+        <span class="k">if</span> <span class="n">has_u</span> <span class="o">!=</span> <span class="n">has_v</span><span class="p">:</span>
+            <span class="n">missing</span> <span class="o">=</span> <span class="n">v_name</span> <span class="k">if</span> <span class="n">has_u</span> <span class="k">else</span> <span class="n">u_name</span>
+            <span class="n">present</span> <span class="o">=</span> <span class="n">u_name</span> <span class="k">if</span> <span class="n">has_u</span> <span class="k">else</span> <span class="n">v_name</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"earth_relative=True needs both wind components: '</span><span class="si">{</span><span class="n">present</span><span class="si">}</span><span class="s2">' "</span>
+                <span class="sa">f</span><span class="s2">"was requested without '</span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">'."</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">has_u</span><span class="p">:</span>
+            <span class="n">pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">u_name</span><span class="p">,</span> <span class="n">v_name</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">pairs</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_map_times</span><span class="p">(</span><span class="n">files</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">File</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="n">File</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Map each valid time to the one input File that contains it."""</span>
+    <span class="n">time_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="n">File</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">file_time</span> <span class="ow">in</span> <span class="n">file</span><span class="o">.</span><span class="n">times</span><span class="p">:</span>
+            <span class="n">file_time</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">file_time</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">file_time</span> <span class="ow">in</span> <span class="n">time_map</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Multiple input files contain meteorology for time </span><span class="si">{</span><span class="n">file_time</span><span class="si">}</span><span class="s2">."</span>
+                <span class="p">)</span>
+            <span class="n">time_map</span><span class="p">[</span><span class="n">file_time</span><span class="p">]</span> <span class="o">=</span> <span class="n">file</span>
+    <span class="k">return</span> <span class="n">time_map</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_describe_times</span><span class="p">(</span><span class="n">times</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Say which valid times the input files hold, briefly, with the spacing if it is even."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">times</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"no times"</span>
+    <span class="n">steps</span> <span class="o">=</span> <span class="p">{</span><span class="n">b</span> <span class="o">-</span> <span class="n">a</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">times</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">times</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span>
+    <span class="n">every</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">hours</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">steps</span><span class="p">))</span> <span class="o">/</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">every</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" (every </span><span class="si">{</span><span class="n">hours</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> hours)"</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">8</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">times</span><span class="p">)</span> <span class="o">+</span> <span class="n">every</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span><span class="si">}</span><span class="s2"> times from </span><span class="si">{</span><span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">times</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}{</span><span class="n">every</span><span class="si">}</span><span class="s2">"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_sample_time</span><span class="p">(</span>
+    <span class="n">file</span><span class="p">:</span> <span class="n">File</span><span class="p">,</span>
+    <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">variable_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">z_kind</span><span class="p">:</span> <span class="n">ZKind</span><span class="p">,</span>
+    <span class="n">method</span><span class="p">:</span> <span class="n">SampleMethod</span><span class="p">,</span>
+    <span class="n">wind_pairs</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Sample variables at points (normalized by :func:`_normalize_points`) that all share one valid time.</span>
+
+<span class="sd">    The method is fixed by the file's vertical axis, as HYSPLIT's, with no</span>
+<span class="sd">    fallback between methods; :func:`sample_points` says what each one needs.</span>
+<span class="sd">    At heights the order is HYSPLIT's (#116): the column at each of the four</span>
+<span class="sd">    grid points around a point, with its own ground, heights and pressures, is</span>
+<span class="sd">    interpolated to the point's ``z``, then the four values are blended over</span>
+<span class="sd">    those that have one (:func:`~.horizontal.blend`). HYSPLIT has no pressure</span>
+<span class="sd">    targets: at pressures and native levels each level is blended first, so a</span>
+<span class="sd">    target near the ground is near the ground of the point's own column.</span>
+
+<span class="sd">    Returns one array per variable, aligned with the rows of *coords*.</span>
+<span class="sd">    """</span>
+    <span class="n">recordset</span> <span class="o">=</span> <span class="n">file</span><span class="p">[</span><span class="n">time</span><span class="p">]</span>
+    <span class="n">lon</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">"lon"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">lat</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">"lat"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">plan</span> <span class="o">=</span> <span class="n">build_plan</span><span class="p">(</span><span class="n">recordset</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">levels</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">column_z</span><span class="p">:</span> <span class="n">ColumnZKind</span>
+    <span class="k">if</span> <span class="n">z_kind</span> <span class="o">==</span> <span class="s2">"msl"</span><span class="p">:</span>
+        <span class="c1"># A height above sea level is the height above the ground at the point</span>
+        <span class="c1"># itself, as HYSPLIT places a particle above the terrain there; each</span>
+        <span class="c1"># grid point's column is then read at that height above its own ground.</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span> <span class="o">-</span> <span class="n">terrain_at</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
+        <span class="n">column_z</span> <span class="o">=</span> <span class="s2">"agl"</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">column_z</span> <span class="o">=</span> <span class="n">z_kind</span>
+    <span class="k">if</span> <span class="n">column_z</span> <span class="o">==</span> <span class="s2">"agl"</span> <span class="ow">and</span> <span class="n">model_top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">levels</span> <span class="o">=</span> <span class="n">InternalLevels</span><span class="o">.</span><span class="n">for_axis</span><span class="p">(</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">vertical_axis</span><span class="p">,</span> <span class="n">model_top</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">source</span>
+        <span class="p">)</span>
+
+    <span class="c1"># On a WRF file UWND and VWND are on their own staggered grids: each is</span>
+    <span class="c1"># sampled at its own array position, from the columns of the grid points</span>
+    <span class="c1"># around it, as HYSPLIT builds each node's profile and then reads U and V</span>
+    <span class="c1"># half a cell away (#109).</span>
+    <span class="n">stagger</span> <span class="o">=</span> <span class="n">WRF_STAGGER</span> <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">source</span> <span class="o">==</span> <span class="s2">"AWRF"</span> <span class="k">else</span> <span class="p">{}</span>
+    <span class="n">staggered</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">stagger</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">variable_names</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">stagger</span><span class="p">}</span>
+    <span class="n">each_level_first</span> <span class="o">=</span> <span class="n">column_z</span> <span class="o">==</span> <span class="s2">"pressure"</span>
+    <span class="n">nodes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Plan</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Column</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">shift</span> <span class="ow">in</span> <span class="p">{(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="o">*</span><span class="n">staggered</span><span class="o">.</span><span class="n">values</span><span class="p">()}:</span>
+        <span class="n">shifted</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">plan</span>
+            <span class="k">if</span> <span class="n">shift</span> <span class="o">==</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">build_plan</span><span class="p">(</span><span class="n">recordset</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">stagger</span><span class="o">=</span><span class="n">shift</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">var_nodes</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="n">node_plan</span><span class="p">(</span><span class="n">shifted</span><span class="p">,</span> <span class="n">each_level_first</span><span class="o">=</span><span class="n">each_level_first</span><span class="p">)</span>
+        <span class="n">column</span> <span class="o">=</span> <span class="n">column_for</span><span class="p">(</span><span class="n">recordset</span><span class="p">,</span> <span class="n">var_nodes</span><span class="p">,</span> <span class="n">z_kind</span><span class="o">=</span><span class="n">column_z</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">)</span>
+        <span class="n">nodes</span><span class="p">[</span><span class="n">shift</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">var_nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">column</span><span class="p">)</span>
+
+    <span class="n">place</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">levels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># The particle's terrain, interpolated from the grid points' as HYSPLIT</span>
+        <span class="c1"># interpolates its terrain array, places it among the internal levels.</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">column</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span>
+        <span class="k">assert</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">place</span> <span class="o">=</span> <span class="n">levels</span><span class="o">.</span><span class="n">position</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">blend</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">terrain</span><span class="p">,</span> <span class="n">weights</span><span class="p">))</span>
+
+    <span class="n">sampled</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">variable_names</span><span class="p">:</span>
+        <span class="n">var_nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">column</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[</span><span class="n">staggered</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">variable</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))]</span>
+        <span class="k">if</span> <span class="n">place</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">levels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">sampled</span><span class="p">[</span><span class="n">variable</span><span class="p">]</span> <span class="o">=</span> <span class="n">sample_on_internal_levels</span><span class="p">(</span>
+                <span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="o">*</span><span class="n">place</span><span class="p">,</span> <span class="n">levels</span><span class="p">,</span> <span class="n">var_nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">column</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">at_nodes</span> <span class="o">=</span> <span class="n">sample_variable</span><span class="p">(</span>
+                <span class="n">recordset</span><span class="p">,</span>
+                <span class="n">variable</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)),</span>
+                <span class="n">z_kind</span><span class="o">=</span><span class="n">column_z</span><span class="p">,</span>
+                <span class="n">plan</span><span class="o">=</span><span class="n">var_nodes</span><span class="p">,</span>
+                <span class="n">column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">sampled</span><span class="p">[</span><span class="n">variable</span><span class="p">]</span> <span class="o">=</span> <span class="n">blend</span><span class="p">(</span><span class="n">at_nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
+    <span class="n">rotate_winds</span><span class="p">(</span><span class="n">sampled</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">wind_pairs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sampled</span>
+
+
+<div class="viewcode-block" id="sample_points">
+<a class="viewcode-back" href="../../../../_autosummary/arlmet.sample_points.html#arlmet.sample_points">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sample_points</span><span class="p">(</span>
+    <span class="n">files</span><span class="p">:</span> <span class="n">FileLike</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">FileLike</span><span class="p">],</span>
+    <span class="n">points</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">variables</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">z_kind</span><span class="p">:</span> <span class="n">ZKind</span> <span class="o">=</span> <span class="s2">"pressure"</span><span class="p">,</span>
+    <span class="n">method</span><span class="p">:</span> <span class="n">SampleMethod</span> <span class="o">=</span> <span class="s2">"linear"</span><span class="p">,</span>
+    <span class="n">earth_relative</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_DEFAULT_MODEL_TOP</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Sample meteorological variables at arbitrary (lon, lat, z, time) points.</span>
+
+<span class="sd">    Accepts a single ARL file or a sequence of files spanning different time</span>
+<span class="sd">    periods. Each may be an open :class:`~arlmet._file.File` or a path to an</span>
+<span class="sd">    ARL file; paths are opened (read mode) and closed automatically, while</span>
+<span class="sd">    already-open Files are left open for the caller to manage. A path is</span>
+<span class="sd">    opened and its index records read on every call, so in a loop over many</span>
+<span class="sd">    calls on one file pass an open File. Each point is</span>
+<span class="sd">    sampled from the file that contains its valid time. Time is not</span>
+<span class="sd">    interpolated: each point's time must be one of the valid times of the</span>
+<span class="sd">    files, and a point between two valid times raises ``ValueError``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    files : File, path-like, or sequence of File or path-like</span>
+<span class="sd">        A single open :class:`~arlmet._file.File` or path, or a sequence of</span>
+<span class="sd">        Files and/or paths. Each valid time must appear in at most one file.</span>
+<span class="sd">    points : pandas.DataFrame or mapping</span>
+<span class="sd">        Table-like object with ``lon``, ``lat`` (degrees), and ``z`` columns,</span>
+<span class="sd">        and optionally a ``time`` column. Any other columns are carried</span>
+<span class="sd">        through to the result unchanged.</span>
+<span class="sd">    variables : str or iterable of str</span>
+<span class="sd">        One or more ARL field names (e.g. ``"TEMP"``, ``"UWND"``), or</span>
+<span class="sd">        ``"pressure"`` for the virtual pressure variable. A name must not</span>
+<span class="sd">        collide with an existing column of ``points``. On a WRF file with</span>
+<span class="sd">        mass-coupled winds (``MUU0``, ``MUV0``) ``UWND``, ``VWND`` and ``WWND``</span>
+<span class="sd">        are decoupled as HYSPLIT does (``UWND * MSFU / MUU0``, ...), and on a</span>
+<span class="sd">        file with ``THET`` but no ``TEMP``, ``TEMP`` is ``THET * (PRES / 1000)</span>
+<span class="sd">        ** 0.286``.</span>
+<span class="sd">    time : pandas.Timestamp or str, optional</span>
+<span class="sd">        One valid time for every point, used when ``points`` has no ``time``</span>
+<span class="sd">        column. Passing both raises ``ValueError``. When neither is given, the</span>
+<span class="sd">        input file(s) must contain exactly one valid time, which is used. A</span>
+<span class="sd">        time must be a valid time of a file (no interpolation in time).</span>
+<span class="sd">    z_kind : {"pressure", "native", "agl", "msl"}, default "pressure"</span>
+<span class="sd">        Vertical coordinate system of the ``z`` values. See</span>
+<span class="sd">        :meth:`arlmet.File.sample_points` for the method each vertical</span>
+<span class="sd">        coordinate system uses and the fields it requires.</span>
+<span class="sd">    method : {"linear", "nearest"}, default "linear"</span>
+<span class="sd">        Horizontal interpolation: bilinear or nearest grid point. At heights</span>
+<span class="sd">        (``"agl"``, ``"msl"``), as in HYSPLIT, the column at each of the four</span>
+<span class="sd">        grid points around a point is interpolated to the point's ``z`` first,</span>
+<span class="sd">        with that grid point's own ground and level heights, and the four</span>
+<span class="sd">        values are then blended; a grid point whose column ends below ``z``</span>
+<span class="sd">        does not count, and the others are reweighted. At pressures and native</span>
+<span class="sd">        levels each level is blended first, as before.</span>
+<span class="sd">        On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's</span>
+<span class="sd">        staggered grid holds them, half a cell east and north of each point,</span>
+<span class="sd">        as HYSPLIT reads them; "nearest" gives the winds at the nearest</span>
+<span class="sd">        cell's center. The *Sampling* guide has the details.</span>
+<span class="sd">    earth_relative : bool, default False</span>
+<span class="sd">        Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``) from</span>
+<span class="sd">        the grid axes to east/north, using the meridian convergence of each</span>
+<span class="sd">        file's grid. Both components of a pair must be requested. No effect on</span>
+<span class="sd">        lat/lon grids.</span>
+<span class="sd">    model_top : float or None, default 25000</span>
+<span class="sd">        The HYSPLIT run's top of model domain [m], the ``CONTROL`` file's</span>
+<span class="sd">        line after the vertical motion option (PYSTILT's ``z_top``, 25000 by</span>
+<span class="sd">        default). At heights (``"agl"``, ``"msl"``) the values are the ones a</span>
+<span class="sd">        HYSPLIT run with that top uses: on HYSPLIT's own internal levels</span>
+<span class="sd">        (those its ``metlvl`` picks for this file's vertical grid), which</span>
+<span class="sd">        follow the terrain as sigma surfaces that go flat at</span>
+<span class="sd">        ``max(model_top, 25000)`` m, linear between those levels, the first</span>
+<span class="sd">        level's value below it (10 m, or 5 m on the finest grid), and above a</span>
+<span class="sd">        file's top ``TEMP``, ``UWND``, ``VWND`` and pressure extrapolated as</span>
+<span class="sd">        HYSPLIT does (other variables NaN there). A sigma, terrain-following,</span>
+<span class="sd">        hybrid or WRF file without ``SHGT`` takes HYSPLIT's terrain estimate</span>
+<span class="sd">        from ``PRSS``. The default matches a run with PYSTILT's default top; a run with another</span>
+<span class="sd">        top needs its value, because below 25 km the internal levels depend on</span>
+<span class="sd">        it (the *Sampling* guide says how far). ``None`` reads each grid</span>
+<span class="sd">        point's column at the point's own height above that grid point's</span>
+<span class="sd">        ground, between the file's own levels, which is not what HYSPLIT does</span>
+<span class="sd">        (differences of up to 4.6 K, 3.5 m/s and 1.9 hPa below 5 km) and gives</span>
+<span class="sd">        NaN above a file's top. The default applies at heights only: at</span>
+<span class="sd">        ``"pressure"`` and ``"native"`` it is ignored, and a value passed with</span>
+<span class="sd">        either raises.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Copy of ``points`` (all columns and the index preserved) with one</span>
+<span class="sd">        added column per requested variable. Points outside the grid or the</span>
+<span class="sd">        vertical range are NaN. A point within 1e-6 cells of the grid's edge</span>
+<span class="sd">        is on it, so a projected grid's edge nodes, given by the longitude and</span>
+<span class="sd">        latitude :meth:`arlmet.Grid.calculate_coords` reports, have values.</span>
+<span class="sd">        ``result.attrs["arlmet_version"]`` is the arlmet version that sampled.</span>
+<span class="sd">        At heights (``z_kind`` ``"agl"`` or ``"msl"``) with a ``model_top``,</span>
+<span class="sd">        ``result.attrs["model_top"]`` is the one used [m]; with ``model_top=None``</span>
+<span class="sd">        or at pressures it is absent.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If a required column is missing, ``time`` is given alongside a</span>
+<span class="sd">        ``time`` column, no time is given and the inputs hold more than one</span>
+<span class="sd">        time, a point time is in none of the files, a time is in more than one</span>
+<span class="sd">        file, a variable name collides with a column of ``points``, ``z_kind``</span>
+<span class="sd">        or ``method`` is invalid, a field that ``z_kind`` requires is</span>
+<span class="sd">        missing, or ``model_top`` is passed with ``z_kind`` ``"pressure"`` or</span>
+<span class="sd">        ``"native"`` or is not a positive number.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import pandas as pd</span>
+<span class="sd">    &gt;&gt;&gt; import arlmet</span>
+<span class="sd">    &gt;&gt;&gt; points = pd.DataFrame(</span>
+<span class="sd">    ...     {"lon": [-111.9], "lat": [40.7], "z": [850.0], "time": ["2024-07-18 00:00"]}</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; arlmet.sample_points("met.arl", points, ["UWND", "VWND"]).round(1)</span>
+<span class="sd">         lon   lat      z              time  UWND  VWND</span>
+<span class="sd">    0 -111.9  40.7  850.0  2024-07-18 00:00   6.2  -3.8</span>
+
+<span class="sd">    Sample across files spanning different times by passing their paths:</span>
+
+<span class="sd">    &gt;&gt;&gt; arlmet.sample_points(</span>
+<span class="sd">    ...     ["met_00.arl", "met_06.arl"], points, ["UWND", "VWND"]</span>
+<span class="sd">    ... ).round(1)</span>
+<span class="sd">         lon   lat      z              time  UWND  VWND</span>
+<span class="sd">    0 -111.9  40.7  850.0  2024-07-18 00:00   6.2  -3.8</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span>  <span class="c1"># lazy: _file imports this module</span>
+
+    <span class="k">if</span> <span class="n">z_kind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">get_args</span><span class="p">(</span><span class="n">ZKind</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"z_kind must be one of 'native', 'pressure', 'agl', or 'msl'."</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">get_args</span><span class="p">(</span><span class="n">SampleMethod</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"method must be 'linear' or 'nearest'."</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">model_top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">model_top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">_DEFAULT_MODEL_TOP</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">z_kind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"model_top applies to heights: z_kind must be 'agl' or 'msl'."</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">model_top</span><span class="p">)</span> <span class="ow">and</span> <span class="n">model_top</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"model_top must be a positive number of meters, got </span><span class="si">{</span><span class="n">model_top</span><span class="si">!r}</span><span class="s2">."</span>
+            <span class="p">)</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">(</span><span class="n">variables</span><span class="p">,)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">variables</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">names</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"variables must include at least one variable name."</span><span class="p">)</span>
+    <span class="n">wind_pairs</span> <span class="o">=</span> <span class="n">_check_wind_pairs</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="k">if</span> <span class="n">earth_relative</span> <span class="k">else</span> <span class="p">[]</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">files</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="p">(</span><span class="n">File</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">))</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">inputs</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"sample_points requires at least one input file."</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">opened</span><span class="p">:</span>
+        <span class="c1"># Paths are opened here and closed on return; open Files stay the caller's.</span>
+        <span class="n">handles</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">f</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">File</span><span class="p">)</span> <span class="k">else</span> <span class="n">opened</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">File</span><span class="p">(</span><span class="n">f</span><span class="p">))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">inputs</span>
+        <span class="p">]</span>
+        <span class="n">time_map</span> <span class="o">=</span> <span class="n">_map_times</span><span class="p">(</span><span class="n">handles</span><span class="p">)</span>
+        <span class="n">implied_time</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">time_map</span><span class="p">))</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_map</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">result</span><span class="p">,</span> <span class="n">coords</span> <span class="o">=</span> <span class="n">_normalize_points</span><span class="p">(</span>
+            <span class="n">points</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">,</span> <span class="n">implied_time</span><span class="o">=</span><span class="n">implied_time</span>
+        <span class="p">)</span>
+
+        <span class="n">codes</span><span class="p">,</span> <span class="n">point_times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">factorize</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="s2">"time"</span><span class="p">])</span>
+        <span class="n">missing_times</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">point_times</span> <span class="k">if</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">time_map</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">missing_times</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"No input file contains the requested point times: "</span>
+                <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">missing_times</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s2">". A point time must be one of the valid times of the input "</span>
+                <span class="s2">"file(s); sample_points does not interpolate in time. They hold "</span>
+                <span class="o">+</span> <span class="n">_describe_times</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">time_map</span><span class="p">))</span>
+                <span class="o">+</span> <span class="s2">"."</span>
+            <span class="p">)</span>
+
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">code</span><span class="p">,</span> <span class="n">point_time</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">point_times</span><span class="p">):</span>
+            <span class="n">point_time</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">point_time</span><span class="p">)</span>
+            <span class="n">rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">codes</span> <span class="o">==</span> <span class="n">code</span><span class="p">)</span>
+            <span class="n">sampled</span> <span class="o">=</span> <span class="n">_sample_time</span><span class="p">(</span>
+                <span class="n">time_map</span><span class="p">[</span><span class="n">point_time</span><span class="p">],</span>
+                <span class="n">point_time</span><span class="p">,</span>
+                <span class="n">coords</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">rows</span><span class="p">],</span>
+                <span class="n">names</span><span class="p">,</span>
+                <span class="n">z_kind</span><span class="o">=</span><span class="n">z_kind</span><span class="p">,</span>
+                <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+                <span class="n">wind_pairs</span><span class="o">=</span><span class="n">wind_pairs</span><span class="p">,</span>
+                <span class="n">model_top</span><span class="o">=</span><span class="n">model_top</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">sampled</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">rows</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span>
+
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">columns</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"arlmet_version"</span><span class="p">]</span> <span class="o">=</span> <span class="n">__version__</span>
+    <span class="k">if</span> <span class="n">z_kind</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">model_top</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"model_top"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">model_top</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, James Mineau.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

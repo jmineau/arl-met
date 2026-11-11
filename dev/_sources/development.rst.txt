@@ -64,8 +64,8 @@ HYSPLIT source. The Fortran routines it matches:
      - build the profile at every grid point, then read a value at a position
        bilinearly from the four grid points around it
      - :func:`arlmet.sample_points` interpolates each of the four grid points'
-       columns to the point's height, then blends them (``_ops/sample.py``,
-       ``_node_plan``); on HRRR, WRF, GFS, GDAS and NAM files it agrees with the
+       columns to the point's height, then blends them (``_ops/sample/``,
+       ``node_plan``); on HRRR, WRF, GFS, GDAS and NAM files it agrees with the
        compiled ``prfsig``/``prfprs``/``prfecm`` and ``adv3nt`` to float precision
    * - ``metlvl`` / ``zindex`` / ``prfend``
      - the run's internal vertical grid: ``metlvl`` picks one of six grids
@@ -76,8 +76,8 @@ HYSPLIT source. The Fortran routines it matches:
        it; above a column's top ``prfend`` (and ``prfsig``'s tail) keeps
        temperature and winds and steps pressure down hydrostatically; without
        ``SHGT``, ``prfa``'s terrain from ``PRSS`` goes back into the terrain array
-     - :func:`arlmet.sample_points` at heights (``model_top``, default 25000; ``_ops/sample.py``,
-       ``_InternalLevels``, ``_sample_on_internal_levels``); the grid matches
+     - :func:`arlmet.sample_points` at heights (``model_top``, default 25000;
+       ``_ops/sample/internal.py``); the grid matches
        ``metlvl`` on 16 made-up axes and 11 real files, and the values agree
        with the compiled routines (``zindex`` and ``adv3nt`` included) to float
        precision on HRRR, WRF, GFS, GDAS, NAM and NAMS files with tops of 10,
@@ -89,7 +89,7 @@ HYSPLIT source. The Fortran routines it matches:
        (``PRSS``, ``T02M``) with the virtual temperature; ``prfsig`` takes each
        level's pressure from ``PRES`` when the file has it (``ZFLG``), ``prfecm``
        always from the levels; ``ln p`` linear in height
-     - the column in ``_ops/sample.py`` and :func:`arlmet.z_agl`, through
+     - the column in ``_ops/sample/column.py`` and :func:`arlmet.z_agl`, through
        ``vertical._hysplit_z_agl``; on two HRRR columns it agrees with the
        compiled ``prfsig`` within 0.006 hPa
    * - ``prfprs``
@@ -97,7 +97,7 @@ HYSPLIT source. The Fortran routines it matches:
        (``SHGT``, ``PRSS``, ``T02M``, ``U10M``) at the bottom, levels at or
        below the ground skipped, and with the internal levels also a level
        below the first of them (``IF(KL.GT.1)``); ``ln p`` linear in height
-     - the column in ``_ops/sample.py``; ``TEMP`` and winds agree with the
+     - the column in ``_ops/sample/column.py``; ``TEMP`` and winds agree with the
        compiled ``prfprs`` within 0.001 on NAM12 and GDAS columns, pressure
        within 0.0006 hPa (float32 rounding of ``ln p``)
    * - ``prfter``
@@ -108,8 +108,8 @@ HYSPLIT source. The Fortran routines it matches:
        else the first level's brought down adiabatically; ``U10M``) at the
        bottom; every variable, pressure from the ``PRES`` field included,
        linear in height; ``metlvl`` counts the stored heights as they are
-     - :func:`arlmet.sample_points` at heights (``_ops/sample.py``, ``_Column``,
-       ``_InternalLevels``); on 9 made-up flag 3 files (no real one was on
+     - :func:`arlmet.sample_points` at heights (``_ops/sample/column.py``,
+       ``internal.py``); on 9 made-up flag 3 files (no real one was on
        hand) with tops of 3, 10, 25 and 40 km it agrees with the compiled
        ``prfter``, ``metlvl`` and ``zindex`` within 0.0002 K and m/s and
        0.002 hPa; a negative ``CONTROL`` top is not taken (``metlvl`` then
@@ -182,7 +182,7 @@ the surface, and the offset is WRF's model top ``P_TOP`` in hPa. HYSPLIT's
 treats it as flag 1 and ``prfsig`` integrates heights between the ``PRES``
 levels. ``WrfAxis`` files follow that ``prfsig`` path exactly as sigma files
 with ``PRES`` do (``vertical._hysplit_z_agl`` and the column in
-``_ops/sample.py``); on two HRRR columns written as flag-5 files they agree with
+``_ops/sample/column.py``); on two HRRR columns written as flag-5 files they agree with
 the compiled ``prfsig`` within 0.007 hPa.
 
 Module layout
@@ -213,7 +213,13 @@ Module layout
      _probe.py      probe(), Probe: one file from two index records
      _ops/
        subset.py    extract_subset(), resolve_window(), normalize_levels()
-       sample.py    sample_points()
+       sample/      sample_points(), one step per module:
+         points.py      sample_points(); one time step (_sample_time)
+         horizontal.py  the points on the grid, bilinear weights, blending
+         fields.py      a field as HYSPLIT's metinp reads it
+         column.py      the column per vertical type (prfsig, prfprs, prfter, prfecm)
+         profile.py     a variable's profile, read at a height, pressure or level
+         internal.py    HYSPLIT's internal levels (metlvl, zindex, prfend)
        concat.py    concat(), concat_by_time()
      _xarray/
        dataset.py     open_dataset(), write_dataset(): the flat Dataset path
