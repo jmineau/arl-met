@@ -69,7 +69,8 @@ methods, keeping the import graph one-way; `converters/` sits on `_xarray/`.
   rejects a mismatched `header.grid`); `index_length` is computed, never stored.
 - **Packing.** Values are unsigned bytes of differences from the previous value.
   `pack` and `unpack` (both in `_pack.c`) give HYSPLIT's `pakout`/`pakinp` results bit for bit;
-  `test_packing.py` transcribes both. Change them only with a round-trip test.
+  `test_packing.py` transcribes both. Change them only with a round-trip test. `pack_core` also
+  refuses NaN and infinite values and returns the checksum of its bytes, so a writer needs no pass of its own.
 - **Checksums** are 1 to 255 (the byte sum, less 255 each time it reaches 256)
   unless every byte is 0; a stored 0 means none was recorded (`verify_checksum()`
   is True). A record with a negative forecast or named `NULL` is missing: it reads

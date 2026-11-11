@@ -692,10 +692,12 @@ class DataRecord:
                     "Header must be a dictionary in write mode before packing."
                 )
             field = np.ascontiguousarray(self._unpacked, dtype=np.float32)
-            # One pass over a complete field, the usual case; only a field that
-            # fails it is looked at again. pack() would check it a second time,
-            # so the C core is called directly.
-            if not np.isfinite(field).all():
+            try:
+                # The C core refuses a non-finite value as it scans the field
+                # and returns the checksum of what it packed.
+                packed, precision, exponent, initial_value, checksum = _pack_core(field)
+            except ValueError:
+                # Only a field the core refused is looked at again.
                 missing = np.isnan(field)
                 if missing.all():
                     # A field of NaN is missing data, as a missing record reads.
@@ -706,18 +708,19 @@ class DataRecord:
                         f"{self.variable} at level {self.level} has {n_missing} "
                         "missing (NaN or masked) cells; an ARL field has no missing "
                         "cells, so it must be complete or entirely missing."
-                    )
-                raise ValueError(
-                    f"{self.variable} at level {self.level} has infinite values "
-                    "(or values too large for float32); ARL packs finite values only."
-                )
-            packed, precision, exponent, initial_value = _pack_core(field)
+                    ) from None
+                if not np.isfinite(field).all():
+                    raise ValueError(
+                        f"{self.variable} at level {self.level} has infinite values "
+                        "(or values too large for float32); ARL packs finite values "
+                        "only."
+                    ) from None
+                raise
             self._packed = packed
             self._header["precision"] = precision
             self._header["exponent"] = exponent
             self._header["initial_value"] = initial_value
-
-            self._checksum = calculate_checksum(self._packed.data)
+            self._checksum = checksum
 
             if self._derive_diff_on_pack:
                 # Each DIF is what packing left of the target after this record

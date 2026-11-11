@@ -5,6 +5,7 @@ import pytest
 
 from arlmet._grid import GridWindow
 from arlmet._header import Header, format_fortran_float
+from arlmet._pack import pack_core
 from arlmet.packing import calculate_checksum, pack, unpack
 
 
@@ -451,12 +452,29 @@ class TestPackMatchesPakout:
         assert initial_value == np.float32(1e-4)
         assert abs(initial_value) < precision
 
-    @pytest.mark.parametrize("bad", [np.nan, np.inf])
-    def test_refuses_non_finite_values(self, bad):
+    @pytest.mark.parametrize("bad", [np.nan, np.inf, -np.inf])
+    @pytest.mark.parametrize(
+        "cell", [(0, 0), (1, 1), (2, 2)], ids=["first", "middle", "last"]
+    )
+    def test_refuses_non_finite_values(self, bad, cell):
         field = np.zeros((3, 3), dtype=np.float32)
-        field[1, 1] = bad
+        field[cell] = bad
         with pytest.raises(ValueError, match="NaN or infinite"):
             pack(field)
+        with pytest.raises(ValueError, match="NaN or infinite"):
+            pack_core(field)
+
+    @pytest.mark.parametrize("name", sorted(_PACK_FIELDS))
+    def test_core_returns_the_checksum_of_its_bytes(self, name):
+        packed, _, _, _, checksum = pack_core(_PACK_FIELDS[name])
+        assert checksum == calculate_checksum(packed.tobytes())
+        assert 1 <= checksum <= 255
+
+    def test_core_checksum_is_255_when_the_byte_sum_is_a_multiple_of_255(self):
+        field = np.array([[0.6, 7.5, 2.5], [-5.0, 2.6, -1.1]], dtype=np.float32)
+        packed, _, _, _, checksum = pack_core(field)
+        assert packed.tolist() == [[127, 237, 47], [37, 249, 68]]  # sum 765 = 3 * 255
+        assert checksum == 255
 
     @pytest.mark.parametrize("name", sorted(_PACK_FIELDS))
     def test_roundtrip_within_precision(self, name):
