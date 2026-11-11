@@ -58,6 +58,26 @@ def test_engine_matches_open_dataset(tmp_path):
     assert via_xarray.arl.grid == direct.arl.grid
 
 
+@pytest.mark.parametrize(
+    "indexers",
+    [
+        {},
+        {"time": 1},
+        {"time": 0, "level": 1, "lat": 3, "lon": 4},
+        {"lat": slice(2, 9, 3), "lon": slice(None, None, -2)},
+        {"level": [1, 0], "lat": [5, 1, 5], "lon": [0, 19]},
+        {"time": [1, 0], "lon": slice(4, 8)},
+    ],
+)
+def test_lazy_indexing_matches_the_loaded_array(tmp_path, indexers):
+    path = write_arl(tmp_path / "met.arl")
+    loaded = arlmet.open_dataset(path)["TEMP"].load()
+
+    lazy = arlmet.open_dataset(path)["TEMP"].isel(indexers)
+
+    xr.testing.assert_identical(lazy.load(), loaded.isel(indexers))
+
+
 def test_engine_passes_bbox_levels_and_drop_variables(tmp_path):
     path = write_arl(tmp_path / "met.arl")
     kwargs = {"bbox": (22.0, -8.0, 24.0, -6.0), "levels": [0, 2]}
