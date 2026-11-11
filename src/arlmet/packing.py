@@ -69,7 +69,7 @@ def pack(
 
 
 def unpack(
-    packed: bytes | bytearray,
+    packed: bytes | bytearray | memoryview,
     nx: int,
     ny: int,
     precision: float,
@@ -88,7 +88,7 @@ def unpack(
 
     Parameters
     ----------
-    packed : bytes or bytearray
+    packed : bytes, bytearray, or memoryview
         The packed byte array to be unpacked.
     nx : int
         The number of columns in the full data grid.
