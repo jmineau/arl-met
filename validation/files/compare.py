@@ -25,8 +25,8 @@ import numpy as np
 import pandas as pd
 
 import arlmet
-from arlmet.header import Header
-from arlmet.indexrecord import IndexRecord
+from arlmet.record import Header
+from arlmet.record import IndexRecord
 
 HYREF = Path(__file__).resolve().parent.parent / "build" / "hyref"
 f32 = np.float32

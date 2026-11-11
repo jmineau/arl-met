@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
+from arlmet._header import Header, format_fortran_float
 from arlmet.grid import GridWindow
-from arlmet.header import Header, format_fortran_float
 from arlmet.packing import calculate_checksum, pack, unpack
 
 

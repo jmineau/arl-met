@@ -1,4 +1,12 @@
-"""DataRecord: one packed 2-D field of an ARL meteorology file."""
+"""
+The records of an ARL meteorology file.
+
+:class:`DataRecord` is one packed 2-D field. :class:`Header` is the 50-byte
+header at the front of every record (time, level, variable, packing
+constants), and :class:`IndexRecord` the record that opens each time step
+(grid, vertical axis, the variables on each level, as :class:`LvlInfo` and
+:class:`VarInfo`). Most code reads them through :class:`arlmet.File`.
+"""
 
 from __future__ import annotations
 
@@ -10,9 +18,10 @@ import numpy.typing as npt
 import pandas as pd
 from typing_extensions import override
 
+from arlmet._header import Header, record_length_from_grid, split_grid_component
+from arlmet._indexrecord import IndexRecord, LvlInfo, VarInfo
 from arlmet.exceptions import ARLFormatError
 from arlmet.grid import Grid, GridWindow, _split_at_seam
-from arlmet.header import Header, record_length_from_grid, split_grid_component
 from arlmet.packing import calculate_checksum, pack, unpack
 from arlmet.vertical import VerticalAxis
 
@@ -21,7 +30,7 @@ if TYPE_CHECKING:
 
     from arlmet.recordset import RecordSet
 
-__all__ = ["DataRecord"]
+__all__ = ["DataRecord", "Header", "IndexRecord", "LvlInfo", "VarInfo"]
 
 # HYSPLIT's reader (metinp.f) adds each DIF record into a field it picks by the
 # DIF's name. Above the surface, DIFW goes into the vertical velocity (filled by

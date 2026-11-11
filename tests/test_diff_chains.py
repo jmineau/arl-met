@@ -33,9 +33,8 @@ from arlmet import (
     write_dataset,
 )
 from arlmet.grid import Grid, GridWindow, Projection
-from arlmet.header import Header
-from arlmet.indexrecord import IndexRecord, LvlInfo, VarInfo
 from arlmet.packing import calculate_checksum
+from arlmet.record import Header, IndexRecord, LvlInfo, VarInfo
 from arlmet.vertical import PressureAxis
 
 NX = NY = 20

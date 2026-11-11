@@ -315,7 +315,7 @@ def concat_by_time(
     dest_dir = Path(dest_dir)
 
     # Hidden files (an interrupted run's ``.<name>.<hash>.partial``) are not inputs
-    # unless the pattern itself names hidden files, as ``arlmet.index`` does.
+    # unless the pattern itself names hidden files, as ``arlmet.inventory`` does.
     hidden_ok = Path(pattern).name.startswith(".")
     candidates = sorted(
         p

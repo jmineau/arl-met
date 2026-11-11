@@ -1045,7 +1045,7 @@ def test_gdas_header_is_valid_arl(tmp_path):
     """Download the first 50 bytes of a GDAS file and check the ARL header."""
     import s3fs
 
-    from arlmet.header import Header
+    from arlmet.record import Header
 
     src = GDASArchive()
     key = src._archive_path(pd.Timestamp(_GDAS_TEST_TIME))
@@ -1247,7 +1247,7 @@ def test_an_archives_source_is_the_one_its_files_carry(name):
     import s3fs
 
     from arlmet.archives import ARCHIVES
-    from arlmet.indexrecord import IndexRecord
+    from arlmet.record import IndexRecord
 
     archive = ARCHIVES[name]()
     key = archive._archive_path(pd.Timestamp(_SOURCE_CHECK_DATES[name]))
@@ -1264,8 +1264,7 @@ def test_an_archives_step_is_the_one_its_files_hold(name):
     import s3fs
 
     from arlmet.archives import ARCHIVES
-    from arlmet.header import Header
-    from arlmet.indexrecord import IndexRecord
+    from arlmet.record import Header, IndexRecord
 
     archive = ARCHIVES[name]()
     key = archive._archive_path(pd.Timestamp(_SOURCE_CHECK_DATES[name]))

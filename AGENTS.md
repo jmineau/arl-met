@@ -30,12 +30,12 @@ headers through `File`, so the speed and memory use of those paths matter.
 ```
 src/arlmet/
   file.py, recordset.py, record.py  File > RecordSet (one valid time) > DataRecord (one 2D field)
-  header.py, indexrecord.py         codecs of the 50-byte record header and the index record
+  _header.py, _indexrecord.py       codecs of the 50-byte record header and the index record (public in `record`)
   grid.py, vertical.py              horizontal geometry; VerticalAxis and its five subclasses
   packing.py, _pack.c               pack, unpack, checksum; the C extension for the encoder
   collection.py                     RecordCollection protocol, VariableView, VariableAccessor
   exceptions.py, _io.py, _time.py   ARLFormatError/Warning; atomic outputs; timestamps
-  archives.py; directoryindex.py    NOAA archive downloads and sync (Archive, ARCHIVES, get_archive); index, DirectoryIndex
+  archives.py; _inventory.py        NOAA archive downloads and sync (Archive, ARCHIVES, get_archive); inventory, Inventory
   ops/                              extract_subset, sample_points, concat, concat_by_time
   converters/                       from_era5, from_gfs, from_icon, from_wrf: other models' output
   xarray/                           open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl
@@ -158,8 +158,10 @@ methods, keeping the import graph one-way; `converters/` sits on `xarray/`.
     (`Grid.crs`, `Grid.origin`) rely on this; build a new value instead.
 11. **The public API is explicit.** The four `__init__.py` files re-export it,
     and every module but `_io`, `_time`, `_version` and `_entrypoint` defines `__all__`.
-    The byte-level codec is public only in its modules (`arlmet.packing`, `arlmet.header`,
-    `arlmet.indexrecord`), not re-exported by `arlmet`; HYSPLIT's constants `R_D` and `G` are
+    The byte-level codec is public only in `arlmet.record` (`Header`, `IndexRecord`, `LvlInfo`,
+    `VarInfo`, beside `DataRecord`; code in `_header.py`, `_indexrecord.py`) and `arlmet.packing`,
+    not re-exported by `arlmet`. "Index" is the format's index record only: a folder's files are
+    `arlmet.inventory` / `Inventory`. HYSPLIT's constants `R_D` and `G` are
     in `arlmet.vertical.__all__` (PYSTILT uses them). Options after the obvious leading
     arguments are keyword-only, except that `packing.unpack` keeps six positional arguments
     (the wheel smoke test in `publish.yml` calls it so).

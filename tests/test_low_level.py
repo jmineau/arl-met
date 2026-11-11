@@ -11,10 +11,8 @@ import xarray as xr
 from arlmet import ARLFormatError, ARLFormatWarning, File
 from arlmet.collection import VariableAccessor
 from arlmet.grid import Grid, GridWindow, Projection
-from arlmet.header import Header
-from arlmet.indexrecord import LvlInfo, VarInfo
 from arlmet.packing import unpack
-from arlmet.record import DataRecord
+from arlmet.record import DataRecord, Header, LvlInfo, VarInfo
 from arlmet.vertical import PressureAxis
 from arlmet.xarray._backend import ArlVariableArray, _normalize_backend_indexer
 

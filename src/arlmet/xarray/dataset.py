@@ -13,11 +13,11 @@ import pandas as pd
 import xarray as xr
 from xarray.core import indexing
 
+from arlmet._header import check_year
 from arlmet._io import atomic_output, reject_same_file
 from arlmet._time import ensure_timestamp, utc_times
 from arlmet._version import __version__
 from arlmet.grid import Grid
-from arlmet.header import check_year
 from arlmet.ops.sample import _mass_coupled
 from arlmet.ops.subset import normalize_levels, resolve_window, select_records
 from arlmet.record import _check_variable_name

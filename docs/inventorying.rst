@@ -1,23 +1,23 @@
-Indexing a Directory
-====================
+Taking an Inventory
+===================
 
-Use :func:`arlmet.index` to find the ARL files that cover a time window by what
+Use :func:`arlmet.inventory` to find the ARL files that cover a time window by what
 their headers say, not by how they are named. Each file's index records hold its
-valid times, the model that wrote it (the source), and its grid. ``index`` reads
+valid times, the model that wrote it (the source), and its grid. ``inventory`` reads
 them once for a whole folder and keeps them in a small table.
-:meth:`~arlmet.DirectoryIndex.covering` then returns the files for a window, and
-:meth:`~arlmet.DirectoryIndex.missing` the hours no file holds.
+:meth:`~arlmet.Inventory.covering` then returns the files for a window, and
+:meth:`~arlmet.Inventory.missing` the hours no file holds.
 
 .. code-block:: python
 
    import arlmet
 
-   idx = arlmet.index("hrrr")
-   files = idx.covering("2021-01-14 06:00", "2021-01-15 06:00")
+   inv = arlmet.inventory("hrrr")
+   files = inv.covering("2021-01-14 06:00", "2021-01-15 06:00")
 
 A program that finds files by a name pattern (``%Y%m%d_%H``) finds nothing
 when the pattern is wrong or the archive is renamed, and cannot tell two
-products named alike apart. The index needs only the folder.
+products named alike apart. The inventory needs only the folder.
 
 An example
 ----------
@@ -55,10 +55,10 @@ to 23:00, named after their first hour. Any names would do.
        block = day.isel(time=slice(first, first + 6))
        arlmet.write_dataset(block, folder / f"20240701_{first:02d}", vertical_axis=surface)
 
-   idx = arlmet.index(folder)
-   idx.table[["source", "start", "end", "step"]]
+   inv = arlmet.inventory(folder)
+   inv.table[["source", "start", "end", "step"]]
 
-:attr:`~arlmet.DirectoryIndex.table` has one row per file: its ``path``, its
+:attr:`~arlmet.Inventory.table` has one row per file: its ``path``, its
 ``source``, a short description of its ``grid``, its first and last valid time
 (``start`` and ``end``), the time between its valid times (``step``), and an
 ``error`` column, empty for a file that can be used.
@@ -68,33 +68,33 @@ Finding the files for a window
 
 HYSPLIT interpolates between the valid times around each moment of a run, so a
 window needs every valid time from the one at or before its start to the one at
-or after its end. :meth:`~arlmet.DirectoryIndex.covering` returns the files that
+or after its end. :meth:`~arlmet.Inventory.covering` returns the files that
 hold them, in time order:
 
 .. ipython:: python
 
-   [p.name for p in idx.covering("2024-07-01 05:30", "2024-07-01 12:00")]
+   [p.name for p in inv.covering("2024-07-01 05:30", "2024-07-01 12:00")]
 
 The window starts at 05:30, so it needs 05:00, which is in the first file, and
 it ends at 12:00, which is in the third. A window from 06:00 to 11:00 needs only
 the second file. A time without a time zone is UTC, and one with a time zone
 is converted to UTC, as in the archives.
 
-The valid times are expected every :attr:`~arlmet.DirectoryIndex.step`, the
+The valid times are expected every :attr:`~arlmet.Inventory.step`, the
 most common spacing between the valid times of the folder. When a file is
-missing, :meth:`~arlmet.DirectoryIndex.missing` lists the times no file holds,
+missing, :meth:`~arlmet.Inventory.missing` lists the times no file holds,
 and ``covering`` raises ``ValueError`` with them:
 
 .. ipython:: python
 
    (folder / "20240701_06").unlink()
-   idx = arlmet.index(folder)
-   idx.missing("2024-07-01 05:30", "2024-07-01 08:00")
+   inv = arlmet.inventory(folder)
+   inv.missing("2024-07-01 05:30", "2024-07-01 08:00")
 
 .. ipython:: python
 
    try:
-       idx.covering("2024-07-01 05:30", "2024-07-01 08:00")
+       inv.covering("2024-07-01 05:30", "2024-07-01 08:00")
    except ValueError as exc:
        print(exc)
 
@@ -113,8 +113,8 @@ Which files are read
 - **The folder's own files, or with** ``recursive=True`` **every folder below
   it.** Archives come in two layouts. A plain copy of NOAA's archive keeps
   files in ``YYYY/MM/`` folders (``hrrr/2021/01/20210114_00-05_hrrr``):
-  index it with ``recursive=True``. A shared archive often keeps one flat
-  folder of links into such a tree: index that folder as it is, without
+  take its inventory with ``recursive=True``. A shared archive often keeps one flat
+  folder of links into such a tree: take that folder as it is, without
   ``recursive``.
 - **Links to files are followed, and each real file is one row**, shown by its
   real path, so a link and the file it points to, or two links to one file,
@@ -123,7 +123,7 @@ Which files are read
 - **Subfolders are read in full with** ``recursive=True``, **old copies
   included.** An archive that keeps superseded files in a subfolder such as
   ``deprecated/`` holds two files for those hours, and ``covering`` raises for
-  them. Index the folder of live files instead (a year, or the flat folder of
+  them. Take the folder of live files instead (a year, or the flat folder of
   links), or the archive without ``recursive``.
 - **Hidden files and folders and backup copies are skipped**: names that start
   with ``.`` (arl-met's own partial outputs and the cache file) or end in ``~``.
@@ -134,7 +134,7 @@ Which files are read
 
   .. code-block:: python
 
-     bad = idx.table[idx.table["error"] != ""]
+     bad = inv.table[inv.table["error"] != ""]
 
   A folder kept by :meth:`~arlmet.archives.Archive.sync` holds
   ``arlmet-manifest.tsv`` (see :doc:`downloading`), which is not ARL, so it
@@ -152,23 +152,23 @@ The cache
 ---------
 
 The table is saved to a CSV file, so the files are opened only once. A later
-call to ``index`` lists the folder, reads again only the files that
+call to ``inventory`` lists the folder, reads again only the files that
 are new or whose size or modification time changed, and drops the files that
-are gone. :attr:`~arlmet.DirectoryIndex.cache` says where it is:
+are gone. :attr:`~arlmet.Inventory.cache` says where it is:
 
-- ``.arlmet-index.csv`` in the folder itself, when you can write to it
-  (``.arlmet-index-recursive.csv`` for a recursive index);
+- ``.arlmet-inventory.csv`` in the folder itself, when you can write to it
+  (``.arlmet-inventory-recursive.csv`` for a recursive inventory);
 - otherwise, as for a shared read-only archive, a file named after the folder
   in ``$ARLMET_CACHE_DIR``, or in the user cache folder when that variable is
-  not set: ``$XDG_CACHE_HOME/arlmet/index`` (``~/.cache/arlmet/index``) on
-  Linux, ``~/Library/Caches/arlmet/index`` on macOS,
-  ``%LOCALAPPDATA%\arlmet\index`` on Windows.
+  not set: ``$XDG_CACHE_HOME/arlmet/inventory`` (``~/.cache/arlmet/inventory``) on
+  Linux, ``~/Library/Caches/arlmet/inventory`` on macOS,
+  ``%LOCALAPPDATA%\arlmet\inventory`` on Windows.
 
 Pass ``cache_dir=`` to choose the folder yourself:
 
 .. code-block:: python
 
-   idx = arlmet.index("/archive/hrrr", cache_dir="caches")
+   inv = arlmet.inventory("/archive/hrrr", cache_dir="caches")
 
 How long it takes
 -----------------

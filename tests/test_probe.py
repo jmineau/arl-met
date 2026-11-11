@@ -8,7 +8,7 @@ import pytest
 
 from arlmet import ARLFormatError, File, Probe, probe
 from arlmet.grid import Grid, Projection
-from arlmet.header import Header
+from arlmet.record import Header
 from arlmet.vertical import PressureAxis
 
 TIMES = pd.date_range("2024-07-18 00:00", periods=3, freq="3h")

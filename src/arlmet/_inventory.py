@@ -1,9 +1,9 @@
 """
-Index a directory of ARL files by their headers.
+Take an inventory of a directory of ARL files by their headers.
 
-:func:`index` opens each file in a directory once, keeps what its
+:func:`inventory` opens each file in a directory once, keeps what its
 index records say (source, grid, first and last valid time, time step) in a
-small table, and caches the table in a CSV file. :meth:`DirectoryIndex.covering`
+small table, and caches the table in a CSV file. :meth:`Inventory.covering`
 then finds the files that cover a time window without knowing how the files
 are named.
 """
@@ -27,12 +27,12 @@ from arlmet._time import ensure_timestamp
 from arlmet.exceptions import ARLFormatError
 from arlmet.file import File, _at, _span
 
-__all__ = ["DirectoryIndex", "index"]
+__all__ = ["Inventory", "inventory"]
 
 logger = logging.getLogger(__name__)
 
-#: Name of the cache file written beside the files it indexes.
-CACHE_NAME = ".arlmet-index.csv"
+#: Name of the cache file written beside the files it lists.
+CACHE_NAME = ".arlmet-inventory.csv"
 
 #: Environment variable naming the folder for caches that cannot sit beside
 #: their directory.
@@ -74,7 +74,7 @@ _EMPTY: dict[str, Any] = {
 
 def _user_cache_dir() -> Path:
     """
-    Return the folder for index caches that cannot sit beside their directory.
+    Return the folder for inventory caches that cannot sit beside their directory.
 
     ``$ARLMET_CACHE_DIR`` when it is set, else ``arlmet`` in the platform's
     user cache folder: ``$XDG_CACHE_HOME`` or ``~/.cache`` on Linux,
@@ -96,7 +96,7 @@ def _user_cache_dir() -> Path:
             root = Path(xdg) if xdg else Path.home() / ".cache"
     except RuntimeError as exc:
         raise ValueError(
-            f"No user cache folder for the index ({exc}). Pass cache_dir= or "
+            f"No user cache folder for the inventory ({exc}). Pass cache_dir= or "
             f"set {CACHE_ENV}."
         ) from exc
     return root / "arlmet"
@@ -108,9 +108,9 @@ def _cache_path(
     """
     Return the cache file for *directory*.
 
-    It is ``.arlmet-index.csv`` in *directory* when that is writable;
+    It is ``.arlmet-inventory.csv`` in *directory* when that is writable;
     otherwise, or when *cache_dir* is given, a file named after the
-    directory in *cache_dir* or the user cache folder. A recursive index has
+    directory in *cache_dir* or the user cache folder. A recursive inventory has
     its own file, ending in ``-recursive``, so the two never replace each
     other's rows.
     """
@@ -120,7 +120,7 @@ def _cache_path(
     folder = (
         Path(cache_dir).expanduser()
         if cache_dir is not None
-        else _user_cache_dir() / "index"
+        else _user_cache_dir() / "inventory"
     )
     digest = hashlib.sha256(str(directory.resolve()).encode()).hexdigest()[:12]
     return folder / f"{directory.name or 'root'}-{digest}{suffix}.csv"
@@ -165,7 +165,7 @@ def _read_cache(cache: Path) -> dict[str, dict[str, Any]]:
     try:
         table = pd.read_csv(cache, dtype=str, keep_default_na=False)
     except (OSError, ValueError) as exc:
-        logger.warning("Ignoring the unreadable index cache %s: %s", cache, exc)
+        logger.warning("Ignoring the unreadable inventory cache %s: %s", cache, exc)
         return {}
     if list(table.columns) != _CACHE_COLUMNS:
         return {}
@@ -200,7 +200,7 @@ def _write_cache(cache: Path, rows: dict[str, dict[str, Any]]) -> None:
 def _cache_error(cache: Path, exc: OSError) -> OSError:
     """Return the error for a cache that cannot be written, saying how to choose another place."""
     return OSError(
-        f"Cannot write the index cache {cache}: {exc}. Pass cache_dir= "
+        f"Cannot write the inventory cache {cache}: {exc}. Pass cache_dir= "
         f"or set {CACHE_ENV} to a folder you can write to."
     )
 
@@ -225,20 +225,20 @@ def _walk(folder: Path, recursive: bool) -> list[Path]:
     return found
 
 
-def index(
+def inventory(
     directory: str | os.PathLike[str],
     *,
     recursive: bool = False,
     cache_dir: str | os.PathLike[str] | None = None,
-) -> DirectoryIndex:
+) -> Inventory:
     """
-    Index the ARL files in a directory by their headers.
+    Take an inventory of the ARL files in a directory by their headers.
 
     Each file in *directory* is opened once, and what its index records say
     is kept: its source, grid, first and last valid time, and time step. The
     table is cached, so a later call reads again only the files that are new
     or changed (by size or modification time) and drops the files that are
-    gone. Use :meth:`DirectoryIndex.covering` to find the files for a time
+    gone. Use :meth:`Inventory.covering` to find the files for a time
     window.
 
     Links to files are followed, and each real file is one row, shown by its
@@ -251,7 +251,7 @@ def index(
 
     Files are opened 16 at a time: on a network filesystem each one waits on
     a few small reads. The cache is saved every 500 files, so an interrupted
-    first index of a large archive keeps what it read.
+    first inventory of a large archive keeps what it read.
 
     Parameters
     ----------
@@ -263,15 +263,15 @@ def index(
         *directory* are read.
     cache_dir : path-like, optional
         Folder for the cache file. By default the cache is
-        ``.arlmet-index.csv`` (``.arlmet-index-recursive.csv`` with
+        ``.arlmet-inventory.csv`` (``.arlmet-inventory-recursive.csv`` with
         *recursive*) in *directory* when *directory* is writable, and
         otherwise a file named after the directory in ``$ARLMET_CACHE_DIR``,
-        or in the platform's user cache folder (``arlmet/index`` in
+        or in the platform's user cache folder (``arlmet/inventory`` in
         ``$XDG_CACHE_HOME`` on Linux) when that variable is not set.
 
     Returns
     -------
-    DirectoryIndex
+    Inventory
 
     Raises
     ------
@@ -288,13 +288,13 @@ def index(
 
     See Also
     --------
-    DirectoryIndex.covering : The files for a time window.
+    Inventory.covering : The files for a time window.
     File.check : Damage that opening a file does not catch.
 
     Examples
     --------
-    >>> idx = arlmet.index("hrrr")  # doctest: +SKIP
-    >>> idx.covering("2021-01-14 06:00", "2021-01-15 06:00")  # doctest: +SKIP
+    >>> inv = arlmet.inventory("hrrr")  # doctest: +SKIP
+    >>> inv.covering("2021-01-14 06:00", "2021-01-15 06:00")  # doctest: +SKIP
     [PosixPath('hrrr/20210114_06-11_hrrr'), ..., PosixPath('hrrr/20210115_06-11_hrrr')]
     """
     directory = Path(directory).expanduser().absolute()
@@ -341,7 +341,7 @@ def index(
         # Opening a file waits on a few small reads, which on a network
         # filesystem take far longer than parsing them, so several are read
         # at once. The cache is saved as rows come in, so an interrupted
-        # first index of a large archive keeps what it read.
+        # first inventory of a large archive keeps what it read.
         with ThreadPoolExecutor(_READERS) as pool:
             read = pool.map(_read_file, [Path(key) for key in to_read])
             for n, ((key, stat), row) in enumerate(
@@ -372,19 +372,19 @@ def index(
         columns=_TABLE_COLUMNS,
     )
     table = table.sort_values("start", kind="stable", na_position="last")
-    return DirectoryIndex(directory, table.reset_index(drop=True), cache=cache)
+    return Inventory(directory, table.reset_index(drop=True), cache=cache)
 
 
-class DirectoryIndex:
+class Inventory:
     """
     The ARL files in a directory, by the times their headers say they hold.
 
-    Made by :func:`arlmet.index`.
+    Made by :func:`arlmet.inventory`.
 
     Parameters
     ----------
     directory : pathlib.Path
-        The indexed folder.
+        The folder the inventory reads.
     table : pandas.DataFrame
         One row per file (see :attr:`table`).
     cache : pathlib.Path, optional
@@ -418,7 +418,7 @@ class DirectoryIndex:
         self._holders = holders
         self._times = pd.DatetimeIndex(sorted(holders))
 
-    #: The indexed folder.
+    #: The folder the inventory reads.
     directory: Path
 
     #: One row per file, sorted by ``start``, then name. The columns are ``path``,
@@ -441,7 +441,7 @@ class DirectoryIndex:
 
         See Also
         --------
-        DirectoryIndex.missing : The valid times no file holds.
+        Inventory.missing : The valid times no file holds.
         """
         if len(self._times) < 2:
             return None
@@ -489,7 +489,7 @@ class DirectoryIndex:
 
         Examples
         --------
-        >>> idx.missing("2021-01-14 06:00", "2021-01-14 08:00")  # doctest: +SKIP
+        >>> inv.missing("2021-01-14 06:00", "2021-01-14 08:00")  # doctest: +SKIP
         [Timestamp('2021-01-14 07:00:00')]
         """
         return [t for t in self._needed(start, end) if t not in self._holders]
@@ -521,7 +521,7 @@ class DirectoryIndex:
 
         Examples
         --------
-        >>> idx.covering("2021-01-14 06:00", "2021-01-14 08:00")  # doctest: +SKIP
+        >>> inv.covering("2021-01-14 06:00", "2021-01-14 08:00")  # doctest: +SKIP
         [PosixPath('hrrr/20210114_06-11_hrrr')]
         """
         needed = self._needed(start, end)
@@ -547,7 +547,7 @@ class DirectoryIndex:
         return files
 
     def __len__(self) -> int:
-        """Return the number of files in the index."""
+        """Return the number of files in the inventory."""
         return len(self.table)
 
     def __repr__(self) -> str:
@@ -555,6 +555,6 @@ class DirectoryIndex:
         n_bad = int((self.table["error"] != "").sum())
         names = self.table.assign(path=[path.name for path in self.table["path"]])
         return (
-            f"DirectoryIndex({str(self.directory)!r}: {len(self)} files, "
+            f"Inventory({str(self.directory)!r}: {len(self)} files, "
             f"{n_bad} not used)\n{names!r}"
         )

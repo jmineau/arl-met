@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from arlmet._header import format_fixed_width_float
 from arlmet.grid import Grid, Projection
-from arlmet.header import format_fixed_width_float
 from arlmet.vertical import SigmaAxis, VerticalAxis, WrfAxis
 
 from ._pressure import Field, arl_dataset, field_variable

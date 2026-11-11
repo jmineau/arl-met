@@ -17,12 +17,12 @@ from typing_extensions import override
 from xarray.backends import CachingFileManager
 from xarray.backends.locks import SerializableLock
 
+from arlmet._header import check_year, record_length_from_grid
+from arlmet._indexrecord import IndexRecord
 from arlmet._time import ensure_timestamp
 from arlmet.collection import VariableAccessor
 from arlmet.exceptions import ARLFormatError, ARLFormatWarning
 from arlmet.grid import Grid, Projection
-from arlmet.header import check_year, record_length_from_grid
-from arlmet.indexrecord import IndexRecord
 from arlmet.record import DataRecord, _corrects, _is_missing, _require_mode
 from arlmet.recordset import RecordSet
 from arlmet.vertical import _DEFAULT_MODEL_TOP, VerticalAxis
