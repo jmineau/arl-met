@@ -1,6 +1,0 @@
-﻿arlmet.index
-============
-
-.. currentmodule:: arlmet
-
-.. autofunction:: index

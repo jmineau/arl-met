@@ -1,0 +1,6 @@
+﻿arlmet.inventory
+================
+
+.. currentmodule:: arlmet
+
+.. autofunction:: inventory

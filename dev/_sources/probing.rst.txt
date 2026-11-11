@@ -93,14 +93,14 @@ unverified until one of those has run on the file.
 When to use it
 ---------------
 
-:func:`arlmet.index` opens every file in a directory and reads every one of
+:func:`arlmet.inventory` opens every file in a directory and reads every one of
 its time steps, to build a table you can query by time window
-(:doc:`indexing`); that is the right tool for finding the files a run needs.
+(:doc:`inventorying`); that is the right tool for finding the files a run needs.
 A probe is for when you already have one file's path and want to know what
 it holds, or whether it looks whole, without paying for a directory's worth
 of reads: for example, a quick look at a single downloaded file, or a
 lightweight first pass before deciding whether a file is worth the fuller
-read ``index`` or ``check`` give it.
+read ``inventory`` or ``check`` give it.
 
 .. ipython:: python
    :suppress:

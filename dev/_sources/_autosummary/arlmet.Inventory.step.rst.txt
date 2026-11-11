@@ -1,0 +1,6 @@
+arlmet.Inventory.step
+=====================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: Inventory.step

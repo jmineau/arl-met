@@ -1,0 +1,6 @@
+arlmet.Inventory.cache
+======================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: Inventory.cache

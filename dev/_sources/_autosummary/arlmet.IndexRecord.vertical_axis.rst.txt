@@ -1,6 +1,0 @@
-arlmet.IndexRecord.vertical\_axis
-=================================
-
-.. currentmodule:: arlmet
-
-.. autoproperty:: IndexRecord.vertical_axis

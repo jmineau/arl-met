@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=7da670e1"></script>
+    <script src="_static/documentation_options.js?v=72508ca4"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -60,7 +60,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b10.dev1+g464cdcebf" />
+  <meta name="docsearch:version" content="0.1.0b10.dev2+g6733e0581" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -439,7 +439,7 @@ HYSPLIT source. The Fortran routines it matches:</p>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pakout</span></code> / <code class="docutils literal notranslate"><span class="pre">pakinp</span></code></p></td>
 <td><p>pack and unpack one field as byte differences; compute the checksum</p></td>
-<td><p><a class="reference internal" href="_autosummary/arlmet.pack.html#arlmet.pack" title="arlmet.pack"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.pack()</span></code></a>, <a class="reference internal" href="_autosummary/arlmet.unpack.html#arlmet.unpack" title="arlmet.unpack"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.unpack()</span></code></a>, <a class="reference internal" href="_autosummary/arlmet.calculate_checksum.html#arlmet.calculate_checksum" title="arlmet.calculate_checksum"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.calculate_checksum()</span></code></a></p></td>
+<td><p><a class="reference internal" href="_autosummary/arlmet.packing.pack.html#arlmet.packing.pack" title="arlmet.packing.pack"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.packing.pack()</span></code></a>, <a class="reference internal" href="_autosummary/arlmet.packing.unpack.html#arlmet.packing.unpack" title="arlmet.packing.unpack"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.packing.unpack()</span></code></a>, <a class="reference internal" href="_autosummary/arlmet.packing.calculate_checksum.html#arlmet.packing.calculate_checksum" title="arlmet.packing.calculate_checksum"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.packing.calculate_checksum()</span></code></a></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pakrec</span></code> / <code class="docutils literal notranslate"><span class="pre">pakndx</span></code></p></td>
 <td><p>write records and the index record; the checksum table is reset to 0 at
@@ -484,7 +484,7 @@ degrees. A rotated Mercator grid raises <code class="docutils literal notranslat
 <td><p>build the profile at every grid point, then read a value at a position
 bilinearly from the four grid points around it</p></td>
 <td><p><a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> interpolates each of the four grid points’
-columns to the point’s height, then blends them (<code class="docutils literal notranslate"><span class="pre">ops/sample.py</span></code>,
+columns to the point’s height, then blends them (<code class="docutils literal notranslate"><span class="pre">_ops/sample.py</span></code>,
 <code class="docutils literal notranslate"><span class="pre">_node_plan</span></code>); on HRRR, WRF, GFS, GDAS and NAM files it agrees with the
 compiled <code class="docutils literal notranslate"><span class="pre">prfsig</span></code>/<code class="docutils literal notranslate"><span class="pre">prfprs</span></code>/<code class="docutils literal notranslate"><span class="pre">prfecm</span></code> and <code class="docutils literal notranslate"><span class="pre">adv3nt</span></code> to float precision</p></td>
 </tr>
@@ -497,7 +497,7 @@ the levels follow the terrain with <code class="docutils literal notranslate"><s
 it; above a column’s top <code class="docutils literal notranslate"><span class="pre">prfend</span></code> (and <code class="docutils literal notranslate"><span class="pre">prfsig</span></code>’s tail) keeps
 temperature and winds and steps pressure down hydrostatically; without
 <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>, <code class="docutils literal notranslate"><span class="pre">prfa</span></code>’s terrain from <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> goes back into the terrain array</p></td>
-<td><p><a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> at heights (<code class="docutils literal notranslate"><span class="pre">model_top</span></code>, default 25000; <code class="docutils literal notranslate"><span class="pre">ops/sample.py</span></code>,
+<td><p><a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> at heights (<code class="docutils literal notranslate"><span class="pre">model_top</span></code>, default 25000; <code class="docutils literal notranslate"><span class="pre">_ops/sample.py</span></code>,
 <code class="docutils literal notranslate"><span class="pre">_InternalLevels</span></code>, <code class="docutils literal notranslate"><span class="pre">_sample_on_internal_levels</span></code>); the grid matches
 <code class="docutils literal notranslate"><span class="pre">metlvl</span></code> on 16 made-up axes and 11 real files, and the values agree
 with the compiled routines (<code class="docutils literal notranslate"><span class="pre">zindex</span></code> and <code class="docutils literal notranslate"><span class="pre">adv3nt</span></code> included) to float
@@ -511,7 +511,7 @@ hybrid (flag 4) profiles: heights from the ground
 (<code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code>) with the virtual temperature; <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> takes each
 level’s pressure from <code class="docutils literal notranslate"><span class="pre">PRES</span></code> when the file has it (<code class="docutils literal notranslate"><span class="pre">ZFLG</span></code>), <code class="docutils literal notranslate"><span class="pre">prfecm</span></code>
 always from the levels; <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code> linear in height</p></td>
-<td><p>the column in <code class="docutils literal notranslate"><span class="pre">ops/sample.py</span></code> and <a class="reference internal" href="_autosummary/arlmet.z_agl.html#arlmet.z_agl" title="arlmet.z_agl"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.z_agl()</span></code></a>, through
+<td><p>the column in <code class="docutils literal notranslate"><span class="pre">_ops/sample.py</span></code> and <a class="reference internal" href="_autosummary/arlmet.z_agl.html#arlmet.z_agl" title="arlmet.z_agl"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.z_agl()</span></code></a>, through
 <code class="docutils literal notranslate"><span class="pre">vertical._hysplit_z_agl</span></code>; on two HRRR columns it agrees with the
 compiled <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> within 0.006 hPa</p></td>
 </tr>
@@ -520,7 +520,7 @@ compiled <code class="docutils literal notranslate"><span class="pre">prfsig</sp
 (<code class="docutils literal notranslate"><span class="pre">SHGT</span></code>, <code class="docutils literal notranslate"><span class="pre">PRSS</span></code>, <code class="docutils literal notranslate"><span class="pre">T02M</span></code>, <code class="docutils literal notranslate"><span class="pre">U10M</span></code>) at the bottom, levels at or
 below the ground skipped, and with the internal levels also a level
 below the first of them (<code class="docutils literal notranslate"><span class="pre">IF(KL.GT.1)</span></code>); <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code> linear in height</p></td>
-<td><p>the column in <code class="docutils literal notranslate"><span class="pre">ops/sample.py</span></code>; <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> and winds agree with the
+<td><p>the column in <code class="docutils literal notranslate"><span class="pre">_ops/sample.py</span></code>; <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> and winds agree with the
 compiled <code class="docutils literal notranslate"><span class="pre">prfprs</span></code> within 0.001 on NAM12 and GDAS columns, pressure
 within 0.0006 hPa (float32 rounding of <code class="docutils literal notranslate"><span class="pre">ln</span> <span class="pre">p</span></code>)</p></td>
 </tr>
@@ -532,7 +532,7 @@ RAMS); the ground (<code class="docutils literal notranslate"><span class="pre">
 else the first level’s brought down adiabatically; <code class="docutils literal notranslate"><span class="pre">U10M</span></code>) at the
 bottom; every variable, pressure from the <code class="docutils literal notranslate"><span class="pre">PRES</span></code> field included,
 linear in height; <code class="docutils literal notranslate"><span class="pre">metlvl</span></code> counts the stored heights as they are</p></td>
-<td><p><a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> at heights (<code class="docutils literal notranslate"><span class="pre">ops/sample.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_Column</span></code>,
+<td><p><a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> at heights (<code class="docutils literal notranslate"><span class="pre">_ops/sample.py</span></code>, <code class="docutils literal notranslate"><span class="pre">_Column</span></code>,
 <code class="docutils literal notranslate"><span class="pre">_InternalLevels</span></code>); on 9 made-up flag 3 files (no real one was on
 hand) with tops of 3, 10, 25 and 40 km it agrees with the compiled
 <code class="docutils literal notranslate"><span class="pre">prfter</span></code>, <code class="docutils literal notranslate"><span class="pre">metlvl</span></code> and <code class="docutils literal notranslate"><span class="pre">zindex</span></code> within 0.0002 K and m/s and
@@ -618,35 +618,37 @@ the surface, and the offset is WRF’s model top <code class="docutils literal n
 treats it as flag 1 and <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> integrates heights between the <code class="docutils literal notranslate"><span class="pre">PRES</span></code>
 levels. <code class="docutils literal notranslate"><span class="pre">WrfAxis</span></code> files follow that <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> path exactly as sigma files
 with <code class="docutils literal notranslate"><span class="pre">PRES</span></code> do (<code class="docutils literal notranslate"><span class="pre">vertical._hysplit_z_agl</span></code> and the column in
-<code class="docutils literal notranslate"><span class="pre">ops/sample.py</span></code>); on two HRRR columns written as flag-5 files they agree with
+<code class="docutils literal notranslate"><span class="pre">_ops/sample.py</span></code>); on two HRRR columns written as flag-5 files they agree with
 the compiled <code class="docutils literal notranslate"><span class="pre">prfsig</span></code> within 0.007 hPa.</p>
 </section>
 <section id="module-layout">
 <h2>Module layout<a class="headerlink" href="#module-layout" title="Link to this heading">#</a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>src/arlmet/
   __init__.py    public exports
-  file.py        File: file handle, scan of index records, check(), factories
-  recordset.py   RecordSet: the records of one valid time
-  record.py      DataRecord (one packed 2D field) and the _require_mode helper
+  _file.py       File: file handle, scan of index records, check(), factories
+  _recordset.py  RecordSet: the records of one valid time
+  record.py      DataRecord (one packed 2D field); public home of Header,
+                 IndexRecord, LvlInfo, VarInfo
   collection.py  RecordCollection protocol, VariableView, VariableAccessor
-  header.py      Header: the 50-byte record header codec, grid letter helpers
-  indexrecord.py IndexRecord, VarInfo, LvlInfo: the index record codec
-  grid.py        Projection, Grid, GridWindow: horizontal geometry only
+  _header.py     Header: the 50-byte record header codec, grid letter helpers
+  _indexrecord.py IndexRecord, VarInfo, LvlInfo: the index record codec
+  _grid.py       Projection, Grid, GridWindow: horizontal geometry only
   vertical.py    VerticalAxis (abstract) and SigmaAxis, PressureAxis,
                  TerrainAxis, HybridAxis, WrfAxis
   packing.py     pack(), unpack(), calculate_checksum()
   _pack.c        C extension arlmet._pack: pack_core, HYSPLIT's pakout
-  exceptions.py  ARLFormatError, ARLFormatWarning
+  _exceptions.py ARLFormatError, ARLFormatWarning
   _io.py         atomic_output(), reject_same_file(): safe output paths
   _time.py       ensure_timestamp()
   archives.py    Archive, HRRRArchive, NAMArchive, GDASArchive, ...;
                  ARCHIVES registry, get_archive(): NOAA archive downloads
-  directoryindex.py index(), DirectoryIndex: a folder's files by their headers
-  ops/
+  _inventory.py  inventory(), Inventory: a folder's files by their headers
+  _probe.py      probe(), Probe: one file from two index records
+  _ops/
     subset.py    extract_subset(), resolve_window(), normalize_levels()
     sample.py    sample_points()
     concat.py    concat(), concat_by_time()
-  xarray/
+  _xarray/
     dataset.py     open_dataset(), write_dataset(): the flat Dataset path
     _entrypoint.py ARLBackendEntrypoint: xr.open_dataset(path, engine="arl")
     _backend.py    ArlVariableArray (xarray BackendArray)
@@ -660,26 +662,29 @@ the compiled <code class="docutils literal notranslate"><span class="pre">prfsig
 <h2>Module imports<a class="headerlink" href="#module-imports" title="Link to this heading">#</a></h2>
 <p>Runtime imports between modules (<code class="docutils literal notranslate"><span class="pre">TYPE_CHECKING</span></code> imports left out; <em>lazy</em>
 means inside a function body):</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>vertical, exceptions, _io, _time        no arlmet imports
-grid           (pyproj)
-packing      → _pack (C extension), grid
-header       → _time, exceptions, grid
-index        → _time, exceptions, grid, header, vertical
-record       → exceptions, grid, header, packing, vertical; lazy: xarray
-collection   → grid, record, vertical
-recordset    → collection, grid, header, index, record, vertical
-file         → _time, collection, exceptions, grid, header, index, record,
-               recordset, vertical, xarray.backends.CachingFileManager;
-               lazy: ops.sample, ops.subset, xarray.dataset
-ops.subset   → _io, exceptions, file, grid, header, index, packing, record, vertical
-ops.sample   → _time, grid, vertical; lazy: file
-ops.concat   → exceptions, file
-xarray.*     → _io, _time, grid, ops.subset, vertical; lazy: file
-archives     → _time; lazy: fsspec, ops.subset
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>vertical, _exceptions, _io, _time      no arlmet imports
+_grid          (pyproj)
+packing      → _pack (C extension), _grid
+_header      → _time, _exceptions, _grid
+_indexrecord → _time, _exceptions, _grid, _header, vertical
+record       → _exceptions, _grid, _header, _indexrecord, packing, vertical
+collection   → _grid, record, vertical
+_recordset   → collection, _grid, _header, _indexrecord, record, vertical
+_file        → _time, collection, _exceptions, _grid, _header, _indexrecord,
+               record, _recordset, vertical;
+               lazy: _ops.sample, _ops.subset, _xarray.dataset
+_probe       → _exceptions, _grid, _header, _indexrecord
+_inventory   → _exceptions, _file, _io, _time
+_ops.subset  → _io, _exceptions, _file, _grid, _header, _indexrecord, packing, record, vertical
+_ops.sample  → _time, _grid, vertical; lazy: _file
+_ops.concat  → _exceptions, _file, _io
+_xarray.*    → _io, _time, _grid, _header, record, _ops.sample, _ops.subset, vertical; lazy: _file
+converters.* → _grid, _header, _indexrecord, _xarray._coords, vertical
+archives     → _time; lazy: fsspec, _ops.subset
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">file</span></code> imports the operations and the Dataset builder lazily because they
-import <code class="docutils literal notranslate"><span class="pre">file</span></code>. <code class="docutils literal notranslate"><span class="pre">archives</span></code> is not imported by <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">arlmet</span></code>, and imports
+<p><code class="docutils literal notranslate"><span class="pre">_file</span></code> imports the operations and the Dataset builder lazily because they
+import <code class="docutils literal notranslate"><span class="pre">_file</span></code>. <code class="docutils literal notranslate"><span class="pre">archives</span></code> is not imported by <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">arlmet</span></code>, and imports
 <code class="docutils literal notranslate"><span class="pre">fsspec</span></code> only when it downloads.</p>
 </section>
 <section id="memory-tests">

@@ -1,0 +1,6 @@
+arlmet.Inventory.missing
+========================
+
+.. currentmodule:: arlmet
+
+.. automethod:: Inventory.missing

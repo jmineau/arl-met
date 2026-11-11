@@ -26,7 +26,7 @@ HYSPLIT source. The Fortran routines it matches:
      - In arl-met
    * - ``pakout`` / ``pakinp``
      - pack and unpack one field as byte differences; compute the checksum
-     - :func:`arlmet.pack`, :func:`arlmet.unpack`, :func:`arlmet.calculate_checksum`
+     - :func:`arlmet.packing.pack`, :func:`arlmet.packing.unpack`, :func:`arlmet.packing.calculate_checksum`
    * - ``pakrec`` / ``pakndx``
      - write records and the index record; the checksum table is reset to 0 at
        each time step and filled only for the records packed
@@ -64,7 +64,7 @@ HYSPLIT source. The Fortran routines it matches:
      - build the profile at every grid point, then read a value at a position
        bilinearly from the four grid points around it
      - :func:`arlmet.sample_points` interpolates each of the four grid points'
-       columns to the point's height, then blends them (``ops/sample.py``,
+       columns to the point's height, then blends them (``_ops/sample.py``,
        ``_node_plan``); on HRRR, WRF, GFS, GDAS and NAM files it agrees with the
        compiled ``prfsig``/``prfprs``/``prfecm`` and ``adv3nt`` to float precision
    * - ``metlvl`` / ``zindex`` / ``prfend``
@@ -76,7 +76,7 @@ HYSPLIT source. The Fortran routines it matches:
        it; above a column's top ``prfend`` (and ``prfsig``'s tail) keeps
        temperature and winds and steps pressure down hydrostatically; without
        ``SHGT``, ``prfa``'s terrain from ``PRSS`` goes back into the terrain array
-     - :func:`arlmet.sample_points` at heights (``model_top``, default 25000; ``ops/sample.py``,
+     - :func:`arlmet.sample_points` at heights (``model_top``, default 25000; ``_ops/sample.py``,
        ``_InternalLevels``, ``_sample_on_internal_levels``); the grid matches
        ``metlvl`` on 16 made-up axes and 11 real files, and the values agree
        with the compiled routines (``zindex`` and ``adv3nt`` included) to float
@@ -89,7 +89,7 @@ HYSPLIT source. The Fortran routines it matches:
        (``PRSS``, ``T02M``) with the virtual temperature; ``prfsig`` takes each
        level's pressure from ``PRES`` when the file has it (``ZFLG``), ``prfecm``
        always from the levels; ``ln p`` linear in height
-     - the column in ``ops/sample.py`` and :func:`arlmet.z_agl`, through
+     - the column in ``_ops/sample.py`` and :func:`arlmet.z_agl`, through
        ``vertical._hysplit_z_agl``; on two HRRR columns it agrees with the
        compiled ``prfsig`` within 0.006 hPa
    * - ``prfprs``
@@ -97,7 +97,7 @@ HYSPLIT source. The Fortran routines it matches:
        (``SHGT``, ``PRSS``, ``T02M``, ``U10M``) at the bottom, levels at or
        below the ground skipped, and with the internal levels also a level
        below the first of them (``IF(KL.GT.1)``); ``ln p`` linear in height
-     - the column in ``ops/sample.py``; ``TEMP`` and winds agree with the
+     - the column in ``_ops/sample.py``; ``TEMP`` and winds agree with the
        compiled ``prfprs`` within 0.001 on NAM12 and GDAS columns, pressure
        within 0.0006 hPa (float32 rounding of ``ln p``)
    * - ``prfter``
@@ -108,7 +108,7 @@ HYSPLIT source. The Fortran routines it matches:
        else the first level's brought down adiabatically; ``U10M``) at the
        bottom; every variable, pressure from the ``PRES`` field included,
        linear in height; ``metlvl`` counts the stored heights as they are
-     - :func:`arlmet.sample_points` at heights (``ops/sample.py``, ``_Column``,
+     - :func:`arlmet.sample_points` at heights (``_ops/sample.py``, ``_Column``,
        ``_InternalLevels``); on 9 made-up flag 3 files (no real one was on
        hand) with tops of 3, 10, 25 and 40 km it agrees with the compiled
        ``prfter``, ``metlvl`` and ``zindex`` within 0.0002 K and m/s and
@@ -182,7 +182,7 @@ the surface, and the offset is WRF's model top ``P_TOP`` in hPa. HYSPLIT's
 treats it as flag 1 and ``prfsig`` integrates heights between the ``PRES``
 levels. ``WrfAxis`` files follow that ``prfsig`` path exactly as sigma files
 with ``PRES`` do (``vertical._hysplit_z_agl`` and the column in
-``ops/sample.py``); on two HRRR columns written as flag-5 files they agree with
+``_ops/sample.py``); on two HRRR columns written as flag-5 files they agree with
 the compiled ``prfsig`` within 0.007 hPa.
 
 Module layout
@@ -192,28 +192,30 @@ Module layout
 
    src/arlmet/
      __init__.py    public exports
-     file.py        File: file handle, scan of index records, check(), factories
-     recordset.py   RecordSet: the records of one valid time
-     record.py      DataRecord (one packed 2D field) and the _require_mode helper
+     _file.py       File: file handle, scan of index records, check(), factories
+     _recordset.py  RecordSet: the records of one valid time
+     record.py      DataRecord (one packed 2D field); public home of Header,
+                    IndexRecord, LvlInfo, VarInfo
      collection.py  RecordCollection protocol, VariableView, VariableAccessor
-     header.py      Header: the 50-byte record header codec, grid letter helpers
-     indexrecord.py IndexRecord, VarInfo, LvlInfo: the index record codec
-     grid.py        Projection, Grid, GridWindow: horizontal geometry only
+     _header.py     Header: the 50-byte record header codec, grid letter helpers
+     _indexrecord.py IndexRecord, VarInfo, LvlInfo: the index record codec
+     _grid.py       Projection, Grid, GridWindow: horizontal geometry only
      vertical.py    VerticalAxis (abstract) and SigmaAxis, PressureAxis,
                     TerrainAxis, HybridAxis, WrfAxis
      packing.py     pack(), unpack(), calculate_checksum()
      _pack.c        C extension arlmet._pack: pack_core, HYSPLIT's pakout
-     exceptions.py  ARLFormatError, ARLFormatWarning
+     _exceptions.py ARLFormatError, ARLFormatWarning
      _io.py         atomic_output(), reject_same_file(): safe output paths
      _time.py       ensure_timestamp()
      archives.py    Archive, HRRRArchive, NAMArchive, GDASArchive, ...;
                     ARCHIVES registry, get_archive(): NOAA archive downloads
-     directoryindex.py index(), DirectoryIndex: a folder's files by their headers
-     ops/
+     _inventory.py  inventory(), Inventory: a folder's files by their headers
+     _probe.py      probe(), Probe: one file from two index records
+     _ops/
        subset.py    extract_subset(), resolve_window(), normalize_levels()
        sample.py    sample_points()
        concat.py    concat(), concat_by_time()
-     xarray/
+     _xarray/
        dataset.py     open_dataset(), write_dataset(): the flat Dataset path
        _entrypoint.py ARLBackendEntrypoint: xr.open_dataset(path, engine="arl")
        _backend.py    ArlVariableArray (xarray BackendArray)
@@ -229,25 +231,28 @@ means inside a function body):
 
 .. code-block:: text
 
-   vertical, exceptions, _io, _time        no arlmet imports
-   grid           (pyproj)
-   packing      → _pack (C extension), grid
-   header       → _time, exceptions, grid
-   index        → _time, exceptions, grid, header, vertical
-   record       → exceptions, grid, header, packing, vertical; lazy: xarray
-   collection   → grid, record, vertical
-   recordset    → collection, grid, header, index, record, vertical
-   file         → _time, collection, exceptions, grid, header, index, record,
-                  recordset, vertical, xarray.backends.CachingFileManager;
-                  lazy: ops.sample, ops.subset, xarray.dataset
-   ops.subset   → _io, exceptions, file, grid, header, index, packing, record, vertical
-   ops.sample   → _time, grid, vertical; lazy: file
-   ops.concat   → exceptions, file
-   xarray.*     → _io, _time, grid, ops.subset, vertical; lazy: file
-   archives     → _time; lazy: fsspec, ops.subset
+   vertical, _exceptions, _io, _time      no arlmet imports
+   _grid          (pyproj)
+   packing      → _pack (C extension), _grid
+   _header      → _time, _exceptions, _grid
+   _indexrecord → _time, _exceptions, _grid, _header, vertical
+   record       → _exceptions, _grid, _header, _indexrecord, packing, vertical
+   collection   → _grid, record, vertical
+   _recordset   → collection, _grid, _header, _indexrecord, record, vertical
+   _file        → _time, collection, _exceptions, _grid, _header, _indexrecord,
+                  record, _recordset, vertical;
+                  lazy: _ops.sample, _ops.subset, _xarray.dataset
+   _probe       → _exceptions, _grid, _header, _indexrecord
+   _inventory   → _exceptions, _file, _io, _time
+   _ops.subset  → _io, _exceptions, _file, _grid, _header, _indexrecord, packing, record, vertical
+   _ops.sample  → _time, _grid, vertical; lazy: _file
+   _ops.concat  → _exceptions, _file, _io
+   _xarray.*    → _io, _time, _grid, _header, record, _ops.sample, _ops.subset, vertical; lazy: _file
+   converters.* → _grid, _header, _indexrecord, _xarray._coords, vertical
+   archives     → _time; lazy: fsspec, _ops.subset
 
-``file`` imports the operations and the Dataset builder lazily because they
-import ``file``. ``archives`` is not imported by ``import arlmet``, and imports
+``_file`` imports the operations and the Dataset builder lazily because they
+import ``_file``. ``archives`` is not imported by ``import arlmet``, and imports
 ``fsspec`` only when it downloads.
 
 Memory tests

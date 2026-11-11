@@ -1,0 +1,6 @@
+arlmet.Inventory.directory
+==========================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: Inventory.directory

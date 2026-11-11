@@ -52,14 +52,14 @@ Finding Files
 -------------
 
 Find the files that cover a time window by their headers. See the
-:doc:`indexing` guide.
+:doc:`inventorying` guide.
 
 .. autosummary::
    :toctree: _autosummary
    :nosignatures:
 
-   index
-   DirectoryIndex
+   inventory
+   Inventory
 
 Probing One File
 ----------------
@@ -123,15 +123,19 @@ constructing a new axis.
 Binary Metadata And Packing
 ---------------------------
 
+The byte-level codec of the format. Most code never needs it, so ``arlmet``
+does not import it; import each name from its module, e.g.
+``from arlmet.record import IndexRecord``.
+
 .. autosummary::
    :toctree: _autosummary
    :nosignatures:
 
-   Header
-   IndexRecord
-   calculate_checksum
-   pack
-   unpack
+   record.Header
+   record.IndexRecord
+   packing.calculate_checksum
+   packing.pack
+   packing.unpack
 
 Errors And Warnings
 -------------------

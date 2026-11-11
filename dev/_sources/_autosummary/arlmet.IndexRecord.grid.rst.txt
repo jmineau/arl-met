@@ -1,6 +1,0 @@
-arlmet.IndexRecord.grid
-=======================
-
-.. currentmodule:: arlmet
-
-.. autoproperty:: IndexRecord.grid

@@ -1,6 +1,0 @@
-arlmet.IndexRecord.time
-=======================
-
-.. currentmodule:: arlmet
-
-.. autoproperty:: IndexRecord.time
