@@ -158,6 +158,14 @@ class TestChecksum:
         packed = bytes([255, 1, 255])
         assert calculate_checksum(packed) == 1
 
+    def test_checksum_of_a_payload_longer_than_one_uint32_sum(self):
+        """Past 2**32 // 255 bytes a uint32 sum could wrap; it is summed in pieces."""
+        packed = np.full(2**32 // 255 + 1000, 255, dtype=np.uint8)
+        packed[-1] = 7
+        total = int(packed.sum(dtype=np.uint64))
+        assert total > 2**32
+        assert calculate_checksum(memoryview(packed)) == (total - 1) % 255 + 1 == 7
+
 
 class TestHeaderSerialization:
     @pytest.mark.parametrize(

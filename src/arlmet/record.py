@@ -22,7 +22,8 @@ from arlmet._exceptions import ARLFormatError
 from arlmet._grid import Grid, GridWindow, _split_at_seam
 from arlmet._header import Header, record_length_from_grid, split_grid_component
 from arlmet._indexrecord import IndexRecord, LvlInfo, VarInfo
-from arlmet.packing import calculate_checksum, pack, unpack
+from arlmet._pack import pack_core as _pack_core
+from arlmet.packing import calculate_checksum, unpack
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
@@ -327,7 +328,7 @@ class DataRecord:
             else:
                 # Pack data to get bytes
                 packed = self._pack()
-                self._bytes = self.header.tobytes() + packed.tobytes()
+                self._bytes = b"".join((self.header.tobytes(), packed.data))
         assert self._bytes is not None
         return self._bytes
 
@@ -690,23 +691,33 @@ class DataRecord:
                 raise ValueError(
                     "Header must be a dictionary in write mode before packing."
                 )
-            if np.isnan(self._unpacked).all():
-                # A field of NaN is missing data, as a missing record reads.
-                return self._pack_missing()
-            n_missing = int(np.isnan(self._unpacked).sum())
-            if n_missing:
+            field = np.ascontiguousarray(self._unpacked, dtype=np.float32)
+            # One pass over a complete field, the usual case; only a field that
+            # fails it is looked at again. pack() would check it a second time,
+            # so the C core is called directly.
+            if not np.isfinite(field).all():
+                missing = np.isnan(field)
+                if missing.all():
+                    # A field of NaN is missing data, as a missing record reads.
+                    return self._pack_missing()
+                n_missing = int(np.count_nonzero(missing))
+                if n_missing:
+                    raise ValueError(
+                        f"{self.variable} at level {self.level} has {n_missing} "
+                        "missing (NaN or masked) cells; an ARL field has no missing "
+                        "cells, so it must be complete or entirely missing."
+                    )
                 raise ValueError(
-                    f"{self.variable} at level {self.level} has {n_missing} missing "
-                    "(NaN or masked) cells; an ARL field has no missing cells, so it "
-                    "must be complete or entirely missing."
+                    f"{self.variable} at level {self.level} has infinite values "
+                    "(or values too large for float32); ARL packs finite values only."
                 )
-            packed, precision, exponent, initial_value = pack(self._unpacked)
+            packed, precision, exponent, initial_value = _pack_core(field)
             self._packed = packed
             self._header["precision"] = precision
             self._header["exponent"] = exponent
             self._header["initial_value"] = initial_value
 
-            self._checksum = calculate_checksum(self._packed.tobytes())
+            self._checksum = calculate_checksum(self._packed.data)
 
             if self._derive_diff_on_pack:
                 # Each DIF is what packing left of the target after this record

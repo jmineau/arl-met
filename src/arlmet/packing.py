@@ -26,7 +26,13 @@ def calculate_checksum(packed: bytes | bytearray | memoryview) -> int:
     int
         Rolling checksum used in ARL index records.
     """
-    total = int(np.frombuffer(packed, dtype=np.uint8).sum(dtype=np.uint64))
+    data = np.frombuffer(packed, dtype=np.uint8)
+    # A uint32 sum is about twice as fast as a uint64 one and exact over up to
+    # 2**32 // 255 bytes, so a payload of any size is summed in such pieces.
+    step = 2**32 // 255
+    total = sum(
+        int(data[i : i + step].sum(dtype=np.uint32)) for i in range(0, data.size, step)
+    )
     if total == 0:
         return 0
     return ((total - 1) % 255) + 1

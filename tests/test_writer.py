@@ -428,6 +428,26 @@ class TestWriter:
         assert np.isnan(ds["TEMP"].values).all()
         assert np.isnan(ds["RELH"].values).all()
 
+    def test_infinite_values_are_refused_naming_the_field(self, tmp_path):
+        """An infinite cell is refused as such, not counted as a missing one."""
+        grid = make_test_grid()
+        axis = PressureAxis(levels=[0.0, 1000.0])
+        field = np.full((20, 20), 280.0)
+        field[5, 5] = np.inf
+        with (
+            pytest.raises(ValueError, match="TEMP at level 1 has infinite values"),
+            File(
+                tmp_path / "a.arl",
+                mode="w",
+                source="TEST",
+                grid=grid,
+                vertical_axis=axis,
+            ) as arl,
+        ):
+            rs = arl.create_recordset(pd.Timestamp("2024-07-18"), forecast=0)
+            rs.create_datarecord("PRSS", level=0, forecast=0, data=np.ones((20, 20)))
+            rs.create_datarecord("TEMP", level=1, forecast=0, data=field)
+
     def test_create_datarecord_rejects_data_of_the_wrong_shape(self, tmp_path):
         grid = make_test_grid()
         axis = PressureAxis(levels=[0.0, 1000.0])
