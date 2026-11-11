@@ -7,6 +7,7 @@ from numpy import typing as npt
 
 from arlmet._grid import GridWindow
 from arlmet._pack import pack_core as _pack_core
+from arlmet._pack import unpack_core as _unpack_core
 
 __all__ = ["pack", "unpack", "calculate_checksum"]
 
@@ -81,10 +82,10 @@ def unpack(
     """
     Unpack an ARL differential byte stream into a 2D field.
 
-    This is a vectorized translation of the HYSPLIT ``PAKINP`` routine and
-    gives the same ``float32`` values, bit for bit: the arithmetic is in
-    single precision, in ``PAKINP``'s order, and like ``PAKINP`` it sets a
-    value smaller than ``precision`` to zero in every column but the first.
+    This is a translation of the HYSPLIT ``PAKINP`` routine and gives the
+    same ``float32`` values, bit for bit: the arithmetic is in single
+    precision, in ``PAKINP``'s order, and like ``PAKINP`` it sets a value
+    smaller than ``precision`` to zero in every column but the first.
 
     Parameters
     ----------
@@ -117,39 +118,22 @@ def unpack(
     elif window.x_stop > nx or window.y_stop > ny:
         raise ValueError("GridWindow extends beyond the packed grid bounds.")
 
-    packed_arr = np.frombuffer(packed, dtype=np.uint8)
-    if packed_arr.shape[0] != ny * nx:
+    n_bytes = memoryview(packed).nbytes
+    if n_bytes != ny * nx:
         raise ValueError(
-            f"Packed data length {packed_arr.shape[0]} does not match expected length {ny * nx}."
+            f"Packed data length {n_bytes} does not match expected length {ny * nx}."
         )
-    # Keep the source buffer byte-typed and cast only the rows and columns
-    # that feed the window, so a crop does not promote the full grid.
-    packed_arr = packed_arr.reshape((ny, nx))
-
-    # Each byte is a difference from the previous value in units of scexp, a
-    # power of 2, so converting them to float32 is exact.
-    scexp = np.float32(2.0 ** (exponent - 7))
-
-    # The first column is coded down the rows from the initial value. PAKINP
-    # adds one row's difference at a time in single precision, so start the
-    # running sum at the float32 initial value instead of adding it at the end.
-    column0 = np.empty(window.y_stop + 1, dtype=np.float32)
-    column0[0] = initial_value
-    column0[1:] = packed_arr[: window.y_stop, 0]
-    column0[1:] -= 127.0
-    column0[1:] *= scexp
-    np.cumsum(column0, out=column0)
-
-    # Each row is then coded across x from its first-column value; cumsum along
-    # a row adds one difference at a time, as PAKINP's loop over I does.
-    rows = packed_arr[window.y_slice, : window.x_stop].astype(np.float32)
-    rows -= 127.0
-    rows *= scexp
-    rows[:, 0] = column0[window.y_start + 1 : window.y_stop + 1]
-    np.cumsum(rows, axis=1, out=rows)
-
-    # PAKINP's precision test, which it applies to every column but the first.
-    rest = rows[:, 1:]
-    rest[np.abs(rest) < np.float32(precision)] = 0.0
-
-    return np.ascontiguousarray(rows[:, window.x_start :])
+    # The C extension (_pack.c) is PAKINP, reading only the rows and columns
+    # that feed the window.
+    return _unpack_core(
+        packed,
+        nx,
+        ny,
+        window.x_start,
+        window.x_stop,
+        window.y_start,
+        window.y_stop,
+        precision,
+        exponent,
+        initial_value,
+    )
