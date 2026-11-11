@@ -3,7 +3,7 @@ from numpy.typing import NDArray
 
 def pack_core(
     unpacked: NDArray[np.float32],
-) -> tuple[NDArray[np.uint8], float, int, float]: ...
+) -> tuple[NDArray[np.uint8], float, int, float, int]: ...
 def unpack_core(
     packed: bytes | bytearray | memoryview,
     nx: int,

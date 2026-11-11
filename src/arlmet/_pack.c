@@ -13,10 +13,14 @@
  * Every product is by a power of 2, so it is exact, and a compiler that
  * fuses multiply and add (clang on arm64) changes no result.
  *
+ * pack_core also refuses a field with a NaN or infinite value (ValueError),
+ * checking each in the first pass, and returns the checksum of the packed
+ * bytes, summed as they are written, so a caller needs no pass of its own.
+ *
  * Python signatures:
  *   pack_core(unpacked: np.ndarray[float32, 2-D (ny, nx)])
  *       -> (packed: np.ndarray[uint8, 2-D], precision: float,
- *           exponent: int, initial_value: float)
+ *           exponent: int, initial_value: float, checksum: int)
  *   unpack_core(packed: bytes-like, nx, ny, x_start, x_stop, y_start, y_stop,
  *               precision: float, exponent: int, initial_value: float)
  *       -> np.ndarray[float32, 2-D (y_stop - y_start, x_stop - x_start)]
@@ -59,6 +63,33 @@ pack_core(PyObject *self, PyObject *args)
         return NULL;
     }
 
+    const float *rvar = (const float *)PyArray_DATA(arr);
+    float var1 = rvar[0];
+
+    /* The largest difference between neighbors along each row; the first
+     * element of a row is differenced from the first element of the row
+     * before.  The same pass counts the values that are not finite. */
+    float rold = var1;
+    float rmax = 0.0f;
+    npy_intp n_bad = 0;
+    for (npy_intp j = 0; j < ny; j++) {
+        for (npy_intp i = 0; i < nx; i++) {
+            float v = rvar[j * nx + i];
+            float d = fabsf(v - rold);
+            if (d > rmax)
+                rmax = d;
+            n_bad += !isfinite(v);
+            rold = v;
+        }
+        rold = rvar[j * nx];
+    }
+    if (n_bad != 0) {
+        PyErr_SetString(PyExc_ValueError,
+                        "Cannot pack NaN or infinite values.");
+        Py_DECREF(arr);
+        return NULL;
+    }
+
     npy_intp dims[2] = {ny, nx};
     PyArrayObject *packed = (PyArrayObject *)PyArray_SimpleNew(
         2, dims, NPY_UINT8);
@@ -66,26 +97,7 @@ pack_core(PyObject *self, PyObject *args)
         Py_DECREF(arr);
         return NULL;
     }
-
-    const float   *rvar = (const float   *)PyArray_DATA(arr);
-          uint8_t *cvar = (      uint8_t *)PyArray_DATA(packed);
-
-    float var1 = rvar[0];
-
-    /* The largest difference between neighbors along each row; the first
-     * element of a row is differenced from the first element of the row
-     * before. */
-    float rold = var1;
-    float rmax = 0.0f;
-    for (npy_intp j = 0; j < ny; j++) {
-        for (npy_intp i = 0; i < nx; i++) {
-            float d = fabsf(rvar[j * nx + i] - rold);
-            if (d > rmax)
-                rmax = d;
-            rold = rvar[j * nx + i];
-        }
-        rold = rvar[j * nx];
-    }
+    uint8_t *cvar = (uint8_t *)PyArray_DATA(packed);
 
     /* The scaling exponent: positive or whole-number logs round up. */
     float sexp = 0.0f;
@@ -111,6 +123,7 @@ pack_core(PyObject *self, PyObject *args)
         Py_DECREF(packed);
         return PyErr_NoMemory();
     }
+    uint64_t total = 0;  /* the sum of the bytes written */
     rold = var1;
     for (npy_intp j = 0; j < ny; j++) {
         npy_intp k = j * nx;
@@ -118,6 +131,7 @@ pack_core(PyObject *self, PyObject *args)
         rold = (float)(icval - 127) * rscexp + rold;
         rcol[j] = rold;
         cvar[k] = (uint8_t)icval;
+        total += cvar[k];
     }
 
     /* The rest of each row, BLOCK_ROWS rows together: the processor overlaps
@@ -133,14 +147,19 @@ pack_core(PyObject *self, PyObject *args)
                 int icval = (int)((rvar[k] - rows[b]) * scexp + 127.5f);
                 rows[b] = (float)(icval - 127) * rscexp + rows[b];
                 cvar[k] = (uint8_t)icval;
+                total += cvar[k];
             }
         }
     }
     PyMem_Free(rcol);
 
+    /* The ARL checksum: the byte sum, less 255 each time it reaches 256, so
+     * 1 to 255, and 0 only when every byte is 0. */
+    long long checksum = total == 0 ? 0 : (long long)((total - 1) % 255) + 1;
+
     Py_DECREF(arr);
-    return Py_BuildValue("Ndid", (PyObject *)packed, (double)prec, nexp,
-                         (double)var1);
+    return Py_BuildValue("NdidL", (PyObject *)packed, (double)prec, nexp,
+                         (double)var1, checksum);
 }
 
 static PyObject *

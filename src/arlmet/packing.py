@@ -68,10 +68,9 @@ def pack(
         If the field is not 2D, is empty, or holds NaN or infinite values.
     """
     unpacked_arr = np.ascontiguousarray(unpacked, dtype=np.float32)
-    if unpacked_arr.ndim == 2 and not np.isfinite(unpacked_arr).all():
-        raise ValueError("Cannot pack NaN or infinite values.")
-    # The C extension (_pack.c) is PAKOUT line by line, for speed.
-    packed, precision, exponent, initial_value = _pack_core(unpacked_arr)
+    # The C extension (_pack.c) is PAKOUT line by line, for speed; it also
+    # refuses NaN and infinite values, and sums the checksum, which this drops.
+    packed, precision, exponent, initial_value, _ = _pack_core(unpacked_arr)
     return packed, precision, exponent, initial_value
 
 
