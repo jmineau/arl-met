@@ -32,7 +32,7 @@ src/arlmet/
   _file.py, _recordset.py, record.py   File > RecordSet (one valid time) > DataRecord (one 2D field)
   _header.py, _indexrecord.py          codecs of the 50-byte record header and the index record (public in `record`)
   _grid.py, vertical.py                horizontal geometry; VerticalAxis and its five subclasses
-  packing.py, _pack.c                  pack, unpack, checksum; the C extension for the encoder
+  packing.py, _pack.c                  pack, unpack, checksum; the C extension for both codecs
   collection.py                        RecordCollection protocol, VariableView, VariableAccessor
   _exceptions.py, _io.py, _time.py     ARLFormatError/Warning; atomic outputs; timestamps
   archives.py; _inventory.py, _probe.py  NOAA archive downloads and sync; inventory, Inventory; probe, Probe
@@ -68,7 +68,7 @@ methods, keeping the import graph one-way; `converters/` sits on `_xarray/`.
   thousands, the index record the remainder, but `IndexRecord.nx`/`ny` are the full sizes (`__post_init__`
   rejects a mismatched `header.grid`); `index_length` is computed, never stored.
 - **Packing.** Values are unsigned bytes of differences from the previous value.
-  `pack` (`_pack.c`) and `unpack` give HYSPLIT's `pakout`/`pakinp` results bit for bit;
+  `pack` and `unpack` (both in `_pack.c`) give HYSPLIT's `pakout`/`pakinp` results bit for bit;
   `test_packing.py` transcribes both. Change them only with a round-trip test.
 - **Checksums** are 1 to 255 (the byte sum, less 255 each time it reaches 256)
   unless every byte is 0; a stored 0 means none was recorded (`verify_checksum()`
