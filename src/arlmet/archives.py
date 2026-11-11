@@ -526,7 +526,7 @@ class Archive(ABC):
         Return archive paths covering the requested inclusive time range.
     fetch(start, end, ...)
         Download or crop local ARL files for the requested time range.
-    sync(dest_dir, ...)
+    sync(start, end, ...)
         Keep a local folder complete and checked against NOAA's MD5 list.
     """
 
@@ -775,10 +775,10 @@ class Archive(ABC):
 
     def sync(
         self,
-        dest_dir: Path | str,
-        *,
         start: pd.Timestamp | str | None = None,
         end: pd.Timestamp | str | None = None,
+        *,
+        dest_dir: Path | str,
         mirror: Literal["s3", "ftp", "http"] = "s3",
         dry_run: bool = False,
     ) -> SyncResult:
@@ -794,11 +794,11 @@ class Archive(ABC):
 
         Parameters
         ----------
-        dest_dir :
-            The local mirror of the product. Created if absent.
         start, end :
             Sync only the files covering this time range (inclusive). By
             default, the whole archive: from its ``start_date`` to now.
+        dest_dir :
+            The local mirror of the product. Created if absent.
         mirror :
             Which copy of the archive to read the list and the files from,
             as for :meth:`fetch`.
@@ -871,7 +871,8 @@ class Archive(ABC):
         Examples
         --------
         >>> from arlmet.archives import HRRRArchive
-        >>> result = HRRRArchive().sync("./hrrr", dry_run=True)  # doctest: +SKIP
+        >>> archive = HRRRArchive()
+        >>> result = archive.sync(dest_dir="./hrrr", dry_run=True)  # doctest: +SKIP
         >>> result.downloaded  # doctest: +SKIP
         [PosixPath('hrrr/2019/06/20190612_00-05_hrrr'), ...]
         """

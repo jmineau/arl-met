@@ -115,7 +115,7 @@ def hidden_files(folder: Path) -> list[Path]:
 
 
 def test_missing_files_are_fetched_into_the_archive_layout(hrrr, dest):
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     expected = [dest / "2024" / "07" / name for name in HRRR_DAY]
     assert result.downloaded == expected
@@ -128,7 +128,7 @@ def test_missing_files_are_fetched_into_the_archive_layout(hrrr, dest):
 
 
 def test_manifest_has_one_tab_separated_line_per_file(hrrr, dest):
-    hrrr.archive.sync(dest, **DAY)
+    hrrr.archive.sync(dest_dir=dest, **DAY)
 
     manifest = manifest_of(dest)
     assert list(manifest) == [f"2024/07/{name}" for name in HRRR_DAY]  # sorted by path
@@ -146,7 +146,7 @@ def test_a_corrupt_download_is_rejected_and_leaves_nothing(hrrr, dest):
     bad = HRRR_DAY[1]
     hrrr.put(bad, content(bad), listed_md5=md5(b"what NOAA says it should be"))
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert result.failed == [dest / "2024" / "07" / bad]
     assert not (dest / "2024" / "07" / bad).exists()
@@ -156,13 +156,13 @@ def test_a_corrupt_download_is_rejected_and_leaves_nothing(hrrr, dest):
 
 
 def test_a_corrupt_download_does_not_replace_the_old_copy(hrrr, dest):
-    hrrr.archive.sync(dest, **DAY)
+    hrrr.archive.sync(dest_dir=dest, **DAY)
     name = HRRR_DAY[0]
     old = (dest / "2024" / "07" / name).read_bytes()
     # NOAA corrects the file, but what the server sends does not match its list.
     hrrr.put(name, b"new bytes", listed_md5=md5(b"other bytes"))
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert result.failed == [dest / "2024" / "07" / name]
     assert (dest / "2024" / "07" / name).read_bytes() == old
@@ -172,7 +172,7 @@ def test_a_corrupt_download_does_not_replace_the_old_copy(hrrr, dest):
 def test_a_file_missing_on_the_mirror_fails_and_the_run_goes_on(hrrr, dest):
     (hrrr.root / hrrr._path_of(HRRR_DAY[2])).unlink()
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert result.failed == [dest / "2024" / "07" / HRRR_DAY[2]]
     assert len(result.downloaded) == 3
@@ -182,27 +182,44 @@ def test_a_name_noaa_does_not_list_is_not_fetched(hrrr, dest):
     del hrrr.listing[HRRR_DAY[3]]
     hrrr._write_listing()
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert [p.name for p in result.downloaded] == HRRR_DAY[:3]
     assert not (dest / "2024" / "07" / HRRR_DAY[3]).exists()
 
 
 def test_start_and_end_limit_the_files(hrrr, dest):
-    result = hrrr.archive.sync(dest, start="2024-07-18 07:00", end="2024-07-18 13:00")
+    result = hrrr.archive.sync(
+        dest_dir=dest, start="2024-07-18 07:00", end="2024-07-18 13:00"
+    )
 
     assert [p.name for p in result.downloaded] == HRRR_DAY[1:3]
 
 
+def test_start_and_end_come_first_as_in_fetch(hrrr, dest):
+    result = hrrr.archive.sync("2024-07-18 07:00", "2024-07-18 13:00", dest_dir=dest)
+
+    assert [p.name for p in result.downloaded] == HRRR_DAY[1:3]
+
+
+def test_dest_dir_is_required_and_keyword_only(hrrr, dest):
+    with pytest.raises(TypeError):
+        hrrr.archive.sync(**DAY)  # type: ignore[call-arg]
+    with pytest.raises(TypeError):
+        hrrr.archive.sync(dest)  # type: ignore[misc]
+
+
 def test_whole_archive_by_default(hrrr, dest):
-    result = hrrr.archive.sync(dest)  # start_date to now: only the listed files count
+    result = hrrr.archive.sync(
+        dest_dir=dest
+    )  # start_date to now: only the listed files count
 
     assert [p.name for p in result.downloaded] == HRRR_DAY
 
 
 def test_time_zone_aware_range_is_read_as_utc(hrrr, dest):
     result = hrrr.archive.sync(
-        dest, start="2024-07-17 20:00-04:00", end="2024-07-18 02:00-04:00"
+        dest_dir=dest, start="2024-07-17 20:00-04:00", end="2024-07-18 02:00-04:00"
     )  # 2024-07-18 00:00 to 06:00 UTC
 
     assert [p.name for p in result.downloaded] == HRRR_DAY[:2]
@@ -213,7 +230,7 @@ def test_an_empty_listing_raises(hrrr, dest):
     hrrr._write_listing()
 
     with pytest.raises(ValueError, match="no 'md5  name' lines"):
-        hrrr.archive.sync(dest, **DAY)
+        hrrr.archive.sync(dest_dir=dest, **DAY)
 
 
 # ---------------------------------------------------------------------------
@@ -222,22 +239,22 @@ def test_an_empty_listing_raises(hrrr, dest):
 
 
 def test_an_unchanged_run_reads_nothing(hrrr, dest, monkeypatch):
-    first = hrrr.archive.sync(dest, **DAY)
+    first = hrrr.archive.sync(dest_dir=dest, **DAY)
     monkeypatch.setattr(archives, "_md5_of_file", no_files)
     monkeypatch.setattr(hrrr.archive, "_download", no_files)
 
-    second = hrrr.archive.sync(dest, **DAY)
+    second = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert second.unchanged == first.downloaded
     assert second.downloaded == second.adopted == second.mismatched == []
 
 
 def test_a_file_noaa_corrected_is_replaced_where_it_is(hrrr, dest):
-    hrrr.archive.sync(dest, **DAY)
+    hrrr.archive.sync(dest_dir=dest, **DAY)
     name = HRRR_DAY[1]
     hrrr.put(name, b"corrected by NOAA")
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     path = dest / "2024" / "07" / name
     assert result.downloaded == [path]
@@ -249,11 +266,11 @@ def test_a_file_noaa_corrected_is_replaced_where_it_is(hrrr, dest):
 
 
 def test_a_deleted_file_is_fetched_again(hrrr, dest):
-    hrrr.archive.sync(dest, **DAY)
+    hrrr.archive.sync(dest_dir=dest, **DAY)
     gone = dest / "2024" / "07" / HRRR_DAY[0]
     gone.unlink()
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert result.downloaded == [gone]
     assert gone.read_bytes() == content(HRRR_DAY[0])
@@ -282,7 +299,9 @@ def test_v1_files_in_one_flat_folder_are_adopted_not_downloaded_again(
         (dest / name).write_bytes(content(name))
     monkeypatch.setattr(mirror.archive, "_download", no_files)
 
-    result = mirror.archive.sync(dest, start="2019-01-01", end="2019-01-01 23:00")
+    result = mirror.archive.sync(
+        dest_dir=dest, start="2019-01-01", end="2019-01-01 23:00"
+    )
 
     assert result.adopted == [dest / name for name in names]
     assert result.downloaded == []
@@ -305,11 +324,11 @@ def test_a_second_run_over_a_flat_folder_reads_nothing(tmp_path, dest, monkeypat
     mirror.put(name, content(name))
     (dest / name).write_bytes(content(name))
     kwargs = {"start": "2019-01-01", "end": "2019-01-01 05:00"}
-    mirror.archive.sync(dest, **kwargs)
+    mirror.archive.sync(dest_dir=dest, **kwargs)
     monkeypatch.setattr(archives, "_md5_of_file", no_files)
     monkeypatch.setattr(mirror.archive, "_download", no_files)
 
-    result = mirror.archive.sync(dest, **kwargs)
+    result = mirror.archive.sync(dest_dir=dest, **kwargs)
 
     assert result.unchanged == [dest / name]
 
@@ -321,7 +340,7 @@ def test_a_copy_in_some_other_folder_layout_is_found_by_name(hrrr, dest, monkeyp
         (elsewhere / name).write_bytes(content(name))
     monkeypatch.setattr(hrrr.archive, "_download", no_files)
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert result.adopted == [elsewhere / name for name in HRRR_DAY]
     assert not (dest / "2024" / "07").exists()
@@ -336,7 +355,7 @@ def test_a_copy_in_a_linked_folder_is_found(hrrr, dest, tmp_path, monkeypatch):
     (dest / "2024").symlink_to(other_disk, target_is_directory=True)
     monkeypatch.setattr(hrrr.archive, "_download", no_files)
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert result.adopted == [dest / "2024" / name for name in HRRR_DAY]
 
@@ -347,7 +366,7 @@ def test_a_wrong_existing_file_is_reported_and_left_alone(hrrr, dest):
     dest.mkdir(parents=True)
     path.write_bytes(b"short file from a killed transfer")
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert result.mismatched == [path]
     assert path.read_bytes() == b"short file from a killed transfer"
@@ -364,11 +383,11 @@ def test_a_mismatched_file_is_reported_again_without_being_read(
     name = HRRR_DAY[2]
     dest.mkdir(parents=True)
     (dest / name).write_bytes(b"short file from a killed transfer")
-    hrrr.archive.sync(dest, **DAY)
+    hrrr.archive.sync(dest_dir=dest, **DAY)
     monkeypatch.setattr(archives, "_md5_of_file", no_files)
     monkeypatch.setattr(hrrr.archive, "_download", no_files)
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert result.mismatched == [dest / name]
     assert len(result.unchanged) == 3
@@ -379,10 +398,10 @@ def test_a_mismatched_file_is_replaced_when_noaa_corrects_its_file(hrrr, dest):
     name = HRRR_DAY[2]
     dest.mkdir(parents=True)
     (dest / name).write_bytes(b"short file from a killed transfer")
-    hrrr.archive.sync(dest, **DAY)
+    hrrr.archive.sync(dest_dir=dest, **DAY)
     hrrr.put(name, b"corrected by NOAA")
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert result.downloaded == [dest / name]
     assert result.mismatched == []
@@ -392,11 +411,11 @@ def test_a_mismatched_file_is_replaced_when_noaa_corrects_its_file(hrrr, dest):
 
 
 def test_a_file_changed_in_place_is_read_again(hrrr, dest, monkeypatch):
-    hrrr.archive.sync(dest, **DAY)
+    hrrr.archive.sync(dest_dir=dest, **DAY)
     path = dest / "2024" / "07" / HRRR_DAY[0]
     path.write_bytes(b"edited")  # a new size
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert result.mismatched == [path]
     assert len(result.unchanged) == 3
@@ -408,14 +427,14 @@ def test_a_file_changed_in_place_is_read_again(hrrr, dest, monkeypatch):
     os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 10**9))
     monkeypatch.setattr(hrrr.archive, "_download", no_files)
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert result.adopted == [path]
     assert result.mismatched == []
 
 
 def test_a_new_mtime_alone_makes_a_file_be_read_again(hrrr, dest, monkeypatch):
-    hrrr.archive.sync(dest, **DAY)
+    hrrr.archive.sync(dest_dir=dest, **DAY)
     path = dest / "2024" / "07" / HRRR_DAY[0]
     stat = path.stat()
     os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 10**9))
@@ -423,7 +442,7 @@ def test_a_new_mtime_alone_makes_a_file_be_read_again(hrrr, dest, monkeypatch):
     real = archives._md5_of_file
     monkeypatch.setattr(archives, "_md5_of_file", lambda p: reads.append(p) or real(p))
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert reads == [path]
     assert result.adopted == [path]
@@ -437,7 +456,7 @@ def test_the_copy_at_the_archive_path_wins_over_another(hrrr, dest):
     (dest / "0_old" / name).write_bytes(b"not the file")
     (dest / "2024" / "07" / name).write_bytes(content(name))
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert result.adopted == [dest / "2024" / "07" / name]
     assert result.mismatched == []
@@ -449,7 +468,7 @@ def test_hidden_files_and_folders_are_not_copies(hrrr, dest):
     (dest / ".trash" / name).write_bytes(content(name))
     (dest / f".{name}.abc123.partial").write_bytes(b"half")
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert dest / "2024" / "07" / name in result.downloaded
     assert (dest / f".{name}.abc123.partial").exists()  # not touched
@@ -461,14 +480,14 @@ def test_files_noaa_does_not_list_are_left_alone(hrrr, dest):
     for path in keep:
         path.write_bytes(b"mine")
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert all(path.read_bytes() == b"mine" for path in keep)
     assert len(result.downloaded) == 4
 
 
 def test_the_manifest_drops_a_file_that_is_gone_and_keeps_the_rest(hrrr, dest):
-    hrrr.archive.sync(dest, **DAY)
+    hrrr.archive.sync(dest_dir=dest, **DAY)
     other = dest / "2024" / "07" / "some_other_file"
     other.write_bytes(b"x")
     stat = other.stat()
@@ -478,7 +497,7 @@ def test_the_manifest_drops_a_file_that_is_gone_and_keeps_the_rest(hrrr, dest):
         )
         f.write(f"{md5(b'y')}\t{md5(b'y')}\t1\t5\t2024/07/deleted_file\n")
 
-    hrrr.archive.sync(dest, **DAY)
+    hrrr.archive.sync(dest_dir=dest, **DAY)
 
     manifest = manifest_of(dest)
     assert "2024/07/some_other_file" in manifest
@@ -494,7 +513,7 @@ def test_dry_run_writes_and_reads_nothing(hrrr, dest, monkeypatch):
     monkeypatch.setattr(archives, "_md5_of_file", no_files)
     monkeypatch.setattr(hrrr.archive, "_download", no_files)
 
-    result = hrrr.archive.sync(dest, dry_run=True, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, dry_run=True, **DAY)
 
     assert result.dry_run
     assert result.downloaded == [dest / "2024" / "07" / name for name in HRRR_DAY]
@@ -507,7 +526,7 @@ def test_dry_run_lists_what_it_would_check_without_reading_it(hrrr, dest, monkey
     monkeypatch.setattr(archives, "_md5_of_file", no_files)
     monkeypatch.setattr(hrrr.archive, "_download", no_files)
 
-    result = hrrr.archive.sync(dest, dry_run=True, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, dry_run=True, **DAY)
 
     assert result.adopted == [dest / HRRR_DAY[0]]
     assert len(result.downloaded) == 3
@@ -529,7 +548,7 @@ def test_a_second_run_is_refused_while_the_first_holds_the_lock(hrrr, dest):
     )
 
     with pytest.raises(RuntimeError, match=r"node42.*started 2024-07-18 05:30:00 UTC"):
-        hrrr.archive.sync(dest, **DAY)
+        hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert (lock / "owner").exists()  # the first run's lock is not removed
     assert list(dest.rglob("2024")) == []  # nothing fetched
@@ -540,12 +559,12 @@ def test_a_run_inside_a_run_is_refused(hrrr, dest, monkeypatch):
 
     def download_then_start_another_run(*args, **kwargs):
         with pytest.raises(RuntimeError, match="Another sync holds the lock"):
-            hrrr.archive.sync(dest, **DAY)
+            hrrr.archive.sync(dest_dir=dest, **DAY)
         return real_download(*args, **kwargs)
 
     monkeypatch.setattr(hrrr.archive, "_download", download_then_start_another_run)
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert len(result.downloaded) == 4
     assert not (dest / ".arlmet-sync.lock").exists()
@@ -558,7 +577,7 @@ def test_the_lock_is_removed_after_an_error(hrrr, dest, monkeypatch):
     monkeypatch.setattr(hrrr.archive, "_download", boom)
 
     with pytest.raises(RuntimeError, match="boom"):
-        hrrr.archive.sync(dest, **DAY)
+        hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert not (dest / ".arlmet-sync.lock").exists()
     assert hidden_files(dest) == []
@@ -577,7 +596,7 @@ def test_the_manifest_keeps_what_was_checked_before_an_error(hrrr, dest, monkeyp
     monkeypatch.setattr(hrrr.archive, "_download", second_one_fails)
 
     with pytest.raises(RuntimeError, match="killed"):
-        hrrr.archive.sync(dest, **DAY)
+        hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert list(manifest_of(dest)) == [f"2024/07/{HRRR_DAY[0]}"]
 
@@ -618,7 +637,7 @@ def test_weekly_and_monthly_products_land_in_their_archive_layout(
     for name in mirror.paths:
         mirror.put(name, content(name))
 
-    result = archive.sync(dest, start=start, end=end)
+    result = archive.sync(dest_dir=dest, start=start, end=end)
 
     assert result.downloaded == [dest / rel for rel in expected]
     assert result.failed == []
@@ -629,7 +648,7 @@ def test_names_of_a_listing_with_no_archive_path_are_skipped(hrrr, dest):
     hrrr.listing["somebody_elses_file"] = md5(b"y")
     hrrr._write_listing()
 
-    result = hrrr.archive.sync(dest, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, **DAY)
 
     assert len(result.downloaded) == 4
 
@@ -677,7 +696,7 @@ def test_sync_needs_fsspec(hrrr, dest, monkeypatch):
     monkeypatch.setitem(sys.modules, "fsspec", None)
 
     with pytest.raises(ImportError, match=r"Archive\.sync"):
-        hrrr.archive.sync(dest, **DAY)
+        hrrr.archive.sync(dest_dir=dest, **DAY)
 
 
 def test_the_default_end_is_now(dest, monkeypatch):
@@ -693,7 +712,7 @@ def test_the_default_end_is_now(dest, monkeypatch):
     monkeypatch.setattr(archive, "_storage_options", lambda mirror: {})
 
     with pytest.raises(FileNotFoundError):
-        archive.sync(dest, dry_run=True)
+        archive.sync(dest_dir=dest, dry_run=True)
 
     start, end = seen[0]
     assert start == archive.start_date
@@ -707,12 +726,12 @@ def test_dry_run_reports_a_recorded_mismatch_and_a_correction(hrrr, dest, monkey
     dest.mkdir(parents=True)
     for name in (wrong, corrected):
         (dest / name).write_bytes(b"not NOAA's")
-    hrrr.archive.sync(dest, **DAY)
+    hrrr.archive.sync(dest_dir=dest, **DAY)
     hrrr.put(corrected, b"corrected by NOAA")
     monkeypatch.setattr(archives, "_md5_of_file", no_files)
     monkeypatch.setattr(hrrr.archive, "_download", no_files)
 
-    result = hrrr.archive.sync(dest, dry_run=True, **DAY)
+    result = hrrr.archive.sync(dest_dir=dest, dry_run=True, **DAY)
 
     assert result.mismatched == [dest / wrong]
     assert result.downloaded == [dest / corrected]
