@@ -1,0 +1,245 @@
+{
+ "case": "gdas1",
+ "file": "gdas1.jul24.w3",
+ "archive": "GDASArchive",
+ "time": "2024-07-18 00:00",
+ "bbox": [
+  -140.0,
+  20.0,
+  -85.0,
+  60.0
+ ],
+ "levels": 18,
+ "arlmet": "0.1.0b10.dev1+g464cdcebf",
+ "xtrct_grid": "/scratch/general/vast/u6036966/worktrees/arl-met-xtrct/validation/build/xtrct_grid",
+ "xtrct_grid_cells": {},
+ "extract_subset_shape": {
+  "lon": 56,
+  "lat": 41,
+  "level": 17,
+  "time": 56
+ },
+ "xtrct_grid_shape": {
+  "lon": 56,
+  "lat": 41,
+  "level": 17,
+  "time": 56
+ },
+ "xtrct_grid_seconds": 12.237363189982716,
+ "extract_subset_seconds": 2.2503768029855564,
+ "source_bytes": 598888640,
+ "xtrct_grid_bytes": 17341632,
+ "extract_subset_bytes": 17341632,
+ "variables": {
+  "CAPE": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 16.12598
+  },
+  "CFZR": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 0.007874016
+  },
+  "CICE": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 0.007874016
+  },
+  "CINH": {
+   "xtrct_grid_error": 3.9049072265625,
+   "extract_subset_error": 3.9049072265625,
+   "crop_difference": 0.0,
+   "precision": 4.031496
+  },
+  "CPPA": {
+   "xtrct_grid_error": 2.9103830456733704e-11,
+   "extract_subset_error": 2.9103830456733704e-11,
+   "crop_difference": 0.0,
+   "precision": 6.151575e-05
+  },
+  "CRAI": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 0.007874016
+  },
+  "CSNO": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 0.007874016
+  },
+  "DSWF": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 4.031496
+  },
+  "HCLD": {
+   "xtrct_grid_error": 0.5,
+   "extract_subset_error": 0.5,
+   "crop_difference": 0.0,
+   "precision": 0.503937
+  },
+  "HGTS": {
+   "xtrct_grid_error": 0.5,
+   "extract_subset_error": 0.5,
+   "crop_difference": 0.0,
+   "precision": 0.503937
+  },
+  "LCLD": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 0.503937
+  },
+  "LHTF": {
+   "xtrct_grid_error": 1.560760498046875,
+   "extract_subset_error": 1.560760498046875,
+   "crop_difference": 0.0,
+   "precision": 4.031496
+  },
+  "LIB4": {
+   "xtrct_grid_error": 0.05097389221191406,
+   "extract_subset_error": 0.05097389221191406,
+   "crop_difference": 0.0,
+   "precision": 0.06299213
+  },
+  "LISD": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 0.1259843
+  },
+  "MCLD": {
+   "xtrct_grid_error": 0.5,
+   "extract_subset_error": 0.5,
+   "crop_difference": 0.0,
+   "precision": 0.503937
+  },
+  "MSLP": {
+   "xtrct_grid_error": 0.0001220703125,
+   "extract_subset_error": 0.0001220703125,
+   "crop_difference": 0.0,
+   "precision": 0.06299213
+  },
+  "PBLH": {
+   "xtrct_grid_error": 28.1505126953125,
+   "extract_subset_error": 28.1505126953125,
+   "crop_difference": 0.0,
+   "precision": 32.25197
+  },
+  "PRSS": {
+   "xtrct_grid_error": 0.00054931640625,
+   "extract_subset_error": 0.00054931640625,
+   "crop_difference": 0.0,
+   "precision": 1.007874
+  },
+  "RELH": {
+   "xtrct_grid_error": 0.5,
+   "extract_subset_error": 0.5,
+   "crop_difference": 0.0,
+   "precision": 0.503937
+  },
+  "RH2M": {
+   "xtrct_grid_error": 0.0,
+   "extract_subset_error": 0.0,
+   "crop_difference": 0.0,
+   "precision": 0.503937
+  },
+  "SHGT": {
+   "xtrct_grid_error": 8.578125,
+   "extract_subset_error": 8.578125,
+   "crop_difference": 0.0,
+   "precision": 16.12598
+  },
+  "SHTF": {
+   "xtrct_grid_error": 3.379110336303711,
+   "extract_subset_error": 3.379110336303711,
+   "crop_difference": 0.0,
+   "precision": 4.031496
+  },
+  "SOLM": {
+   "xtrct_grid_error": 0.0004999637603759766,
+   "extract_subset_error": 0.0004999637603759766,
+   "crop_difference": 0.0,
+   "precision": 0.003937008
+  },
+  "T02M": {
+   "xtrct_grid_error": 3.0517578125e-05,
+   "extract_subset_error": 3.0517578125e-05,
+   "crop_difference": 0.0,
+   "precision": 0.1259843
+  },
+  "TCLD": {
+   "xtrct_grid_error": 0.40000152587890625,
+   "extract_subset_error": 0.40000152587890625,
+   "crop_difference": 0.0,
+   "precision": 0.503937
+  },
+  "TEMP": {
+   "xtrct_grid_error": 3.0517578125e-05,
+   "extract_subset_error": 3.0517578125e-05,
+   "crop_difference": 0.0,
+   "precision": 0.1259843
+  },
+  "TMPS": {
+   "xtrct_grid_error": 3.0517578125e-05,
+   "extract_subset_error": 3.0517578125e-05,
+   "crop_difference": 0.0,
+   "precision": 0.2519685
+  },
+  "TPP6": {
+   "xtrct_grid_error": 0.00011914223432540894,
+   "extract_subset_error": 0.00011914223432540894,
+   "crop_difference": 0.0,
+   "precision": 0.000246063
+  },
+  "U10M": {
+   "xtrct_grid_error": 0.1063227653503418,
+   "extract_subset_error": 0.1063227653503418,
+   "crop_difference": 0.0,
+   "precision": 0.1259843
+  },
+  "UMOF": {
+   "xtrct_grid_error": 0.0027419328689575195,
+   "extract_subset_error": 0.0027419328689575195,
+   "crop_difference": 0.0,
+   "precision": 0.007874016
+  },
+  "UWND": {
+   "xtrct_grid_error": 0.12059783935546875,
+   "extract_subset_error": 0.12059783935546875,
+   "crop_difference": 0.0,
+   "precision": 0.2519685
+  },
+  "V10M": {
+   "xtrct_grid_error": 0.11894488334655762,
+   "extract_subset_error": 0.11894488334655762,
+   "crop_difference": 0.0,
+   "precision": 0.1259843
+  },
+  "VMOF": {
+   "xtrct_grid_error": 0.0038745105266571045,
+   "extract_subset_error": 0.0038745105266571045,
+   "crop_difference": 0.0,
+   "precision": 0.003937008
+  },
+  "VWND": {
+   "xtrct_grid_error": 0.4023246765136719,
+   "extract_subset_error": 0.4023246765136719,
+   "crop_difference": 0.0,
+   "precision": 0.2519685
+  },
+  "WWND": {
+   "xtrct_grid_error": 0.0016515031456947327,
+   "extract_subset_error": 0.0016515031456947327,
+   "crop_difference": 0.0,
+   "precision": 0.001968504
+  }
+ }
+}

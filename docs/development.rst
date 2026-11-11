@@ -130,7 +130,9 @@ HYSPLIT source. The Fortran routines it matches:
        for a box inside the grid, holds ``xtrct_grid``'s and can be larger. A projected crop also keeps the
        source's sync point, where ``xtrct_grid`` writes the corner cell's
        latitude and longitude to 0.01 degree and so moves its crop by up to 0.15
-       cells (:meth:`arlmet.Grid.subset`)
+       cells (:meth:`arlmet.Grid.subset`). On a GDAS1 file the two crops are
+       identical; on HRRR they differ by less than one packing step, as each
+       re-packs its own window (``validation/subset/``, run 2026-11-11)
 
 Vertical-axis conversions
 -------------------------
