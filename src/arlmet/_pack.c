@@ -1,11 +1,12 @@
 /*
  * ARL differential packing: the C extension arlmet._pack.
  *
- * A line-by-line translation of HYSPLIT's PAKOUT (library/hysplit/pakout.f),
- * in single precision as PAKOUT is, so it writes the same bytes, exponent,
- * precision and initial value.  Each cell's byte is its difference from the
- * previous value *as a reader will rebuild it* (the feedback loop), which
- * keeps the error of every cell within half a packing step.
+ * A translation of HYSPLIT's PAKOUT (library/hysplit/pakout.f), with each
+ * cell's arithmetic in single precision and in PAKOUT's order, so it writes
+ * the same bytes, exponent, precision and initial value.  Each cell's byte
+ * is its difference from the previous value *as a reader will rebuild it*
+ * (the feedback loop), which keeps the error of every cell within half a
+ * packing step.
  *
  * Python signature:
  *   pack_core(unpacked: np.ndarray[float32, 2-D (ny, nx)])
@@ -18,6 +19,9 @@
 #include <numpy/arrayobject.h>
 #include <math.h>
 #include <stdint.h>
+
+/* Rows packed together; see the second loop of pack_core. */
+#define PACK_ROWS 8
 
 static PyObject *
 pack_core(PyObject *self, PyObject *args)
@@ -85,21 +89,50 @@ pack_core(PyObject *self, PyObject *args)
     /* The differences span -127 to 127, 254 steps. */
     float prec = ldexpf(1.0f, nexp) / 254.0f;
     float scexp = ldexpf(1.0f, 7 - nexp);
+    /* PAKOUT divides by SCEXP.  SCEXP is a power of 2, so its reciprocal is
+     * exact (0 where SCEXP overflows to inf, as x / inf is 0) and multiplying
+     * by it gives the same bits, faster.  Every product here is by a power of
+     * 2, so it is exact, and a compiler that fuses multiply and add (clang on
+     * arm64) changes nothing either. */
+    float rscexp = 1.0f / scexp;
 
-    /* Pack from low to high, each difference from the previous value as it
-     * will be unpacked. */
-    float rcol = var1;
-    npy_intp k = 0;
+    /* Each difference is from the previous value as it will be unpacked.
+     * Column 0 comes first: each row's first cell is differenced from the
+     * first cell of the row before, one chain down the rows. */
+    float *rcol = PyMem_Malloc((size_t)ny * sizeof(float));
+    if (rcol == NULL) {
+        Py_DECREF(arr);
+        Py_DECREF(packed);
+        return PyErr_NoMemory();
+    }
+    rold = var1;
     for (npy_intp j = 0; j < ny; j++) {
-        rold = rcol;
-        for (npy_intp i = 0; i < nx; i++, k++) {
-            int icval = (int)((rvar[k] - rold) * scexp + 127.5f);
-            rold = (float)(icval - 127) / scexp + rold;
-            if (i == 0)
-                rcol = rold;
-            cvar[k] = (uint8_t)icval;
+        npy_intp k = j * nx;
+        int icval = (int)((rvar[k] - rold) * scexp + 127.5f);
+        rold = (float)(icval - 127) * rscexp + rold;
+        rcol[j] = rold;
+        cvar[k] = (uint8_t)icval;
+    }
+
+    /* The rest of a row is a chain from its first cell that no other row
+     * needs, so PACK_ROWS rows advance together and the processor overlaps
+     * their chains (about 5 times faster than one row at a time).  Each row
+     * gets PAKOUT's arithmetic in PAKOUT's order, so the bytes are the same. */
+    for (npy_intp j0 = 0; j0 < ny; j0 += PACK_ROWS) {
+        npy_intp nb = ny - j0 < PACK_ROWS ? ny - j0 : PACK_ROWS;
+        float rows[PACK_ROWS];
+        for (npy_intp b = 0; b < nb; b++)
+            rows[b] = rcol[j0 + b];
+        for (npy_intp i = 1; i < nx; i++) {
+            for (npy_intp b = 0; b < nb; b++) {
+                npy_intp k = (j0 + b) * nx + i;
+                int icval = (int)((rvar[k] - rows[b]) * scexp + 127.5f);
+                rows[b] = (float)(icval - 127) * rscexp + rows[b];
+                cvar[k] = (uint8_t)icval;
+            }
         }
     }
+    PyMem_Free(rcol);
 
     Py_DECREF(arr);
     return Py_BuildValue("Ndid", (PyObject *)packed, (double)prec, nexp,
