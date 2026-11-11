@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=ba206fb8"></script>
+    <script src="../../_static/documentation_options.js?v=b22b557a"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b10.dev9+gc74ba7ace" />
+  <meta name="docsearch:version" content="0.1.0b10.dev10+g09dc4c2e2" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -950,7 +950,7 @@
 <span class="sd">        Return archive paths covering the requested inclusive time range.</span>
 <span class="sd">    fetch(start, end, ...)</span>
 <span class="sd">        Download or crop local ARL files for the requested time range.</span>
-<span class="sd">    sync(dest_dir, ...)</span>
+<span class="sd">    sync(start, end, ...)</span>
 <span class="sd">        Keep a local folder complete and checked against NOAA's MD5 list.</span>
 <span class="sd">    """</span>
 
@@ -1207,10 +1207,10 @@
 <a class="viewcode-back" href="../../_autosummary/arlmet.archives.Archive.sync.html#arlmet.archives.Archive.sync">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">sync</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">dest_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
         <span class="n">start</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">end</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">dest_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">mirror</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"s3"</span><span class="p">,</span> <span class="s2">"ftp"</span><span class="p">,</span> <span class="s2">"http"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"s3"</span><span class="p">,</span>
         <span class="n">dry_run</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SyncResult</span><span class="p">:</span>
@@ -1226,11 +1226,11 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        dest_dir :</span>
-<span class="sd">            The local mirror of the product. Created if absent.</span>
 <span class="sd">        start, end :</span>
 <span class="sd">            Sync only the files covering this time range (inclusive). By</span>
 <span class="sd">            default, the whole archive: from its ``start_date`` to now.</span>
+<span class="sd">        dest_dir :</span>
+<span class="sd">            The local mirror of the product. Created if absent.</span>
 <span class="sd">        mirror :</span>
 <span class="sd">            Which copy of the archive to read the list and the files from,</span>
 <span class="sd">            as for :meth:`fetch`.</span>
@@ -1303,7 +1303,8 @@
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
 <span class="sd">        &gt;&gt;&gt; from arlmet.archives import HRRRArchive</span>
-<span class="sd">        &gt;&gt;&gt; result = HRRRArchive().sync("./hrrr", dry_run=True)  # doctest: +SKIP</span>
+<span class="sd">        &gt;&gt;&gt; archive = HRRRArchive()</span>
+<span class="sd">        &gt;&gt;&gt; result = archive.sync(dest_dir="./hrrr", dry_run=True)  # doctest: +SKIP</span>
 <span class="sd">        &gt;&gt;&gt; result.downloaded  # doctest: +SKIP</span>
 <span class="sd">        [PosixPath('hrrr/2019/06/20190612_00-05_hrrr'), ...]</span>
 <span class="sd">        """</span>

@@ -262,7 +262,7 @@ mirroring tool such as ``lftp mirror``:
 
    from arlmet.archives import HRRRArchive
 
-   result = HRRRArchive().sync("/data/hrrr")
+   result = HRRRArchive().sync(dest_dir="/data/hrrr")
    result.downloaded   # files fetched this run
    result.mismatched   # local files whose MD5 differs from NOAA's: reported, left alone
 
@@ -301,11 +301,11 @@ a folder you care about: it reads nothing and writes nothing, and
 .. code-block:: python
 
    # Which files would be fetched, without reading or writing anything?
-   result = HRRRArchive().sync("/data/hrrr", dry_run=True)
+   result = HRRRArchive().sync(dest_dir="/data/hrrr", dry_run=True)
    len(result.downloaded), len(result.adopted)
 
    # Only part of the archive
-   HRRRArchive().sync("/data/hrrr", start="2024-07-01", end="2024-07-31")
+   HRRRArchive().sync("2024-07-01", "2024-07-31", dest_dir="/data/hrrr")
 
 The manifest
 ~~~~~~~~~~~~
