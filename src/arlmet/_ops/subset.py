@@ -8,18 +8,18 @@ from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, BinaryIO
 
+from arlmet._exceptions import ARLFormatError
+from arlmet._file import File
+from arlmet._grid import Grid, GridWindow
+from arlmet._header import Header, record_length_from_grid, split_grid_component
+from arlmet._indexrecord import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
 from arlmet._io import atomic_output, reject_same_file
-from arlmet.exceptions import ARLFormatError
-from arlmet.file import File
-from arlmet.grid import Grid, GridWindow
-from arlmet.header import Header, record_length_from_grid, split_grid_component
-from arlmet.indexrecord import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
 from arlmet.packing import calculate_checksum
 from arlmet.record import DataRecord
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
-    from arlmet.recordset import RecordSet
+    from arlmet._recordset import RecordSet
 
 __all__ = ["extract_subset"]
 

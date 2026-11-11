@@ -2,7 +2,7 @@
 Vertical coordinate helpers for ARL meteorology grids.
 
 This module keeps vertical metadata separate from the horizontal grid model in
-``arlmet.grid`` and provides lightweight helpers for deriving level
+``arlmet._grid`` and provides lightweight helpers for deriving level
 coordinates.
 """
 
@@ -22,6 +22,8 @@ __all__ = [
     "HybridAxis",
     "WrfAxis",
     "hypsometric_z_agl",
+    "R_D",
+    "G",
 ]
 
 # HYSPLIT's prfmod.f values (rdry, grav), not CODATA/ISO's 287.05 and 9.80665:

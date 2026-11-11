@@ -8,9 +8,9 @@ from xarray.core import indexing
 
 import arlmet
 from arlmet import File, open_dataset, write_dataset
-from arlmet.grid import Grid, Projection
-from arlmet.indexrecord import IndexRecord
+from arlmet._grid import Grid, Projection
 from arlmet.packing import pack, unpack
+from arlmet.record import IndexRecord
 from arlmet.vertical import PressureAxis
 
 

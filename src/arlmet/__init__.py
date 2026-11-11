@@ -3,21 +3,23 @@ arlmet: Python package for reading and analyzing NOAA ARL meteorological files.
 
 This package provides tools to read, parse, and work with ARL (Air Resources Laboratory)
 packed meteorological data files used by HYSPLIT and other atmospheric transport models.
+
+The byte-level codec is not imported here: ``Header`` and ``IndexRecord`` are in
+:mod:`arlmet.record`, and ``pack``, ``unpack`` and ``calculate_checksum`` in
+:mod:`arlmet.packing`.
 """
 
 from . import converters
+from ._exceptions import ARLFormatError, ARLFormatWarning
+from ._file import File
+from ._grid import Grid, GridWindow, Projection
+from ._inventory import Inventory, inventory
+from ._ops import concat, concat_by_time, extract_subset, sample_points
+from ._probe import Probe, probe
+from ._recordset import RecordSet
 from ._version import __version__ as __version__
-from .directoryindex import DirectoryIndex, index
-from .exceptions import ARLFormatError, ARLFormatWarning
-from .file import File
-from .grid import Grid, GridWindow, Projection
-from .header import Header
-from .indexrecord import IndexRecord
-from .ops import concat, concat_by_time, extract_subset, sample_points
-from .packing import calculate_checksum, pack, unpack
-from .probe import Probe, probe
+from ._xarray import open_dataset, pressure, write_dataset, z_agl, z_msl
 from .record import DataRecord
-from .recordset import RecordSet
 from .vertical import (
     HybridAxis,
     PressureAxis,
@@ -26,7 +28,6 @@ from .vertical import (
     VerticalAxis,
     WrfAxis,
 )
-from .xarray import open_dataset, pressure, write_dataset, z_agl, z_msl
 
 __author__ = "James Mineau"
 __email__ = "jameskmineau@gmail.com"
@@ -49,17 +50,12 @@ __all__ = [
     "TerrainAxis",
     "HybridAxis",
     "WrfAxis",
-    "Header",
-    "IndexRecord",
-    "calculate_checksum",
-    "pack",
-    "unpack",
     "extract_subset",
     "sample_points",
     "concat",
     "concat_by_time",
-    "index",
-    "DirectoryIndex",
+    "inventory",
+    "Inventory",
     "probe",
     "Probe",
     "ARLFormatError",

@@ -6,10 +6,10 @@ from typing import Any, BinaryIO, ClassVar
 
 import pandas as pd
 
+from arlmet._exceptions import ARLFormatError
+from arlmet._grid import Grid, Projection
+from arlmet._header import Header, format_fixed_width_float, split_grid_component
 from arlmet._time import ensure_timestamp
-from arlmet.exceptions import ARLFormatError
-from arlmet.grid import Grid, Projection
-from arlmet.header import Header, format_fixed_width_float, split_grid_component
 from arlmet.vertical import VerticalAxis
 
 __all__ = ["IndexRecord", "LvlInfo", "VarInfo"]
@@ -167,8 +167,8 @@ class IndexRecord:
     Examples
     --------
     >>> import pandas as pd
-    >>> from arlmet.header import Header
-    >>> from arlmet.indexrecord import IndexRecord
+    >>> from arlmet.record import Header
+    >>> from arlmet.record import IndexRecord
     >>> header = Header(
     ...     year=2024,
     ...     month=7,

@@ -29,20 +29,25 @@ headers through `File`, so the speed and memory use of those paths matter.
 
 ```
 src/arlmet/
-  file.py, recordset.py, record.py  File > RecordSet (one valid time) > DataRecord (one 2D field)
-  header.py, indexrecord.py         codecs of the 50-byte record header and the index record
-  grid.py, vertical.py              horizontal geometry; VerticalAxis and its five subclasses
-  packing.py, _pack.c               pack, unpack, checksum; the C extension for the encoder
-  collection.py                     RecordCollection protocol, VariableView, VariableAccessor
-  exceptions.py, _io.py, _time.py   ARLFormatError/Warning; atomic outputs; timestamps
-  archives.py; directoryindex.py    NOAA archive downloads and sync (Archive, ARCHIVES, get_archive); index, DirectoryIndex
-  ops/                              extract_subset, sample_points, concat, concat_by_time
-  converters/                       from_era5, from_gfs, from_icon, from_wrf: other models' output
-  xarray/                           open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl
+  _file.py, _recordset.py, record.py   File > RecordSet (one valid time) > DataRecord (one 2D field)
+  _header.py, _indexrecord.py          codecs of the 50-byte record header and the index record (public in `record`)
+  _grid.py, vertical.py                horizontal geometry; VerticalAxis and its five subclasses
+  packing.py, _pack.c                  pack, unpack, checksum; the C extension for the encoder
+  collection.py                        RecordCollection protocol, VariableView, VariableAccessor
+  _exceptions.py, _io.py, _time.py     ARLFormatError/Warning; atomic outputs; timestamps
+  archives.py; _inventory.py, _probe.py  NOAA archive downloads and sync; inventory, Inventory; probe, Probe
+  _ops/                                extract_subset, sample_points, concat, concat_by_time
+  converters/                          from_era5, from_gfs, from_icon, from_wrf (in `_era5.py`, ...)
+  _xarray/                             open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl
 ```
 
-`ops/` and `xarray/` sit on top of `file.py`; `File` imports them inside its
-methods, keeping the import graph one-way; `converters/` sits on `xarray/`.
+**A module is public only if it gives something `arlmet` itself does not**: `record`, `packing`,
+`vertical`, `archives`, `collection`, `converters`. Every other module has a leading underscore,
+so the release's promise (names in a public `__all__`) is not made twice for each top-level name.
+A new module is private unless it holds such a name.
+
+`_ops/` and `_xarray/` sit on top of `_file.py`; `File` imports them inside its
+methods, keeping the import graph one-way; `converters/` sits on `_xarray/`.
 `archives.py` imports `fsspec` only when it downloads (no `archives` extra needed).
 
 ## ARL format rules
@@ -51,7 +56,7 @@ methods, keeping the import graph one-way; `converters/` sits on `xarray/`.
   `Header.N_BYTES + nx * ny` bytes (50 + nx*ny), one 2D field each. Each time
   step starts with an index record (`INDX`: grid, vertical axis, each level's
   variables), which must fit in one record; `validate_subset_record_length`
-  (`ops/subset.py`) refuses a crop too small for it before writing anything.
+  (`_ops/subset.py`) refuses a crop too small for it before writing anything.
 - **Forecast hours.** The 50-byte label has two characters for the hour, the index
   record three: `Header.tobytes` writes `min(hour, 99)` (HYSPLIT's `pakrec`), the index
   record keeps the full hour and raises above 999.
@@ -99,7 +104,7 @@ methods, keeping the import graph one-way; `converters/` sits on `xarray/`.
 
 ## Design invariants
 
-1. **`grid.py` is horizontal only**, wind rotation included (`Grid.rotate_winds`,
+1. **`_grid.py` is horizontal only**, wind rotation included (`Grid.rotate_winds`,
    `Grid.meridian_convergence`); vertical geometry is in `vertical.py`.
 2. **`level` is the stored vertical dimension.** `open_dataset` returns lazy
    NumPy-backed arrays (`ArlVariableArray`; dask only through `xr.open_dataset(...,
@@ -158,9 +163,13 @@ methods, keeping the import graph one-way; `converters/` sits on `xarray/`.
     (`Grid.crs`, `Grid.origin`) rely on this; build a new value instead.
 11. **The public API is explicit.** The four `__init__.py` files re-export it,
     and every module but `_io`, `_time`, `_version` and `_entrypoint` defines `__all__`.
-    Options after the obvious leading arguments are keyword-only, except that
-    `unpack` keeps six positional arguments (the wheel smoke test in
-    `publish.yml` calls it so).
+    The byte-level codec is public only in `arlmet.record` (`Header`, `IndexRecord`, `LvlInfo`,
+    `VarInfo`, beside `DataRecord`; code in `_header.py`, `_indexrecord.py`) and `arlmet.packing`,
+    not re-exported by `arlmet`. "Index" is the format's index record only: a folder's files are
+    `arlmet.inventory` / `Inventory`. HYSPLIT's constants `R_D` and `G` are
+    in `arlmet.vertical.__all__` (PYSTILT uses them). Options after the obvious leading
+    arguments are keyword-only, except that `packing.unpack` keeps six positional arguments
+    (the wheel smoke test in `publish.yml` calls it so).
 12. **Names.** Outputs are `dest` (a file) or `dest_dir` (a directory).
     `source` means only the 4-character ARL source ID (`File.source`,
     `ds.attrs["source"]`); the download classes are archives and their server is

@@ -1,4 +1,4 @@
-"""Tests for arlmet.grid module."""
+"""Tests for arlmet._grid module."""
 
 from dataclasses import FrozenInstanceError, replace
 from decimal import Decimal
@@ -7,7 +7,7 @@ import numpy as np
 import pyproj
 import pytest
 
-from arlmet.grid import _OUTLINE_MAX_POINTS, Grid, GridWindow, Projection, wrap_lons
+from arlmet._grid import _OUTLINE_MAX_POINTS, Grid, GridWindow, Projection, wrap_lons
 from arlmet.vertical import (
     HybridAxis,
     PressureAxis,

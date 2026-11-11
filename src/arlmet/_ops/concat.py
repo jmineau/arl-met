@@ -28,9 +28,9 @@ from typing import BinaryIO
 
 import pandas as pd
 
+from arlmet._exceptions import ARLFormatError
+from arlmet._file import File
 from arlmet._io import atomic_output
-from arlmet.exceptions import ARLFormatError
-from arlmet.file import File
 
 __all__ = ["concat", "concat_by_time"]
 
@@ -315,7 +315,7 @@ def concat_by_time(
     dest_dir = Path(dest_dir)
 
     # Hidden files (an interrupted run's ``.<name>.<hash>.partial``) are not inputs
-    # unless the pattern itself names hidden files, as ``arlmet.index`` does.
+    # unless the pattern itself names hidden files, as ``arlmet.inventory`` does.
     hidden_ok = Path(pattern).name.startswith(".")
     candidates = sorted(
         p

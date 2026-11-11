@@ -17,14 +17,14 @@ from typing_extensions import override
 from xarray.backends import CachingFileManager
 from xarray.backends.locks import SerializableLock
 
+from arlmet._exceptions import ARLFormatError, ARLFormatWarning
+from arlmet._grid import Grid, Projection
+from arlmet._header import check_year, record_length_from_grid
+from arlmet._indexrecord import IndexRecord
+from arlmet._recordset import RecordSet
 from arlmet._time import ensure_timestamp
 from arlmet.collection import VariableAccessor
-from arlmet.exceptions import ARLFormatError, ARLFormatWarning
-from arlmet.grid import Grid, Projection
-from arlmet.header import check_year, record_length_from_grid
-from arlmet.indexrecord import IndexRecord
 from arlmet.record import DataRecord, _corrects, _is_missing, _require_mode
-from arlmet.recordset import RecordSet
 from arlmet.vertical import _DEFAULT_MODEL_TOP, VerticalAxis
 
 if TYPE_CHECKING:
@@ -955,7 +955,7 @@ class File:
         """
         # Delayed import: ops sit on top of file, so file's use of the sampling
         # op is lazy to avoid a file <-> ops import cycle (see File.extract_subset).
-        from arlmet.ops.sample import sample_points
+        from arlmet._ops.sample import sample_points
 
         return sample_points(
             self,
@@ -1000,7 +1000,7 @@ class File:
         xarray.Dataset
             See :func:`arlmet.open_dataset` for the layout.
         """
-        from arlmet.xarray.dataset import _build_dataset_from_file
+        from arlmet._xarray.dataset import _build_dataset_from_file
 
         return _build_dataset_from_file(
             self,
@@ -1061,7 +1061,7 @@ class File:
         ...     out = met.extract_subset("subset.arl", bbox=(-114, 39, -110, 42))
         >>> ds = arlmet.open_dataset(out)
         """
-        from arlmet.ops.subset import extract_subset
+        from arlmet._ops.subset import extract_subset
 
         return extract_subset(
             self.path,

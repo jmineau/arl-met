@@ -28,7 +28,7 @@ import pandas as pd
 import xarray as xr
 
 import arlmet
-from arlmet.xarray._coords import grid_to_coord
+from arlmet._xarray._coords import grid_to_coord
 
 #: The pressure levels of a sample file, in hPa (the surface is level 0).
 PRESSURES = [850.0, 700.0, 500.0, 300.0]

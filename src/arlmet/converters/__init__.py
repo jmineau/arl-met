@@ -16,9 +16,9 @@ Units follow what HYSPLIT reads, not always what its converter writes:
 flux is named ``LHTF`` (``metini.f``).
 """
 
-from .era5 import from_era5
-from .gfs import from_gfs
-from .icon import from_icon
-from .wrf import from_wrf
+from ._era5 import from_era5
+from ._gfs import from_gfs
+from ._icon import from_icon
+from ._wrf import from_wrf
 
 __all__ = ["from_era5", "from_gfs", "from_icon", "from_wrf"]

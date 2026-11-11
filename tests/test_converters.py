@@ -330,8 +330,8 @@ class TestFromEra5ModelLevels:
             assert np.all(np.diff(p) > 0)
 
     def test_levels_are_api2arls(self):
+        from arlmet.converters._era5 import _hybrid_levels
         from arlmet.converters._l137 import L137_A, L137_B
-        from arlmet.converters.era5 import _hybrid_levels
 
         expected = api2arl_levels([*L137_A, *L137_B])
         assert len(expected) == 137
@@ -346,7 +346,7 @@ class TestFromEra5ModelLevels:
         axis = ds.arl.vertical_axis
         assert isinstance(axis, arlmet.HybridAxis)
         # The ground first as 1, then model levels 137, 130, 120, 100.
-        from arlmet.converters.era5 import _hybrid_levels
+        from arlmet.converters._era5 import _hybrid_levels
 
         np.testing.assert_allclose(
             axis.levels[1:], _hybrid_levels([137, 130, 120, 100]), atol=5e-3
@@ -399,7 +399,7 @@ class TestFromEra5ModelLevels:
             from_era5(ml, sfc)
 
     def test_lowest_usable_top_converts(self):
-        from arlmet.converters.era5 import _hybrid_axis
+        from arlmet.converters._era5 import _hybrid_axis
 
         axis = _hybrid_axis(list(range(137, 23, -1)))
         assert len(axis.levels) == 115

@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from arlmet._grid import Grid, Projection
 from arlmet._time import utc_times
-from arlmet.grid import Grid, Projection
 from arlmet.vertical import VerticalAxis
 
 __all__ = [

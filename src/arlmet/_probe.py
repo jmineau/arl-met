@@ -9,10 +9,10 @@ from typing import BinaryIO
 
 import pandas as pd
 
-from arlmet.exceptions import ARLFormatError
-from arlmet.grid import Grid
-from arlmet.header import record_length_from_grid
-from arlmet.indexrecord import IndexRecord
+from arlmet._exceptions import ARLFormatError
+from arlmet._grid import Grid
+from arlmet._header import record_length_from_grid
+from arlmet._indexrecord import IndexRecord
 
 __all__ = ["Probe", "probe"]
 
@@ -71,7 +71,7 @@ class Probe:
     --------
     probe : Builds a Probe.
     arlmet.File.check : Full validation, by reading every index record.
-    arlmet.index : Indexes every time step of a whole directory.
+    arlmet.inventory : Reads every time step of a whole directory.
     """
 
     path: Path
@@ -88,7 +88,7 @@ def probe(path: str | os.PathLike[str]) -> Probe:
     """
     Cheaply summarize an ARL file from its first two index records and its size.
 
-    Reads the first index record (:meth:`arlmet.IndexRecord.from_position` at
+    Reads the first index record (:meth:`arlmet.record.IndexRecord.from_position` at
     byte 0) to learn the file's grid, source, forecast hour, and first valid
     time, and how many bytes one time step takes (its index record plus one
     data record per variable per level). A :func:`os.stat` then gives the
@@ -123,7 +123,7 @@ def probe(path: str | os.PathLike[str]) -> Probe:
     --------
     Probe : The returned summary.
     arlmet.File.check : Full validation, by reading every index record.
-    arlmet.index : Indexes every time step of a whole directory.
+    arlmet.inventory : Reads every time step of a whole directory.
 
     Examples
     --------

@@ -13,9 +13,9 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
+from arlmet._grid import Grid, GridWindow
 from arlmet._time import ensure_timestamp
 from arlmet._version import __version__
-from arlmet.grid import Grid, GridWindow
 from arlmet.vertical import (
     _DEFAULT_MODEL_TOP,
     HybridAxis,
@@ -29,9 +29,9 @@ from arlmet.vertical import (
 )
 
 if TYPE_CHECKING:
-    from arlmet.file import File
+    from arlmet._file import File
+    from arlmet._recordset import RecordSet
     from arlmet.record import DataRecord
-    from arlmet.recordset import RecordSet
 
 __all__ = ["sample_points"]
 
@@ -1534,7 +1534,7 @@ def _sample_points_from_file(
     Parameters
     ----------
     file :
-        Open ARL :class:`~arlmet.file.File` in read mode that contains *time*.
+        Open ARL :class:`~arlmet._file.File` in read mode that contains *time*.
     time :
         Valid time of every point in *coords*.
     coords :
@@ -1682,12 +1682,12 @@ def _open_files(
     """
     Normalize *files* to a tuple of open read-mode Files.
 
-    Accepts a single open :class:`~arlmet.file.File` or path, or a sequence of
+    Accepts a single open :class:`~arlmet._file.File` or path, or a sequence of
     them. Paths are opened here; already-open Files are passed through. Returns
     ``(files, opened)`` where *opened* lists only the Files this function
     created and is therefore responsible for closing.
     """
-    from arlmet.file import File
+    from arlmet._file import File
 
     if isinstance(files, (File, str, os.PathLike)):
         items: list[FileLike] = [files]
@@ -1757,7 +1757,7 @@ def sample_points(
     Sample meteorological variables at arbitrary (lon, lat, z, time) points.
 
     Accepts a single ARL file or a sequence of files spanning different time
-    periods. Each may be an open :class:`~arlmet.file.File` or a path to an
+    periods. Each may be an open :class:`~arlmet._file.File` or a path to an
     ARL file; paths are opened (read mode) and closed automatically, while
     already-open Files are left open for the caller to manage. A path is
     opened and its index records read on every call, so in a loop over many
@@ -1769,7 +1769,7 @@ def sample_points(
     Parameters
     ----------
     files : File, path-like, or sequence of File or path-like
-        A single open :class:`~arlmet.file.File` or path, or a sequence of
+        A single open :class:`~arlmet._file.File` or path, or a sequence of
         Files and/or paths. Each valid time must appear in at most one file.
     points : pandas.DataFrame or mapping
         Table-like object with ``lon``, ``lat`` (degrees), and ``z`` columns,

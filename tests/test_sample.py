@@ -7,7 +7,7 @@ import pytest
 
 import arlmet
 from arlmet import File, sample_points
-from arlmet.grid import Grid, Projection
+from arlmet._grid import Grid, Projection
 from arlmet.vertical import (
     HybridAxis,
     PressureAxis,
@@ -3030,7 +3030,7 @@ _METLVL_AXES = {
     ],
 )
 def test_internal_levels_are_hysplits(axis, model_top, n, abc, zmdl):
-    from arlmet.ops.sample import _InternalLevels
+    from arlmet._ops.sample import _InternalLevels
 
     levels = _InternalLevels.for_axis(_METLVL_AXES[axis], model_top)
     a, b, c = abc
@@ -3040,7 +3040,7 @@ def test_internal_levels_are_hysplits(axis, model_top, n, abc, zmdl):
 
 
 def test_internal_level_position():
-    from arlmet.ops.sample import _InternalLevels
+    from arlmet._ops.sample import _InternalLevels
 
     levels = _InternalLevels(zmdl=25000.0, heights=np.array([10.0, 75.0, 200.0, 385.0]))
     z = np.array([0.0, 5.0, 10.0, 42.5, 75.0, 300.0, 385.0, 1000.0, -1.0, np.nan])
@@ -3071,7 +3071,7 @@ class TestHysplitInternalLevels:
 
     @staticmethod
     def _by_hand(path, variables, z, *, model_top=25000.0, stagger=(0.0, 0.0), xy=XY):
-        from arlmet.ops.sample import _InternalLevels
+        from arlmet._ops.sample import _InternalLevels
 
         with File(path) as met:
             levels = _InternalLevels.for_axis(met.vertical_axis, model_top)
@@ -3307,7 +3307,7 @@ class TestHysplitInternalLevels:
         )
         # the first step, from the last internal level below the top, takes the
         # density there, from the virtual temperature (linear in height, CALCTV)
-        from arlmet.ops.sample import _build_horizontal_plan, _Column
+        from arlmet._ops.sample import _build_horizontal_plan, _Column
 
         with File(path) as met:
             rs = met[_COLUMN_TIME]
@@ -3493,7 +3493,7 @@ class TestTerrainFollowingInternalLevels:
     def _by_hand(
         values, ground, z, *, model_top=25000.0, zmdlt=20000.0, terrain=_F3_SHGT
     ):
-        from arlmet.ops.sample import _InternalLevels
+        from arlmet._ops.sample import _InternalLevels
 
         levels = _InternalLevels.for_axis(TerrainAxis(levels=_F3_LEVELS), model_top)
         h, zmdl = levels.heights, levels.zmdl
@@ -3535,7 +3535,7 @@ class TestTerrainFollowingInternalLevels:
             np.testing.assert_allclose(result["TEMP"], expected, rtol=1e-6)
 
     def test_rams_scales_by_zmdl(self, tmp_path):
-        from arlmet.ops.sample import _InternalLevels
+        from arlmet._ops.sample import _InternalLevels
 
         axis = TerrainAxis(levels=_F3_LEVELS)
         assert _InternalLevels.for_axis(axis, 25000.0).zmdlt == 20000.0
@@ -3547,7 +3547,7 @@ class TestTerrainFollowingInternalLevels:
         np.testing.assert_allclose(result["TEMP"], expected, rtol=1e-6)
 
     def test_above_the_top_temperature_is_held(self, tmp_path):
-        from arlmet.ops.sample import _InternalLevels
+        from arlmet._ops.sample import _InternalLevels
 
         path = tmp_path / "flag3.arl"
         write_terrain_column_file(path)

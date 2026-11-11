@@ -7,9 +7,9 @@ from typing import Any, ClassVar
 
 import pandas as pd
 
+from arlmet._exceptions import ARLFormatError
+from arlmet._grid import Grid
 from arlmet._time import ensure_timestamp
-from arlmet.exceptions import ARLFormatError
-from arlmet.grid import Grid
 
 __all__ = ["Header"]
 

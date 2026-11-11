@@ -160,14 +160,14 @@ Reading a record reverses this: the first column is rebuilt down the rows from
 the header's initial value, then each row across from its first cell, adding
 one difference at a time in single precision. A value smaller in magnitude than
 the record's precision (``2**exponent / 254``) is read as zero, except in the
-first column, which HYSPLIT's ``pakinp`` leaves as it is. :func:`arlmet.unpack`
+first column, which HYSPLIT's ``pakinp`` leaves as it is. :func:`arlmet.packing.unpack`
 follows ``pakinp`` step for step and gives the same ``float32`` values.
 
 Writing is HYSPLIT's ``pakout``: the exponent is the smallest that holds the
 largest difference between neighbors, each byte is the difference from the
 previous value as a reader will rebuild it, and values are packed as they are
 (the initial value is the first cell's, even when it is below the precision).
-:func:`arlmet.pack` gives the same bytes, exponent, precision and initial value.
+:func:`arlmet.packing.pack` gives the same bytes, exponent, precision and initial value.
 
 Packing rounds each value to the record's precision, the half step of its byte
 scale. A value read back is within one precision of the value packed, and
@@ -249,7 +249,7 @@ Checksums
 
 Each time step's index record holds a checksum for each data record: the sum of
 the record's packed bytes, less 255 each time the sum reaches 256
-(:func:`arlmet.calculate_checksum`). :meth:`arlmet.DataRecord.verify_checksum`
+(:func:`arlmet.packing.calculate_checksum`). :meth:`arlmet.DataRecord.verify_checksum`
 compares a record's packed bytes with it.
 
 A stored checksum of 0 means none was recorded, and ``verify_checksum()``

@@ -10,9 +10,9 @@ import xarray as xr
 
 import arlmet
 from arlmet import File
-from arlmet.grid import Grid, Projection
+from arlmet._grid import Grid, Projection
+from arlmet._xarray._entrypoint import ARLBackendEntrypoint
 from arlmet.vertical import PressureAxis
-from arlmet.xarray._entrypoint import ARLBackendEntrypoint
 
 
 def write_arl(path):

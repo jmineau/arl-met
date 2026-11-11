@@ -1126,7 +1126,7 @@ class Archive(ABC):
         *dest* only once complete (by :func:`arlmet.extract_subset`). The download
         is removed either way.
         """
-        from arlmet.ops.subset import extract_subset
+        from arlmet._ops.subset import extract_subset
 
         raw = _partial_path(dest)
         try:

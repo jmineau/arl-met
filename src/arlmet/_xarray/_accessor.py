@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import xarray as xr
 
-from arlmet.grid import Grid
+from arlmet._grid import Grid
 from arlmet.vertical import VerticalAxis
 
 from ._coords import grid_from_coord, vaxis_from_coord

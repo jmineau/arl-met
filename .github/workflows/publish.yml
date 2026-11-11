@@ -50,10 +50,10 @@ jobs:
           CIBW_ARCHS_WINDOWS: "AMD64"
           # Smoke-test each wheel: the C packer must import and round-trip.
           CIBW_TEST_COMMAND: >-
-            python -c "import numpy as np, arlmet;
+            python -c "import numpy as np, arlmet.packing;
             a = np.arange(400, dtype=np.float32).reshape(20, 20);
-            packed, prec, exp, var1 = arlmet.pack(a);
-            out = arlmet.unpack(packed.tobytes(), 20, 20, prec, exp, var1);
+            packed, prec, exp, var1 = arlmet.packing.pack(a);
+            out = arlmet.packing.unpack(packed.tobytes(), 20, 20, prec, exp, var1);
             assert np.allclose(out, a, atol=2 * prec), 'pack round-trip failed'"
 
       - uses: actions/upload-artifact@v7

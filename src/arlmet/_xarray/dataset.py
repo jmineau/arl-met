@@ -13,13 +13,13 @@ import pandas as pd
 import xarray as xr
 from xarray.core import indexing
 
+from arlmet._grid import Grid
+from arlmet._header import check_year
 from arlmet._io import atomic_output, reject_same_file
+from arlmet._ops.sample import _mass_coupled
+from arlmet._ops.subset import normalize_levels, resolve_window, select_records
 from arlmet._time import ensure_timestamp, utc_times
 from arlmet._version import __version__
-from arlmet.grid import Grid
-from arlmet.header import check_year
-from arlmet.ops.sample import _mass_coupled
-from arlmet.ops.subset import normalize_levels, resolve_window, select_records
 from arlmet.record import _check_variable_name
 from arlmet.vertical import VerticalAxis
 
@@ -35,7 +35,7 @@ from ._coords import (
 )
 
 if TYPE_CHECKING:
-    from arlmet.file import File
+    from arlmet._file import File
     from arlmet.record import DataRecord
 
 __all__ = ["open_dataset", "write_dataset"]
@@ -306,7 +306,7 @@ def open_dataset(
         ``attrs`` holds ``source``, ``vertical_flag`` and ``arlmet_version``,
         the arlmet version that built the Dataset.
     """
-    from arlmet.file import File
+    from arlmet._file import File
 
     with File(filename_or_obj) as met:
         ds = met.to_dataset(
@@ -405,7 +405,7 @@ def write_dataset(
     renamed into place once complete, so an interrupted write never leaves a
     truncated file under the final name.
     """
-    from arlmet.file import File
+    from arlmet._file import File
 
     if not isinstance(ds, xr.Dataset):
         raise TypeError("write_dataset() requires an xarray.Dataset.")

@@ -289,7 +289,7 @@ import xarray as xr  # noqa: E402
 
 import arlmet  # noqa: E402
 from arlmet import File  # noqa: E402
-from arlmet.grid import Grid, Projection  # noqa: E402
+from arlmet._grid import Grid, Projection  # noqa: E402
 from arlmet.vertical import R_D, G  # noqa: E402
 
 

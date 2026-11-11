@@ -13,8 +13,8 @@ from arlmet import (
     extract_subset,
     open_dataset,
 )
-from arlmet.grid import Grid, Projection
-from arlmet.header import Header
+from arlmet._grid import Grid, Projection
+from arlmet.record import Header
 from arlmet.vertical import PressureAxis
 
 TIMES = [pd.Timestamp("2024-07-18 00:00"), pd.Timestamp("2024-07-18 03:00")]

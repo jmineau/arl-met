@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import numpy.typing as npt
 
-from arlmet.grid import Grid, Projection
+from arlmet._grid import Grid, Projection
 
 __all__ = ["latlon_grid"]
 

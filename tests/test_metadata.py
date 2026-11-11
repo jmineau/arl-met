@@ -8,13 +8,13 @@ import pandas as pd
 import pytest
 
 from arlmet import File, Grid, Projection, TerrainAxis
-from arlmet.header import (
+from arlmet._header import (
     Header,
     format_fixed_width_float,
     letter_to_thousands,
     restore_year,
 )
-from arlmet.indexrecord import IndexRecord, LvlInfo, VarInfo
+from arlmet.record import IndexRecord, LvlInfo, VarInfo
 
 
 class TestLetterToThousands:

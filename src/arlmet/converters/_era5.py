@@ -7,7 +7,7 @@ from collections.abc import Sequence
 import numpy as np
 import xarray as xr
 
-from arlmet.indexrecord import format_fixed_width_float
+from arlmet._indexrecord import format_fixed_width_float
 from arlmet.vertical import HybridAxis, VerticalAxis
 
 from ._l137 import L137_A, L137_B

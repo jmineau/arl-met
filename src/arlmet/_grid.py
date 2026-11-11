@@ -35,7 +35,7 @@ _OUTLINE_FIRST_POINTS = 1_001
 #: still count as on it. The modulo-360 test of longitudes rounds at the size of a
 #: number up to 360, about 6e-14 degrees, and a latitude ``lat_0 + j * dlat`` at
 #: the size of the product (~1e-14 degrees when ``dlat`` is not exact in binary,
-#: as 0.1 is not); 1e-6 cells (the same as ``ops/sample.py``'s ``_EDGE_TOLERANCE``)
+#: as 0.1 is not); 1e-6 cells (the same as ``_ops/sample.py``'s ``_EDGE_TOLERANCE``)
 #: is far above both and a few centimeters on a 0.25-degree grid.
 _EDGE_TOLERANCE = 1e-6
 
@@ -162,7 +162,7 @@ class Projection:
 
     Examples
     --------
-    >>> from arlmet.grid import Projection
+    >>> from arlmet._grid import Projection
     >>> proj = Projection(
     ...     pole_lat=90.0,
     ...     pole_lon=180.0,
@@ -426,7 +426,7 @@ class Grid:
 
     Examples
     --------
-    >>> from arlmet.grid import Grid, Projection
+    >>> from arlmet._grid import Grid, Projection
     >>> proj = Projection(
     ...     pole_lat=90.0,
     ...     pole_lon=180.0,
