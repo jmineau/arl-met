@@ -123,15 +123,19 @@ constructing a new axis.
 Binary Metadata And Packing
 ---------------------------
 
+The byte-level codec of the format. Most code never needs it, so ``arlmet``
+does not import it; import each name from its module, e.g.
+``from arlmet.indexrecord import IndexRecord``.
+
 .. autosummary::
    :toctree: _autosummary
    :nosignatures:
 
-   Header
-   IndexRecord
-   calculate_checksum
-   pack
-   unpack
+   header.Header
+   indexrecord.IndexRecord
+   packing.calculate_checksum
+   packing.pack
+   packing.unpack
 
 Errors And Warnings
 -------------------

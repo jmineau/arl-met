@@ -158,9 +158,11 @@ methods, keeping the import graph one-way; `converters/` sits on `xarray/`.
     (`Grid.crs`, `Grid.origin`) rely on this; build a new value instead.
 11. **The public API is explicit.** The four `__init__.py` files re-export it,
     and every module but `_io`, `_time`, `_version` and `_entrypoint` defines `__all__`.
-    Options after the obvious leading arguments are keyword-only, except that
-    `unpack` keeps six positional arguments (the wheel smoke test in
-    `publish.yml` calls it so).
+    The byte-level codec is public only in its modules (`arlmet.packing`, `arlmet.header`,
+    `arlmet.indexrecord`), not re-exported by `arlmet`; HYSPLIT's constants `R_D` and `G` are
+    in `arlmet.vertical.__all__` (PYSTILT uses them). Options after the obvious leading
+    arguments are keyword-only, except that `packing.unpack` keeps six positional arguments
+    (the wheel smoke test in `publish.yml` calls it so).
 12. **Names.** Outputs are `dest` (a file) or `dest_dir` (a directory).
     `source` means only the 4-character ARL source ID (`File.source`,
     `ds.attrs["source"]`); the download classes are archives and their server is

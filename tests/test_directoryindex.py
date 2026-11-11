@@ -606,7 +606,24 @@ class TestNames:
 
         assert callable(arlmet.index)
         assert arlmet.index is directoryindex.index
-        assert arlmet.IndexRecord is IndexRecord
+        assert IndexRecord.__module__ == "arlmet.indexrecord"
+        assert not hasattr(arlmet, "IndexRecord")
         assert LvlInfo.__module__ == VarInfo.__module__ == "arlmet.indexrecord"
         with pytest.raises(ModuleNotFoundError):
             importlib.import_module("arlmet.index")
+
+    def test_the_codec_is_public_only_in_its_modules(self):
+        from arlmet import header, indexrecord, packing, vertical
+
+        codec = {
+            header: ["Header"],
+            indexrecord: ["IndexRecord"],
+            packing: ["calculate_checksum", "pack", "unpack"],
+        }
+        for module, names in codec.items():
+            for name in names:
+                assert name in module.__all__
+                assert name not in arlmet.__all__
+                assert not hasattr(arlmet, name)
+        assert {"R_D", "G"} <= set(vertical.__all__)
+        assert {"index", "probe", "DirectoryIndex"} <= set(arlmet.__all__)

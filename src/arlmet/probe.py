@@ -88,7 +88,7 @@ def probe(path: str | os.PathLike[str]) -> Probe:
     """
     Cheaply summarize an ARL file from its first two index records and its size.
 
-    Reads the first index record (:meth:`arlmet.IndexRecord.from_position` at
+    Reads the first index record (:meth:`arlmet.indexrecord.IndexRecord.from_position` at
     byte 0) to learn the file's grid, source, forecast hour, and first valid
     time, and how many bytes one time step takes (its index record plus one
     data record per variable per level). A :func:`os.stat` then gives the

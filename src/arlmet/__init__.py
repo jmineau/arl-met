@@ -3,6 +3,10 @@ arlmet: Python package for reading and analyzing NOAA ARL meteorological files.
 
 This package provides tools to read, parse, and work with ARL (Air Resources Laboratory)
 packed meteorological data files used by HYSPLIT and other atmospheric transport models.
+
+The byte-level codec is not imported here: ``Header`` is in :mod:`arlmet.header`,
+``IndexRecord`` in :mod:`arlmet.indexrecord`, and ``pack``, ``unpack`` and
+``calculate_checksum`` in :mod:`arlmet.packing`.
 """
 
 from . import converters
@@ -11,10 +15,7 @@ from .directoryindex import DirectoryIndex, index
 from .exceptions import ARLFormatError, ARLFormatWarning
 from .file import File
 from .grid import Grid, GridWindow, Projection
-from .header import Header
-from .indexrecord import IndexRecord
 from .ops import concat, concat_by_time, extract_subset, sample_points
-from .packing import calculate_checksum, pack, unpack
 from .probe import Probe, probe
 from .record import DataRecord
 from .recordset import RecordSet
@@ -49,11 +50,6 @@ __all__ = [
     "TerrainAxis",
     "HybridAxis",
     "WrfAxis",
-    "Header",
-    "IndexRecord",
-    "calculate_checksum",
-    "pack",
-    "unpack",
     "extract_subset",
     "sample_points",
     "concat",

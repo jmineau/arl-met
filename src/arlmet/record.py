@@ -466,7 +466,7 @@ class DataRecord:
         See Also
         --------
         arlmet.DataRecord.checksum : The stored checksum.
-        arlmet.calculate_checksum : The checksum of a packed payload.
+        arlmet.packing.calculate_checksum : The checksum of a packed payload.
         """
         if self.mode == "r":
             packed = self.recordset.file._read_at(

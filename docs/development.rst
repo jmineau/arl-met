@@ -26,7 +26,7 @@ HYSPLIT source. The Fortran routines it matches:
      - In arl-met
    * - ``pakout`` / ``pakinp``
      - pack and unpack one field as byte differences; compute the checksum
-     - :func:`arlmet.pack`, :func:`arlmet.unpack`, :func:`arlmet.calculate_checksum`
+     - :func:`arlmet.packing.pack`, :func:`arlmet.packing.unpack`, :func:`arlmet.packing.calculate_checksum`
    * - ``pakrec`` / ``pakndx``
      - write records and the index record; the checksum table is reset to 0 at
        each time step and filled only for the records packed

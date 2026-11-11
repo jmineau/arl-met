@@ -22,6 +22,8 @@ __all__ = [
     "HybridAxis",
     "WrfAxis",
     "hypsometric_z_agl",
+    "R_D",
+    "G",
 ]
 
 # HYSPLIT's prfmod.f values (rdry, grav), not CODATA/ISO's 287.05 and 9.80665:
