@@ -173,6 +173,7 @@ Remote Archive Sources
    GFSArchive
    NARRArchive
    ReanalysisArchive
+   WRF27kmArchive
 
 .. data:: ARCHIVES
    :no-index:
