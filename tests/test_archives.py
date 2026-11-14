@@ -18,6 +18,7 @@ from arlmet.archives import (
     NAMSArchive,
     NARRArchive,
     ReanalysisArchive,
+    WRF27kmArchive,
 )
 
 # ---------------------------------------------------------------------------
@@ -488,6 +489,83 @@ class TestNARRArchive:
 
 
 # ---------------------------------------------------------------------------
+# WRF27kmArchive
+# ---------------------------------------------------------------------------
+
+
+class TestWRF27kmArchive:
+    def setup_method(self):
+        self.src = WRF27kmArchive()
+
+    def test_filename(self):
+        assert (
+            self.src._filename(pd.Timestamp("2024-07-18 13:00"))
+            == "wrfout_d01_20240718.ARL"
+        )
+
+    @pytest.mark.parametrize("kind", ["avg", "inst"])
+    def test_archive_path(self, kind):
+        src = WRF27kmArchive(kind=kind)
+        assert (
+            src._archive_path(pd.Timestamp("2020-02-03"))
+            == f"wrf27km/{kind}/2020/02/wrfout_d01_20200203.ARL"
+        )
+
+    def test_avg_is_the_default(self):
+        assert WRF27kmArchive().kind == "avg"
+
+    def test_invalid_kind_raises(self):
+        with pytest.raises(ValueError, match="kind"):
+            WRF27kmArchive(kind="mean")
+
+    def test_paths_for_range_single_day(self):
+        keys = self.src.paths_for_range("2024-07-18 06:00", "2024-07-18 18:00")
+        assert keys == ["wrf27km/avg/2024/07/wrfout_d01_20240718.ARL"]
+
+    def test_paths_for_range_month_boundary_backward(self):
+        keys = WRF27kmArchive(kind="inst").paths_for_range(
+            "2024-08-01 06:00", "2024-07-31 22:00"
+        )
+        assert keys == [
+            "wrf27km/inst/2024/07/wrfout_d01_20240731.ARL",
+            "wrf27km/inst/2024/08/wrfout_d01_20240801.ARL",
+        ]
+
+    def test_first_file(self):
+        assert self.src.paths_for_range("1980-01-01", "1980-01-01") == [
+            "wrf27km/avg/1980/01/wrfout_d01_19800101.ARL"
+        ]
+
+    def test_the_two_kinds_have_their_own_lists(self):
+        assert self.src._listing_path() == "wrf27km/listing.avg.md5.txt"
+        assert (
+            WRF27kmArchive(kind="inst")._listing_path()
+            == "wrf27km/listing.inst.md5.txt"
+        )
+
+    def test_a_list_names_files_by_year_and_name(self):
+        text = (
+            f"{'a' * 32}  1980/wrfout_d01_19800101.ARL\n"
+            f"{'b' * 32}  1995/wrfout_d01_19960101.ARL\n"
+            f"{'c' * 32}  1996/wrfout_d01_19960101.ARL\n"
+        )
+        assert self.src._read_listing(text) == {
+            "wrfout_d01_19800101.ARL": "a" * 32,
+            "wrfout_d01_19960101.ARL": "c" * 32,  # the last: its own year's folder
+        }
+
+    def test_get_archive_passes_kind(self):
+        from arlmet.archives import get_archive
+
+        src = get_archive("wrf27km", kind="inst")
+        assert isinstance(src, WRF27kmArchive)
+        assert src.kind == "inst"
+
+    def test_repr(self):
+        assert repr(self.src) == "WRF27kmArchive(kind='avg')"
+
+
+# ---------------------------------------------------------------------------
 # URL construction
 # ---------------------------------------------------------------------------
 
@@ -792,6 +870,8 @@ _ALL_SOURCES = [
     GFSArchive(),
     NARRArchive(),
     ReanalysisArchive(),
+    WRF27kmArchive(),
+    WRF27kmArchive(kind="inst"),
 ]
 
 
@@ -1022,6 +1102,12 @@ class TestS3Existence:
         key = src._archive_path(pd.Timestamp(_GDAS_TEST_TIME))
         assert self._exists(key), f"Expected S3 key not found: {key}"
 
+    @pytest.mark.parametrize("kind", ["avg", "inst"])
+    def test_wrf27km_key_exists(self, kind):
+        src = WRF27kmArchive(kind=kind)
+        key = src._archive_path(pd.Timestamp(_GDAS_TEST_TIME))
+        assert self._exists(key), f"Expected S3 key not found: {key}"
+
     def test_hrrr_v1_key_exists(self):
         src = HRRRv1Archive()
         key = src._archive_path(pd.Timestamp("2017-06-01 06:00"))
@@ -1192,6 +1278,7 @@ _STEP_HOURS = {
     "gfs0p25": 3,
     "narr": 3,
     "reanalysis": 6,
+    "wrf27km": 1,
 }
 
 
@@ -1237,6 +1324,7 @@ _SOURCE_CHECK_DATES = {
     "hrrr.v1": "2015-07-15",
     "gdas0p5": "2015-07-15",
     "narr": "2015-07-15",
+    "wrf27km": "2021-01-15",
 }
 
 

@@ -72,6 +72,12 @@ registered under a short name.
      - NCEP/NCAR Reanalysis 2.5 degree
      - Global, monthly files
      - 6 hours
+   * - ``"wrf27km"``
+     - :class:`arlmet.archives.WRF27kmArchive`
+     - WRF 27 km, time-averaged (``kind="avg"``, 1980–2023) or instantaneous
+       (``kind="inst"``, 1980–2026) winds
+     - North America, daily files, from 1980
+     - 1 hour
 
 Choose an archive by name
 ~~~~~~~~~~~~~~~~~~~~~~~~~
