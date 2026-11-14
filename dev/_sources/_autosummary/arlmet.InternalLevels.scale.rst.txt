@@ -1,0 +1,6 @@
+arlmet.InternalLevels.scale
+===========================
+
+.. currentmodule:: arlmet
+
+.. automethod:: InternalLevels.scale

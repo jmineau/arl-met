@@ -223,6 +223,19 @@ argument. A run with another top passes it as ``model_top``:
        "met.arl", low, ["TEMP", "pressure"], z_kind="agl", model_top=10000
    )
 
+:func:`arlmet.internal_levels` gives the levels themselves, for a file and a
+model top: ``heights`` above ground at 0 m, ``zmdl``, and ``heights_at`` for
+the heights above the ground at each terrain height (``SHGT``). A run that needs
+the met at exactly HYSPLIT's levels, such as a profile up a grid point's
+column, samples at those heights.
+
+.. ipython:: python
+
+   levels = arlmet.internal_levels("met.arl", model_top=25000)
+   levels.zmdl, len(levels.heights)
+   levels.heights[:5]
+   levels.heights_at([0.0, 1500.0])[:, :3]  # over 0 m and 1500 m of terrain
+
 The default applies at heights only. At pressures and native levels
 ``model_top`` plays no part and the default is ignored; passing a value there
 raises ``ValueError``.
