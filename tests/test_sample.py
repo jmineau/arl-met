@@ -3032,7 +3032,7 @@ _METLVL_AXES = {
 def test_internal_levels_are_hysplits(axis, model_top, n, abc, zmdl):
     from arlmet._ops.sample.internal import InternalLevels
 
-    levels = InternalLevels.for_axis(_METLVL_AXES[axis], model_top)
+    levels = InternalLevels._for_axis(_METLVL_AXES[axis], model_top)
     a, b, c = abc
     k = np.arange(1, n + 1)
     np.testing.assert_allclose(levels.heights, a * k * k + b * k + c)
@@ -3044,13 +3044,49 @@ def test_internal_level_position():
 
     levels = InternalLevels(zmdl=25000.0, heights=np.array([10.0, 75.0, 200.0, 385.0]))
     z = np.array([0.0, 5.0, 10.0, 42.5, 75.0, 300.0, 385.0, 1000.0, -1.0, np.nan])
-    k, f = levels.position(z, np.zeros_like(z))
+    k, f = levels._position(z, np.zeros_like(z))
     np.testing.assert_array_equal(k[:8], [0, 0, 0, 0, 1, 2, 2, 2])
     np.testing.assert_allclose(f[:8], [0, 0, 0, 0.5, 0, 100 / 185, 1, 1])
     assert np.isnan(f[8:]).all()  # below the ground, or no height
     # Over 5 km of terrain the levels are 0.8 times as high: 60 m is 75 m at 0 m.
-    k, f = levels.position(np.array([60.0]), np.array([5000.0]))
+    k, f = levels._position(np.array([60.0]), np.array([5000.0]))
     assert (k[0], f[0]) == (1, 0.0)
+
+
+def test_internal_levels_from_a_file(tmp_path):
+    from arlmet._ops.sample.internal import InternalLevels
+
+    path = tmp_path / "hilly.arl"
+    write_hilly_file(path)
+    with File(path) as met:
+        expected = InternalLevels._for_axis(met.vertical_axis, 40000.0)
+        from_file = arlmet.internal_levels(met, model_top=40000.0)
+    from_path = arlmet.internal_levels(path, model_top=40000.0)
+    for levels in (from_file, from_path):
+        np.testing.assert_array_equal(levels.heights, expected.heights)
+        assert (levels.zmdl, levels.zmdlt) == (40000.0, 20000.0)
+    assert arlmet.internal_levels(path).zmdl == 25000.0
+    with pytest.raises(ValueError, match="read-only"):
+        from_path.heights[0] = 0.0
+
+
+@pytest.mark.parametrize("model_top", [0.0, -100.0, float("nan"), float("inf")])
+def test_internal_levels_need_a_positive_model_top(tmp_path, model_top):
+    path = tmp_path / "hilly.arl"
+    write_hilly_file(path)
+    with pytest.raises(ValueError, match="model_top"):
+        arlmet.internal_levels(path, model_top=model_top)
+
+
+def test_internal_levels_heights_at_terrain():
+    from arlmet._ops.sample.internal import InternalLevels
+
+    levels = InternalLevels(zmdl=25000.0, heights=[10.0, 50.0, 120.0])
+    np.testing.assert_allclose(levels.scale([0.0, 5000.0]), [1.0, 0.8])
+    np.testing.assert_allclose(
+        levels.heights_at([0.0, 5000.0]), [[10.0, 50.0, 120.0], [8.0, 40.0, 96.0]]
+    )
+    assert levels.heights_at(np.zeros((2, 3))).shape == (2, 3, 3)
 
 
 class TestHysplitInternalLevels:
@@ -3071,10 +3107,7 @@ class TestHysplitInternalLevels:
 
     @staticmethod
     def _by_hand(path, variables, z, *, model_top=25000.0, stagger=(0.0, 0.0), xy=XY):
-        from arlmet._ops.sample.internal import InternalLevels
-
-        with File(path) as met:
-            levels = InternalLevels.for_axis(met.vertical_axis, model_top)
+        levels = arlmet.internal_levels(path, model_top=model_top)
         h, zmdl = levels.heights, levels.zmdl
         out = {name: [] for name in variables}
         for x, y in xy:
@@ -3135,6 +3168,26 @@ class TestHysplitInternalLevels:
         path = tmp_path / "hilly.arl"
         write_hilly_file(path)
         self._check(path, self.VARIABLES)
+
+    def test_values_are_on_the_public_levels(self, tmp_path):
+        # At a grid point, a height on one of internal_levels' levels above its
+        # ground reads that grid point's column at exactly that height.
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        nodes = [(4.0, 7.0), (10.0, 2.0), (15.0, 15.0)]
+        terrain = sample_points(path, _cell_points(nodes, 0.0), ["SHGT"])["SHGT"]
+        levels = arlmet.internal_levels(path)
+        heights = levels.heights_at(terrain.to_numpy(dtype=float))
+        for k in (1, 3, 6):  # the file's own levels start above the first
+            at = _cell_points(nodes, heights[:, k])
+            hysplit = sample_points(path, at, ["TEMP", "UWND"], z_kind="agl")
+            plain = sample_points(
+                path, at, ["TEMP", "UWND"], z_kind="agl", model_top=None
+            )
+            for name in ("TEMP", "UWND"):
+                np.testing.assert_allclose(
+                    hysplit[name], plain[name], rtol=1e-6, atol=1e-5, err_msg=name
+                )
 
     def test_a_higher_model_top_scales_the_levels_less(self, tmp_path):
         path = tmp_path / "hilly.arl"
@@ -3497,7 +3550,7 @@ class TestTerrainFollowingInternalLevels:
     ):
         from arlmet._ops.sample.internal import InternalLevels
 
-        levels = InternalLevels.for_axis(TerrainAxis(levels=_F3_LEVELS), model_top)
+        levels = InternalLevels._for_axis(TerrainAxis(levels=_F3_LEVELS), model_top)
         h, zmdl = levels.heights, levels.zmdl
         heights = np.array(_F3_LEVELS) * (1.0 - terrain / zmdlt)
         column = np.array([ground, *values])
@@ -3540,8 +3593,8 @@ class TestTerrainFollowingInternalLevels:
         from arlmet._ops.sample.internal import InternalLevels
 
         axis = TerrainAxis(levels=_F3_LEVELS)
-        assert InternalLevels.for_axis(axis, 25000.0).zmdlt == 20000.0
-        assert InternalLevels.for_axis(axis, 40000.0, source="RAMS").zmdlt == 40000.0
+        assert InternalLevels._for_axis(axis, 25000.0).zmdlt == 20000.0
+        assert InternalLevels._for_axis(axis, 40000.0, source="RAMS").zmdlt == 40000.0
         path = tmp_path / "rams.arl"
         write_terrain_column_file(path, source="RAMS")
         result = self._sample(path, ["TEMP"], 300.0)
@@ -3553,7 +3606,7 @@ class TestTerrainFollowingInternalLevels:
 
         path = tmp_path / "flag3.arl"
         write_terrain_column_file(path)
-        h = InternalLevels.for_axis(TerrainAxis(levels=_F3_LEVELS), 25000.0).heights
+        h = InternalLevels._for_axis(TerrainAxis(levels=_F3_LEVELS), 25000.0).heights
         scale = (25000.0 - _F3_SHGT) / 25000.0
         top = _F3_LEVELS[-1] * (1.0 - _F3_SHGT / 20000.0)
         last = h[h * scale <= top][-1] * scale  # the last internal level below the top

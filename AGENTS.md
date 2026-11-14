@@ -36,7 +36,7 @@ src/arlmet/
   collection.py                        RecordCollection protocol, VariableView, VariableAccessor
   _exceptions.py, _io.py, _time.py     ARLFormatError/Warning; atomic outputs; timestamps
   archives.py; _inventory.py, _probe.py  NOAA archive downloads and sync; inventory, Inventory; probe, Probe
-  _ops/                                extract_subset, sample_points (in `sample/`), concat, concat_by_time
+  _ops/                                extract_subset, sample_points and internal_levels (in `sample/`), concat, concat_by_time
   converters/                          from_era5, from_gfs, from_icon, from_wrf (in `_era5.py`, ...)
   _xarray/                             open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl
 ```

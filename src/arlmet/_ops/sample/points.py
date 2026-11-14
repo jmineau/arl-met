@@ -210,7 +210,7 @@ def _sample_time(
     else:
         column_z = z_kind
     if column_z == "agl" and model_top is not None:
-        levels = InternalLevels.for_axis(
+        levels = InternalLevels._for_axis(
             file.vertical_axis, model_top, source=file.source
         )
 
@@ -238,7 +238,7 @@ def _sample_time(
         # interpolates its terrain array, places it among the internal levels.
         _, weights, column = nodes[(0.0, 0.0)]
         assert column is not None
-        place = levels.position(targets, blend(column.terrain, weights))
+        place = levels._position(targets, blend(column.terrain, weights))
 
     sampled: dict[str, npt.NDArray[Any]] = {}
     for variable in variable_names:
