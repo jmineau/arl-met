@@ -21,6 +21,7 @@ from arlmet.archives import (
     NARRArchive,
     ReanalysisArchive,
     SyncResult,
+    WRF27kmArchive,
 )
 
 DAY = {"start": "2024-07-18 00:00", "end": "2024-07-18 23:00"}
@@ -641,6 +642,42 @@ def test_weekly_and_monthly_products_land_in_their_archive_layout(
 
     assert result.downloaded == [dest / rel for rel in expected]
     assert result.failed == []
+
+
+class WRFMirror(FakeMirror):
+    """NOAA's WRF 27 km layout: a list per sub-product, with names as ``{year}/{name}``."""
+
+    def _write_listing(self) -> None:
+        text = "".join(f"{m}  {n[11:15]}/{n}\n" for n, m in self.listing.items())
+        (self.root / "wrf27km").mkdir(parents=True, exist_ok=True)
+        (self.root / "wrf27km" / f"listing.{self.archive.kind}.md5.txt").write_text(
+            text
+        )
+
+
+@pytest.mark.parametrize("kind", ["avg", "inst"])
+def test_wrf27km_syncs_one_sub_product_from_its_own_list(
+    tmp_path, dest, monkeypatch, kind
+):
+    archive = WRF27kmArchive(kind=kind)
+    start, end = "2024-07-31", "2024-08-01"
+    mirror = WRFMirror(tmp_path / "noaa", archive, monkeypatch, start, end)
+    for name in mirror.paths:
+        mirror.put(name, content(name))
+
+    result = archive.sync(dest_dir=dest, start=start, end=end)
+
+    expected = [
+        dest / "2024" / "07" / "wrfout_d01_20240731.ARL",
+        dest / "2024" / "08" / "wrfout_d01_20240801.ARL",
+    ]
+    assert result.downloaded == expected
+    assert result.failed == []
+    assert all(p.read_bytes() == content(p.name) for p in expected)
+
+    again = archive.sync(dest_dir=dest, start=start, end=end)
+    assert again.unchanged == expected
+    assert again.downloaded == []
 
 
 def test_names_of_a_listing_with_no_archive_path_are_skipped(hrrr, dest):

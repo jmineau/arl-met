@@ -588,6 +588,18 @@ class Archive(ABC):
     def _archive_path(self, time: pd.Timestamp) -> str:
         """Path within the archive (no leading slash) of the ARL file containing *time*."""
 
+    def _sync_folder(self) -> str:
+        """Return the folder of the product on the mirror: what *dest_dir* of :meth:`sync` holds."""
+        return self._archive_path(self.start_date).split("/", 1)[0]
+
+    def _listing_path(self) -> str:
+        """Return the archive path of NOAA's MD5 list for the product."""
+        return f"{self._sync_folder()}/{_LISTING_NAME}"
+
+    def _read_listing(self, text: str) -> dict[str, str]:
+        """Return ``{file name: md5}`` from the text of NOAA's list."""
+        return _parse_md5_lines(text)
+
     # ------------------------------------------------------------------
     # Public interface
     # ------------------------------------------------------------------
@@ -785,7 +797,7 @@ class Archive(ABC):
         """
         Keep the local folder *dest_dir* complete and checked against NOAA's MD5 list.
 
-        Reads the product's ``listing.md5.txt`` from the *mirror*, finds the
+        Reads the product's MD5 list (``listing.md5.txt``) from the *mirror*, finds the
         local copy of each listed file anywhere under *dest_dir*, and downloads
         what is missing. Nothing is ever deleted, and files NOAA does not list
         are not touched. *dest_dir* is the product's folder (for HRRR, the one
@@ -894,13 +906,13 @@ class Archive(ABC):
         # The archive's path of each file in the range, by file name: NOAA's list
         # holds bare names.
         paths = {Path(p).name: p for p in self.paths_for_range(first, last)}
-        product = self._archive_path(self.start_date).split("/", 1)[0]
+        product = self._sync_folder()
 
         opts = self._storage_options(mirror)
-        listing_url = self._url(f"{product}/{_LISTING_NAME}", mirror)
+        listing_url = self._url(self._listing_path(), mirror)
         logger.info("Reading %s", listing_url)
         with fsspec.open(listing_url, "rb", **opts) as f:
-            listing = _parse_md5_lines(cast(BinaryIO, f).read().decode("utf-8"))
+            listing = self._read_listing(cast(BinaryIO, f).read().decode("utf-8"))
         if not listing:
             raise ValueError(f"{listing_url} has no 'md5  name' lines.")
 
@@ -1424,6 +1436,82 @@ class NARRArchive(Archive):
         return f"narr/{time.year}/{self._filename(time)}"
 
 
+class WRF27kmArchive(Archive):
+    """
+    NOAA ARL's 27 km WRF over North America (1980-01-01 on).
+
+    One file per UTC calendar day (24 hourly time steps), from WRF-ARW runs
+    started each day at 06 UTC with the first 18 hours discarded as spin-up. The
+    archive has two sub-products, chosen with *kind*: ``"avg"``, with mass-coupled
+    time-averaged winds (about 287 MB a file, 1980 to the end of 2023), and
+    ``"inst"``, with instantaneous winds (about 220 MB a file, 1980 to 2026). NOAA's
+    README says HYSPLIT performs slightly better with the averaged winds.
+
+    Parameters
+    ----------
+    kind : {"avg", "inst"}
+        Which sub-product: time-averaged winds (default) or instantaneous winds.
+
+    Notes
+    -----
+    The files are on a Lambert conformal grid with sigma levels and carry the
+    source id ``"AWRF"``. ``paths_for_range`` does not know where a sub-product
+    ends, so a request past its last file fails at download.
+
+    For :meth:`~Archive.sync`, *dest_dir* is the folder of one sub-product (the one
+    that holds ``1980/01/...``). NOAA's lists for the two sub-products are at the
+    top of ``wrf27km/`` (``listing.avg.md5.txt``, ``listing.inst.md5.txt``) and name
+    a file ``{year}/{name}``, without its month folder; the name is what ``sync`` uses.
+
+    S3: ``s3://noaa-oar-arl-hysplit-pds/wrf27km/{avg|inst}/{year}/{month:02d}/wrfout_d01_{YYYYMMDD}.ARL``
+    """
+
+    name = "wrf27km"
+    description = "WRF 27 km over North America"
+    start_date = ensure_timestamp("1980-01-01")
+    source = "AWRF"
+    step = pd.Timedelta(hours=1)
+
+    _KINDS: ClassVar[tuple[str, ...]] = ("avg", "inst")
+
+    def __init__(self, kind: Literal["avg", "inst"] = "avg") -> None:
+        if kind not in self._KINDS:
+            raise ValueError(f"kind must be one of {list(self._KINDS)!r}, got {kind!r}")
+        self.kind = kind
+
+    def _filename(self, time: pd.Timestamp) -> str:
+        """Return the daily WRF 27 km archive filename for *time*."""
+        return f"wrfout_d01_{time.strftime('%Y%m%d')}.ARL"
+
+    @override
+    def _archive_path(self, time: pd.Timestamp) -> str:
+        """Return the archive path of the WRF 27 km file covering *time*."""
+        return (
+            f"wrf27km/{self.kind}/{time.year}/{time.month:02d}/{self._filename(time)}"
+        )
+
+    @override
+    def _sync_folder(self) -> str:
+        return f"wrf27km/{self.kind}"
+
+    @override
+    def _listing_path(self) -> str:
+        return f"wrf27km/listing.{self.kind}.md5.txt"
+
+    @override
+    def _read_listing(self, text: str) -> dict[str, str]:
+        # NOAA's names are "{year}/{name}", with no month folder. A name listed twice
+        # (``inst``: 19960101, once under 1995 and once under 1996) keeps its last,
+        # the year its own folder is in.
+        return {
+            name.rsplit("/", 1)[-1]: md5 for name, md5 in _parse_md5_lines(text).items()
+        }
+
+    @override
+    def __repr__(self) -> str:
+        return f"WRF27kmArchive(kind={self.kind!r})"
+
+
 __all__ = [
     "ARCHIVES",
     "get_archive",
@@ -1438,4 +1526,5 @@ __all__ = [
     "GFSArchive",
     "NARRArchive",
     "ReanalysisArchive",
+    "WRF27kmArchive",
 ]
