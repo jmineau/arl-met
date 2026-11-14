@@ -1,0 +1,34 @@
+﻿arlmet.archives.Archive
+=======================
+
+.. currentmodule:: arlmet.archives
+
+.. autoclass:: Archive
+   :no-members:
+   :show-inheritance:
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+
+   ~Archive.source
+   ~Archive.start_date
+   ~Archive.step
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~Archive.fetch
+   ~Archive.paths_for_range
+   ~Archive.sync
+
+
+

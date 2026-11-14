@@ -1,0 +1,6 @@
+﻿arlmet.extract\_subset
+======================
+
+.. currentmodule:: arlmet
+
+.. autofunction:: extract_subset

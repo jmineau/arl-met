@@ -1,6 +1,0 @@
-﻿arlmet.calculate\_checksum
-==========================
-
-.. currentmodule:: arlmet
-
-.. autofunction:: calculate_checksum

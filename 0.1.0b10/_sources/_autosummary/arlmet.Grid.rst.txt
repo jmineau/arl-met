@@ -1,0 +1,39 @@
+﻿arlmet.Grid
+===========
+
+.. currentmodule:: arlmet
+
+.. autoclass:: Grid
+   :no-members:
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+
+   ~Grid.crs
+   ~Grid.dims
+   ~Grid.is_latlon
+   ~Grid.origin
+   ~Grid.wraps_lon
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~Grid.calculate_coords
+   ~Grid.fractional_indices
+   ~Grid.full_window
+   ~Grid.meridian_convergence
+   ~Grid.rotate_winds
+   ~Grid.subset
+   ~Grid.window_from_bbox
+
+
+

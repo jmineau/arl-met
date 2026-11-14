@@ -1,6 +1,0 @@
-arlmet.DirectoryIndex.covering
-==============================
-
-.. currentmodule:: arlmet
-
-.. automethod:: DirectoryIndex.covering

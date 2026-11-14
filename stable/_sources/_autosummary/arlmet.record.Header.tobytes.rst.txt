@@ -1,0 +1,6 @@
+arlmet.record.Header.tobytes
+============================
+
+.. currentmodule:: arlmet.record
+
+.. automethod:: Header.tobytes

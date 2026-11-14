@@ -1,0 +1,6 @@
+arlmet.record.IndexRecord.from\_position
+========================================
+
+.. currentmodule:: arlmet.record
+
+.. automethod:: IndexRecord.from_position

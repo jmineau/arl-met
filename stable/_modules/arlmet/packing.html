@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.packing &#8212; arl-met 0.1.0b9</title>
+    <title>arlmet.packing &#8212; arl-met 0.1.0b10</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=c776a47b"></script>
+    <script src="../../_static/documentation_options.js?v=2cb218ef"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b9';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b10';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -59,7 +59,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b9" />
+  <meta name="docsearch:version" content="0.1.0b10" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -127,7 +127,7 @@
   
   
   
-    <p class="title logo__title">arl-met 0.1.0b9</p>
+    <p class="title logo__title">arl-met 0.1.0b10</p>
   
 </a></div>
     
@@ -421,14 +421,15 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">typing</span> <span class="k">as</span> <span class="n">npt</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridWindow</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_core</span> <span class="k">as</span> <span class="n">_pack_core</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridWindow</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">unpack_core</span> <span class="k">as</span> <span class="n">_unpack_core</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"pack"</span><span class="p">,</span> <span class="s2">"unpack"</span><span class="p">,</span> <span class="s2">"calculate_checksum"</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="calculate_checksum">
-<a class="viewcode-back" href="../../_autosummary/arlmet.calculate_checksum.html#arlmet.calculate_checksum">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.packing.calculate_checksum.html#arlmet.packing.calculate_checksum">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">calculate_checksum</span><span class="p">(</span><span class="n">packed</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span> <span class="o">|</span> <span class="nb">memoryview</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Compute the ARL checksum for a packed payload.</span>
@@ -443,7 +444,13 @@
 <span class="sd">    int</span>
 <span class="sd">        Rolling checksum used in ARL index records.</span>
 <span class="sd">    """</span>
-    <span class="n">total</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">packed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">packed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+    <span class="c1"># A uint32 sum is about twice as fast as a uint64 one and exact over up to</span>
+    <span class="c1"># 2**32 // 255 bytes, so a payload of any size is summed in such pieces.</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">32</span> <span class="o">//</span> <span class="mi">255</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">total</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="mi">0</span>
     <span class="k">return</span> <span class="p">((</span><span class="n">total</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">255</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span></div>
@@ -451,7 +458,7 @@
 
 
 <div class="viewcode-block" id="pack">
-<a class="viewcode-back" href="../../_autosummary/arlmet.pack.html#arlmet.pack">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.packing.pack.html#arlmet.packing.pack">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">pack</span><span class="p">(</span>
     <span class="n">unpacked</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">],</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
@@ -482,18 +489,17 @@
 <span class="sd">        If the field is not 2D, is empty, or holds NaN or infinite values.</span>
 <span class="sd">    """</span>
     <span class="n">unpacked_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">unpacked</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">unpacked_arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Cannot pack NaN or infinite values."</span><span class="p">)</span>
-    <span class="c1"># The C extension (_pack.c) is PAKOUT line by line, for speed.</span>
-    <span class="n">packed</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">exponent</span><span class="p">,</span> <span class="n">initial_value</span> <span class="o">=</span> <span class="n">_pack_core</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">)</span>
+    <span class="c1"># The C extension (_pack.c) is PAKOUT line by line, for speed; it also</span>
+    <span class="c1"># refuses NaN and infinite values, and sums the checksum, which this drops.</span>
+    <span class="n">packed</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">exponent</span><span class="p">,</span> <span class="n">initial_value</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_pack_core</span><span class="p">(</span><span class="n">unpacked_arr</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">packed</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">exponent</span><span class="p">,</span> <span class="n">initial_value</span></div>
 
 
 
 <div class="viewcode-block" id="unpack">
-<a class="viewcode-back" href="../../_autosummary/arlmet.unpack.html#arlmet.unpack">[docs]</a>
+<a class="viewcode-back" href="../../_autosummary/arlmet.packing.unpack.html#arlmet.packing.unpack">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">unpack</span><span class="p">(</span>
-    <span class="n">packed</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span><span class="p">,</span>
+    <span class="n">packed</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span> <span class="o">|</span> <span class="nb">memoryview</span><span class="p">,</span>
     <span class="n">nx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">ny</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">precision</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -505,14 +511,14 @@
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Unpack an ARL differential byte stream into a 2D field.</span>
 
-<span class="sd">    This is a vectorized translation of the HYSPLIT ``PAKINP`` routine and</span>
-<span class="sd">    gives the same ``float32`` values, bit for bit: the arithmetic is in</span>
-<span class="sd">    single precision, in ``PAKINP``'s order, and like ``PAKINP`` it sets a</span>
-<span class="sd">    value smaller than ``precision`` to zero in every column but the first.</span>
+<span class="sd">    This is a translation of the HYSPLIT ``PAKINP`` routine and gives the</span>
+<span class="sd">    same ``float32`` values, bit for bit: the arithmetic is in single</span>
+<span class="sd">    precision, in ``PAKINP``'s order, and like ``PAKINP`` it sets a value</span>
+<span class="sd">    smaller than ``precision`` to zero in every column but the first.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    packed : bytes or bytearray</span>
+<span class="sd">    packed : bytes, bytearray, or memoryview</span>
 <span class="sd">        The packed byte array to be unpacked.</span>
 <span class="sd">    nx : int</span>
 <span class="sd">        The number of columns in the full data grid.</span>
@@ -541,42 +547,25 @@
     <span class="k">elif</span> <span class="n">window</span><span class="o">.</span><span class="n">x_stop</span> <span class="o">&gt;</span> <span class="n">nx</span> <span class="ow">or</span> <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">&gt;</span> <span class="n">ny</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"GridWindow extends beyond the packed grid bounds."</span><span class="p">)</span>
 
-    <span class="n">packed_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">packed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">packed_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">ny</span> <span class="o">*</span> <span class="n">nx</span><span class="p">:</span>
+    <span class="n">n_bytes</span> <span class="o">=</span> <span class="nb">memoryview</span><span class="p">(</span><span class="n">packed</span><span class="p">)</span><span class="o">.</span><span class="n">nbytes</span>
+    <span class="k">if</span> <span class="n">n_bytes</span> <span class="o">!=</span> <span class="n">ny</span> <span class="o">*</span> <span class="n">nx</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"Packed data length </span><span class="si">{</span><span class="n">packed_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> does not match expected length </span><span class="si">{</span><span class="n">ny</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">nx</span><span class="si">}</span><span class="s2">."</span>
+            <span class="sa">f</span><span class="s2">"Packed data length </span><span class="si">{</span><span class="n">n_bytes</span><span class="si">}</span><span class="s2"> does not match expected length </span><span class="si">{</span><span class="n">ny</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">nx</span><span class="si">}</span><span class="s2">."</span>
         <span class="p">)</span>
-    <span class="c1"># Keep the source buffer byte-typed and cast only the rows and columns</span>
-    <span class="c1"># that feed the window, so a crop does not promote the full grid.</span>
-    <span class="n">packed_arr</span> <span class="o">=</span> <span class="n">packed_arr</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">ny</span><span class="p">,</span> <span class="n">nx</span><span class="p">))</span>
-
-    <span class="c1"># Each byte is a difference from the previous value in units of scexp, a</span>
-    <span class="c1"># power of 2, so converting them to float32 is exact.</span>
-    <span class="n">scexp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">**</span> <span class="p">(</span><span class="n">exponent</span> <span class="o">-</span> <span class="mi">7</span><span class="p">))</span>
-
-    <span class="c1"># The first column is coded down the rows from the initial value. PAKINP</span>
-    <span class="c1"># adds one row's difference at a time in single precision, so start the</span>
-    <span class="c1"># running sum at the float32 initial value instead of adding it at the end.</span>
-    <span class="n">column0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="n">column0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">initial_value</span>
-    <span class="n">column0</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">packed_arr</span><span class="p">[:</span> <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-    <span class="n">column0</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-=</span> <span class="mf">127.0</span>
-    <span class="n">column0</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">*=</span> <span class="n">scexp</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">column0</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">column0</span><span class="p">)</span>
-
-    <span class="c1"># Each row is then coded across x from its first-column value; cumsum along</span>
-    <span class="c1"># a row adds one difference at a time, as PAKINP's loop over I does.</span>
-    <span class="n">rows</span> <span class="o">=</span> <span class="n">packed_arr</span><span class="p">[</span><span class="n">window</span><span class="o">.</span><span class="n">y_slice</span><span class="p">,</span> <span class="p">:</span> <span class="n">window</span><span class="o">.</span><span class="n">x_stop</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="n">rows</span> <span class="o">-=</span> <span class="mf">127.0</span>
-    <span class="n">rows</span> <span class="o">*=</span> <span class="n">scexp</span>
-    <span class="n">rows</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">column0</span><span class="p">[</span><span class="n">window</span><span class="o">.</span><span class="n">y_start</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
-    <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">rows</span><span class="p">)</span>
-
-    <span class="c1"># PAKINP's precision test, which it applies to every column but the first.</span>
-    <span class="n">rest</span> <span class="o">=</span> <span class="n">rows</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
-    <span class="n">rest</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">precision</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
-
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">rows</span><span class="p">[:,</span> <span class="n">window</span><span class="o">.</span><span class="n">x_start</span> <span class="p">:])</span></div>
+    <span class="c1"># The C extension (_pack.c) is PAKINP, reading only the rows and columns</span>
+    <span class="c1"># that feed the window.</span>
+    <span class="k">return</span> <span class="n">_unpack_core</span><span class="p">(</span>
+        <span class="n">packed</span><span class="p">,</span>
+        <span class="n">nx</span><span class="p">,</span>
+        <span class="n">ny</span><span class="p">,</span>
+        <span class="n">window</span><span class="o">.</span><span class="n">x_start</span><span class="p">,</span>
+        <span class="n">window</span><span class="o">.</span><span class="n">x_stop</span><span class="p">,</span>
+        <span class="n">window</span><span class="o">.</span><span class="n">y_start</span><span class="p">,</span>
+        <span class="n">window</span><span class="o">.</span><span class="n">y_stop</span><span class="p">,</span>
+        <span class="n">precision</span><span class="p">,</span>
+        <span class="n">exponent</span><span class="p">,</span>
+        <span class="n">initial_value</span><span class="p">,</span>
+    <span class="p">)</span></div>
 
 </pre></div>
 

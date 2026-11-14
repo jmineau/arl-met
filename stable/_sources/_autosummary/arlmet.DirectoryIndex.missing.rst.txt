@@ -1,6 +1,0 @@
-arlmet.DirectoryIndex.missing
-=============================
-
-.. currentmodule:: arlmet
-
-.. automethod:: DirectoryIndex.missing

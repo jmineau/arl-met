@@ -1,0 +1,6 @@
+arlmet.Grid.window\_from\_bbox
+==============================
+
+.. currentmodule:: arlmet
+
+.. automethod:: Grid.window_from_bbox

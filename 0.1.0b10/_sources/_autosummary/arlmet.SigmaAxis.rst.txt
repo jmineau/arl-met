@@ -1,0 +1,31 @@
+﻿arlmet.SigmaAxis
+================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: SigmaAxis
+   :no-members:
+   :show-inheritance:
+
+
+
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~SigmaAxis.to_height_agl
+   ~SigmaAxis.to_pressure
+
+
+
+
+.. rubric:: Inherited
+
+
+From :class:`~.VerticalAxis`: :py:obj:`~.VerticalAxis.from_flag`
+
+

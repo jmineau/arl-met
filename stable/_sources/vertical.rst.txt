@@ -177,9 +177,11 @@ at heights (``z_kind="agl"`` or ``"msl"``) as HYSPLIT's ``prfprs`` does:
 The ground values are the ones listed above for sigma files, and ``SHGT`` for
 ``HGTS``. Pressure is interpolated as ``ln p``, linear in height, as in
 ``prfprs``: halfway between 1000 hPa and 900 hPa it is 948.7 hPa, the
-geometric mean, not 950. Sampling at pressures (``z_kind="pressure"``) and at
-native levels uses the stored levels as they are, below the ground included,
-and interpolates linearly.
+geometric mean, not 950. Sampling at pressures (``z_kind="pressure"``) starts
+at the ground too and leaves out the levels at or below it, interpolating in
+``ln p``: a point below the ground is NaN. Sampling at native levels uses the
+stored levels as they are, below the ground included, and interpolates
+linearly.
 
 On NOAA's NAM 12 km and GDAS 1-degree files, at five western-US points from
 1 m to 3 km above ground, ``TEMP``, ``UWND`` and ``VWND`` agree with the
@@ -319,6 +321,6 @@ Limitations
 - ``pressure()`` for terrain-following files (flag=3) requires a stored ``PRES``
   field; it is not derived.
 - Only sigma, hybrid, WRF and pressure-level files take the ground as a level
-  in :func:`arlmet.sample_points` (pressure-level files at heights only); on
-  terrain-following (flag=3) files a point below the lowest level with data is
-  NaN.
+  in :func:`arlmet.sample_points` (pressure-level files at heights and
+  pressures, not at native levels); on terrain-following (flag=3) files a point
+  below the lowest level with data is NaN.

@@ -1,0 +1,25 @@
+﻿arlmet.VerticalAxis
+===================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: VerticalAxis
+   :no-members:
+   :show-inheritance:
+
+
+
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~VerticalAxis.from_flag
+   ~VerticalAxis.to_height_agl
+   ~VerticalAxis.to_pressure
+
+
+

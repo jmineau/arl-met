@@ -1,6 +1,0 @@
-arlmet.Header.time
-==================
-
-.. currentmodule:: arlmet
-
-.. autoproperty:: Header.time

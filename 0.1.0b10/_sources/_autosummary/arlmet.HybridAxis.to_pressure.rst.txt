@@ -1,0 +1,6 @@
+arlmet.HybridAxis.to\_pressure
+==============================
+
+.. currentmodule:: arlmet
+
+.. automethod:: HybridAxis.to_pressure

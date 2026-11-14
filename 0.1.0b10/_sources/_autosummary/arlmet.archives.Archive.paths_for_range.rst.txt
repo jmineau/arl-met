@@ -1,0 +1,6 @@
+arlmet.archives.Archive.paths\_for\_range
+=========================================
+
+.. currentmodule:: arlmet.archives
+
+.. automethod:: Archive.paths_for_range

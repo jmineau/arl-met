@@ -1,0 +1,6 @@
+arlmet.record.Header.time
+=========================
+
+.. currentmodule:: arlmet.record
+
+.. autoproperty:: Header.time

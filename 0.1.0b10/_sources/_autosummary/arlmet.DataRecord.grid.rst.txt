@@ -1,0 +1,6 @@
+arlmet.DataRecord.grid
+======================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: DataRecord.grid

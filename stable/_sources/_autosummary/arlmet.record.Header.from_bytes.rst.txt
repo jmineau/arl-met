@@ -1,0 +1,6 @@
+arlmet.record.Header.from\_bytes
+================================
+
+.. currentmodule:: arlmet.record
+
+.. automethod:: Header.from_bytes

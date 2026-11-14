@@ -1,0 +1,44 @@
+﻿arlmet.File
+===========
+
+.. currentmodule:: arlmet
+
+.. autoclass:: File
+   :no-members:
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+
+   ~File.grid
+   ~File.handle
+   ~File.record_length
+   ~File.records
+   ~File.size
+   ~File.source
+   ~File.times
+   ~File.vertical_axis
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~File.add_record
+   ~File.check
+   ~File.close
+   ~File.create_grid
+   ~File.create_recordset
+   ~File.extract_subset
+   ~File.flush
+   ~File.sample_points
+   ~File.to_dataset
+
+
+

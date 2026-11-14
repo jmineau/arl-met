@@ -1,0 +1,15 @@
+﻿arlmet.archives.SyncResult
+==========================
+
+.. currentmodule:: arlmet.archives
+
+.. autoclass:: SyncResult
+   :no-members:
+
+
+
+
+
+
+
+
