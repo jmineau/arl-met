@@ -7,6 +7,20 @@ file alone: the entries are written at release (`just changelog` drafts them).
 
 ## [Unreleased]
 
+## [0.1.0b10] - 2026-11-14
+
+### Added
+
+- `internal_levels(file, *, model_top=25000.0)` returns `InternalLevels`, HYSPLIT's internal vertical levels for a run: the levels `sample_points` reads on at heights with the same `model_top`. It holds `heights` (above ground at 0 m terrain), `zmdl` and `zmdlt`, and `scale(terrain)` and `heights_at(terrain)` give the levels above any ground height, so a caller can sample at exactly HYSPLIT's levels. (#234, #235)
+- The `wrf27km` archive (`WRF27kmArchive`): NOAA ARL's 27 km WRF over North America, daily files of hourly steps from 1980, with time-averaged winds (`kind="avg"`, the default, to the end of 2023) or instantaneous winds (`kind="inst"`).
+
+### Changed
+
+- **Breaking: each public name has one home.** `Header`, `IndexRecord`, `LvlInfo` and `VarInfo` are imported from `arlmet.record`; `pack`, `unpack` and `calculate_checksum` from `arlmet.packing`; `arlmet.index(folder)` and `DirectoryIndex` are now `arlmet.inventory(folder)` and `Inventory` (cache file `.arlmet-inventory.csv`; an old `.arlmet-index.csv` is ignored). The modules whose names `arlmet` already gives are private (`arlmet.file`, `arlmet.ops`, `arlmet.xarray`, ... become `_file`, `_ops`, `_xarray`): import those names from `arlmet` or `arlmet.converters`. `arlmet.vertical.R_D` and `G` join its `__all__`. (#216, #217)
+- **Breaking:** `Archive.sync(start=None, end=None, *, dest_dir, ...)` takes its arguments in `fetch`'s order, and `dest_dir` is keyword-only: `sync("/data/hrrr", start="2024-07-01", end="2024-07-31")` becomes `sync("2024-07-01", "2024-07-31", dest_dir="/data/hrrr")`. (#227, #229)
+- **Existing `pressure` results change.** `sample_points(z_kind="pressure")` follows the rule sampling at heights follows: the column starts at the ground, a pressure below the ground (at or above `PRSS`) is NaN, and values between levels are linear in ln p. Near the ground on pressure-level files values move by about 2 K (775 hPa at 100E 40N in NOAA's July 2020 reanalysis file: 286.92 K before, 284.84 K now), elsewhere by tenths. A pressure-level file without `PRSS` raises at pressures. (#214, #215)
+- Faster, with the same bytes and values: packing and unpacking are in C, and reads and writes make fewer copies. Cropping a western-US HRRR file takes about 12 s instead of 40 s, a CONUS crop of GFS 0.25° about 2.4 s instead of 6.4 s, and loading a whole GFS 0.25° file 40 s instead of 57 s. Writing a field with an infinite value raises an error that names the field. (#218, #221, #222, #223, #224, #226, #231)
+
 ## [0.1.0b9] - 2026-11-10
 
 ### Added
