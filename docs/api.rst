@@ -30,6 +30,8 @@ See the :doc:`cropping`, :doc:`sampling`, and :doc:`concatenating` guides.
 
    extract_subset
    sample_points
+   internal_levels
+   InternalLevels
    concat
    concat_by_time
 

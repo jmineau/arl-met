@@ -166,9 +166,8 @@ def main():
            "has_shgt": (0, "SHGT") in f[t], "has_u10m": (0, "U10M") in f[t],
            "hyrun_seconds": t_h, "vars": {}}
     if has_top:
-        from arlmet._ops.sample import _InternalLevels
         try:
-            il = _InternalLevels.for_axis(f.vertical_axis, zdata)
+            il = arlmet.internal_levels(f, model_top=zdata)
             out["levels_arlmet"] = {"zmdl": il.zmdl, "nlvl": len(il.heights),
                                     "max_abs_height_diff": float(np.max(np.abs(
                                         il.heights - np.array(levels["heights"])))) if len(il.heights) == levels["nlvl"] else None}

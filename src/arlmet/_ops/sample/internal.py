@@ -10,6 +10,7 @@ the particle's value is linear between the two levels around it.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -30,11 +31,12 @@ from .horizontal import Plan, blend
 from .profile import PRESSURE_VARIABLES, interp_profiles, variable_profile
 
 if TYPE_CHECKING:
+    from arlmet._file import File
     from arlmet._recordset import RecordSet
 
     from .column import Column
 
-__all__ = ["InternalLevels", "sample_on_internal_levels"]
+__all__ = ["InternalLevels", "internal_levels", "sample_on_internal_levels"]
 
 #: The quadratic internal grids HYSPLIT's ``metlvl.f`` chooses from, finest
 #: last: level ``k`` (from 1) is ``a k**2 + b k + c`` meters above the ground
@@ -56,25 +58,50 @@ _ZPH2 = (31.37, 27.02, 24.59, 22.92, 21.65, 20.66, 19.83, 19.13, 18.51)
 _HELD_ABOVE_TOP = frozenset({"TEMP", "UWND", "VWND"})
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class InternalLevels:
     """
-    HYSPLIT's internal vertical grid for a run, as ``hymodelc`` sets it up.
+    HYSPLIT's internal vertical levels for a run, as ``hymodelc`` sets them up.
 
-    *zmdl* is ``ZMDL``, the height at which the terrain-following sigma
-    surfaces go flat: ``max(model_top, 25000)`` (``runset.f``). *heights* are
-    the internal levels' heights above the ground where the terrain is 0 m,
-    ``a k**2 + b k + c`` (``1 - ZSG`` times ``ZMDL``); above a grid point with
-    terrain ``zsfc`` each is ``(ZMDL - zsfc) / ZMDL`` times as high. *zmdlt* is
-    ``ZMDLT``, which scales a terrain-following (flag 3) file's stored levels.
+    Made by :func:`internal_levels`. These are the heights at which
+    :func:`sample_points` reads the met at heights with a ``model_top``: it
+    fills each grid point's column on them and reads a point linearly between
+    the two levels around it. The levels follow the terrain as sigma surfaces
+    that go flat at ``zmdl``: above ground at ``zsfc`` meters each level is
+    ``(zmdl - zsfc) / zmdl`` times as high as above ground at 0 m
+    (:meth:`scale`, :meth:`heights_at`).
+
+    Attributes
+    ----------
+    zmdl : float
+        ``ZMDL``, the height at which the sigma surfaces go flat [m]:
+        ``max(model_top, 25000)`` (HYSPLIT's ``runset.f``).
+    heights : numpy.ndarray
+        The levels' heights above the ground where the terrain is 0 m [m],
+        ``a k**2 + b k + c`` for ``k = 1, 2, ...``, from the grid
+        ``metlvl.f`` picks. Read-only.
+    zmdlt : float
+        ``ZMDLT``, the height that scales a terrain-following (flag 3) file's
+        stored levels [m]: 20000, or ``zmdl`` on a file whose source is
+        ``RAMS`` (``prfter``).
+
+    See Also
+    --------
+    internal_levels : Builds the levels for a file and a model top.
+    sample_points : Samples on these levels at heights.
     """
 
     zmdl: float
-    heights: npt.NDArray[Any]
+    heights: npt.NDArray[np.float64]
     zmdlt: float = 20000.0
 
+    def __post_init__(self) -> None:
+        heights = np.array(self.heights, dtype=float)
+        heights.setflags(write=False)
+        object.__setattr__(self, "heights", heights)
+
     @classmethod
-    def for_axis(
+    def _for_axis(
         cls, axis: VerticalAxis, model_top: float, *, source: str = ""
     ) -> InternalLevels:
         """
@@ -131,11 +158,64 @@ class InternalLevels:
             zmdl=zmdl, heights=heights, zmdlt=zmdl if source == "RAMS" else 20000.0
         )
 
-    def scale(self, terrain: npt.NDArray[Any]) -> npt.NDArray[Any]:
-        """Return how much higher the levels are above *terrain* than at 0 m: ``(ZMDL - zsfc) / ZMDL``."""
+    def scale(self, terrain: npt.ArrayLike) -> npt.NDArray[np.float64]:
+        """
+        Return how much higher the levels are above *terrain* than above 0 m.
+
+        Parameters
+        ----------
+        terrain : array_like
+            Ground heights above sea level [m], such as a file's ``SHGT``.
+
+        Returns
+        -------
+        numpy.ndarray
+            ``(zmdl - terrain) / zmdl``, the shape of *terrain*.
+
+        See Also
+        --------
+        heights_at : The levels' heights above that ground.
+
+        Examples
+        --------
+        >>> import arlmet
+        >>> levels = arlmet.internal_levels("met.arl")
+        >>> levels.scale([0.0, 1250.0])
+        array([1.  , 0.95])
+        """
         return (self.zmdl - np.asarray(terrain, dtype=float)) / self.zmdl
 
-    def position(
+    def heights_at(self, terrain: npt.ArrayLike) -> npt.NDArray[np.float64]:
+        """
+        Return the levels' heights above the ground at each *terrain*.
+
+        Parameters
+        ----------
+        terrain : array_like
+            Ground heights above sea level [m], such as a file's ``SHGT`` at
+            the grid points.
+
+        Returns
+        -------
+        numpy.ndarray
+            Heights above the ground [m], ``heights * scale(terrain)``, of shape
+            ``terrain.shape + heights.shape``: the last axis is the level.
+
+        See Also
+        --------
+        scale : The factor applied to ``heights``.
+
+        Examples
+        --------
+        >>> import arlmet
+        >>> levels = arlmet.internal_levels("met.arl")
+        >>> levels.heights_at([0.0, 1250.0])[:, :3]
+        array([[ 10.  ,  75.  , 200.  ],
+               [  9.5 ,  71.25, 190.  ]])
+        """
+        return np.multiply.outer(self.scale(terrain), self.heights)
+
+    def _position(
         self, z: npt.NDArray[Any], terrain: npt.NDArray[Any]
     ) -> tuple[npt.NDArray[Any], npt.NDArray[Any]]:
         """
@@ -162,6 +242,66 @@ class InternalLevels:
                 f = np.clip((internal - h[k]) / (h[k + 1] - h[k]), 0.0, 1.0)
             f = np.where(np.isfinite(z) & (z >= 0.0), f, np.nan)
         return k, f
+
+
+def internal_levels(
+    file: File | str | os.PathLike[str], *, model_top: float = 25000.0
+) -> InternalLevels:
+    """
+    Return HYSPLIT's internal vertical levels for a run on *file* with *model_top*.
+
+    HYSPLIT does not read the met at a particle's own height: it fills its own
+    internal levels at every grid point and reads the particle between two of
+    them. For the run's top of model domain and the file's vertical grid,
+    HYSPLIT's ``metlvl.f`` picks one of six grids of heights ``a k**2 + b k +
+    c``; these are the levels :func:`sample_points` uses at heights with the
+    same ``model_top``.
+
+    Parameters
+    ----------
+    file : File or path-like
+        An open ARL file, or the path to one. Only its vertical axis and
+        source are read; a path is opened and closed here.
+    model_top : float, default 25000
+        The run's top of model domain [m] (the ``CONTROL`` line after the
+        vertical motion option; PYSTILT's ``z_top``), as in
+        :func:`sample_points`.
+
+    Returns
+    -------
+    InternalLevels
+
+    Raises
+    ------
+    ValueError
+        If *model_top* is not a positive number.
+
+    See Also
+    --------
+    InternalLevels : The returned levels.
+    sample_points : Samples on these levels at heights.
+
+    Examples
+    --------
+    >>> import arlmet
+    >>> levels = arlmet.internal_levels("met.arl")
+    >>> levels.zmdl
+    25000.0
+    >>> levels.heights[:4]
+    array([ 10.,  75., 200., 385.])
+    """
+    from arlmet._file import File  # lazy: _file imports this module
+
+    if not (np.isfinite(model_top) and model_top > 0):
+        raise ValueError(
+            f"model_top must be a positive number of meters, got {model_top!r}."
+        )
+    if isinstance(file, File):
+        return InternalLevels._for_axis(
+            file.vertical_axis, model_top, source=file.source
+        )
+    with File(file) as met:
+        return InternalLevels._for_axis(met.vertical_axis, model_top, source=met.source)
 
 
 def _pressure_above_top(
@@ -206,7 +346,7 @@ def sample_on_internal_levels(
     Sample *variable* at each point as HYSPLIT does on its internal levels.
 
     At each grid point around a point (*nodes*, *weights*) the profile is read
-    at the internal levels ``k`` and ``k + 1`` (:meth:`InternalLevels.position`)
+    at the internal levels ``k`` and ``k + 1`` (:meth:`InternalLevels._position`)
     above that grid point's own ground, and the value is ``f`` of the way
     between them; the grid points are then blended. Above a column's top
     ``TEMP``, ``UWND`` and ``VWND`` keep the value of the last internal level

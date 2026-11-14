@@ -14,7 +14,14 @@ from ._exceptions import ARLFormatError, ARLFormatWarning
 from ._file import File
 from ._grid import Grid, GridWindow, Projection
 from ._inventory import Inventory, inventory
-from ._ops import concat, concat_by_time, extract_subset, sample_points
+from ._ops import (
+    InternalLevels,
+    concat,
+    concat_by_time,
+    extract_subset,
+    internal_levels,
+    sample_points,
+)
 from ._probe import Probe, probe
 from ._recordset import RecordSet
 from ._version import __version__ as __version__
@@ -52,6 +59,8 @@ __all__ = [
     "WrfAxis",
     "extract_subset",
     "sample_points",
+    "internal_levels",
+    "InternalLevels",
     "concat",
     "concat_by_time",
     "inventory",

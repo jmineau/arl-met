@@ -8,7 +8,7 @@ codec modules (`file`, `grid`, `record`, `packing`, ...) live one level up.
 """
 
 from .concat import concat, concat_by_time
-from .sample import sample_points
+from .sample import InternalLevels, internal_levels, sample_points
 from .subset import extract_subset
 
 __all__ = [
@@ -16,4 +16,6 @@ __all__ = [
     "concat_by_time",
     "extract_subset",
     "sample_points",
+    "internal_levels",
+    "InternalLevels",
 ]
