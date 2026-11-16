@@ -1,4 +1,11 @@
-# arl-met
+<div align=center>
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/jmineau/arl-met/main/docs/_static/logo_dark.svg">
+    <img alt="arl-met logo" src="https://raw.githubusercontent.com/jmineau/arl-met/main/docs/_static/logo.svg" width="160">
+</picture>
+</div>
+
+<h1 align="center">arl-met</h1>
 
 [![Tests](https://github.com/jmineau/arl-met/actions/workflows/tests.yml/badge.svg)](https://github.com/jmineau/arl-met/actions/workflows/tests.yml)
 [![Documentation](https://github.com/jmineau/arl-met/actions/workflows/docs.yml/badge.svg)](https://github.com/jmineau/arl-met/actions/workflows/docs.yml)
