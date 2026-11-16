@@ -57,11 +57,17 @@ html_theme = "pydata_sphinx_theme"
 html_title = f"{project} {version_match}"  # not the full dev version
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
+html_favicon = "_static/favicon.ico"
 
 html_theme_options = {
     "github_url": "https://github.com/jmineau/arl-met",
     "show_toc_level": 2,
     "navbar_align": "left",
+    "logo": {
+        "text": "arl-met",
+        "image_light": "_static/logo.svg",
+        "image_dark": "_static/logo_dark.svg",
+    },
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
     # The version dropdown. The Documentation workflow publishes dev/ (main),
     # one folder per release and stable/, and writes switcher.json listing them.

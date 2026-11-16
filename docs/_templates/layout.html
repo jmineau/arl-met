@@ -1,0 +1,13 @@
+{% extends "!layout.html" %}
+
+{# Link preview (Open Graph) for Slack, Discord, X and the like. The image is a
+   full URL because those sites cannot read a relative one. #}
+{% block extrahead %}
+  {{ super() }}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="arl-met">
+  <meta property="og:title" content="{{ title|striptags|e }}">
+  <meta property="og:description" content="Read, write, crop, and sample NOAA ARL meteorology files in Python.">
+  <meta property="og:image" content="https://raw.githubusercontent.com/jmineau/arl-met/main/docs/_static/social-preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+{% endblock %}
