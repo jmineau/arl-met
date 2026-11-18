@@ -65,3 +65,10 @@ html[data-theme="dark"] .arlmet-card:hover {
 html[data-theme="dark"] .arlmet-card__eyebrow {
   color: #8bc2ff;
 }
+
+/* An `.. ipython::` block with `:suppress:` and a `@savefig` still writes an
+   empty code box above its figure. Hide a box whose only content is the
+   empty span Pygments starts every block with. */
+div.highlight-ipython:has(pre > span:only-child:empty) {
+  display: none;
+}
