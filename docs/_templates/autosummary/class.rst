@@ -14,14 +14,17 @@
 {%- if class_page.has_bases(fullname) %}
    :show-inheritance:
 {%- endif %}
-{% set attrs = class_page.members(fullname, attributes) | sort(case_sensitive=False) %}
-{% set meths = class_page.members(fullname, all_methods) | sort(case_sensitive=False) %}
+{% set listed = class_page.members(fullname, all_methods) %}
+{% set fields = class_page.fields(fullname, listed) %}
+{% set attrs = (class_page.members(fullname, attributes) + fields) | sort(case_sensitive=False) %}
+{% set meths = listed | reject("in", fields) | sort(case_sensitive=False) %}
 
 {% if attrs %}
 .. rubric:: Attributes
 
 .. autosummary::
    :toctree:
+   :nosignatures:
 {% for item in attrs %}
    ~{{ objname }}.{{ item }}
 {%- endfor %}

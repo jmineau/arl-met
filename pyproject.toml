@@ -115,6 +115,9 @@ filterwarnings = [
     # numpy ignores this one itself (compiled packages such as netCDF4 raise it on
     # import); pytest's "error" filter would bring it back.
     "ignore:numpy.ndarray size changed:RuntimeWarning",
+    # matplotlib before 3.10.7 calls pyparsing methods that pyparsing 3.3 deprecates;
+    # the floors job installs matplotlib 3.8.
+    "ignore::pyparsing.warnings.PyparsingDeprecationWarning",
 ]
 markers = [
     "network: requires live network access to external services such as NOAA S3",

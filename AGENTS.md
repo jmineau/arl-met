@@ -193,10 +193,10 @@ methods, keeping the import graph one-way; `converters/` sits on `_xarray/`.
 The environment is uv-managed (`uv sync`, which also builds `_pack`); every task
 is a `just` recipe, CI runs the same recipes, and `just` lists them:
 `just quality-check` (lint, type check, docstrings, tests), `just test` (offline,
-parallel; extra args go to pytest), `just test-network`, `just lint` /
+parallel; extra args go to pytest), `just sync-floors` then `just test` (every
+dependency at its minimum, CI's floors job), `just test-network`, `just lint` /
 `just format`, `just type-check` (pyrefly, strict), `just build-docs` (runs every
-example; warnings are errors), `just docs-serve`, `just pre-commit`, `just dist`,
-`just changelog`.
+example; warnings are errors), `just docs-serve`, `just pre-commit`, `just dist`, `just changelog`.
 
 After editing dependencies, run `uv lock` online (`--offline` churns unrelated
 pins) and commit `uv.lock` with them. uv rebuilds the editable install when

@@ -58,6 +58,9 @@ the orientation file it should read.
    ```bash
    just test
    ```
+   CI also runs the tests with every dependency at the minimum `pyproject.toml`
+   declares (its "minimum dependencies" job); to reproduce it, run
+   `just sync-floors` and then `just test`. Give each direct dependency a minimum.
 
 5. Run pre-commit checks:
    ```bash
