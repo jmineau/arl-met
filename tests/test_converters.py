@@ -229,11 +229,9 @@ class TestFromEra5:
         more = pd.date_range(TIMES[0] - pd.Timedelta("1h"), periods=4, freq="h")
         sfc = era5_single_levels(more)
         ds = from_era5(pl, sfc)
-        pd.testing.assert_index_equal(
-            ds.indexes["time"],
-            pd.DatetimeIndex(TIMES, name="time"),
-            check_freq=False,
-        )
+        # assert_index_equal(check_freq=...) needs pandas 2.1; compare the values.
+        assert ds.indexes["time"].name == "time"
+        assert list(ds.indexes["time"]) == list(TIMES)
         np.testing.assert_allclose(
             ds["T02M"].isel(time=0).values, sfc["t2m"].isel(valid_time=1).values[::-1]
         )
