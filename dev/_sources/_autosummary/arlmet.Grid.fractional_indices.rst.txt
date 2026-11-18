@@ -2,5 +2,4 @@ arlmet.Grid.fractional\_indices
 ===============================
 
 .. currentmodule:: arlmet
-
 .. automethod:: Grid.fractional_indices

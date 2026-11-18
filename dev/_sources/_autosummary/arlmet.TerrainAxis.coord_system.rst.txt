@@ -1,0 +1,6 @@
+arlmet.TerrainAxis.coord\_system
+================================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: TerrainAxis.coord_system

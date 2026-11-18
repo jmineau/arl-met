@@ -10,12 +10,19 @@
 
 
 
+
+
 .. rubric:: Attributes
 
 .. autosummary::
    :toctree:
+   :nosignatures:
 
+   ~GDAS0p5Archive.description
+   ~GDAS0p5Archive.name
    ~GDAS0p5Archive.source
+   ~GDAS0p5Archive.start_date
+   ~GDAS0p5Archive.step
 
 
 
@@ -25,6 +32,6 @@
 .. rubric:: Inherited
 
 
-From :class:`~.Archive`: :py:obj:`~.Archive.fetch`, :py:obj:`~.Archive.paths_for_range`, :py:obj:`~.Archive.start_date`, :py:obj:`~.Archive.step`, :py:obj:`~.Archive.sync`
+From :class:`~.Archive`: :py:obj:`~.Archive.fetch`, :py:obj:`~.Archive.paths_for_range`, :py:obj:`~.Archive.sync`
 
 

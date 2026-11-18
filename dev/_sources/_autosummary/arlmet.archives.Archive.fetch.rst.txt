@@ -2,5 +2,4 @@ arlmet.archives.Archive.fetch
 =============================
 
 .. currentmodule:: arlmet.archives
-
 .. automethod:: Archive.fetch

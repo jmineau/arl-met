@@ -1,0 +1,6 @@
+arlmet.archives.ReanalysisArchive.step
+======================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: ReanalysisArchive.step

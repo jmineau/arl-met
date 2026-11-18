@@ -10,10 +10,13 @@
 
 
 
+
+
 .. rubric:: Attributes
 
 .. autosummary::
    :toctree:
+   :nosignatures:
 
    ~Archive.source
    ~Archive.start_date

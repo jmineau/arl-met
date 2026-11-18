@@ -2,5 +2,4 @@ arlmet.DataRecord.read
 ======================
 
 .. currentmodule:: arlmet
-
 .. automethod:: DataRecord.read

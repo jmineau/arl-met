@@ -1,0 +1,6 @@
+arlmet.PressureAxis.coord\_system
+=================================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: PressureAxis.coord_system

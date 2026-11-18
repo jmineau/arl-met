@@ -2,5 +2,4 @@ arlmet.VerticalAxis.to\_pressure
 ================================
 
 .. currentmodule:: arlmet
-
 .. automethod:: VerticalAxis.to_pressure

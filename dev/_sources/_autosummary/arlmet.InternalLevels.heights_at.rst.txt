@@ -2,5 +2,4 @@ arlmet.InternalLevels.heights\_at
 =================================
 
 .. currentmodule:: arlmet
-
 .. automethod:: InternalLevels.heights_at

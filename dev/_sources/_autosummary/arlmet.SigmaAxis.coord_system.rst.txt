@@ -1,0 +1,6 @@
+arlmet.SigmaAxis.coord\_system
+==============================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: SigmaAxis.coord_system

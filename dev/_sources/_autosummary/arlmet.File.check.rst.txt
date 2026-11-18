@@ -2,5 +2,4 @@ arlmet.File.check
 =================
 
 .. currentmodule:: arlmet
-
 .. automethod:: File.check

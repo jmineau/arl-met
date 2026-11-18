@@ -12,6 +12,17 @@
 
 
 
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+   :nosignatures:
+
+   ~HybridAxis.coord_system
+   ~HybridAxis.flag
+
+
+
 .. rubric:: Methods
 
 .. autosummary::

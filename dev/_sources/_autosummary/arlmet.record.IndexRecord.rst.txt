@@ -9,10 +9,13 @@
 
 
 
+
+
 .. rubric:: Attributes
 
 .. autosummary::
    :toctree:
+   :nosignatures:
 
    ~IndexRecord.grid
    ~IndexRecord.index_length
