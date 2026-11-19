@@ -1,0 +1,6 @@
+arlmet.archives.GFSArchive.name
+===============================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: GFSArchive.name

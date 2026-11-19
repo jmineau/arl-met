@@ -1,0 +1,6 @@
+arlmet.archives.GDASArchive.step
+================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: GDASArchive.step

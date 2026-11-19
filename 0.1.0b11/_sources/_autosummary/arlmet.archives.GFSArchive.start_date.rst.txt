@@ -1,0 +1,6 @@
+arlmet.archives.GFSArchive.start\_date
+======================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: GFSArchive.start_date

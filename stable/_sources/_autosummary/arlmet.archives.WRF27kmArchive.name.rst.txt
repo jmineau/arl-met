@@ -1,0 +1,6 @@
+arlmet.archives.WRF27kmArchive.name
+===================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: WRF27kmArchive.name

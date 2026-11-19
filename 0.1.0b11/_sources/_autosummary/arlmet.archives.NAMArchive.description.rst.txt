@@ -1,0 +1,6 @@
+arlmet.archives.NAMArchive.description
+======================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: NAMArchive.description

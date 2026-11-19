@@ -1,0 +1,6 @@
+arlmet.archives.GDAS0p5Archive.start\_date
+==========================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: GDAS0p5Archive.start_date

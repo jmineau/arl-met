@@ -1,0 +1,6 @@
+arlmet.DataRecord.checksum
+==========================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: DataRecord.checksum

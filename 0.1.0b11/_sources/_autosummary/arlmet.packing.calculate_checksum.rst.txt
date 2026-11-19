@@ -1,0 +1,6 @@
+﻿arlmet.packing.calculate\_checksum
+==================================
+
+.. currentmodule:: arlmet.packing
+
+.. autofunction:: calculate_checksum

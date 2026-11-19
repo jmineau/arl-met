@@ -1,0 +1,6 @@
+arlmet.archives.HRRRArchive.name
+================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: HRRRArchive.name

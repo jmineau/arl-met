@@ -2,5 +2,4 @@ arlmet.File.to\_dataset
 =======================
 
 .. currentmodule:: arlmet
-
 .. automethod:: File.to_dataset

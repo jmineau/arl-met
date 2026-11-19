@@ -12,6 +12,17 @@
 
 
 
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+   :nosignatures:
+
+   ~WrfAxis.coord_system
+   ~WrfAxis.flag
+
+
+
 .. rubric:: Methods
 
 .. autosummary::

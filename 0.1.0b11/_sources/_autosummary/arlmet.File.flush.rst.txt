@@ -1,0 +1,5 @@
+arlmet.File.flush
+=================
+
+.. currentmodule:: arlmet
+.. automethod:: File.flush

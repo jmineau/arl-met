@@ -1,0 +1,6 @@
+arlmet.WrfAxis.coord\_system
+============================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: WrfAxis.coord_system

@@ -1,0 +1,6 @@
+arlmet.archives.ReanalysisArchive.description
+=============================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: ReanalysisArchive.description

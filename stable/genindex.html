@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Index &#8212; arl-met 0.1.0b10</title>
+    <title>Index &#8212; arl-met 0.1.0b11</title>
   
   
   
@@ -32,7 +32,7 @@
     <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
     <link rel="stylesheet" type="text/css" href="_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=283e4333" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=c581f00c" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=2cb218ef"></script>
+    <script src="_static/documentation_options.js?v=88ca9cf6"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,23 +49,32 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b10';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b11';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="#" />
     <link rel="search" title="Search" href="search.html" />
+  
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b10" />
+  <meta name="docsearch:version" content="0.1.0b11" />
   
     
     <script src="_static/searchtools.js"></script>
     <script src="_static/language_data.js"></script>
     <script src="searchindex.js"></script>
   
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="arl-met">
+  <meta property="og:title" content="Index">
+  <meta property="og:description" content="Read, write, crop, and sample NOAA ARL meteorology files in Python.">
+  <meta property="og:image" content="https://raw.githubusercontent.com/jmineau/arl-met/main/docs/_static/social-preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+
   </head>
   <body data-default-mode="">
   
@@ -126,8 +135,16 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="_static/logo.svg" class="logo__image only-light" alt=""/>
+    <img src="_static/logo_dark.svg" class="logo__image only-dark pst-js-only" alt=""/>
   
-    <p class="title logo__title">arl-met 0.1.0b10</p>
+  
+    <p class="title logo__title">arl-met</p>
   
 </a></div>
     
@@ -453,12 +470,24 @@
 </li>
       <li><a href="_autosummary/arlmet.File.close.html#arlmet.File.close">close() (arlmet.File method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/arlmet.concat.html#arlmet.concat">concat() (in module arlmet)</a>
 </li>
       <li><a href="_autosummary/arlmet.concat_by_time.html#arlmet.concat_by_time">concat_by_time() (in module arlmet)</a>
 </li>
+      <li><a href="_autosummary/arlmet.HybridAxis.coord_system.html#arlmet.HybridAxis.coord_system">coord_system (arlmet.HybridAxis attribute)</a>
+
+      <ul>
+        <li><a href="_autosummary/arlmet.PressureAxis.coord_system.html#arlmet.PressureAxis.coord_system">(arlmet.PressureAxis attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.SigmaAxis.coord_system.html#arlmet.SigmaAxis.coord_system">(arlmet.SigmaAxis attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.TerrainAxis.coord_system.html#arlmet.TerrainAxis.coord_system">(arlmet.TerrainAxis attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.WrfAxis.coord_system.html#arlmet.WrfAxis.coord_system">(arlmet.WrfAxis attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/arlmet.Inventory.covering.html#arlmet.Inventory.covering">covering() (arlmet.Inventory method)</a>
 </li>
       <li><a href="_autosummary/arlmet.RecordSet.create_datarecord.html#arlmet.RecordSet.create_datarecord">create_datarecord() (arlmet.RecordSet method)</a>
@@ -479,10 +508,32 @@
 </li>
       <li><a href="_autosummary/arlmet.DataRecord.html#arlmet.DataRecord">DataRecord (class in arlmet)</a>
 </li>
-      <li><a href="_autosummary/arlmet.DataRecord.diffs.html#arlmet.DataRecord.diffs">diffs (arlmet.DataRecord property)</a>
+      <li><a href="_autosummary/arlmet.archives.GDAS0p5Archive.description.html#arlmet.archives.GDAS0p5Archive.description">description (arlmet.archives.GDAS0p5Archive attribute)</a>
+
+      <ul>
+        <li><a href="_autosummary/arlmet.archives.GDASArchive.description.html#arlmet.archives.GDASArchive.description">(arlmet.archives.GDASArchive attribute)</a>
 </li>
+        <li><a href="_autosummary/arlmet.archives.GFSArchive.description.html#arlmet.archives.GFSArchive.description">(arlmet.archives.GFSArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.HRRRArchive.description.html#arlmet.archives.HRRRArchive.description">(arlmet.archives.HRRRArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.HRRRv1Archive.description.html#arlmet.archives.HRRRv1Archive.description">(arlmet.archives.HRRRv1Archive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NAMArchive.description.html#arlmet.archives.NAMArchive.description">(arlmet.archives.NAMArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NAMSArchive.description.html#arlmet.archives.NAMSArchive.description">(arlmet.archives.NAMSArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NARRArchive.description.html#arlmet.archives.NARRArchive.description">(arlmet.archives.NARRArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.ReanalysisArchive.description.html#arlmet.archives.ReanalysisArchive.description">(arlmet.archives.ReanalysisArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.WRF27kmArchive.description.html#arlmet.archives.WRF27kmArchive.description">(arlmet.archives.WRF27kmArchive attribute)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/arlmet.DataRecord.diffs.html#arlmet.DataRecord.diffs">diffs (arlmet.DataRecord property)</a>
+</li>
       <li><a href="_autosummary/arlmet.Grid.dims.html#arlmet.Grid.dims">dims (arlmet.Grid property)</a>
 </li>
       <li><a href="_autosummary/arlmet.Inventory.directory.html#arlmet.Inventory.directory">directory (arlmet.Inventory attribute)</a>
@@ -511,16 +562,28 @@
 </li>
       <li><a href="_autosummary/arlmet.File.html#arlmet.File">File (class in arlmet)</a>
 </li>
+      <li><a href="_autosummary/arlmet.HybridAxis.flag.html#arlmet.HybridAxis.flag">flag (arlmet.HybridAxis attribute)</a>
+
+      <ul>
+        <li><a href="_autosummary/arlmet.PressureAxis.flag.html#arlmet.PressureAxis.flag">(arlmet.PressureAxis attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.SigmaAxis.flag.html#arlmet.SigmaAxis.flag">(arlmet.SigmaAxis attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.TerrainAxis.flag.html#arlmet.TerrainAxis.flag">(arlmet.TerrainAxis attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.WrfAxis.flag.html#arlmet.WrfAxis.flag">(arlmet.WrfAxis attribute)</a>
+</li>
+      </ul></li>
       <li><a href="_autosummary/arlmet.File.flush.html#arlmet.File.flush">flush() (arlmet.File method)</a>
 </li>
       <li><a href="_autosummary/arlmet.DataRecord.forecast.html#arlmet.DataRecord.forecast">forecast (arlmet.DataRecord property)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/arlmet.Grid.fractional_indices.html#arlmet.Grid.fractional_indices">fractional_indices() (arlmet.Grid method)</a>
 </li>
       <li><a href="_autosummary/arlmet.record.Header.from_bytes.html#arlmet.record.Header.from_bytes">from_bytes() (arlmet.record.Header class method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_autosummary/arlmet.converters.from_era5.html#arlmet.converters.from_era5">from_era5() (in module arlmet.converters)</a>
 </li>
       <li><a href="_autosummary/arlmet.VerticalAxis.from_flag.html#arlmet.VerticalAxis.from_flag">from_flag() (arlmet.VerticalAxis class method)</a>
@@ -641,10 +704,32 @@
 </li>
       <li><a href="_autosummary/arlmet.archives.NAMArchive.html#arlmet.archives.NAMArchive">NAMArchive (class in arlmet.archives)</a>
 </li>
-      <li><a href="_autosummary/arlmet.archives.NAMSArchive.html#arlmet.archives.NAMSArchive">NAMSArchive (class in arlmet.archives)</a>
+      <li><a href="_autosummary/arlmet.archives.GDAS0p5Archive.name.html#arlmet.archives.GDAS0p5Archive.name">name (arlmet.archives.GDAS0p5Archive attribute)</a>
+
+      <ul>
+        <li><a href="_autosummary/arlmet.archives.GDASArchive.name.html#arlmet.archives.GDASArchive.name">(arlmet.archives.GDASArchive attribute)</a>
 </li>
+        <li><a href="_autosummary/arlmet.archives.GFSArchive.name.html#arlmet.archives.GFSArchive.name">(arlmet.archives.GFSArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.HRRRArchive.name.html#arlmet.archives.HRRRArchive.name">(arlmet.archives.HRRRArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.HRRRv1Archive.name.html#arlmet.archives.HRRRv1Archive.name">(arlmet.archives.HRRRv1Archive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NAMArchive.name.html#arlmet.archives.NAMArchive.name">(arlmet.archives.NAMArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NAMSArchive.name.html#arlmet.archives.NAMSArchive.name">(arlmet.archives.NAMSArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NARRArchive.name.html#arlmet.archives.NARRArchive.name">(arlmet.archives.NARRArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.ReanalysisArchive.name.html#arlmet.archives.ReanalysisArchive.name">(arlmet.archives.ReanalysisArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.WRF27kmArchive.name.html#arlmet.archives.WRF27kmArchive.name">(arlmet.archives.WRF27kmArchive attribute)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_autosummary/arlmet.archives.NAMSArchive.html#arlmet.archives.NAMSArchive">NAMSArchive (class in arlmet.archives)</a>
+</li>
       <li><a href="_autosummary/arlmet.archives.NARRArchive.html#arlmet.archives.NARRArchive">NARRArchive (class in arlmet.archives)</a>
 </li>
       <li><a href="_autosummary/arlmet.GridWindow.nx.html#arlmet.GridWindow.nx">nx (arlmet.GridWindow property)</a>
@@ -744,6 +829,24 @@
       <ul>
         <li><a href="_autosummary/arlmet.archives.GDAS0p5Archive.source.html#arlmet.archives.GDAS0p5Archive.source">(arlmet.archives.GDAS0p5Archive attribute)</a>
 </li>
+        <li><a href="_autosummary/arlmet.archives.GDASArchive.source.html#arlmet.archives.GDASArchive.source">(arlmet.archives.GDASArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.GFSArchive.source.html#arlmet.archives.GFSArchive.source">(arlmet.archives.GFSArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.HRRRArchive.source.html#arlmet.archives.HRRRArchive.source">(arlmet.archives.HRRRArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.HRRRv1Archive.source.html#arlmet.archives.HRRRv1Archive.source">(arlmet.archives.HRRRv1Archive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NAMArchive.source.html#arlmet.archives.NAMArchive.source">(arlmet.archives.NAMArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NAMSArchive.source.html#arlmet.archives.NAMSArchive.source">(arlmet.archives.NAMSArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NARRArchive.source.html#arlmet.archives.NARRArchive.source">(arlmet.archives.NARRArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.ReanalysisArchive.source.html#arlmet.archives.ReanalysisArchive.source">(arlmet.archives.ReanalysisArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.WRF27kmArchive.source.html#arlmet.archives.WRF27kmArchive.source">(arlmet.archives.WRF27kmArchive attribute)</a>
+</li>
         <li><a href="_autosummary/arlmet.DataRecord.source.html#arlmet.DataRecord.source">(arlmet.DataRecord property)</a>
 </li>
         <li><a href="_autosummary/arlmet.File.source.html#arlmet.File.source">(arlmet.File property)</a>
@@ -751,13 +854,55 @@
         <li><a href="_autosummary/arlmet.RecordSet.source.html#arlmet.RecordSet.source">(arlmet.RecordSet property)</a>
 </li>
       </ul></li>
+      <li><a href="_autosummary/arlmet.archives.Archive.start_date.html#arlmet.archives.Archive.start_date">start_date (arlmet.archives.Archive attribute)</a>
+
+      <ul>
+        <li><a href="_autosummary/arlmet.archives.GDAS0p5Archive.start_date.html#arlmet.archives.GDAS0p5Archive.start_date">(arlmet.archives.GDAS0p5Archive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.GDASArchive.start_date.html#arlmet.archives.GDASArchive.start_date">(arlmet.archives.GDASArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.GFSArchive.start_date.html#arlmet.archives.GFSArchive.start_date">(arlmet.archives.GFSArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.HRRRArchive.start_date.html#arlmet.archives.HRRRArchive.start_date">(arlmet.archives.HRRRArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.HRRRv1Archive.start_date.html#arlmet.archives.HRRRv1Archive.start_date">(arlmet.archives.HRRRv1Archive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NAMArchive.start_date.html#arlmet.archives.NAMArchive.start_date">(arlmet.archives.NAMArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NAMSArchive.start_date.html#arlmet.archives.NAMSArchive.start_date">(arlmet.archives.NAMSArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NARRArchive.start_date.html#arlmet.archives.NARRArchive.start_date">(arlmet.archives.NARRArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.ReanalysisArchive.start_date.html#arlmet.archives.ReanalysisArchive.start_date">(arlmet.archives.ReanalysisArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.WRF27kmArchive.start_date.html#arlmet.archives.WRF27kmArchive.start_date">(arlmet.archives.WRF27kmArchive attribute)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="_autosummary/arlmet.archives.Archive.start_date.html#arlmet.archives.Archive.start_date">start_date (arlmet.archives.Archive attribute)</a>
-</li>
       <li><a href="_autosummary/arlmet.archives.Archive.step.html#arlmet.archives.Archive.step">step (arlmet.archives.Archive attribute)</a>
 
       <ul>
+        <li><a href="_autosummary/arlmet.archives.GDAS0p5Archive.step.html#arlmet.archives.GDAS0p5Archive.step">(arlmet.archives.GDAS0p5Archive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.GDASArchive.step.html#arlmet.archives.GDASArchive.step">(arlmet.archives.GDASArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.GFSArchive.step.html#arlmet.archives.GFSArchive.step">(arlmet.archives.GFSArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.HRRRArchive.step.html#arlmet.archives.HRRRArchive.step">(arlmet.archives.HRRRArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.HRRRv1Archive.step.html#arlmet.archives.HRRRv1Archive.step">(arlmet.archives.HRRRv1Archive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NAMArchive.step.html#arlmet.archives.NAMArchive.step">(arlmet.archives.NAMArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NAMSArchive.step.html#arlmet.archives.NAMSArchive.step">(arlmet.archives.NAMSArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.NARRArchive.step.html#arlmet.archives.NARRArchive.step">(arlmet.archives.NARRArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.ReanalysisArchive.step.html#arlmet.archives.ReanalysisArchive.step">(arlmet.archives.ReanalysisArchive attribute)</a>
+</li>
+        <li><a href="_autosummary/arlmet.archives.WRF27kmArchive.step.html#arlmet.archives.WRF27kmArchive.step">(arlmet.archives.WRF27kmArchive attribute)</a>
+</li>
         <li><a href="_autosummary/arlmet.Inventory.step.html#arlmet.Inventory.step">(arlmet.Inventory property)</a>
 </li>
       </ul></li>

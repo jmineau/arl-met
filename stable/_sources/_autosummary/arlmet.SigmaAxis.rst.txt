@@ -12,6 +12,17 @@
 
 
 
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+   :nosignatures:
+
+   ~SigmaAxis.coord_system
+   ~SigmaAxis.flag
+
+
+
 .. rubric:: Methods
 
 .. autosummary::

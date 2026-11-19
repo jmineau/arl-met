@@ -12,6 +12,17 @@
 
 
 
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+   :nosignatures:
+
+   ~PressureAxis.coord_system
+   ~PressureAxis.flag
+
+
+
 .. rubric:: Methods
 
 .. autosummary::

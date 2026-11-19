@@ -1,0 +1,37 @@
+﻿arlmet.archives.WRF27kmArchive
+==============================
+
+.. currentmodule:: arlmet.archives
+
+.. autoclass:: WRF27kmArchive
+   :no-members:
+   :show-inheritance:
+
+
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+   :nosignatures:
+
+   ~WRF27kmArchive.description
+   ~WRF27kmArchive.name
+   ~WRF27kmArchive.source
+   ~WRF27kmArchive.start_date
+   ~WRF27kmArchive.step
+
+
+
+
+
+
+.. rubric:: Inherited
+
+
+From :class:`~.Archive`: :py:obj:`~.Archive.fetch`, :py:obj:`~.Archive.paths_for_range`, :py:obj:`~.Archive.sync`
+
+

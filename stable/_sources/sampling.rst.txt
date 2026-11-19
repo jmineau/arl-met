@@ -469,6 +469,63 @@ paths it opened.
 You can mix open files and paths in the same sequence; files you opened stay
 open, and paths are closed for you.
 
+Sampling a Dataset
+------------------
+
+An input can also be a Dataset in :func:`arlmet.open_dataset`'s layout. Use it
+for met you have in another format: a converter (:doc:`converting`) turns GFS or
+ERA5 GRIB, WRF or ICON output into that layout, and ``sample_points`` reads it
+as it would read the ARL file :func:`arlmet.write_dataset` writes from it,
+without writing one. You get the values HYSPLIT would use from that file, on
+its internal levels, from the same GRIB files your own model read.
+
+Here made-up Datasets laid out as ``cfgrib.open_datasets`` returns them stand in
+for two GDAS GRIB2 files (the :doc:`converting` guide describes them):
+
+.. ipython:: python
+
+   gfs = arlmet.converters.from_gfs(docs_examples.gfs_sample())
+   points = pd.DataFrame(
+       {
+           "lon": [-111.9, -105.0],
+           "lat": [40.7, 39.7],
+           "z": [10.0, 500.0],
+           "time": ["2025-09-01 00:00", "2025-09-01 00:00"],
+       }
+   )
+   arlmet.sample_points(gfs, points, ["TEMP", "pressure"], z_kind="agl")
+
+The file written from the same Dataset gives the same values to its packing
+precision, about a hundredth of a kelvin here:
+
+.. ipython:: python
+
+   arlmet.write_dataset(gfs, "gdas.arl")
+   arlmet.sample_points("gdas.arl", points, ["TEMP", "pressure"], z_kind="agl")
+
+A converter loads every field it converts into memory: two global GFS 0.25
+degree time steps take about 6 GB. Crop the GRIB Datasets to your region before
+converting, and the values are the same at a tenth of the memory:
+
+.. code-block:: python
+
+   import cfgrib
+
+   datasets = [ds for f in files for ds in cfgrib.open_datasets(f)]
+   region = [d.sel(latitude=slice(45, 35), longitude=slice(240, 255)) for d in datasets]
+   gfs = arlmet.converters.from_gfs(region)
+
+Cut the Dataset the converter returns with ``sel`` or ``isel`` and it keeps the
+whole grid's description (its ``arl_grid`` coordinate), so ``sample_points``
+refuses it.
+
+A Dataset can sit in the sequence of inputs beside files and paths. Its
+upper-air levels are numbered 1 to N in the order of its ``level`` coordinate,
+as ``write_dataset`` numbers them. A variable is stored at a level when it holds a
+value there at any time step, as ``write_dataset`` then writes a record at every
+time step: a slice that is NaN everywhere at one time step reads as NaN, as that
+record flagged missing does. A Dataset with no upper-air levels has no vertical axis and is refused.
+
 .. ipython:: python
    :suppress:
 
