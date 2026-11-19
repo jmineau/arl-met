@@ -16,17 +16,19 @@ from __future__ import annotations
 import os
 from collections.abc import Iterable, Mapping, Sequence
 from contextlib import ExitStack
-from typing import TYPE_CHECKING, Any, Literal, Union, get_args
+from typing import TYPE_CHECKING, Any, Literal, Protocol, Union, get_args
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+import xarray as xr
 
 from arlmet._time import ensure_timestamp
 from arlmet._version import __version__
 from arlmet.vertical import _DEFAULT_MODEL_TOP
 
 from .column import Column, column_for, terrain_at
+from .fields import TimeStep
 from .horizontal import (
     WIND_PAIRS,
     WRF_STAGGER,
@@ -42,11 +44,48 @@ from .profile import ColumnZKind, sample_variable
 
 if TYPE_CHECKING:
     from arlmet._file import File
+    from arlmet._grid import Grid
+    from arlmet.vertical import VerticalAxis
 
 __all__ = ["sample_points"]
 
-# One sampling input: an open File or a path to an ARL file.
-FileLike = Union["File", str, "os.PathLike[str]"]
+# One sampling input: an open File, a path to an ARL file, or a Dataset in
+# open_dataset's layout.
+FileLike = Union["File", str, "os.PathLike[str]", xr.Dataset]
+
+
+class Met(Protocol):
+    """
+    One sampling input as the samplers read it: an open :class:`~arlmet.File`, or a Dataset.
+
+    A Dataset in :func:`arlmet.open_dataset`'s layout is read through
+    ``arlmet._xarray._sampling.DatasetMet``.
+    """
+
+    @property
+    def times(self) -> Sequence[Any]:
+        """The valid times it holds."""
+        ...
+
+    @property
+    def source(self) -> str:
+        """The ARL source ID."""
+        ...
+
+    @property
+    def grid(self) -> Grid:
+        """The horizontal grid."""
+        ...
+
+    @property
+    def vertical_axis(self) -> VerticalAxis:
+        """The vertical axis."""
+        ...
+
+    def __getitem__(self, time: pd.Timestamp, /) -> TimeStep:
+        """Return the fields of one valid time."""
+        ...
+
 
 #: Vertical coordinate systems accepted for the ``z`` of sample points.
 ZKind = Literal["native", "pressure", "agl", "msl"]
@@ -141,9 +180,9 @@ def _check_wind_pairs(variable_names: Sequence[str]) -> list[tuple[str, str]]:
     return pairs
 
 
-def _map_times(files: Sequence[File]) -> dict[pd.Timestamp, File]:
-    """Map each valid time to the one input File that contains it."""
-    time_map: dict[pd.Timestamp, File] = {}
+def _map_times(files: Sequence[Met]) -> dict[pd.Timestamp, Met]:
+    """Map each valid time to the one input that contains it."""
+    time_map: dict[pd.Timestamp, Met] = {}
     for file in files:
         for file_time in file.times:
             file_time = ensure_timestamp(file_time)
@@ -170,7 +209,7 @@ def _describe_times(times: Sequence[pd.Timestamp]) -> str:
 
 
 def _sample_time(
-    file: File,
+    file: Met,
     time: pd.Timestamp,
     coords: pd.DataFrame,
     variable_names: Sequence[str],
@@ -262,6 +301,18 @@ def _sample_time(
     return sampled
 
 
+def _as_met(item: FileLike, opened: ExitStack) -> Met:
+    """Return a sampling input as :class:`Met`: a Dataset read as its ARL file, a path opened in *opened*."""
+    from arlmet._file import File  # lazy: _file imports this module
+    from arlmet._xarray._sampling import DatasetMet  # lazy: _xarray imports _ops
+
+    if isinstance(item, xr.Dataset):
+        return DatasetMet(item)
+    if isinstance(item, File):
+        return item
+    return opened.enter_context(File(item))
+
+
 def sample_points(
     files: FileLike | Sequence[FileLike],
     points: pd.DataFrame | Mapping[str, Any],
@@ -286,11 +337,21 @@ def sample_points(
     interpolated: each point's time must be one of the valid times of the
     files, and a point between two valid times raises ``ValueError``.
 
+    An input may also be a Dataset in :func:`arlmet.open_dataset`'s layout,
+    such as a converter's output (:func:`arlmet.converters.from_gfs`, ...).
+    It is sampled as the ARL file :func:`arlmet.write_dataset` would write
+    from it, without writing one: the same vertical axis and values, and a
+    level whose slice is NaN everywhere at a time step counts as not stored
+    there, as a level the file has no record for. The values are the
+    Dataset's own, so they differ from the written file's by its packing
+    precision at most.
+
     Parameters
     ----------
-    files : File, path-like, or sequence of File or path-like
-        A single open :class:`~arlmet._file.File` or path, or a sequence of
-        Files and/or paths. Each valid time must appear in at most one file.
+    files : File, path-like, xarray.Dataset, or a sequence of them
+        A single open :class:`~arlmet._file.File`, path, or Dataset in
+        :func:`arlmet.open_dataset`'s layout, or a sequence of them. Each
+        valid time must appear in at most one input.
     points : pandas.DataFrame or mapping
         Table-like object with ``lon``, ``lat`` (degrees), and ``z`` columns,
         and optionally a ``time`` column. Any other columns are carried
@@ -393,6 +454,15 @@ def sample_points(
     ... ).round(1)
          lon   lat      z              time  UWND  VWND
     0 -111.9  40.7  850.0  2024-07-18 00:00   6.2  -3.8
+
+    Sample GFS GRIB files without writing an ARL file, through the converter:
+
+    >>> import cfgrib  # doctest: +SKIP
+    >>> datasets = [
+    ...     ds for f in ["gfs.t00z.pgrb2.0p25.f000"] for ds in cfgrib.open_datasets(f)
+    ... ]  # doctest: +SKIP
+    >>> met = arlmet.converters.from_gfs(datasets)  # doctest: +SKIP
+    >>> arlmet.sample_points(met, points, ["TEMP"])  # doctest: +SKIP
     """
     from arlmet._file import File  # lazy: _file imports this module
 
@@ -413,15 +483,14 @@ def sample_points(
     if not names:
         raise ValueError("variables must include at least one variable name.")
     wind_pairs = _check_wind_pairs(names) if earth_relative else []
-    inputs = [files] if isinstance(files, (File, str, os.PathLike)) else list(files)
+    single = (File, str, os.PathLike, xr.Dataset)
+    inputs = [files] if isinstance(files, single) else list(files)
     if not inputs:
         raise ValueError("sample_points requires at least one input file.")
 
     with ExitStack() as opened:
         # Paths are opened here and closed on return; open Files stay the caller's.
-        handles = [
-            f if isinstance(f, File) else opened.enter_context(File(f)) for f in inputs
-        ]
+        handles = [_as_met(f, opened) for f in inputs]
         time_map = _map_times(handles)
         implied_time = next(iter(time_map)) if len(time_map) == 1 else None
         result, coords = _normalize_points(

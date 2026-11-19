@@ -29,7 +29,7 @@ format used by HYSPLIT and related workflows. It supports:
 - converting other models' output, opened with xarray, to ARL files (Python versions of HYSPLIT's `data2arl` programs): ERA5 on pressure or model levels with `converters.from_era5()`, GFS and GDAS GRIB2 with `converters.from_gfs()`, DWD's ICON-EU and ICON-D2 on their lat/lon grids with `converters.from_icon()`, WRF output with `converters.from_wrf()`
 - crop-before-unpack subset extraction with `extract_subset()`
 - vertical helper functions such as `pressure()`, `z_agl()`, and `z_msl()`
-- point sampling with `sample_points()`
+- point sampling with `sample_points()`, from ARL files or from a converter's Dataset without writing a file
 - joining files with `concat()` and `concat_by_time()` (e.g. 6-hourly into daily)
 - finding damage that does not stop a file from opening (a time step written partway, a missing time step) with `File.check()`
 - finding the files that cover a time window by their headers, not their names, with `inventory()`

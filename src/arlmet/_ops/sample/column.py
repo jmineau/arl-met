@@ -34,8 +34,7 @@ from .fields import levels_of, sample_levels
 from .horizontal import Plan
 
 if TYPE_CHECKING:
-    from arlmet._recordset import RecordSet
-
+    from .fields import TimeStep
     from .internal import InternalLevels
 
 __all__ = ["GRAV", "RDRY", "SFCP", "Column", "column_for"]
@@ -60,7 +59,7 @@ _GROUND_FIELDS: dict[str, str] = {
 _ZERO_AT_GROUND = frozenset({"WWND", "DZDT"})
 
 
-def terrain_at(recordset: RecordSet, plan: Plan) -> npt.NDArray[Any]:
+def terrain_at(recordset: TimeStep, plan: Plan) -> npt.NDArray[Any]:
     """Sample the terrain height ``SHGT`` [m] at each point of *plan*."""
     held = levels_of(recordset, "SHGT")
     if not held:
@@ -79,7 +78,7 @@ class Column:
     """
 
     def __init__(
-        self, recordset: RecordSet, plan: Plan, *, levels: InternalLevels | None = None
+        self, recordset: TimeStep, plan: Plan, *, levels: InternalLevels | None = None
     ) -> None:
         self.recordset = recordset
         self.plan = plan
@@ -397,7 +396,7 @@ _COLUMNS: dict[type, type[Column]] = {
 
 
 def column_for(
-    recordset: RecordSet,
+    recordset: TimeStep,
     plan: Plan,
     *,
     z_kind: Literal["native", "pressure", "agl"],

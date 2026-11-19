@@ -23,10 +23,10 @@ from .fields import levels_of, sample_levels
 from .horizontal import Plan
 
 if TYPE_CHECKING:
-    from arlmet._recordset import RecordSet
     from arlmet.vertical import VerticalAxis
 
     from .column import Column
+    from .fields import TimeStep
 
 __all__ = [
     "PRESSURE_VARIABLES",
@@ -227,7 +227,7 @@ def _vertical_coords(
 
 
 def variable_profile(
-    recordset: RecordSet,
+    recordset: TimeStep,
     variable: str,
     *,
     z_kind: ColumnZKind,
@@ -302,7 +302,7 @@ def variable_profile(
 
 
 def sample_variable(
-    recordset: RecordSet,
+    recordset: TimeStep,
     variable: str,
     targets: npt.NDArray[Any],
     *,
