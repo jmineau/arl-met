@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=5501e921"></script>
+    <script src="_static/documentation_options.js?v=77ba341d"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b11.dev6+gd8c40e992" />
+  <meta name="docsearch:version" content="0.1.0b12.dev3+g87bde85cc" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -608,7 +608,7 @@ files are stand in for the download:</p>
 <span class="go">Attributes:</span>
 <span class="go">    source:          ERA5</span>
 <span class="go">    vertical_flag:   2</span>
-<span class="go">    arlmet_version:  0.1.0b11.dev6+gd8c40e992</span>
+<span class="go">    arlmet_version:  0.1.0b12.dev3+g87bde85cc</span>
 
 <span class="gp">In [6]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># level 1 is the highest pressure</span>
 <span class="gh">Out[6]: </span><span class="go">array([1000.,  850.,  700.,  500.])</span>
@@ -744,13 +744,25 @@ gdas.20250901/00/atmos/gdas.t00z.pgrb2.1p00.f000   GDAS, 1 degree, analysis
 </div>
 <p>Open each file with cfgrib (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cfgrib</span> <span class="pre">eccodes</span></code>), which splits a
 GRIB2 file into one Dataset per kind of level, and pass all the Datasets of all
-the files together:</p>
+the files together. The boundary layer height needs a second open of each
+file (below):</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cfgrib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
 <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"gdas.t18z.pgrb2.1p00.f006"</span><span class="p">,</span> <span class="s2">"gdas.t00z.pgrb2.1p00.f000"</span><span class="p">]</span>
 <span class="n">datasets</span> <span class="o">=</span> <span class="p">[</span><span class="n">ds</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span> <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">open_datasets</span><span class="p">(</span><span class="n">f</span><span class="p">)]</span>
+<span class="n">hpbl</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"filter_by_keys"</span><span class="p">:</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">GFS_HPBL</span><span class="p">,</span>
+    <span class="s2">"read_keys"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">GFS_HPBL</span><span class="p">),</span>
+<span class="p">}</span>
+<span class="n">datasets</span> <span class="o">+=</span> <span class="p">[</span><span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">"cfgrib"</span><span class="p">,</span> <span class="n">backend_kwargs</span><span class="o">=</span><span class="n">hpbl</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">]</span>
 </pre></div>
 </div>
+<p>Keep cfgrib’s index files (its default, <code class="docutils literal notranslate"><span class="pre">indexpath</span></code> unset): without them it
+reads the whole file again for every Dataset, and opening ten 0.25 degree
+files can read hundreds of gigabytes. To convert a region, pass
+<code class="docutils literal notranslate"><span class="pre">bbox=(west,</span> <span class="pre">south,</span> <span class="pre">east,</span> <span class="pre">north)</span></code>: each field is cropped before it is read
+into memory.</p>
 <p>Each valid time becomes one time step. An analysis has no precipitation or
 fluxes, which a forecast accumulates or averages over its hours, so where two
 files hold a field at the same valid time the shorter forecast is used: above,
@@ -802,7 +814,7 @@ those two files:</p>
 <span class="go">Attributes:</span>
 <span class="go">    source:          GFS</span>
 <span class="go">    vertical_flag:   2</span>
-<span class="go">    arlmet_version:  0.1.0b11.dev6+gd8c40e992</span>
+<span class="go">    arlmet_version:  0.1.0b12.dev3+g87bde85cc</span>
 
 <span class="gp">In [19]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">"forecast_hour"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># the analysis's</span>
 <span class="gh">Out[19]: </span><span class="go">array([0])</span>
@@ -815,9 +827,13 @@ those two files:</p>
 it converts. All the pressure levels of a file are written; to write fewer,
 select them first, in the Dataset that holds <code class="docutils literal notranslate"><span class="pre">gh</span></code>
 (<code class="docutils literal notranslate"><span class="pre">d.sel(isobaricInhPa=[1000,</span> <span class="pre">925,</span> <span class="pre">850,</span> <span class="pre">700,</span> <span class="pre">500,</span> <span class="pre">300,</span> <span class="pre">200])</span></code>). NCEP’s
-planetary boundary layer height is a local GRIB2 parameter that ecCodes reads
-as <code class="docutils literal notranslate"><span class="pre">unknown</span></code>, so <code class="docutils literal notranslate"><span class="pre">PBLH</span></code> is not written, and the GDAS files’ instantaneous
-total cloud cover is missing at every point, so they give no <code class="docutils literal notranslate"><span class="pre">TCLD</span></code>. Like
+planetary boundary layer height, <code class="docutils literal notranslate"><span class="pre">HPBL</span></code>, is a local GRIB2 parameter that
+ecCodes has no name for: cfgrib calls it <code class="docutils literal notranslate"><span class="pre">unknown</span></code>, and
+<code class="xref py py-func docutils literal notranslate"><span class="pre">cfgrib.open_datasets()</span></code> drops it from a forecast file, where a second
+unnamed field shares its level. The second open above finds it by its
+numbers (<code class="xref py py-data docutils literal notranslate"><span class="pre">GFS_HPBL</span></code>), and it is written as
+<code class="docutils literal notranslate"><span class="pre">PBLH</span></code>; without it, no <code class="docutils literal notranslate"><span class="pre">PBLH</span></code>. The GDAS files’ instantaneous total cloud cover is
+missing at every point, so they give no <code class="docutils literal notranslate"><span class="pre">TCLD</span></code>. Like
 <code class="docutils literal notranslate"><span class="pre">api2arl</span></code>, it writes no <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> records.</p>
 </section>
 <section id="icon">
@@ -892,7 +908,7 @@ as cfgrib returns DWD’s files stand in for one forecast’s steps 0 to 3:</p>
 <span class="go">Attributes:</span>
 <span class="go">    source:          ICON</span>
 <span class="go">    vertical_flag:   2</span>
-<span class="go">    arlmet_version:  0.1.0b11.dev6+gd8c40e992</span>
+<span class="go">    arlmet_version:  0.1.0b12.dev3+g87bde85cc</span>
 
 <span class="gp">In [25]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">"TPP1"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="s2">"lat"</span><span class="p">,</span> <span class="s2">"lon"</span><span class="p">])</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># m per hour; none at step 0</span>
 <span class="gh">Out[25]: </span><span class="go">array([       nan, 0.00037703, 0.00037703, 0.00037703])</span>
@@ -956,7 +972,7 @@ for them:</p>
 <span class="go">Attributes:</span>
 <span class="go">    source:          AWRF</span>
 <span class="go">    vertical_flag:   1</span>
-<span class="go">    arlmet_version:  0.1.0b11.dev6+gd8c40e992</span>
+<span class="go">    arlmet_version:  0.1.0b12.dev3+g87bde85cc</span>
 
 <span class="gp">In [30]: </span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">grid</span>
 <span class="gh">Out[30]: </span><span class="go">Grid(lcc 12km, 30×25)</span>

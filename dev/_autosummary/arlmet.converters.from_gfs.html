@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=5501e921"></script>
+    <script src="../_static/documentation_options.js?v=77ba341d"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b11.dev6+gd8c40e992" />
+  <meta name="docsearch:version" content="0.1.0b12.dev3+g87bde85cc" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -740,7 +740,7 @@
 <h1>arlmet.converters.from_gfs<a class="headerlink" href="#arlmet-converters-from-gfs" title="Link to this heading">#</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="arlmet.converters.from_gfs">
-<span class="sig-prename descclassname"><span class="pre">arlmet.converters.</span></span><span class="sig-name descname"><span class="pre">from_gfs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datasets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/converters/_gfs.html#from_gfs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.converters.from_gfs" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">arlmet.converters.</span></span><span class="sig-name descname"><span class="pre">from_gfs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datasets</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">bbox</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/converters/_gfs.html#from_gfs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.converters.from_gfs" title="Link to this definition">#</a></dt>
 <dd><p>Convert GFS or GDAS GRIB2 files on pressure levels to a Dataset for <a class="reference internal" href="arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>.</p>
 <p>This is HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">api2arl</span></code> for NCEP’s <code class="docutils literal notranslate"><span class="pre">pgrb2</span></code> files on a lat/lon
 grid (GFS forecasts and GDAS analyses at 0.25, 0.5 or 1 degree), taking
@@ -821,27 +821,31 @@ CINH</p></td>
 <td><p>USTR</p></td>
 <td><p>m s-1</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tp</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">HPBL</span></code> (see below)</p></td>
+<td><p>PBLH</p></td>
+<td><p>m</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tp</span></code></p></td>
 <td><p>TPP6</p></td>
 <td><p>kg m-2 to m, since the bucket’s start</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">avg_ishf</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">avg_ishf</span></code></p></td>
 <td><p>SHTF</p></td>
 <td><p>W m-2, positive upward</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">avg_slhtf</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">avg_slhtf</span></code></p></td>
 <td><p>LHTF</p></td>
 <td><p>W m-2, positive upward</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sdswrf</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sdswrf</span></code></p></td>
 <td><p>DSWF</p></td>
 <td><p>W m-2</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">avg_utaua</span></code>,</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">avg_utaua</span></code>,</p></td>
 <td><p>UMOF,</p></td>
 <td><p>N m-2</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">avg_vtaua</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">avg_vtaua</span></code></p></td>
 <td><p>VMOF</p></td>
 <td></td>
 </tr>
@@ -850,13 +854,26 @@ CINH</p></td>
 </div>
 <p>Older ecCodes name the averaged fluxes <code class="docutils literal notranslate"><span class="pre">shtfl</span></code>, <code class="docutils literal notranslate"><span class="pre">lhtfl</span></code>, <code class="docutils literal notranslate"><span class="pre">dswrf</span></code>,
 <code class="docutils literal notranslate"><span class="pre">uflx</span></code> and <code class="docutils literal notranslate"><span class="pre">vflx</span></code>; both names are read.</p>
+<p>NCEP’s planetary boundary layer height, <code class="docutils literal notranslate"><span class="pre">HPBL</span></code>, is a local GRIB2
+parameter that ecCodes (2.50 and earlier) has no name for, so cfgrib
+calls it <code class="docutils literal notranslate"><span class="pre">unknown</span></code>, and <code class="xref py py-func docutils literal notranslate"><span class="pre">cfgrib.open_datasets()</span></code> drops it from a
+forecast file, where a second unnamed field shares its level. Open it on
+its own with <code class="xref py py-data docutils literal notranslate"><span class="pre">GFS_HPBL</span></code> (Examples): it is found by its numbers
+and written as <code class="docutils literal notranslate"><span class="pre">PBLH</span></code>. Without it no <code class="docutils literal notranslate"><span class="pre">PBLH</span></code> is written. A future
+ecCodes that names it <code class="docutils literal notranslate"><span class="pre">hpbl</span></code> needs no second open.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>datasets</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html#xarray.Dataset" title="(in xarray v2026.9.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a>]</span>) – The Datasets of one or more GRIB2 files, as <code class="xref py py-func docutils literal notranslate"><span class="pre">cfgrib.open_datasets()</span></code>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>datasets</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html#xarray.Dataset" title="(in xarray v2026.9.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a>]</span>) – The Datasets of one or more GRIB2 files, as <code class="xref py py-func docutils literal notranslate"><span class="pre">cfgrib.open_datasets()</span></code>
 returns them (each with a scalar <code class="docutils literal notranslate"><span class="pre">valid_time</span></code>), one list after
 another. Datasets and variables not in the table are left out. Every
 time step must have the same pressure levels; select them first
-(<code class="docutils literal notranslate"><span class="pre">ds.sel(isobaricInhPa=...)</span></code>) to write fewer.</p>
+(<code class="docutils literal notranslate"><span class="pre">ds.sel(isobaricInhPa=...)</span></code>) to write fewer.</p></li>
+<li><p><strong>bbox</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>] | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – A bounding box <code class="docutils literal notranslate"><span class="pre">(west,</span> <span class="pre">south,</span> <span class="pre">east,</span> <span class="pre">north)</span></code> in degrees, as
+<a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a> takes: only the grid cells inside it are
+converted. Longitudes may be from -180 to 180 or from 0 to 360, and
+the box may cross 0. <code class="docutils literal notranslate"><span class="pre">None</span></code> converts the whole grid.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The fields in <a class="reference internal" href="arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a>’s layout, with source
@@ -872,17 +889,26 @@ time step must have the same pressure levels; select them first
 </dd>
 </dl>
 <p class="rubric">Notes</p>
-<p>NCEP’s planetary boundary layer height (<code class="docutils literal notranslate"><span class="pre">HPBL</span></code>) is a local GRIB2
-parameter that ecCodes reads as <code class="docutils literal notranslate"><span class="pre">unknown</span></code>, so <code class="docutils literal notranslate"><span class="pre">PBLH</span></code> is not written.
-A field missing at every point (the GDAS files’ instantaneous <code class="docutils literal notranslate"><span class="pre">tcc</span></code>) is
+<p>A field missing at every point (the GDAS files’ instantaneous <code class="docutils literal notranslate"><span class="pre">tcc</span></code>) is
 left out when it is written.
 No <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> records are written, as <code class="docutils literal notranslate"><span class="pre">api2arl</span></code> writes none.</p>
+<p>Each field is read from its file once, cropped to <em>bbox</em> first, and is
+then in memory: a global 0.25 degree time step is about 3 GB, the
+western United States about 0.2 GB.</p>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">cfgrib</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"gdas.t18z.pgrb2.1p00.f006"</span><span class="p">,</span> <span class="s2">"gdas.t00z.pgrb2.1p00.f000"</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hpbl</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="s2">"filter_by_keys"</span><span class="p">:</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">GFS_HPBL</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">"read_keys"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">GFS_HPBL</span><span class="p">),</span>
+<span class="gp">... </span><span class="p">}</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">datasets</span> <span class="o">=</span> <span class="p">[</span>
 <span class="gp">... </span>    <span class="n">ds</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span> <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">open_datasets</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">datasets</span> <span class="o">+=</span> <span class="p">[</span>
+<span class="gp">... </span>    <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">"cfgrib"</span><span class="p">,</span> <span class="n">backend_kwargs</span><span class="o">=</span><span class="n">hpbl</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span>
 <span class="gp">... </span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">ds</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_gfs</span><span class="p">(</span><span class="n">datasets</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"gdas.arl"</span><span class="p">)</span>
