@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import NamedTuple
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 
@@ -16,7 +17,7 @@ from ._pressure import (
     standardize,
 )
 
-__all__ = ["from_gfs"]
+__all__ = ["GFS_READ_KEYS", "from_gfs"]
 
 #: GFS's pressure-level variables (cfgrib names, ``isobaricInhPa``) and their ARL fields.
 PRESSURE_LEVEL_FIELDS: dict[str, Field] = {
@@ -62,6 +63,7 @@ SINGLE_LEVEL_SOURCES: tuple[_Source, ...] = (
     _Source("surface", None, ("cape",), "instant", Field("CAPE", 1.0, "J kg-1")),
     _Source("surface", None, ("cin",), "instant", Field("CINH", 1.0, "J kg-1")),
     _Source("surface", None, ("fricv",), "instant", Field("USTR", 1.0, "m s-1")),
+    _Source("surface", None, ("hpbl",), "instant", Field("PBLH", 1.0, "m")),
     _Source("surface", None, ("tp",), "accum", Field("TPP6", 0.001, "m")),
     _Source("surface", None, ("avg_ishf", "shtfl"), "avg", Field("SHTF", 1.0, "W m-2")),
     _Source(
@@ -75,6 +77,22 @@ SINGLE_LEVEL_SOURCES: tuple[_Source, ...] = (
 #: The single-level fields by ARL name, scaled as they are found.
 _SINGLE_LEVEL_FIELDS = {s.field.name: s.field for s in SINGLE_LEVEL_SOURCES}
 
+#: NCEP's local GRIB2 parameter for the planetary boundary layer height,
+#: ``HPBL``: (discipline, parameterCategory, parameterNumber). ecCodes has no
+#: name for it, so cfgrib calls it ``unknown`` and gives these numbers only
+#: when the file is opened with :data:`GFS_READ_KEYS`.
+_HPBL = (0, 3, 196)
+
+#: The GRIB keys to pass to cfgrib (``backend_kwargs={"read_keys": ...}``) so
+#: that :func:`from_gfs` can tell ``HPBL`` from other parameters ecCodes
+#: does not know.
+GFS_READ_KEYS = ("discipline", "parameterCategory", "parameterNumber")
+
+
+def _grib_numbers(da: xr.DataArray) -> tuple[object, ...]:
+    """Return a field's GRIB2 (discipline, category, number), as cfgrib gives them with :data:`GFS_READ_KEYS`."""
+    return tuple(da.attrs.get(f"GRIB_{key}") for key in GFS_READ_KEYS)
+
 
 def _arl_name(ds: xr.Dataset, name: str, da: xr.DataArray) -> str | None:
     """Return the ARL name ``ds[name]`` converts to, or None if it is not converted."""
@@ -85,6 +103,12 @@ def _arl_name(ds: xr.Dataset, name: str, da: xr.DataArray) -> str | None:
         if field is not None and step_type == "instant" and "isobaricInhPa" in da.dims:
             return field.name
         return None
+    if (
+        type_of_level == "surface"
+        and step_type == "instant"
+        and _grib_numbers(da) == _HPBL
+    ):
+        return "PBLH"
     for source in SINGLE_LEVEL_SOURCES:
         if (
             type_of_level == source.type_of_level
@@ -99,7 +123,39 @@ def _arl_name(ds: xr.Dataset, name: str, da: xr.DataArray) -> str | None:
     return None
 
 
-def from_gfs(datasets: Iterable[xr.Dataset]) -> xr.Dataset:
+def _crop(da: xr.DataArray, bbox: tuple[float, float, float, float]) -> xr.DataArray:
+    """
+    Return the cells of *da* inside *bbox*, ``(west, south, east, north)`` in degrees.
+
+    GRIB's longitudes run from 0 to 360; the box's may be on either
+    convention and may cross 0 or 180. The kept longitudes are counted east
+    from ``west``, so a box across 0 keeps its cells in order.
+    """
+    west, south, east, north = bbox
+    if not south < north:
+        raise ValueError(f"bbox needs south < north; got {bbox}.")
+    lat = da["latitude"].values
+    rows = np.flatnonzero((lat >= south) & (lat <= north))
+    from_west = (da["longitude"].values - west) % 360.0
+    width = (east - west) % 360.0 or 360.0
+    cols = np.flatnonzero(from_west <= width)
+    if len(rows) == 0 or len(cols) == 0:
+        raise ValueError(f"bbox {bbox} holds no cell of the GFS grid.")
+    cols = cols[np.argsort(from_west[cols], kind="stable")]
+    cropped = da.isel(latitude=rows, longitude=cols)
+    # GRIB's own longitudes, unless the box crosses 0: then counted from
+    # west, so that they increase.
+    lon = (west + from_west[cols]) % 360.0
+    if (np.diff(lon) <= 0).any():
+        lon = west + from_west[cols]
+    return cropped.assign_coords(longitude=lon)
+
+
+def from_gfs(
+    datasets: Iterable[xr.Dataset],
+    *,
+    bbox: tuple[float, float, float, float] | None = None,
+) -> xr.Dataset:
     """
     Convert GFS or GDAS GRIB2 files on pressure levels to a Dataset for :func:`arlmet.write_dataset`.
 
@@ -136,6 +192,7 @@ def from_gfs(datasets: Iterable[xr.Dataset]) -> xr.Dataset:
     ``cape``, ``cin``      CAPE,   J kg-1
                            CINH
     ``fricv``              USTR    m s-1
+    ``HPBL`` (see below)   PBLH    m
     ``tp``                 TPP6    kg m-2 to m, since the bucket's start
     ``avg_ishf``           SHTF    W m-2, positive upward
     ``avg_slhtf``          LHTF    W m-2, positive upward
@@ -147,6 +204,14 @@ def from_gfs(datasets: Iterable[xr.Dataset]) -> xr.Dataset:
     Older ecCodes name the averaged fluxes ``shtfl``, ``lhtfl``, ``dswrf``,
     ``uflx`` and ``vflx``; both names are read.
 
+    NCEP's planetary boundary layer height, ``HPBL``, is a local GRIB2
+    parameter that ecCodes (2.50 and earlier) has no name for, so cfgrib
+    calls it ``unknown``. Open the files with
+    ``backend_kwargs={"read_keys": list(arlmet.converters.GFS_READ_KEYS)}``
+    and it is found by its numbers (discipline 0, category 3, number 196)
+    and written as ``PBLH``; without them it is left out. A future ecCodes
+    that names it ``hpbl`` needs no keys.
+
     Parameters
     ----------
     datasets : iterable of xarray.Dataset
@@ -155,6 +220,11 @@ def from_gfs(datasets: Iterable[xr.Dataset]) -> xr.Dataset:
         another. Datasets and variables not in the table are left out. Every
         time step must have the same pressure levels; select them first
         (``ds.sel(isobaricInhPa=...)``) to write fewer.
+    bbox : tuple of float, optional
+        A bounding box ``(west, south, east, north)`` in degrees, as
+        :func:`arlmet.open_dataset` takes: only the grid cells inside it are
+        converted. Longitudes may be from -180 to 180 or from 0 to 360, and
+        the box may cross 0. ``None`` converts the whole grid.
 
     Returns
     -------
@@ -171,19 +241,22 @@ def from_gfs(datasets: Iterable[xr.Dataset]) -> xr.Dataset:
 
     Notes
     -----
-    NCEP's planetary boundary layer height (``HPBL``) is a local GRIB2
-    parameter that ecCodes reads as ``unknown``, so ``PBLH`` is not written.
     A field missing at every point (the GDAS files' instantaneous ``tcc``) is
     left out when it is written.
     No ``DIF*`` records are written, as ``api2arl`` writes none.
+
+    Each field is read from its file once, cropped to *bbox* first, and is
+    then in memory: a global 0.25 degree time step is about 3 GB, the
+    western United States about 0.2 GB.
 
     Examples
     --------
     >>> import cfgrib  # doctest: +SKIP
     >>> import arlmet
     >>> files = ["gdas.t18z.pgrb2.1p00.f006", "gdas.t00z.pgrb2.1p00.f000"]
+    >>> keys = {"read_keys": list(arlmet.converters.GFS_READ_KEYS)}
     >>> datasets = [
-    ...     ds for f in files for ds in cfgrib.open_datasets(f)
+    ...     ds for f in files for ds in cfgrib.open_datasets(f, backend_kwargs=keys)
     ... ]  # doctest: +SKIP
     >>> ds = arlmet.converters.from_gfs(datasets)  # doctest: +SKIP
     >>> arlmet.write_dataset(ds, "gdas.arl")  # doctest: +SKIP
@@ -214,6 +287,10 @@ def from_gfs(datasets: Iterable[xr.Dataset]) -> xr.Dataset:
         step = pd.Timedelta(0 if step_value is None else step_value)
         for name, arl in names.items():
             da = ds[name].reset_coords(drop=True)
+            if bbox is not None:
+                da = _crop(da, bbox)
+            # Read once: cfgrib reads a whole message on every access.
+            da = da.load()
             target = (
                 upper
                 if arl in {f.name for f in PRESSURE_LEVEL_FIELDS.values()}
