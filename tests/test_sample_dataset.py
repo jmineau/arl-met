@@ -11,6 +11,7 @@ the ground too).
 import numpy as np
 import pandas as pd
 import pytest
+import xarray as xr
 
 import arlmet
 from arlmet import File, sample_points
@@ -229,6 +230,54 @@ def test_a_level_nan_everywhere_is_not_stored(tmp_path):
     )
 
 
+def _two_time_dataset(tmp_path):
+    """The deep pressure file (SHGT, PRSS, TEMP on 10 levels) at two times, as one Dataset."""
+    parts = []
+    for time, offset in ((TIME0, 0.0), (TIME1, 3.0)):
+        path = tmp_path / f"deep-{time:%H}.arl"
+        write_deep_sampling_file(path, time=time)
+        part = arlmet.open_dataset(path).load()
+        part["TEMP"] = part["TEMP"] + np.float32(offset)  # differs between times
+        parts.append(part)
+    return xr.concat(
+        parts, dim="time", data_vars="minimal", coords="minimal", compat="override"
+    )
+
+
+@pytest.mark.parametrize(
+    ("emptied", "level", "sampled"),
+    [
+        ("TEMP", None, "TEMP"),
+        ("TEMP", 0, "TEMP"),
+        ("TEMP", 4, "TEMP"),
+        ("TEMP", -1, "TEMP"),
+        ("PRSS", None, "PRSS"),
+        ("PRSS", None, "TEMP"),
+        ("SHGT", None, "TEMP"),
+    ],
+)
+@pytest.mark.parametrize("z_kind", ["agl", "pressure", "native"])
+def test_a_field_nan_at_one_time_reads_as_nan(
+    tmp_path, emptied, level, sampled, z_kind
+):
+    # Stored is decided across time steps, as write_dataset writes a record
+    # (flagged missing) at a time its field is all NaN: the Dataset samples
+    # as the file, and points at the other time keep their values.
+    ds = _two_time_dataset(tmp_path)
+    where = {"time": TIME1}
+    if level is not None:
+        where["level"] = ds["level"].values[level]
+    ds[emptied].loc[where] = np.nan
+    written = tmp_path / "written.arl"
+    arlmet.write_dataset(ds, written)
+    z = {"agl": 1500.0, "pressure": 700.0, "native": 4.5}[z_kind]
+    points = _points(written).assign(z=z)
+    from_file = _sample(written, points, [sampled], z_kind, "default")
+    assert not isinstance(from_file, Exception), from_file
+    assert from_file.loc[points["time"] == TIME0, sampled].notna().all()
+    _assert_same(from_file, _sample(ds, points, [sampled], z_kind, "default"))
+
+
 def test_datasets_and_files_mix(tmp_path):
     first, second = tmp_path / "a.arl", tmp_path / "b.arl"
     write_sampling_file(first, time=TIME0)
@@ -264,11 +313,19 @@ def test_a_point_time_not_in_the_dataset_is_refused(tmp_path):
         sample_points(arlmet.open_dataset(path), points, ["TEMP"], z_kind="agl")
 
 
+def _without_attrs(ds):
+    # Dataset.drop_attrs() is newer than the xarray floor (2023.10).
+    ds = ds.copy()
+    ds.attrs = {}
+    return ds
+
+
 @pytest.mark.parametrize(
     ("edit", "message"),
     [
-        (lambda ds: ds.drop_attrs(), "attrs\\['source'\\]"),
+        (_without_attrs, "attrs\\['source'\\]"),
         (lambda ds: ds.drop_vars("arl_grid"), "arl_grid"),
+        (lambda ds: ds.isel(time=0), "scalar time"),
         (lambda ds: ds.isel(level=0, drop=True)[["SHGT", "PRSS"]], "surface-only"),
         (lambda ds: ds.isel(lat=slice(None, None, -1)), "must increase"),
         (lambda ds: ds.isel(lat=slice(2, 12)), "keeps the whole grid"),

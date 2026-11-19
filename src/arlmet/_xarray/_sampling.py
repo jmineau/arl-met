@@ -5,14 +5,15 @@ A Dataset in :func:`arlmet.open_dataset`'s layout as an input of :func:`arlmet.s
 its :class:`~arlmet.RecordSet`. :class:`DatasetMet` gives the same view of a
 Dataset: the view of the file :func:`arlmet.write_dataset` would write from it.
 That file has the vertical axis ``write_dataset`` writes, its upper-air levels
-are numbered 1..N in the order of the ``level`` coordinate, and a field is
-stored at a level and time when its slice there holds a value, since a level a
-file has no record for reads as NaN in :func:`arlmet.open_dataset`.
+are numbered 1..N in the order of the ``level`` coordinate, and a variable is
+stored at a level when it holds a value there at any time step, as
+``write_dataset`` gives such a level a record at every time step (flagged
+missing, so read as NaN, where its slice is all NaN).
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -66,7 +67,6 @@ class _DatasetTimeStep:
     def __init__(self, met: DatasetMet, index: int) -> None:
         self._met = met
         self._index = index
-        self._stored: dict[tuple[int, str], bool] = {}
 
     @property
     def time(self) -> pd.Timestamp:
@@ -102,10 +102,7 @@ class _DatasetTimeStep:
                 return False
         except TypeError:  # unhashable key parts
             return False
-        if key not in self._stored:
-            values = np.asarray(self._slice(key).values)
-            self._stored[key] = bool(np.isfinite(values).any())
-        return self._stored[key]
+        return self._met._is_stored(cast("tuple[int, str]", key))
 
     def __getitem__(self, key: tuple[int, str]) -> _DatasetField:
         if key not in self:
@@ -150,6 +147,11 @@ class DatasetMet:
             )
         if "time" not in ds.coords:
             raise ValueError("A Dataset to sample needs a 'time' coordinate.")
+        if "time" not in ds.dims:
+            raise ValueError(
+                "A Dataset to sample needs a 'time' dimension; a Dataset cut "
+                "with isel(time=0) has a scalar time: use isel(time=[0])."
+            )
         if "level" not in ds.coords:
             raise ValueError(
                 "A Dataset to sample needs upper-air levels: a surface-only "
@@ -157,7 +159,10 @@ class DatasetMet:
             )
         self.source = source
         self.grid = grid_from_coord(ds.coords["arl_grid"])
-        self.vertical_axis = _extract_dataset_vertical_axis(ds)
+        self.vertical_axis = _extract_dataset_vertical_axis(
+            ds,
+            fix="open the file with arlmet.open_dataset() or use a converter's output",
+        )
         _check_vertical_axis_agrees(ds, self.vertical_axis)
         h_dims = self.grid.dims
         for dim, size in zip(h_dims, (self.grid.ny, self.grid.nx), strict=True):
@@ -197,6 +202,25 @@ class DatasetMet:
             else:
                 self._fields[(0, name)] = (variable.transpose("time", *h_dims), None)
         self._index = {time: i for i, time in enumerate(self.times)}
+        self._stored: dict[str, npt.NDArray[np.bool_]] = {}
+
+    def _is_stored(self, key: tuple[int, str]) -> bool:
+        """
+        Whether the written file would hold a record for *key*.
+
+        ``write_dataset`` decides it across all time steps: a (level,
+        variable) with a value at any time step gets a record at every one.
+        """
+        level, name = key
+        if name not in self._stored:
+            variable, position = self._fields[key]
+            # One flag per level (or one for a surface variable), over time and grid.
+            stored = variable.notnull().any(
+                dim=[d for d in variable.dims if d != "level"]
+            )
+            self._stored[name] = np.atleast_1d(np.asarray(stored.values, dtype=bool))
+        flags = self._stored[name]
+        return bool(flags[0] if level == 0 else flags[level - 1])
 
     def __getitem__(self, time: Any) -> _DatasetTimeStep:
         return _DatasetTimeStep(self, self._index[ensure_timestamp(time)])
