@@ -341,8 +341,9 @@ def sample_points(
     such as a converter's output (:func:`arlmet.converters.from_gfs`, ...).
     It is sampled as the ARL file :func:`arlmet.write_dataset` would write
     from it, without writing one: the same vertical axis and values, and a
-    level whose slice is NaN everywhere at a time step counts as not stored
-    there, as a level the file has no record for. The values are the
+    variable is stored at a level when it holds a value there at any time
+    step; its slice that is NaN everywhere at one time step reads as NaN, as
+    the file's record flagged missing does. The values are the
     Dataset's own, so they differ from the written file's by its packing
     precision at most.
 

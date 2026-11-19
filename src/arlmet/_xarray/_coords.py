@@ -154,8 +154,10 @@ def vaxis_from_coord(
 def _extract_dataset_vertical_axis(
     ds: xr.Dataset,
     explicit_vertical_axis: VerticalAxis | None = None,
+    *,
+    fix: str = "open files with arlmet.open_dataset() or pass vertical_axis= to write_dataset()",
 ) -> VerticalAxis:
-    """Resolve the file-wide vertical axis for Dataset writes."""
+    """Resolve the file-wide vertical axis of a Dataset; *fix* ends the error messages."""
     if explicit_vertical_axis is not None:
         if not isinstance(explicit_vertical_axis, VerticalAxis):
             raise TypeError("vertical_axis must be a VerticalAxis instance.")
@@ -168,9 +170,7 @@ def _extract_dataset_vertical_axis(
 
     flag = ds.attrs.get("vertical_flag")
     if flag is None:
-        raise ValueError(
-            "Dataset is missing attrs['vertical_flag']; pass vertical_axis= to write_dataset()."
-        )
+        raise ValueError(f"Dataset is missing attrs['vertical_flag']; {fix}.")
 
     level_coord = ds.coords["level"]
     for _coord_name, coord in ds.coords.items():
@@ -178,8 +178,7 @@ def _extract_dataset_vertical_axis(
             return vaxis_from_coord(int(flag), level_coord, coord)
 
     raise ValueError(
-        "Dataset is missing a physical level coordinate with attrs['surface']; "
-        "open files with arlmet.open_dataset() or pass vertical_axis= to write_dataset()."
+        f"Dataset is missing a physical level coordinate with attrs['surface']; {fix}."
     )
 
 

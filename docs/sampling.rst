@@ -521,9 +521,10 @@ refuses it.
 
 A Dataset can sit in the sequence of inputs beside files and paths. Its
 upper-air levels are numbered 1 to N in the order of its ``level`` coordinate,
-as ``write_dataset`` numbers them, and a variable whose slice at a level is NaN
-everywhere at a time step is not stored at that level, as a file holds no record
-there. A Dataset with no upper-air levels has no vertical axis and is refused.
+as ``write_dataset`` numbers them. A variable is stored at a level when it holds a
+value there at any time step, as ``write_dataset`` then writes a record at every
+time step: a slice that is NaN everywhere at one time step reads as NaN, as that
+record flagged missing does. A Dataset with no upper-air levels has no vertical axis and is refused.
 
 .. ipython:: python
    :suppress:
