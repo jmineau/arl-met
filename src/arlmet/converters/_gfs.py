@@ -17,7 +17,7 @@ from ._pressure import (
     standardize,
 )
 
-__all__ = ["GFS_READ_KEYS", "from_gfs"]
+__all__ = ["GFS_HPBL", "from_gfs"]
 
 #: GFS's pressure-level variables (cfgrib names, ``isobaricInhPa``) and their ARL fields.
 PRESSURE_LEVEL_FIELDS: dict[str, Field] = {
@@ -77,21 +77,21 @@ SINGLE_LEVEL_SOURCES: tuple[_Source, ...] = (
 #: The single-level fields by ARL name, scaled as they are found.
 _SINGLE_LEVEL_FIELDS = {s.field.name: s.field for s in SINGLE_LEVEL_SOURCES}
 
-#: NCEP's local GRIB2 parameter for the planetary boundary layer height,
-#: ``HPBL``: (discipline, parameterCategory, parameterNumber). ecCodes has no
-#: name for it, so cfgrib calls it ``unknown`` and gives these numbers only
-#: when the file is opened with :data:`GFS_READ_KEYS`.
-_HPBL = (0, 3, 196)
+#: NCEP's planetary boundary layer height, ``HPBL``, by its GRIB2 numbers.
+#: ecCodes has no name for this local parameter, and cfgrib's
+#: ``open_datasets`` drops it from a forecast file, where a second unnamed
+#: field shares its level. Open it on its own with these as both
+#: ``filter_by_keys`` and ``read_keys`` (:func:`from_gfs`).
+GFS_HPBL: dict[str, int] = {
+    "discipline": 0,
+    "parameterCategory": 3,
+    "parameterNumber": 196,
+}
 
-#: The GRIB keys to pass to cfgrib (``backend_kwargs={"read_keys": ...}``) so
-#: that :func:`from_gfs` can tell ``HPBL`` from other parameters ecCodes
-#: does not know.
-GFS_READ_KEYS = ("discipline", "parameterCategory", "parameterNumber")
 
-
-def _grib_numbers(da: xr.DataArray) -> tuple[object, ...]:
-    """Return a field's GRIB2 (discipline, category, number), as cfgrib gives them with :data:`GFS_READ_KEYS`."""
-    return tuple(da.attrs.get(f"GRIB_{key}") for key in GFS_READ_KEYS)
+def _is_hpbl(da: xr.DataArray) -> bool:
+    """Whether *da* is ``HPBL``, by the GRIB2 numbers cfgrib gives it with ``read_keys``."""
+    return all(da.attrs.get(f"GRIB_{key}") == value for key, value in GFS_HPBL.items())
 
 
 def _arl_name(ds: xr.Dataset, name: str, da: xr.DataArray) -> str | None:
@@ -103,11 +103,7 @@ def _arl_name(ds: xr.Dataset, name: str, da: xr.DataArray) -> str | None:
         if field is not None and step_type == "instant" and "isobaricInhPa" in da.dims:
             return field.name
         return None
-    if (
-        type_of_level == "surface"
-        and step_type == "instant"
-        and _grib_numbers(da) == _HPBL
-    ):
+    if type_of_level == "surface" and step_type == "instant" and _is_hpbl(da):
         return "PBLH"
     for source in SINGLE_LEVEL_SOURCES:
         if (
@@ -206,11 +202,11 @@ def from_gfs(
 
     NCEP's planetary boundary layer height, ``HPBL``, is a local GRIB2
     parameter that ecCodes (2.50 and earlier) has no name for, so cfgrib
-    calls it ``unknown``. Open the files with
-    ``backend_kwargs={"read_keys": list(arlmet.converters.GFS_READ_KEYS)}``
-    and it is found by its numbers (discipline 0, category 3, number 196)
-    and written as ``PBLH``; without them it is left out. A future ecCodes
-    that names it ``hpbl`` needs no keys.
+    calls it ``unknown``, and :func:`cfgrib.open_datasets` drops it from a
+    forecast file, where a second unnamed field shares its level. Open it on
+    its own with :data:`GFS_HPBL` (Examples): it is found by its numbers
+    and written as ``PBLH``. Without it no ``PBLH`` is written. A future
+    ecCodes that names it ``hpbl`` needs no second open.
 
     Parameters
     ----------
@@ -254,9 +250,16 @@ def from_gfs(
     >>> import cfgrib  # doctest: +SKIP
     >>> import arlmet
     >>> files = ["gdas.t18z.pgrb2.1p00.f006", "gdas.t00z.pgrb2.1p00.f000"]
-    >>> keys = {"read_keys": list(arlmet.converters.GFS_READ_KEYS)}
+    >>> import xarray as xr
+    >>> hpbl = {
+    ...     "filter_by_keys": arlmet.converters.GFS_HPBL,
+    ...     "read_keys": list(arlmet.converters.GFS_HPBL),
+    ... }
     >>> datasets = [
-    ...     ds for f in files for ds in cfgrib.open_datasets(f, backend_kwargs=keys)
+    ...     ds for f in files for ds in cfgrib.open_datasets(f)
+    ... ]  # doctest: +SKIP
+    >>> datasets += [
+    ...     xr.open_dataset(f, engine="cfgrib", backend_kwargs=hpbl) for f in files
     ... ]  # doctest: +SKIP
     >>> ds = arlmet.converters.from_gfs(datasets)  # doctest: +SKIP
     >>> arlmet.write_dataset(ds, "gdas.arl")  # doctest: +SKIP
