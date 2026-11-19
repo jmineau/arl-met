@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
+import xarray as xr
 
 from arlmet.vertical import (
     HybridAxis,
@@ -245,7 +246,7 @@ class InternalLevels:
 
 
 def internal_levels(
-    file: File | str | os.PathLike[str], *, model_top: float = 25000.0
+    file: File | str | os.PathLike[str] | xr.Dataset, *, model_top: float = 25000.0
 ) -> InternalLevels:
     """
     Return HYSPLIT's internal vertical levels for a run on *file* with *model_top*.
@@ -259,9 +260,11 @@ def internal_levels(
 
     Parameters
     ----------
-    file : File or path-like
-        An open ARL file, or the path to one. Only its vertical axis and
-        source are read; a path is opened and closed here.
+    file : File, path-like, or xarray.Dataset
+        An open ARL file, the path to one, or a Dataset in
+        :func:`arlmet.open_dataset`'s layout, such as a converter's output,
+        as :func:`sample_points` takes. Only its vertical axis and source are
+        read; a path is opened and closed here.
     model_top : float, default 25000
         The run's top of model domain [m] (the ``CONTROL`` line after the
         vertical motion option; PYSTILT's ``z_top``), as in
@@ -295,6 +298,15 @@ def internal_levels(
     if not (np.isfinite(model_top) and model_top > 0):
         raise ValueError(
             f"model_top must be a positive number of meters, got {model_top!r}."
+        )
+    if isinstance(file, xr.Dataset):
+        from arlmet._xarray._sampling import (  # lazy: _xarray imports _ops
+            DatasetMet,
+        )
+
+        dataset = DatasetMet(file)
+        return InternalLevels._for_axis(
+            dataset.vertical_axis, model_top, source=dataset.source
         )
     if isinstance(file, File):
         return InternalLevels._for_axis(

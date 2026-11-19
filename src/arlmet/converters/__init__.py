@@ -17,8 +17,8 @@ flux is named ``LHTF`` (``metini.f``).
 """
 
 from ._era5 import from_era5
-from ._gfs import from_gfs
+from ._gfs import GFS_READ_KEYS, from_gfs
 from ._icon import from_icon
 from ._wrf import from_wrf
 
-__all__ = ["from_era5", "from_gfs", "from_icon", "from_wrf"]
+__all__ = ["GFS_READ_KEYS", "from_era5", "from_gfs", "from_icon", "from_wrf"]

@@ -47,6 +47,7 @@ Turn a model's own output, opened with xarray, into a Dataset that
 
    converters.from_era5
    converters.from_gfs
+   converters.GFS_READ_KEYS
    converters.from_icon
    converters.from_wrf
 

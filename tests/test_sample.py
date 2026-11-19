@@ -3070,6 +3070,19 @@ def test_internal_levels_from_a_file(tmp_path):
         from_path.heights[0] = 0.0
 
 
+def test_internal_levels_from_a_dataset_are_its_files(tmp_path):
+    """A Dataset in open_dataset's layout gives the levels of the file it reads as."""
+    path = tmp_path / "hilly.arl"
+    write_hilly_file(path)
+    ds = arlmet.open_dataset(path)
+
+    from_dataset = arlmet.internal_levels(ds, model_top=40000.0)
+
+    from_path = arlmet.internal_levels(path, model_top=40000.0)
+    np.testing.assert_array_equal(from_dataset.heights, from_path.heights)
+    assert (from_dataset.zmdl, from_dataset.zmdlt) == (from_path.zmdl, from_path.zmdlt)
+
+
 @pytest.mark.parametrize("model_top", [0.0, -100.0, float("nan"), float("inf")])
 def test_internal_levels_need_a_positive_model_top(tmp_path, model_top):
     path = tmp_path / "hilly.arl"

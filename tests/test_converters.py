@@ -6,7 +6,7 @@ import pytest
 import xarray as xr
 
 import arlmet
-from arlmet.converters import from_era5, from_gfs, from_icon, from_wrf
+from arlmet.converters import GFS_READ_KEYS, from_era5, from_gfs, from_icon, from_wrf
 from arlmet.converters._latlon import latlon_grid
 
 TIMES = pd.date_range("2024-07-18 00:00", periods=2, freq="h")
@@ -577,6 +577,54 @@ class TestFromGfs:
         grid = ds.arl.grid.projection
         assert (grid.sync_lat, grid.sync_lon, grid.pole_lon) == (39.0, 250.0, 256.0)
         assert all("diff" not in ds[name].attrs for name in ds.data_vars)
+
+    def test_hpbl_is_found_by_its_grib_numbers(self):
+        """EcCodes calls NCEP's HPBL ``unknown``; cfgrib's read_keys give its numbers."""
+        cubes = gfs_file("2025-09-01 00:00", 0)
+        flat = ("latitude", "longitude")
+        values = np.full((len(GFS_LATS), len(GFS_LONS)), 800.0, dtype="float32")
+
+        def unknown(numbers):
+            cube = _cube({"unknown": (flat, values)}, "2025-09-01 00:00", 0,
+                         ("surface", 0.0))  # fmt: skip
+            if numbers is not None:
+                cube["unknown"].attrs.update(
+                    dict(
+                        zip([f"GRIB_{k}" for k in GFS_READ_KEYS], numbers, strict=True)
+                    )
+                )
+            return cube
+
+        ds = from_gfs([*cubes, unknown((0, 3, 196))])
+        np.testing.assert_allclose(ds["PBLH"].values, 800.0)
+        assert ds["PBLH"].attrs["units"] == "m"
+        # Another parameter ecCodes does not know, or HPBL opened without the
+        # keys, is left out.
+        for numbers in [(0, 3, 197), None]:
+            assert "PBLH" not in from_gfs([*cubes, unknown(numbers)])
+
+    @pytest.mark.parametrize(
+        "bbox", [(-108.0, 40.0, -105.0, 43.0), (252.0, 40.0, 255.0, 43.0)],
+        ids=["-180-180", "0-360"],
+    )  # fmt: skip
+    def test_bbox_converts_only_the_cells_inside(self, bbox):
+        cubes = gfs_file("2025-09-01 00:00", 0)
+        by_hand = [
+            d.sel(latitude=slice(43.0, 40.0), longitude=slice(252.0, 255.0))
+            for d in cubes
+        ]
+
+        ds = from_gfs(cubes, bbox=bbox)
+
+        expected = from_gfs(by_hand)
+        assert ds.sizes == expected.sizes
+        for name in expected.data_vars:
+            np.testing.assert_array_equal(ds[name].values, expected[name].values)
+        assert ds.arl.grid == expected.arl.grid
+
+    def test_bbox_outside_the_grid_is_refused(self):
+        with pytest.raises(ValueError, match="no cell"):
+            from_gfs(gfs_file("2025-09-01 00:00", 0), bbox=(0.0, 0.0, 10.0, 10.0))
 
     def test_analysis_takes_fluxes_from_the_previous_forecast(self):
         analysis = gfs_file("2025-09-01 00:00", 0, seed=0)

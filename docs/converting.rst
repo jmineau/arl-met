@@ -247,14 +247,17 @@ forecast hour:
 
 Open each file with cfgrib (``pip install cfgrib eccodes``), which splits a
 GRIB2 file into one Dataset per kind of level, and pass all the Datasets of all
-the files together:
+the files together. Give cfgrib the keys in
+:data:`~arlmet.converters.GFS_READ_KEYS`, so that the boundary layer height
+is found (below):
 
 .. code-block:: python
 
    import cfgrib
 
    files = ["gdas.t18z.pgrb2.1p00.f006", "gdas.t00z.pgrb2.1p00.f000"]
-   datasets = [ds for f in files for ds in cfgrib.open_datasets(f)]
+   keys = {"read_keys": list(arlmet.converters.GFS_READ_KEYS)}
+   datasets = [ds for f in files for ds in cfgrib.open_datasets(f, backend_kwargs=keys)]
 
 Each valid time becomes one time step. An analysis has no precipitation or
 fluxes, which a forecast accumulates or averages over its hours, so where two
@@ -282,9 +285,12 @@ The API page of :func:`~arlmet.converters.from_gfs` lists the GRIB2 variables
 it converts. All the pressure levels of a file are written; to write fewer,
 select them first, in the Dataset that holds ``gh``
 (``d.sel(isobaricInhPa=[1000, 925, 850, 700, 500, 300, 200])``). NCEP's
-planetary boundary layer height is a local GRIB2 parameter that ecCodes reads
-as ``unknown``, so ``PBLH`` is not written, and the GDAS files' instantaneous
-total cloud cover is missing at every point, so they give no ``TCLD``. Like
+planetary boundary layer height, ``HPBL``, is a local GRIB2 parameter that
+ecCodes has no name for: cfgrib calls it ``unknown``, and with
+:data:`~arlmet.converters.GFS_READ_KEYS` it also gives the parameter's
+numbers, by which it is written as ``PBLH``. Opened without those keys, the
+files give no ``PBLH``. The GDAS files' instantaneous total cloud cover is
+missing at every point, so they give no ``TCLD``. Like
 ``api2arl``, it writes no ``DIF*`` records.
 
 ICON
