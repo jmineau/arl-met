@@ -7,6 +7,16 @@ file alone: the entries are written at release (`just changelog` drafts them).
 
 ## [Unreleased]
 
+## [0.1.0b11] - 2026-11-19
+
+### Added
+
+- `sample_points` takes a Dataset in `open_dataset`'s layout, such as a converter's output, and samples it as the file `write_dataset` would write, without writing one. A field counts as stored when its variable and level hold data at any time step, as `write_dataset` decides it. (#239, #240)
+
+### Changed
+
+- The package has a logo, a favicon and a link preview in the README and the docs, and the tooling follows python-template v1.4.0. (#238)
+
 ## [0.1.0b10] - 2026-11-14
 
 ### Added
