@@ -9,7 +9,7 @@ the winds of a mass-coupled WRF file.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 import numpy as np
 import numpy.typing as npt
@@ -17,10 +17,59 @@ import numpy.typing as npt
 from .horizontal import Plan, sample_field
 
 if TYPE_CHECKING:
-    from arlmet._grid import GridWindow
-    from arlmet._recordset import RecordSet
+    import pandas as pd
 
-__all__ = ["levels_of", "mass_coupled", "sample_levels"]
+    from arlmet._grid import Grid, GridWindow
+    from arlmet.vertical import VerticalAxis
+
+__all__ = ["Field", "TimeStep", "levels_of", "mass_coupled", "sample_levels"]
+
+
+class Field(Protocol):
+    """One stored 2D field: a :class:`~arlmet.DataRecord`, or a slice of a Dataset."""
+
+    def read(self, window: GridWindow | None = None) -> npt.NDArray[np.float32]:
+        """Return the field, or the part of it in *window*, as float32."""
+        ...
+
+
+class TimeStep(Protocol):
+    """
+    The fields of one valid time, as the samplers read them.
+
+    A :class:`~arlmet.RecordSet` of an ARL file, or one time of a Dataset in
+    :func:`arlmet.open_dataset`'s layout (``arlmet._xarray._sampling``). A
+    field is stored at a level when ``(level, name) in`` the time step.
+    """
+
+    @property
+    def time(self) -> pd.Timestamp:
+        """The valid time."""
+        ...
+
+    @property
+    def source(self) -> str:
+        """The ARL source ID, such as ``"AWRF"``."""
+        ...
+
+    @property
+    def grid(self) -> Grid:
+        """The horizontal grid."""
+        ...
+
+    @property
+    def vertical_axis(self) -> VerticalAxis:
+        """The vertical axis; its levels are numbered from 0, the ground."""
+        ...
+
+    def __contains__(self, key: object, /) -> bool:
+        """Return whether the field ``(level, name)`` is stored."""
+        ...
+
+    def __getitem__(self, key: tuple[int, str], /) -> Field:
+        """Return the stored field ``(level, name)``."""
+        ...
+
 
 #: On a mass-coupled WRF file (``AWRF`` with ``MUU0`` and ``MUV0``: ``arw2arl``'s
 #: time-averaged fluxes, HYSPLIT's ``WRF = 3``), each upper-level wind is stored
@@ -34,7 +83,7 @@ _DECOUPLE: dict[str, tuple[str, str | float]] = {
 }
 
 
-def mass_coupled(recordset: RecordSet) -> bool:
+def mass_coupled(recordset: TimeStep) -> bool:
     """
     Whether the time step's winds are WRF's mass-coupled fluxes (HYSPLIT's ``WRF = 3``).
 
@@ -46,23 +95,26 @@ def mass_coupled(recordset: RecordSet) -> bool:
     )
 
 
-def levels_of(recordset: RecordSet, variable: str) -> tuple[int, ...]:
+def levels_of(recordset: TimeStep, variable: str) -> tuple[int, ...]:
     """
     Levels at which the time step holds *variable* as HYSPLIT reads it, in order.
 
     ``TEMP`` on a file without it but with potential temperature (``THET``) is
     at the levels that hold both ``THET`` and ``PRES`` (:func:`_read_field`).
     """
-    levels = sorted(r.level for r in recordset.records if r.variable == variable)
+    every = range(len(recordset.vertical_axis.levels))
+    levels = [level for level in every if (level, variable) in recordset]
     if not levels and variable == "TEMP":
-        theta = {r.level for r in recordset.records if r.variable == "THET"}
-        pres = {r.level for r in recordset.records if r.variable == "PRES"}
-        levels = sorted(theta & pres)
+        levels = [
+            level
+            for level in every
+            if (level, "THET") in recordset and (level, "PRES") in recordset
+        ]
     return tuple(levels)
 
 
 def _read_field(
-    recordset: RecordSet, variable: str, level: int, window: GridWindow
+    recordset: TimeStep, variable: str, level: int, window: GridWindow
 ) -> npt.NDArray[Any]:
     """
     Read *variable* at *level* in *window* as HYSPLIT's ``metinp.f`` uses it.
@@ -98,7 +150,7 @@ def _read_field(
 
 
 def sample_levels(
-    recordset: RecordSet,
+    recordset: TimeStep,
     variable: str,
     plan: Plan,
     levels: Sequence[int] | None = None,

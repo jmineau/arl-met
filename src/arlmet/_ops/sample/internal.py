@@ -32,9 +32,9 @@ from .profile import PRESSURE_VARIABLES, interp_profiles, variable_profile
 
 if TYPE_CHECKING:
     from arlmet._file import File
-    from arlmet._recordset import RecordSet
 
     from .column import Column
+    from .fields import TimeStep
 
 __all__ = ["InternalLevels", "internal_levels", "sample_on_internal_levels"]
 
@@ -333,7 +333,7 @@ def _pressure_above_top(
 
 
 def sample_on_internal_levels(
-    recordset: RecordSet,
+    recordset: TimeStep,
     variable: str,
     k: npt.NDArray[Any],
     f: npt.NDArray[Any],

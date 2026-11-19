@@ -38,7 +38,7 @@ src/arlmet/
   archives.py; _inventory.py, _probe.py  NOAA archive downloads and sync; inventory, Inventory; probe, Probe
   _ops/                                extract_subset, sample_points and internal_levels (in `sample/`), concat, concat_by_time
   converters/                          from_era5, from_gfs, from_icon, from_wrf (in `_era5.py`, ...)
-  _xarray/                             open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl
+  _xarray/                             open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl; a Dataset as a sample_points input (`_sampling.py`)
 ```
 
 **A module is public only if it gives something `arlmet` itself does not**: `record`, `packing`,
@@ -47,7 +47,8 @@ so the release's promise (names in a public `__all__`) is not made twice for eac
 A new module is private unless it holds such a name.
 
 `_ops/` and `_xarray/` sit on top of `_file.py`; `File` imports them inside its
-methods, keeping the import graph one-way; `converters/` sits on `_xarray/`.
+methods, keeping the import graph one-way, as `sample_points` imports `_xarray._sampling`
+(samplers read a `RecordSet` or a Dataset's time step through `fields.TimeStep`); `converters/` sits on `_xarray/`.
 `archives.py` imports `fsspec` only when it downloads (no `archives` extra needed).
 
 ## ARL format rules
