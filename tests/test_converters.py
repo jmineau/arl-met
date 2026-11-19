@@ -6,7 +6,7 @@ import pytest
 import xarray as xr
 
 import arlmet
-from arlmet.converters import GFS_READ_KEYS, from_era5, from_gfs, from_icon, from_wrf
+from arlmet.converters import GFS_HPBL, from_era5, from_gfs, from_icon, from_wrf
 from arlmet.converters._latlon import latlon_grid
 
 TIMES = pd.date_range("2024-07-18 00:00", periods=2, freq="h")
@@ -589,9 +589,7 @@ class TestFromGfs:
                          ("surface", 0.0))  # fmt: skip
             if numbers is not None:
                 cube["unknown"].attrs.update(
-                    dict(
-                        zip([f"GRIB_{k}" for k in GFS_READ_KEYS], numbers, strict=True)
-                    )
+                    dict(zip([f"GRIB_{k}" for k in GFS_HPBL], numbers, strict=True))
                 )
             return cube
 

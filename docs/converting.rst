@@ -247,17 +247,27 @@ forecast hour:
 
 Open each file with cfgrib (``pip install cfgrib eccodes``), which splits a
 GRIB2 file into one Dataset per kind of level, and pass all the Datasets of all
-the files together. Give cfgrib the keys in
-:data:`~arlmet.converters.GFS_READ_KEYS`, so that the boundary layer height
-is found (below):
+the files together. The boundary layer height needs a second open of each
+file (below):
 
 .. code-block:: python
 
    import cfgrib
+   import xarray as xr
 
    files = ["gdas.t18z.pgrb2.1p00.f006", "gdas.t00z.pgrb2.1p00.f000"]
-   keys = {"read_keys": list(arlmet.converters.GFS_READ_KEYS)}
-   datasets = [ds for f in files for ds in cfgrib.open_datasets(f, backend_kwargs=keys)]
+   datasets = [ds for f in files for ds in cfgrib.open_datasets(f)]
+   hpbl = {
+       "filter_by_keys": arlmet.converters.GFS_HPBL,
+       "read_keys": list(arlmet.converters.GFS_HPBL),
+   }
+   datasets += [xr.open_dataset(f, engine="cfgrib", backend_kwargs=hpbl) for f in files]
+
+Keep cfgrib's index files (its default, ``indexpath`` unset): without them it
+reads the whole file again for every Dataset, and opening ten 0.25 degree
+files can read hundreds of gigabytes. To convert a region, pass
+``bbox=(west, south, east, north)``: each field is cropped before it is read
+into memory.
 
 Each valid time becomes one time step. An analysis has no precipitation or
 fluxes, which a forecast accumulates or averages over its hours, so where two
@@ -286,10 +296,11 @@ it converts. All the pressure levels of a file are written; to write fewer,
 select them first, in the Dataset that holds ``gh``
 (``d.sel(isobaricInhPa=[1000, 925, 850, 700, 500, 300, 200])``). NCEP's
 planetary boundary layer height, ``HPBL``, is a local GRIB2 parameter that
-ecCodes has no name for: cfgrib calls it ``unknown``, and with
-:data:`~arlmet.converters.GFS_READ_KEYS` it also gives the parameter's
-numbers, by which it is written as ``PBLH``. Opened without those keys, the
-files give no ``PBLH``. The GDAS files' instantaneous total cloud cover is
+ecCodes has no name for: cfgrib calls it ``unknown``, and
+:func:`cfgrib.open_datasets` drops it from a forecast file, where a second
+unnamed field shares its level. The second open above finds it by its
+numbers (:data:`~arlmet.converters.GFS_HPBL`), and it is written as
+``PBLH``; without it, no ``PBLH``. The GDAS files' instantaneous total cloud cover is
 missing at every point, so they give no ``TCLD``. Like
 ``api2arl``, it writes no ``DIF*`` records.
 
