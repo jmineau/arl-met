@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../../_static/documentation_options.js?v=da6853ff"></script>
+    <script src="../../../../_static/documentation_options.js?v=df1e2b61"></script>
     <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b11.dev3+g1a4ec0eae" />
+  <meta name="docsearch:version" content="0.1.0b11.dev5+g3c0b08150" />
   
     
     <script src="../../../../_static/searchtools.js"></script>
@@ -465,9 +465,9 @@
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._recordset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordSet</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">.column</span><span class="w"> </span><span class="kn">import</span> <span class="n">Column</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.fields</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeStep</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"InternalLevels"</span><span class="p">,</span> <span class="s2">"internal_levels"</span><span class="p">,</span> <span class="s2">"sample_on_internal_levels"</span><span class="p">]</span>
 
@@ -778,7 +778,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">sample_on_internal_levels</span><span class="p">(</span>
-    <span class="n">recordset</span><span class="p">:</span> <span class="n">RecordSet</span><span class="p">,</span>
+    <span class="n">recordset</span><span class="p">:</span> <span class="n">TimeStep</span><span class="p">,</span>
     <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">k</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">f</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=da6853ff"></script>
+    <script src="_static/documentation_options.js?v=df1e2b61"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b11.dev3+g1a4ec0eae" />
+  <meta name="docsearch:version" content="0.1.0b11.dev5+g3c0b08150" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -967,6 +967,66 @@ paths it opened.</p>
 <p>You can mix open files and paths in the same sequence; files you opened stay
 open, and paths are closed for you.</p>
 </section>
+<section id="sampling-a-dataset">
+<h2>Sampling a Dataset<a class="headerlink" href="#sampling-a-dataset" title="Link to this heading">#</a></h2>
+<p>An input can also be a Dataset in <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a>’s layout. Use it
+for met you have in another format: a converter (<a class="reference internal" href="converting.html"><span class="doc">Converting Other Models’ Output</span></a>) turns GFS or
+ERA5 GRIB, WRF or ICON output into that layout, and <code class="docutils literal notranslate"><span class="pre">sample_points</span></code> reads it
+as it would read the ARL file <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> writes from it,
+without writing one. You get the values HYSPLIT would use from that file, on
+its internal levels, from the same GRIB files your own model read.</p>
+<p>Here made-up Datasets laid out as <code class="docutils literal notranslate"><span class="pre">cfgrib.open_datasets</span></code> returns them stand in
+for two GDAS GRIB2 files (the <a class="reference internal" href="converting.html"><span class="doc">Converting Other Models’ Output</span></a> guide describes them):</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [34]: </span><span class="n">gfs</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_gfs</span><span class="p">(</span><span class="n">docs_examples</span><span class="o">.</span><span class="n">gfs_sample</span><span class="p">())</span>
+
+<span class="gp">In [35]: </span><span class="n">points</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<span class="gp">   ....: </span>    <span class="p">{</span>
+<span class="gp">   ....: </span>        <span class="s2">"lon"</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">111.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">105.0</span><span class="p">],</span>
+<span class="gp">   ....: </span>        <span class="s2">"lat"</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.7</span><span class="p">,</span> <span class="mf">39.7</span><span class="p">],</span>
+<span class="gp">   ....: </span>        <span class="s2">"z"</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.0</span><span class="p">,</span> <span class="mf">500.0</span><span class="p">],</span>
+<span class="gp">   ....: </span>        <span class="s2">"time"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"2025-09-01 00:00"</span><span class="p">,</span> <span class="s2">"2025-09-01 00:00"</span><span class="p">],</span>
+<span class="gp">   ....: </span>    <span class="p">}</span>
+<span class="gp">   ....: </span><span class="p">)</span>
+<span class="gp">   ....: </span>
+
+<span class="gp">In [36]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">gfs</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">"TEMP"</span><span class="p">,</span> <span class="s2">"pressure"</span><span class="p">],</span> <span class="n">z_kind</span><span class="o">=</span><span class="s2">"agl"</span><span class="p">)</span>
+<span class="gh">Out[36]: </span>
+<span class="go">     lon   lat      z              time        TEMP    pressure</span>
+<span class="go">0 -111.9  40.7   10.0  2025-09-01 00:00  287.582031  851.389038</span>
+<span class="go">1 -105.0  39.7  500.0  2025-09-01 00:00  284.449951  814.476257</span>
+</pre></div>
+</div>
+<p>The file written from the same Dataset gives the same values to its packing
+precision, about a hundredth of a kelvin here:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [37]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">write_dataset</span><span class="p">(</span><span class="n">gfs</span><span class="p">,</span> <span class="s2">"gdas.arl"</span><span class="p">)</span>
+
+<span class="gp">In [38]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="s2">"gdas.arl"</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">"TEMP"</span><span class="p">,</span> <span class="s2">"pressure"</span><span class="p">],</span> <span class="n">z_kind</span><span class="o">=</span><span class="s2">"agl"</span><span class="p">)</span>
+<span class="gh">Out[38]: </span>
+<span class="go">     lon   lat      z              time        TEMP    pressure</span>
+<span class="go">0 -111.9  40.7   10.0  2025-09-01 00:00  287.592010  851.405640</span>
+<span class="go">1 -105.0  39.7  500.0  2025-09-01 00:00  284.450043  814.477051</span>
+</pre></div>
+</div>
+<p>A converter loads every field it converts into memory: two global GFS 0.25
+degree time steps take about 6 GB. Crop the GRIB Datasets to your region before
+converting, and the values are the same at a tenth of the memory:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cfgrib</span>
+
+<span class="n">datasets</span> <span class="o">=</span> <span class="p">[</span><span class="n">ds</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span> <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">open_datasets</span><span class="p">(</span><span class="n">f</span><span class="p">)]</span>
+<span class="n">region</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">latitude</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="mi">45</span><span class="p">,</span> <span class="mi">35</span><span class="p">),</span> <span class="n">longitude</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="mi">240</span><span class="p">,</span> <span class="mi">255</span><span class="p">))</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">]</span>
+<span class="n">gfs</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">converters</span><span class="o">.</span><span class="n">from_gfs</span><span class="p">(</span><span class="n">region</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Cut the Dataset the converter returns with <code class="docutils literal notranslate"><span class="pre">sel</span></code> or <code class="docutils literal notranslate"><span class="pre">isel</span></code> and it keeps the
+whole grid’s description (its <code class="docutils literal notranslate"><span class="pre">arl_grid</span></code> coordinate), so <code class="docutils literal notranslate"><span class="pre">sample_points</span></code>
+refuses it.</p>
+<p>A Dataset can sit in the sequence of inputs beside files and paths. Its
+upper-air levels are numbered 1 to N in the order of its <code class="docutils literal notranslate"><span class="pre">level</span></code> coordinate,
+as <code class="docutils literal notranslate"><span class="pre">write_dataset</span></code> numbers them. A variable is stored at a level when it holds a
+value there at any time step, as <code class="docutils literal notranslate"><span class="pre">write_dataset</span></code> then writes a record at every
+time step: a slice that is NaN everywhere at one time step reads as NaN, as that
+record flagged missing does. A Dataset with no upper-air levels has no vertical axis and is refused.</p>
+</section>
 <section id="limitations">
 <h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading">#</a></h2>
 <ul class="simple">
@@ -1048,6 +1108,7 @@ lowest level with data is NaN.</p></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wrf-winds">WRF winds</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#point-times">Point times</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sampling-across-multiple-files">Sampling across multiple files</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sampling-a-dataset">Sampling a Dataset</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#limitations">Limitations</a></li>
 </ul>
   </nav></div>
