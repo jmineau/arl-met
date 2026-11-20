@@ -1,0 +1,6 @@
+arlmet.archives.NAMArchive.step
+===============================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: NAMArchive.step

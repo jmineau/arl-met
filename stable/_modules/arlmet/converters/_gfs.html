@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.converters._gfs &#8212; arl-met 0.1.0b11</title>
+    <title>arlmet.converters._gfs &#8212; arl-met 0.1.0b12</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=88ca9cf6"></script>
+    <script src="../../../_static/documentation_options.js?v=bf32169c"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b11';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b12';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b11" />
+  <meta name="docsearch:version" content="0.1.0b12" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -438,6 +438,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">NamedTuple</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
@@ -449,7 +450,7 @@
     <span class="n">standardize</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"from_gfs"</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"GFS_HPBL"</span><span class="p">,</span> <span class="s2">"from_gfs"</span><span class="p">]</span>
 
 <span class="c1">#: GFS's pressure-level variables (cfgrib names, ``isobaricInhPa``) and their ARL fields.</span>
 <span class="n">PRESSURE_LEVEL_FIELDS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
@@ -495,6 +496,7 @@
     <span class="n">_Source</span><span class="p">(</span><span class="s2">"surface"</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s2">"cape"</span><span class="p">,),</span> <span class="s2">"instant"</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"CAPE"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"J kg-1"</span><span class="p">)),</span>
     <span class="n">_Source</span><span class="p">(</span><span class="s2">"surface"</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s2">"cin"</span><span class="p">,),</span> <span class="s2">"instant"</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"CINH"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"J kg-1"</span><span class="p">)),</span>
     <span class="n">_Source</span><span class="p">(</span><span class="s2">"surface"</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s2">"fricv"</span><span class="p">,),</span> <span class="s2">"instant"</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"USTR"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">)),</span>
+    <span class="n">_Source</span><span class="p">(</span><span class="s2">"surface"</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s2">"hpbl"</span><span class="p">,),</span> <span class="s2">"instant"</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"PBLH"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">)),</span>
     <span class="n">_Source</span><span class="p">(</span><span class="s2">"surface"</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s2">"tp"</span><span class="p">,),</span> <span class="s2">"accum"</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"TPP6"</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">)),</span>
     <span class="n">_Source</span><span class="p">(</span><span class="s2">"surface"</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s2">"avg_ishf"</span><span class="p">,</span> <span class="s2">"shtfl"</span><span class="p">),</span> <span class="s2">"avg"</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"SHTF"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"W m-2"</span><span class="p">)),</span>
     <span class="n">_Source</span><span class="p">(</span>
@@ -508,6 +510,22 @@
 <span class="c1">#: The single-level fields by ARL name, scaled as they are found.</span>
 <span class="n">_SINGLE_LEVEL_FIELDS</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="o">.</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">field</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">SINGLE_LEVEL_SOURCES</span><span class="p">}</span>
 
+<span class="c1">#: NCEP's planetary boundary layer height, ``HPBL``, by its GRIB2 numbers.</span>
+<span class="c1">#: ecCodes has no name for this local parameter, and cfgrib's</span>
+<span class="c1">#: ``open_datasets`` drops it from a forecast file, where a second unnamed</span>
+<span class="c1">#: field shares its level. Open it on its own with these as both</span>
+<span class="c1">#: ``filter_by_keys`` and ``read_keys`` (:func:`from_gfs`).</span>
+<span class="n">GFS_HPBL</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"discipline"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">"parameterCategory"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s2">"parameterNumber"</span><span class="p">:</span> <span class="mi">196</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_hpbl</span><span class="p">(</span><span class="n">da</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether *da* is ``HPBL``, by the GRIB2 numbers cfgrib gives it with ``read_keys``."""</span>
+    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">da</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">"GRIB_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="o">==</span> <span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">GFS_HPBL</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_arl_name</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">da</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Return the ARL name ``ds[name]`` converts to, or None if it is not converted."""</span>
@@ -518,6 +536,8 @@
         <span class="k">if</span> <span class="n">field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">step_type</span> <span class="o">==</span> <span class="s2">"instant"</span> <span class="ow">and</span> <span class="s2">"isobaricInhPa"</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span>
         <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">type_of_level</span> <span class="o">==</span> <span class="s2">"surface"</span> <span class="ow">and</span> <span class="n">step_type</span> <span class="o">==</span> <span class="s2">"instant"</span> <span class="ow">and</span> <span class="n">_is_hpbl</span><span class="p">(</span><span class="n">da</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"PBLH"</span>
     <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">SINGLE_LEVEL_SOURCES</span><span class="p">:</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="n">type_of_level</span> <span class="o">==</span> <span class="n">source</span><span class="o">.</span><span class="n">type_of_level</span>
@@ -532,9 +552,41 @@
     <span class="k">return</span> <span class="kc">None</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_crop</span><span class="p">(</span><span class="n">da</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">,</span> <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Return the cells of *da* inside *bbox*, ``(west, south, east, north)`` in degrees.</span>
+
+<span class="sd">    GRIB's longitudes run from 0 to 360; the box's may be on either</span>
+<span class="sd">    convention and may cross 0 or 180. The kept longitudes are counted east</span>
+<span class="sd">    from ``west``, so a box across 0 keeps its cells in order.</span>
+<span class="sd">    """</span>
+    <span class="n">west</span><span class="p">,</span> <span class="n">south</span><span class="p">,</span> <span class="n">east</span><span class="p">,</span> <span class="n">north</span> <span class="o">=</span> <span class="n">bbox</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">south</span> <span class="o">&lt;</span> <span class="n">north</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"bbox needs south &lt; north; got </span><span class="si">{</span><span class="n">bbox</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+    <span class="n">lat</span> <span class="o">=</span> <span class="n">da</span><span class="p">[</span><span class="s2">"latitude"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">((</span><span class="n">lat</span> <span class="o">&gt;=</span> <span class="n">south</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">lat</span> <span class="o">&lt;=</span> <span class="n">north</span><span class="p">))</span>
+    <span class="n">from_west</span> <span class="o">=</span> <span class="p">(</span><span class="n">da</span><span class="p">[</span><span class="s2">"longitude"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="o">-</span> <span class="n">west</span><span class="p">)</span> <span class="o">%</span> <span class="mf">360.0</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="p">(</span><span class="n">east</span> <span class="o">-</span> <span class="n">west</span><span class="p">)</span> <span class="o">%</span> <span class="mf">360.0</span> <span class="ow">or</span> <span class="mf">360.0</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">from_west</span> <span class="o">&lt;=</span> <span class="n">width</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"bbox </span><span class="si">{</span><span class="n">bbox</span><span class="si">}</span><span class="s2"> holds no cell of the GFS grid."</span><span class="p">)</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">from_west</span><span class="p">[</span><span class="n">cols</span><span class="p">],</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"stable"</span><span class="p">)]</span>
+    <span class="n">cropped</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">latitude</span><span class="o">=</span><span class="n">rows</span><span class="p">,</span> <span class="n">longitude</span><span class="o">=</span><span class="n">cols</span><span class="p">)</span>
+    <span class="c1"># GRIB's own longitudes, unless the box crosses 0: then counted from</span>
+    <span class="c1"># west, so that they increase.</span>
+    <span class="n">lon</span> <span class="o">=</span> <span class="p">(</span><span class="n">west</span> <span class="o">+</span> <span class="n">from_west</span><span class="p">[</span><span class="n">cols</span><span class="p">])</span> <span class="o">%</span> <span class="mf">360.0</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">lon</span> <span class="o">=</span> <span class="n">west</span> <span class="o">+</span> <span class="n">from_west</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">cropped</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">(</span><span class="n">longitude</span><span class="o">=</span><span class="n">lon</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="from_gfs">
 <a class="viewcode-back" href="../../../_autosummary/arlmet.converters.from_gfs.html#arlmet.converters.from_gfs">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">from_gfs</span><span class="p">(</span><span class="n">datasets</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_gfs</span><span class="p">(</span>
+    <span class="n">datasets</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Convert GFS or GDAS GRIB2 files on pressure levels to a Dataset for :func:`arlmet.write_dataset`.</span>
 
@@ -571,6 +623,7 @@
 <span class="sd">    ``cape``, ``cin``      CAPE,   J kg-1</span>
 <span class="sd">                           CINH</span>
 <span class="sd">    ``fricv``              USTR    m s-1</span>
+<span class="sd">    ``HPBL`` (see below)   PBLH    m</span>
 <span class="sd">    ``tp``                 TPP6    kg m-2 to m, since the bucket's start</span>
 <span class="sd">    ``avg_ishf``           SHTF    W m-2, positive upward</span>
 <span class="sd">    ``avg_slhtf``          LHTF    W m-2, positive upward</span>
@@ -582,6 +635,14 @@
 <span class="sd">    Older ecCodes name the averaged fluxes ``shtfl``, ``lhtfl``, ``dswrf``,</span>
 <span class="sd">    ``uflx`` and ``vflx``; both names are read.</span>
 
+<span class="sd">    NCEP's planetary boundary layer height, ``HPBL``, is a local GRIB2</span>
+<span class="sd">    parameter that ecCodes (2.50 and earlier) has no name for, so cfgrib</span>
+<span class="sd">    calls it ``unknown``, and :func:`cfgrib.open_datasets` drops it from a</span>
+<span class="sd">    forecast file, where a second unnamed field shares its level. Open it on</span>
+<span class="sd">    its own with :data:`GFS_HPBL` (Examples): it is found by its numbers</span>
+<span class="sd">    and written as ``PBLH``. Without it no ``PBLH`` is written. A future</span>
+<span class="sd">    ecCodes that names it ``hpbl`` needs no second open.</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    datasets : iterable of xarray.Dataset</span>
@@ -590,6 +651,11 @@
 <span class="sd">        another. Datasets and variables not in the table are left out. Every</span>
 <span class="sd">        time step must have the same pressure levels; select them first</span>
 <span class="sd">        (``ds.sel(isobaricInhPa=...)``) to write fewer.</span>
+<span class="sd">    bbox : tuple of float, optional</span>
+<span class="sd">        A bounding box ``(west, south, east, north)`` in degrees, as</span>
+<span class="sd">        :func:`arlmet.open_dataset` takes: only the grid cells inside it are</span>
+<span class="sd">        converted. Longitudes may be from -180 to 180 or from 0 to 360, and</span>
+<span class="sd">        the box may cross 0. ``None`` converts the whole grid.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -606,19 +672,29 @@
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
-<span class="sd">    NCEP's planetary boundary layer height (``HPBL``) is a local GRIB2</span>
-<span class="sd">    parameter that ecCodes reads as ``unknown``, so ``PBLH`` is not written.</span>
 <span class="sd">    A field missing at every point (the GDAS files' instantaneous ``tcc``) is</span>
 <span class="sd">    left out when it is written.</span>
 <span class="sd">    No ``DIF*`` records are written, as ``api2arl`` writes none.</span>
+
+<span class="sd">    Each field is read from its file once, cropped to *bbox* first, and is</span>
+<span class="sd">    then in memory: a global 0.25 degree time step is about 3 GB, the</span>
+<span class="sd">    western United States about 0.2 GB.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
 <span class="sd">    &gt;&gt;&gt; import cfgrib  # doctest: +SKIP</span>
 <span class="sd">    &gt;&gt;&gt; import arlmet</span>
 <span class="sd">    &gt;&gt;&gt; files = ["gdas.t18z.pgrb2.1p00.f006", "gdas.t00z.pgrb2.1p00.f000"]</span>
+<span class="sd">    &gt;&gt;&gt; import xarray as xr</span>
+<span class="sd">    &gt;&gt;&gt; hpbl = {</span>
+<span class="sd">    ...     "filter_by_keys": arlmet.converters.GFS_HPBL,</span>
+<span class="sd">    ...     "read_keys": list(arlmet.converters.GFS_HPBL),</span>
+<span class="sd">    ... }</span>
 <span class="sd">    &gt;&gt;&gt; datasets = [</span>
 <span class="sd">    ...     ds for f in files for ds in cfgrib.open_datasets(f)</span>
+<span class="sd">    ... ]  # doctest: +SKIP</span>
+<span class="sd">    &gt;&gt;&gt; datasets += [</span>
+<span class="sd">    ...     xr.open_dataset(f, engine="cfgrib", backend_kwargs=hpbl) for f in files</span>
 <span class="sd">    ... ]  # doctest: +SKIP</span>
 <span class="sd">    &gt;&gt;&gt; ds = arlmet.converters.from_gfs(datasets)  # doctest: +SKIP</span>
 <span class="sd">    &gt;&gt;&gt; arlmet.write_dataset(ds, "gdas.arl")  # doctest: +SKIP</span>
@@ -649,6 +725,10 @@
         <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="mi">0</span> <span class="k">if</span> <span class="n">step_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">step_value</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">arl</span> <span class="ow">in</span> <span class="n">names</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">da</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">bbox</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">da</span> <span class="o">=</span> <span class="n">_crop</span><span class="p">(</span><span class="n">da</span><span class="p">,</span> <span class="n">bbox</span><span class="p">)</span>
+            <span class="c1"># Read once: cfgrib reads a whole message on every access.</span>
+            <span class="n">da</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
             <span class="n">target</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">upper</span>
                 <span class="k">if</span> <span class="n">arl</span> <span class="ow">in</span> <span class="p">{</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">PRESSURE_LEVEL_FIELDS</span><span class="o">.</span><span class="n">values</span><span class="p">()}</span>

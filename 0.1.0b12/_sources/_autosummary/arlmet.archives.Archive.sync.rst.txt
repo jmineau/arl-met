@@ -1,0 +1,5 @@
+arlmet.archives.Archive.sync
+============================
+
+.. currentmodule:: arlmet.archives
+.. automethod:: Archive.sync

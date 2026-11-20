@@ -1,0 +1,25 @@
+﻿arlmet.InternalLevels
+=====================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: InternalLevels
+   :no-members:
+
+
+
+
+
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~InternalLevels.heights_at
+   ~InternalLevels.scale
+
+
+

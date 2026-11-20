@@ -1,0 +1,36 @@
+﻿arlmet.Inventory
+================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: Inventory
+   :no-members:
+
+
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+   :nosignatures:
+
+   ~Inventory.cache
+   ~Inventory.directory
+   ~Inventory.step
+   ~Inventory.table
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~Inventory.covering
+   ~Inventory.missing
+
+
+

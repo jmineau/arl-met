@@ -1,0 +1,6 @@
+arlmet.archives.GFSArchive.step
+===============================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: GFSArchive.step

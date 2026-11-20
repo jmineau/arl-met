@@ -1,0 +1,6 @@
+arlmet.DataRecord.time
+======================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: DataRecord.time

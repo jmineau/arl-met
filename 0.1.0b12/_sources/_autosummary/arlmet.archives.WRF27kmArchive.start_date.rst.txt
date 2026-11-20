@@ -1,0 +1,6 @@
+arlmet.archives.WRF27kmArchive.start\_date
+==========================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: WRF27kmArchive.start_date

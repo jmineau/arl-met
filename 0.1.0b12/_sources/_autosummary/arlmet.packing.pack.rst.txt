@@ -1,0 +1,6 @@
+﻿arlmet.packing.pack
+===================
+
+.. currentmodule:: arlmet.packing
+
+.. autofunction:: pack

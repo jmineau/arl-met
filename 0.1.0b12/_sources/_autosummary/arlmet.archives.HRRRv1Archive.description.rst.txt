@@ -1,0 +1,6 @@
+arlmet.archives.HRRRv1Archive.description
+=========================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: HRRRv1Archive.description

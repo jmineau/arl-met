@@ -1,0 +1,6 @@
+arlmet.archives.GFSArchive.source
+=================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: GFSArchive.source

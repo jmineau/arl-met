@@ -1,0 +1,37 @@
+﻿arlmet.archives.GDASArchive
+===========================
+
+.. currentmodule:: arlmet.archives
+
+.. autoclass:: GDASArchive
+   :no-members:
+   :show-inheritance:
+
+
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+   :nosignatures:
+
+   ~GDASArchive.description
+   ~GDASArchive.name
+   ~GDASArchive.source
+   ~GDASArchive.start_date
+   ~GDASArchive.step
+
+
+
+
+
+
+.. rubric:: Inherited
+
+
+From :class:`~.Archive`: :py:obj:`~.Archive.fetch`, :py:obj:`~.Archive.paths_for_range`, :py:obj:`~.Archive.sync`
+
+

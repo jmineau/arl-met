@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet._ops.sample.internal &#8212; arl-met 0.1.0b11</title>
+    <title>arlmet._ops.sample.internal &#8212; arl-met 0.1.0b12</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../../_static/documentation_options.js?v=88ca9cf6"></script>
+    <script src="../../../../_static/documentation_options.js?v=bf32169c"></script>
     <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b11';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b12';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b11" />
+  <meta name="docsearch:version" content="0.1.0b12" />
   
     
     <script src="../../../../_static/searchtools.js"></script>
@@ -449,6 +449,7 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">npt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">HybridAxis</span><span class="p">,</span>
@@ -689,7 +690,7 @@
 <div class="viewcode-block" id="internal_levels">
 <a class="viewcode-back" href="../../../../_autosummary/arlmet.internal_levels.html#arlmet.internal_levels">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">internal_levels</span><span class="p">(</span>
-    <span class="n">file</span><span class="p">:</span> <span class="n">File</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">25000.0</span>
+    <span class="n">file</span><span class="p">:</span> <span class="n">File</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">25000.0</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InternalLevels</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Return HYSPLIT's internal vertical levels for a run on *file* with *model_top*.</span>
@@ -703,9 +704,11 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    file : File or path-like</span>
-<span class="sd">        An open ARL file, or the path to one. Only its vertical axis and</span>
-<span class="sd">        source are read; a path is opened and closed here.</span>
+<span class="sd">    file : File, path-like, or xarray.Dataset</span>
+<span class="sd">        An open ARL file, the path to one, or a Dataset in</span>
+<span class="sd">        :func:`arlmet.open_dataset`'s layout, such as a converter's output,</span>
+<span class="sd">        as :func:`sample_points` takes. Only its vertical axis and source are</span>
+<span class="sd">        read; a path is opened and closed here.</span>
 <span class="sd">    model_top : float, default 25000</span>
 <span class="sd">        The run's top of model domain [m] (the ``CONTROL`` line after the</span>
 <span class="sd">        vertical motion option; PYSTILT's ``z_top``), as in</span>
@@ -739,6 +742,15 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">model_top</span><span class="p">)</span> <span class="ow">and</span> <span class="n">model_top</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"model_top must be a positive number of meters, got </span><span class="si">{</span><span class="n">model_top</span><span class="si">!r}</span><span class="s2">."</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._xarray._sampling</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># lazy: _xarray imports _ops</span>
+            <span class="n">DatasetMet</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">DatasetMet</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">InternalLevels</span><span class="o">.</span><span class="n">_for_axis</span><span class="p">(</span>
+            <span class="n">dataset</span><span class="o">.</span><span class="n">vertical_axis</span><span class="p">,</span> <span class="n">model_top</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">source</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">File</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">InternalLevels</span><span class="o">.</span><span class="n">_for_axis</span><span class="p">(</span>
