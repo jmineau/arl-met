@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>arlmet.converters._flex_extract &#8212; arl-met dev</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=c581f00c" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
+
+    <script src="../../../_static/documentation_options.js?v=70c659db"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/arlmet/converters/_flex_extract';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            true;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="icon" href="../../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.0b13.dev1+gf3400f3d6" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="arl-met">
+  <meta property="og:title" content="arlmet.converters._flex_extract">
+  <meta property="og:description" content="Read, write, crop, and sample NOAA ARL meteorology files in Python.">
+  <meta property="og:image" content="https://raw.githubusercontent.com/jmineau/arl-met/main/docs/_static/social-preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/logo.svg" class="logo__image only-light" alt=""/>
+    <img src="../../../_static/logo_dark.svg" class="logo__image only-dark pst-js-only" alt=""/>
+  
+  
+    <p class="title logo__title">arl-met</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../getting-started.html">
+    Getting Started
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user-guides.html">
+    User Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api.html">
+    API Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-3"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-3"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-3"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-3">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/jmineau/arl-met" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">arlmet.converters._flex_extract</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for arlmet.converters._flex_extract</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Convert the ERA5 files flex_extract writes for FLEXPART."""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._indexrecord</span><span class="w"> </span><span class="kn">import</span> <span class="n">format_fixed_width_float</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">R_D</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._era5</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">GRAVITY</span><span class="p">,</span>
+    <span class="n">MODEL_LEVEL_FIELDS</span><span class="p">,</span>
+    <span class="n">_hybrid_axis</span><span class="p">,</span>
+    <span class="n">_hybrid_levels</span><span class="p">,</span>
+    <span class="n">_pressure_at</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._pressure</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Field</span><span class="p">,</span>
+    <span class="n">pressure_level_dataset</span><span class="p">,</span>
+    <span class="n">scalar_coord</span><span class="p">,</span>
+    <span class="n">stack_times</span><span class="p">,</span>
+    <span class="n">standardize</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"from_flex_extract"</span><span class="p">]</span>
+
+<span class="c1">#: flex_extract's model-level fields (cfgrib names, ``hybrid``) and their ARL fields.</span>
+<span class="c1">#: ``etadot`` is not converted: HYSPLIT's ``WWND`` is a pressure velocity.</span>
+<span class="n">LEVEL_FIELDS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">name</span><span class="p">:</span> <span class="n">field</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">MODEL_LEVEL_FIELDS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="s2">"w"</span>
+<span class="p">}</span>
+
+<span class="c1">#: flex_extract's surface fields and their ARL fields. flex_extract has turned</span>
+<span class="c1">#: ERA5's hourly totals into rates (W m-2, N m-2, mm h-1) at the valid time,</span>
+<span class="c1">#: whatever their GRIB labels say; ECMWF's fluxes are positive downward,</span>
+<span class="c1">#: HYSPLIT's heat flux positive upward. ``ustar`` and ``tp`` are made here.</span>
+<span class="n">SURFACE_FIELDS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"sp"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"PRSS"</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s2">"hPa"</span><span class="p">),</span>
+    <span class="s2">"msl"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"MSLP"</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s2">"hPa"</span><span class="p">),</span>
+    <span class="s2">"z"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"SHGT"</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">GRAVITY</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">),</span>
+    <span class="s2">"t2m"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"T02M"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"K"</span><span class="p">),</span>
+    <span class="s2">"d2m"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"DP2M"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"K"</span><span class="p">),</span>
+    <span class="s2">"u10"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"U10M"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
+    <span class="s2">"v10"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"V10M"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
+    <span class="s2">"tcc"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"TCLD"</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">,</span> <span class="s2">"%"</span><span class="p">),</span>
+    <span class="s2">"sshf"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"SHTF"</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="s2">"W m-2"</span><span class="p">),</span>
+    <span class="s2">"ssr"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"DSWF"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"W m-2"</span><span class="p">),</span>
+    <span class="s2">"ustar"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"USTR"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"m s-1"</span><span class="p">),</span>
+    <span class="s2">"tp"</span><span class="p">:</span> <span class="n">Field</span><span class="p">(</span><span class="s2">"TPP1"</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <span class="s2">"m"</span><span class="p">),</span>
+<span class="p">}</span>
+
+<span class="c1">#: The surface fields read from the files: those above, and what ``ustar``</span>
+<span class="c1">#: (the surface stress) and ``tp`` (the two precipitation rates) are made of.</span>
+<span class="n">_READ</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="o">*</span><span class="p">(</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">SURFACE_FIELDS</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"ustar"</span><span class="p">,</span> <span class="s2">"tp"</span><span class="p">)),</span>
+    <span class="s2">"ewss"</span><span class="p">,</span>
+    <span class="s2">"nsss"</span><span class="p">,</span>
+    <span class="s2">"lsp"</span><span class="p">,</span>
+    <span class="s2">"cp"</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_longitudes</span><span class="p">(</span><span class="n">da</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Return *da* with its longitudes from 0 to 360, or -180 to 180 across 0.</span>
+
+<span class="sd">    flex_extract's files hold the same grid on both conventions; this puts</span>
+<span class="sd">    every field on one, so that they line up.</span>
+<span class="sd">    """</span>
+    <span class="n">lon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">da</span><span class="p">[</span><span class="s2">"longitude"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">%</span> <span class="mf">360.0</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">lon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">lon</span> <span class="o">&gt;=</span> <span class="mf">180.0</span><span class="p">,</span> <span class="n">lon</span> <span class="o">-</span> <span class="mf">360.0</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">da</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">(</span><span class="n">longitude</span><span class="o">=</span><span class="n">lon</span><span class="p">)</span>
+
+
+<span class="c1">#: The most levels above the ground an ARL file holds: a record's header</span>
+<span class="c1">#: numbers its level in two characters.</span>
+<span class="n">MAX_LEVELS</span> <span class="o">=</span> <span class="mi">99</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_storable</span><span class="p">(</span><span class="n">model_levels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Return the model levels an ARL file can hold, from the ground up.</span>
+
+<span class="sd">    They stop below the first level whose pressure offset rounds to the same</span>
+<span class="sd">    whole hPa as the level below it (above about model level 24, see</span>
+<span class="sd">    :func:`arlmet.converters.from_era5`), and at :data:`MAX_LEVELS`.</span>
+<span class="sd">    """</span>
+    <span class="n">levels</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">model_levels</span><span class="p">),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">stored</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="nb">float</span><span class="p">(</span><span class="n">format_fixed_width_float</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">_hybrid_levels</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">])</span>
+    <span class="p">]</span>
+    <span class="n">kept</span> <span class="o">=</span> <span class="n">levels</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">below</span><span class="p">,</span> <span class="n">above</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">stored</span><span class="p">,</span> <span class="n">stored</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">levels</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">_pressure_at</span><span class="p">(</span><span class="n">above</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">_pressure_at</span><span class="p">(</span><span class="n">below</span><span class="p">):</span>
+            <span class="k">break</span>
+        <span class="n">kept</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">kept</span><span class="p">[:</span><span class="n">MAX_LEVELS</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="from_flex_extract">
+<a class="viewcode-back" href="../../../_autosummary/arlmet.converters.from_flex_extract.html#arlmet.converters.from_flex_extract">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_flex_extract</span><span class="p">(</span><span class="n">datasets</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Convert the ERA5 files flex_extract writes for FLEXPART to a Dataset for :func:`arlmet.write_dataset`.</span>
+
+<span class="sd">    `flex_extract &lt;https://www.flexpart.eu/flex_extract/&gt;`_ retrieves ERA5</span>
+<span class="sd">    for FLEXPART and writes one GRIB file per hour (``EAyymmddhh``), with the</span>
+<span class="sd">    model levels, the surface fields and the precipitation on ERA5's own lat/lon</span>
+<span class="sd">    grid. This takes the Datasets :func:`cfgrib.open_datasets` returns for one</span>
+<span class="sd">    or several of those files and gives an ARL hybrid Dataset (vertical flag 4)</span>
+<span class="sd">    on model levels, as :func:`~arlmet.converters.from_era5` writes ERA5 on</span>
+<span class="sd">    model levels. Each file's valid time is one time step.</span>
+
+<span class="sd">    The files are not ERA5 as the Climate Data Store serves it, so this is not</span>
+<span class="sd">    :func:`~arlmet.converters.from_era5`:</span>
+
+<span class="sd">    - flex_extract has turned ERA5's hourly totals into rates at the valid</span>
+<span class="sd">      time (W m-2, N m-2, mm h-1), but keeps their GRIB names, units and</span>
+<span class="sd">      ``stepType=accum``; they are read as the rates they are.</span>
+<span class="sd">    - Some fields are on longitudes from 0 to 360 and others from -180 to 180,</span>
+<span class="sd">      on the same grid; all are put on one.</span>
+<span class="sd">    - The files hold all 137 model levels, more than an ARL file can: the</span>
+<span class="sd">      lowest 99 are kept (model levels 137 to 39, up to about 25 hPa), as a</span>
+<span class="sd">      record's header numbers its level in two characters. Fewer are kept when</span>
+<span class="sd">      the files hold fewer, and none above about model level 24, whose</span>
+<span class="sd">      pressure offsets round to the same whole hPa as the level below.</span>
+
+<span class="sd">    ===================  ======  ==============================================</span>
+<span class="sd">    flex_extract         ARL     conversion</span>
+<span class="sd">    ===================  ======  ==============================================</span>
+<span class="sd">    ``t``                TEMP    K</span>
+<span class="sd">    ``u``, ``v``         UWND,   m s-1</span>
+<span class="sd">                         VWND</span>
+<span class="sd">    ``q``                SPHU    kg kg-1</span>
+<span class="sd">    ``sp``               PRSS    Pa to hPa</span>
+<span class="sd">    ``msl``              MSLP    Pa to hPa</span>
+<span class="sd">    ``z``                SHGT    surface geopotential / 9.80665 (m)</span>
+<span class="sd">    ``t2m``, ``d2m``     T02M,   K</span>
+<span class="sd">                         DP2M</span>
+<span class="sd">    ``u10``, ``v10``     U10M,   m s-1</span>
+<span class="sd">                         V10M</span>
+<span class="sd">    ``tcc``              TCLD    fraction to %</span>
+<span class="sd">    ``sshf``             SHTF    W m-2, positive upward</span>
+<span class="sd">    ``ssr``              DSWF    W m-2, net (not downward) shortwave</span>
+<span class="sd">    ``ewss``, ``nsss``   USTR    ``sqrt(sqrt(ewss² + nsss²) / ρ)`` (m s-1),</span>
+<span class="sd">                                 ``ρ = sp / (R_d t2m)``</span>
+<span class="sd">    ``lsp`` + ``cp``     TPP1    mm h-1 at the valid time to m in an hour</span>
+<span class="sd">    ===================  ======  ==============================================</span>
+
+<span class="sd">    Not written, because the files do not hold them: ``PBLH``, ``LHTF`` and</span>
+<span class="sd">    ``WWND``. flex_extract's vertical velocity is ``etadot`` (s-1), the rate of</span>
+<span class="sd">    change of the hybrid coordinate, not a pressure velocity; without</span>
+<span class="sd">    ``WWND`` HYSPLIT finds the vertical velocity from the divergence of the</span>
+<span class="sd">    horizontal wind, and its mixed layer from the temperature profile.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    datasets : iterable of xarray.Dataset</span>
+<span class="sd">        The Datasets of one or more flex_extract files, as</span>
+<span class="sd">        :func:`cfgrib.open_datasets` returns them (each with a scalar</span>
+<span class="sd">        ``valid_time``; the precipitation's with a ``step`` dimension, of which</span>
+<span class="sd">        the first is the valid time's), one list after another. Datasets and</span>
+<span class="sd">        variables not in the table (the invariant fields, ``etadot``, the cloud</span>
+<span class="sd">        water) are left out.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    xarray.Dataset</span>
+<span class="sd">        The fields in :func:`arlmet.open_dataset`'s layout, with source</span>
+<span class="sd">        ``"ERA5"`` and each variable's ARL ``units`` in its attrs.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If no Dataset holds model-level fields, a Dataset has no scalar valid</span>
+<span class="sd">        time, the time steps have different model levels, the grids differ,</span>
+<span class="sd">        or a time step has no surface pressure ``sp``.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    FLEXPART finds the friction velocity from the surface stress as above</span>
+<span class="sd">    (``calcpar``), with the air density at 2 m. The precipitation is the rate</span>
+<span class="sd">    at the valid time, which flex_extract interpolates from ERA5's hourly</span>
+<span class="sd">    totals (its ``RRINT`` option); written as ``TPP1`` it stands for the hour</span>
+<span class="sd">    before.</span>
+
+<span class="sd">    Each field is read once and is then in memory: flex_extract's files are</span>
+<span class="sd">    already cropped to the domain they were retrieved for.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import cfgrib  # doctest: +SKIP</span>
+<span class="sd">    &gt;&gt;&gt; import arlmet</span>
+<span class="sd">    &gt;&gt;&gt; files = ["EA23053118", "EA23053119", "EA23053120"]</span>
+<span class="sd">    &gt;&gt;&gt; datasets = [</span>
+<span class="sd">    ...     ds for f in files for ds in cfgrib.open_datasets(f)</span>
+<span class="sd">    ... ]  # doctest: +SKIP</span>
+<span class="sd">    &gt;&gt;&gt; ds = arlmet.converters.from_flex_extract(datasets)  # doctest: +SKIP</span>
+<span class="sd">    &gt;&gt;&gt; arlmet.write_dataset(ds, "era5.arl")  # doctest: +SKIP</span>
+<span class="sd">    """</span>
+    <span class="n">upper</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">surface</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"from_flex_extract() takes xarray.Datasets, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">."</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="s2">"hybrid"</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+            <span class="n">target</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="n">upper</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">LEVEL_FIELDS</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">target</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="n">surface</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">_READ</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">names</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="s2">"step"</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+            <span class="c1"># flex_extract's precipitation: the valid time, then two times</span>
+            <span class="c1"># between it and the next hour.</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">step</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">valid_time</span> <span class="o">=</span> <span class="n">scalar_coord</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"valid_time"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">valid_time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Each Dataset needs a scalar 'valid_time', as cfgrib.open_datasets() "</span>
+                <span class="sa">f</span><span class="s2">"gives one per GRIB file; got one with dims </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">)</span><span class="si">}</span><span class="s2">."</span>
+            <span class="p">)</span>
+        <span class="n">time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">valid_time</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+            <span class="c1"># Read once: cfgrib reads a whole message on every access.</span>
+            <span class="n">target</span><span class="p">[(</span><span class="n">time</span><span class="p">,</span> <span class="n">name</span><span class="p">)]</span> <span class="o">=</span> <span class="n">_longitudes</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+    <span class="n">times</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">time</span> <span class="k">for</span> <span class="n">time</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">upper</span><span class="p">})</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">times</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"None of the Datasets holds flex_extract's model-level fields "</span>
+            <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LEVEL_FIELDS</span><span class="p">)</span><span class="si">}</span><span class="s2"> on 'hybrid' levels)."</span>
+        <span class="p">)</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">time</span> <span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">times</span> <span class="k">if</span> <span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="s2">"sp"</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">surface</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"No Dataset holds the surface pressure 'sp' at </span><span class="si">{</span><span class="n">missing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">, which "</span>
+            <span class="s2">"ERA5 on model levels needs: HYSPLIT finds the levels' pressures from it."</span>
+        <span class="p">)</span>
+
+    <span class="n">upper_ds</span> <span class="o">=</span> <span class="n">standardize</span><span class="p">(</span>
+        <span class="n">stack_times</span><span class="p">(</span><span class="n">upper</span><span class="p">,</span> <span class="n">times</span><span class="p">),</span>
+        <span class="nb">list</span><span class="p">(</span><span class="n">LEVEL_FIELDS</span><span class="p">),</span>
+        <span class="n">upper</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">"the model-level fields"</span><span class="p">,</span>
+        <span class="n">level_dims</span><span class="o">=</span><span class="p">(</span><span class="s2">"hybrid"</span><span class="p">,),</span>
+        <span class="n">level_kind</span><span class="o">=</span><span class="s2">"model-level"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">upper_ds</span> <span class="o">=</span> <span class="n">upper_ds</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">_storable</span><span class="p">(</span><span class="n">upper_ds</span><span class="p">[</span><span class="s2">"level"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+
+    <span class="n">surface_ds</span> <span class="o">=</span> <span class="n">stack_times</span><span class="p">(</span><span class="n">surface</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">{</span><span class="s2">"ewss"</span><span class="p">,</span> <span class="s2">"nsss"</span><span class="p">,</span> <span class="s2">"sp"</span><span class="p">,</span> <span class="s2">"t2m"</span><span class="p">}</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">surface_ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">):</span>
+        <span class="n">stress</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">surface_ds</span><span class="p">[</span><span class="s2">"ewss"</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">surface_ds</span><span class="p">[</span><span class="s2">"nsss"</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">density</span> <span class="o">=</span> <span class="n">surface_ds</span><span class="p">[</span><span class="s2">"sp"</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">R_D</span> <span class="o">*</span> <span class="n">surface_ds</span><span class="p">[</span><span class="s2">"t2m"</span><span class="p">])</span>
+        <span class="n">surface_ds</span><span class="p">[</span><span class="s2">"ustar"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">stress</span> <span class="o">/</span> <span class="n">density</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">{</span><span class="s2">"lsp"</span><span class="p">,</span> <span class="s2">"cp"</span><span class="p">}</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">surface_ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">):</span>
+        <span class="n">surface_ds</span><span class="p">[</span><span class="s2">"tp"</span><span class="p">]</span> <span class="o">=</span> <span class="n">surface_ds</span><span class="p">[</span><span class="s2">"lsp"</span><span class="p">]</span> <span class="o">+</span> <span class="n">surface_ds</span><span class="p">[</span><span class="s2">"cp"</span><span class="p">]</span>
+    <span class="n">surface_ds</span> <span class="o">=</span> <span class="n">standardize</span><span class="p">(</span>
+        <span class="n">surface_ds</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">SURFACE_FIELDS</span><span class="p">),</span> <span class="n">upper</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"the surface fields"</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">pressure_level_dataset</span><span class="p">(</span>
+        <span class="n">upper_ds</span><span class="p">,</span>
+        <span class="n">surface_ds</span><span class="p">,</span>
+        <span class="n">LEVEL_FIELDS</span><span class="p">,</span>
+        <span class="n">SURFACE_FIELDS</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="s2">"ERA5"</span><span class="p">,</span>
+        <span class="n">labels</span><span class="o">=</span><span class="p">(</span><span class="s2">"the model-level fields"</span><span class="p">,</span> <span class="s2">"the surface fields"</span><span class="p">),</span>
+        <span class="n">vertical_axis</span><span class="o">=</span><span class="n">_hybrid_axis</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, James Mineau.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
