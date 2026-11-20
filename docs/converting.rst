@@ -15,6 +15,8 @@ The converters so far:
 - :func:`arlmet.converters.from_era5`: ECMWF's ERA5 reanalysis on pressure
   levels, as HYSPLIT's ``era52arl`` converts it, and on its model levels, as
   HYSPLIT's ``api2arl`` converts ECMWF's hybrid levels.
+- :func:`arlmet.converters.from_flex_extract`: ERA5 as flex_extract writes it
+  for FLEXPART, on model levels, which HYSPLIT has no converter for.
 - :func:`arlmet.converters.from_gfs`: NCEP's GFS forecasts and GDAS analyses
   on pressure levels (``pgrb2`` files), as HYSPLIT's ``api2arl`` converts them.
 - :func:`arlmet.converters.from_icon`: DWD's ICON-EU and ICON-D2 forecasts on
@@ -228,6 +230,50 @@ The level is written in six characters, so where its offset is 100 hPa or
 more its sigma keeps two decimals, and HYSPLIT reads some mid-troposphere
 levels up to about 5 hPa from ERA5's pressure. ``api2arl``'s files are rounded
 the same way.
+
+ERA5 from flex_extract
+~~~~~~~~~~~~~~~~~~~~~~
+
+FLEXPART reads ERA5 from the files
+`flex_extract <https://www.flexpart.eu/flex_extract/>`_ writes, one GRIB file
+per hour (``EAyymmddhh``) holding the 137 model levels, the surface fields and
+the precipitation. :func:`~arlmet.converters.from_flex_extract` turns them into
+the same ARL hybrid Dataset as :func:`~arlmet.converters.from_era5` writes for
+ERA5 on model levels, so HYSPLIT, or :func:`arlmet.sample_points`, can read the
+met a FLEXPART run used. Open each file with :func:`cfgrib.open_datasets`, which
+splits it into five Datasets, and pass them all:
+
+.. code-block:: python
+
+   import cfgrib
+
+   files = ["EA23053118", "EA23053119", "EA23053120"]
+   datasets = [ds for f in files for ds in cfgrib.open_datasets(f)]
+   ds = arlmet.converters.from_flex_extract(datasets)
+   arlmet.write_dataset(ds, "era5.arl")
+
+The files are not ERA5 as the Climate Data Store serves it, which is why this
+is its own converter:
+
+- flex_extract has turned ERA5's hourly totals (the sensible heat flux, the
+  net solar radiation, the surface stress, the precipitation) into rates at the
+  valid time, but keeps their GRIB names and ``accum`` labels. They are read as
+  the rates they are.
+- Some fields are on longitudes from 0 to 360 and others from -180 to 180, on
+  the same grid. All are put on the model levels' longitudes.
+- The friction velocity ``USTR`` is made from the surface stress, as FLEXPART
+  makes it, and the precipitation ``TPP1`` from the large-scale and convective
+  rates.
+- The solar radiation is net (``ssr``), not downward as ``from_era5``'s
+  ``DSWF``.
+- Only the lowest 99 model levels are kept (137 to 39, up to about 25 hPa):
+  an ARL record's header numbers its level in two characters.
+
+The files hold no boundary layer height, latent heat flux or pressure vertical
+velocity (flex_extract's ``etadot`` is the rate of change of the hybrid
+coordinate), so no ``PBLH``, ``LHTF`` or ``WWND`` is written: HYSPLIT finds
+the mixed layer from the temperature profile and the vertical velocity from
+the divergence of the wind.
 
 GFS and GDAS
 ------------
