@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>API Reference &#8212; arl-met 0.1.0b12</title>
+    <title>API Reference &#8212; arl-met 0.1.0b13</title>
   
   
   
@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=bf32169c"></script>
+    <script src="_static/documentation_options.js?v=1b4a9285"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -50,7 +50,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b12';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b13';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b12" />
+  <meta name="docsearch:version" content="0.1.0b13" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -411,6 +411,7 @@
 </ul>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.converters.from_era5.html">arlmet.converters.from_era5</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.converters.from_flex_extract.html">arlmet.converters.from_flex_extract</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.converters.from_gfs.html">arlmet.converters.from_gfs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.converters.from_icon.html">arlmet.converters.from_icon</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_autosummary/arlmet.converters.from_wrf.html">arlmet.converters.from_wrf</a></li>
@@ -790,13 +791,16 @@ See the <a class="reference internal" href="cropping.html"><span class="doc">Cro
 <tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.converters.from_era5.html#arlmet.converters.from_era5" title="arlmet.converters.from_era5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">converters.from_era5</span></code></a></p></td>
 <td><p>Convert ERA5 hourly fields to a Dataset that <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> writes.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.converters.from_gfs.html#arlmet.converters.from_gfs" title="arlmet.converters.from_gfs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">converters.from_gfs</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.converters.from_flex_extract.html#arlmet.converters.from_flex_extract" title="arlmet.converters.from_flex_extract"><code class="xref py py-obj docutils literal notranslate"><span class="pre">converters.from_flex_extract</span></code></a></p></td>
+<td><p>Convert the ERA5 files flex_extract writes for FLEXPART to a Dataset for <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.converters.from_gfs.html#arlmet.converters.from_gfs" title="arlmet.converters.from_gfs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">converters.from_gfs</span></code></a></p></td>
 <td><p>Convert GFS or GDAS GRIB2 files on pressure levels to a Dataset for <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.converters.from_icon.html#arlmet.converters.from_icon" title="arlmet.converters.from_icon"><code class="xref py py-obj docutils literal notranslate"><span class="pre">converters.from_icon</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.converters.from_icon.html#arlmet.converters.from_icon" title="arlmet.converters.from_icon"><code class="xref py py-obj docutils literal notranslate"><span class="pre">converters.from_icon</span></code></a></p></td>
 <td><p>Convert ICON forecasts on a regular lat/lon grid to a Dataset for <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/arlmet.converters.from_wrf.html#arlmet.converters.from_wrf" title="arlmet.converters.from_wrf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">converters.from_wrf</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/arlmet.converters.from_wrf.html#arlmet.converters.from_wrf" title="arlmet.converters.from_wrf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">converters.from_wrf</span></code></a></p></td>
 <td><p>Convert WRF-ARW output to a Dataset that <a class="reference internal" href="_autosummary/arlmet.write_dataset.html#arlmet.write_dataset" title="arlmet.write_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.write_dataset()</span></code></a> writes.</p></td>
 </tr>
 </tbody>

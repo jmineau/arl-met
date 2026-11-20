@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet._header &#8212; arl-met 0.1.0b12</title>
+    <title>arlmet._header &#8212; arl-met 0.1.0b13</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=bf32169c"></script>
+    <script src="../../_static/documentation_options.js?v=1b4a9285"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b12';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b13';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b12" />
+  <meta name="docsearch:version" content="0.1.0b13" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -478,6 +478,21 @@
     <span class="k">return</span> <span class="n">year</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">check_level_count</span><span class="p">(</span><span class="n">n_levels</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Raise if *n_levels* levels above the surface do not fit an ARL file.</span>
+
+<span class="sd">    A record's header numbers its level in two characters, so a file holds</span>
+<span class="sd">    the surface and at most :attr:`Header.MAX_LEVEL` levels above it.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">n_levels</span> <span class="o">&gt;</span> <span class="n">Header</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"An ARL file holds at most </span><span class="si">{</span><span class="n">Header</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="si">}</span><span class="s2"> levels above the "</span>
+            <span class="sa">f</span><span class="s2">"surface (a record's header numbers its level in two characters); "</span>
+            <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="n">n_levels</span><span class="si">}</span><span class="s2">."</span>
+        <span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">letter_to_thousands</span><span class="p">(</span><span class="n">char</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Convert a header grid character to thousands: A=1000, B=2000, …; else 0."""</span>
     <span class="k">if</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">string</span><span class="o">.</span><span class="n">ascii_uppercase</span><span class="p">:</span>
@@ -584,7 +599,9 @@
 <span class="sd">        so :meth:`tobytes` writes ``min(forecast, 99)``, as HYSPLIT's ``pakrec``</span>
 <span class="sd">        does (an index record keeps the full hour, up to 999, in its own field).</span>
 <span class="sd">    level : int</span>
-<span class="sd">        ARL vertical level index.</span>
+<span class="sd">        ARL vertical level index: 0 for the surface, then 1 to</span>
+<span class="sd">        :attr:`MAX_LEVEL` from the ground up. The header holds it in two</span>
+<span class="sd">        characters.</span>
 <span class="sd">    grid : tuple[int, int]</span>
 <span class="sd">        Thousands part of the x and y grid sizes, as stored in the header's</span>
 <span class="sd">        two grid characters (``(1000, 0)`` for a 1799x799 grid, written</span>
@@ -603,6 +620,8 @@
 <span class="sd">    ----------</span>
 <span class="sd">    N_BYTES : int</span>
 <span class="sd">        Fixed serialized size of the header.</span>
+<span class="sd">    MAX_LEVEL : int</span>
+<span class="sd">        The highest level index the header's two characters hold, 99.</span>
 <span class="sd">    time : pandas.Timestamp</span>
 <span class="sd">        Timestamp reconstructed from the header date fields.</span>
 
@@ -627,6 +646,7 @@
     <span class="n">initial_value</span><span class="p">:</span> <span class="nb">float</span>
 
     <span class="n">N_BYTES</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">50</span>
+    <span class="n">MAX_LEVEL</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">99</span>
 
     <span class="n">FIELDS</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]]]</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">"year"</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">restore_year</span><span class="p">),</span>
@@ -699,6 +719,11 @@
 <span class="sd">        axis, ``@`` for no thousands (HYSPLIT's ``pakset``).</span>
 <span class="sd">        """</span>
         <span class="n">yy</span> <span class="o">=</span> <span class="n">check_year</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">)</span> <span class="o">%</span> <span class="mi">100</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">level</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Level </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="si">}</span><span class="s2"> does not fit an ARL record header, which holds "</span>
+                <span class="sa">f</span><span class="s2">"levels 0 to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="si">}</span><span class="s2">."</span>
+            <span class="p">)</span>
         <span class="c1"># The grid number 99 below 1000 points, else a character per axis.</span>
         <span class="n">grid</span> <span class="o">=</span> <span class="p">(</span>
             <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">thousands_to_letter</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>

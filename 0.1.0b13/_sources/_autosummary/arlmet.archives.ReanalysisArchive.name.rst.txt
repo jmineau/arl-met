@@ -1,0 +1,6 @@
+arlmet.archives.ReanalysisArchive.name
+======================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: ReanalysisArchive.name

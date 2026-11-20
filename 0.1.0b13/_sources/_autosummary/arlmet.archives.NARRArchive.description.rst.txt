@@ -1,0 +1,6 @@
+arlmet.archives.NARRArchive.description
+=======================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: NARRArchive.description

@@ -1,0 +1,6 @@
+arlmet.HybridAxis.coord\_system
+===============================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: HybridAxis.coord_system

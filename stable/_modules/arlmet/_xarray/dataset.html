@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet._xarray.dataset &#8212; arl-met 0.1.0b12</title>
+    <title>arlmet._xarray.dataset &#8212; arl-met 0.1.0b13</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=bf32169c"></script>
+    <script src="../../../_static/documentation_options.js?v=1b4a9285"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b12';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b13';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b12" />
+  <meta name="docsearch:version" content="0.1.0b13" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -447,7 +447,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">xarray.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">indexing</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._header</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_year</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._header</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_level_count</span><span class="p">,</span> <span class="n">check_year</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_output</span><span class="p">,</span> <span class="n">reject_same_file</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._ops.sample.fields</span><span class="w"> </span><span class="kn">import</span> <span class="n">mass_coupled</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._ops.subset</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize_levels</span><span class="p">,</span> <span class="n">resolve_window</span><span class="p">,</span> <span class="n">select_records</span>
@@ -832,7 +832,9 @@
 <span class="sd">        steps, a time is outside 1940 to 2039 (a label's two-digit year cannot</span>
 <span class="sd">        hold it), a ``lat``, ``lon``, ``x`` or ``y`` coordinate disagrees with</span>
 <span class="sd">        the grid the ``arl_grid`` coordinate describes, the vertical axis</span>
-<span class="sd">        disagrees with the Dataset's own vertical coordinate, a slice is partly NaN</span>
+<span class="sd">        disagrees with the Dataset's own vertical coordinate or has more than</span>
+<span class="sd">        99 levels above the surface (a record's header numbers its level in</span>
+<span class="sd">        two characters), a slice is partly NaN</span>
 <span class="sd">        or non-finite, an ``attrs["diff"]`` name</span>
 <span class="sd">        is not one the name table pairs with its variable, or</span>
 <span class="sd">        ``filename_or_obj`` is the file ``ds`` was opened from.</span>
@@ -874,6 +876,7 @@
             <span class="s2">"coordinate value)."</span>
         <span class="p">)</span>
     <span class="n">_check_vertical_axis_agrees</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">resolved_vertical_axis</span><span class="p">)</span>
+    <span class="n">check_level_count</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">resolved_vertical_axis</span><span class="o">.</span><span class="n">levels</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
         <span class="n">check_year</span><span class="p">(</span><span class="n">times</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
         <span class="n">check_year</span><span class="p">(</span><span class="n">times</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>

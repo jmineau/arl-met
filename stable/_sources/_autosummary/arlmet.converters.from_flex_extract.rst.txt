@@ -1,0 +1,6 @@
+﻿arlmet.converters.from\_flex\_extract
+=====================================
+
+.. currentmodule:: arlmet.converters
+
+.. autofunction:: from_flex_extract

@@ -1,0 +1,6 @@
+arlmet.File.times
+=================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: File.times

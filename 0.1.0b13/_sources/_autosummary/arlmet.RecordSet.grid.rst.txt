@@ -1,0 +1,6 @@
+arlmet.RecordSet.grid
+=====================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: RecordSet.grid

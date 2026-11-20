@@ -1,0 +1,5 @@
+arlmet.File.create\_recordset
+=============================
+
+.. currentmodule:: arlmet
+.. automethod:: File.create_recordset

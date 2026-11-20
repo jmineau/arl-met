@@ -1,0 +1,6 @@
+arlmet.archives.NARRArchive.step
+================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: NARRArchive.step
