@@ -46,6 +46,7 @@ Turn a model's own output, opened with xarray, into a Dataset that
    :nosignatures:
 
    converters.from_era5
+   converters.from_flex_extract
    converters.from_gfs
    converters.from_icon
    converters.from_wrf

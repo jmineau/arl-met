@@ -6,7 +6,14 @@ import pytest
 import xarray as xr
 
 import arlmet
-from arlmet.converters import GFS_HPBL, from_era5, from_gfs, from_icon, from_wrf
+from arlmet.converters import (
+    GFS_HPBL,
+    from_era5,
+    from_flex_extract,
+    from_gfs,
+    from_icon,
+    from_wrf,
+)
 from arlmet.converters._latlon import latlon_grid
 
 TIMES = pd.date_range("2024-07-18 00:00", periods=2, freq="h")
@@ -409,6 +416,206 @@ class TestFromEra5ModelLevels:
     def test_no_surface_pressure_raises(self, sfc):
         with pytest.raises(ValueError, match="no surface pressure 'sp'"):
             from_era5(era5_model_levels(), sfc.drop_vars("sp"))
+
+
+# ---- ERA5 as flex_extract writes it, as cfgrib.open_datasets() returns it ----
+
+FE_LONS = np.arange(245.0, 251.0 + 0.01, 0.25)  # the model levels' and sp's
+FE_LEVELS = np.array([1.0, 20.0, 23.0, 24.0, 25.0, 100.0, 130.0, 137.0])
+
+
+def flex_extract_file(valid_time, *, seed=0, levels=FE_LEVELS):
+    """
+    The cfgrib Datasets of one made-up flex_extract ``EAyymmddhh`` file.
+
+    Laid out as flex_extract 7.1.2's: model levels and ``sp`` on longitudes
+    from 0 to 360, the other surface fields from -180 to 180, the fluxes as
+    rates under ERA5's accumulated names, the precipitation (mm h-1) with a
+    ``step`` dimension of three, and the invariants at another time.
+    """
+    rng = np.random.default_rng(seed)
+    valid_time = pd.Timestamp(valid_time)
+    ny, nx = len(LATS), len(FE_LONS)
+    flat = ("latitude", "longitude")
+
+    def f(base, scale, shape=(ny, nx)):
+        return _field(rng, base, scale, shape)
+
+    def cube(variables, lons, *, time=valid_time, extra=None, step_type="instant"):
+        coords = {
+            "time": time,
+            "step": pd.Timedelta(0),
+            "valid_time": time,
+            "latitude": LATS,
+            "longitude": lons,
+            **(extra or {}),
+        }
+        attrs = {"GRIB_stepType": step_type}
+        return xr.Dataset(
+            {n: (dims, v, attrs) for n, (dims, v) in variables.items()}, coords=coords
+        )
+
+    up = (len(levels), ny, nx)
+    upper_dims = ("hybrid", *flat)
+    west = FE_LONS - 360.0
+    steps = pd.to_timedelta([0, 1, 2], unit="h")
+    precip = xr.Dataset(
+        {
+            "lsp": (("step", *flat), f(0.0, 2.0, (3, ny, nx))),
+            "cp": (("step", *flat), f(0.0, 5.0, (3, ny, nx))),
+        },
+        coords={
+            "number": 0,
+            "time": valid_time,
+            "step": steps,
+            "surface": 0.0,
+            "latitude": LATS,
+            "longitude": west,
+            "valid_time": ("step", valid_time + steps),
+        },
+    )
+    return [
+        cube(
+            {
+                "etadot": (upper_dims, f(-1e-4, 2e-4, up)),
+                "t": (upper_dims, f(220.0, 80.0, up)),
+                "u": (upper_dims, f(-10.0, 20.0, up)),
+                "v": (upper_dims, f(-10.0, 20.0, up)),
+                "q": (upper_dims, f(0.0, 0.01, up)),
+                "clwc": (upper_dims, f(0.0, 1e-4, up)),
+            },
+            FE_LONS,
+            extra={"hybrid": levels},
+        ),
+        cube(
+            {"cvl": (flat, f(0.0, 1.0)), "fsr": (flat, f(0.0, 1.0))},
+            west,
+            time=valid_time.normalize(),
+            extra={"number": 0, "surface": 0.0},
+        ),
+        cube(
+            {
+                "z": (flat, f(0.0, 30000.0)),
+                "msl": (flat, f(1.0e5, 2.0e3)),
+                "tcc": (flat, f(0.0, 1.0)),
+                "u10": (flat, f(-5.0, 10.0)),
+                "v10": (flat, f(-5.0, 10.0)),
+                "t2m": (flat, f(280.0, 25.0)),
+                "d2m": (flat, f(260.0, 25.0)),
+                "sshf": (flat, f(-600.0, 640.0)),
+                "ssr": (flat, f(200.0, 800.0)),
+                "ewss": (flat, f(-1.0, 3.0)),
+                "nsss": (flat, f(-2.0, 4.0)),
+            },
+            west,
+            extra={"number": 0, "surface": 0.0},
+            step_type="accum",
+        ),
+        cube({"sp": (flat, f(7.0e4, 3.0e4))}, FE_LONS, extra={"surface": 1.0}),
+        precip,
+    ]
+
+
+FE_TIMES = pd.date_range("2023-05-31 18:00", periods=2, freq="h")
+
+
+@pytest.fixture
+def fe_files():
+    return [flex_extract_file(t, seed=i) for i, t in enumerate(FE_TIMES)]
+
+
+class TestFromFlexExtract:
+    def test_layout_is_a_hybrid_open_dataset(self, fe_files):
+        ds = from_flex_extract([d for f in fe_files for d in f])
+        assert ds.attrs["source"] == "ERA5"
+        assert ds.attrs["vertical_flag"] == 4
+        assert ds["time"].values.tolist() == FE_TIMES.values.tolist()
+        assert set(ds.data_vars) == {
+            "TEMP", "UWND", "VWND", "SPHU",
+            "PRSS", "MSLP", "SHGT", "T02M", "DP2M", "U10M", "V10M", "TCLD",
+            "SHTF", "DSWF", "USTR", "TPP1",
+        }  # fmt: skip
+        assert ds["TEMP"].dims == ("time", "level", "lat", "lon")
+        # Every field on the model levels' longitudes, one grid.
+        np.testing.assert_allclose(ds["lon"].values % 360.0, FE_LONS)
+        assert ds.sizes["lon"] == len(FE_LONS)
+
+    def test_levels_above_24_are_left_out(self, fe_files):
+        from arlmet.converters._era5 import _hybrid_levels
+
+        ds = from_flex_extract(fe_files[0])
+        # The ground, then model levels 137, 130, 100, 25 and 24.
+        np.testing.assert_allclose(
+            ds.arl.vertical_axis.levels[1:],
+            _hybrid_levels([137, 130, 100, 25, 24]),
+            atol=5e-3,
+        )
+        upper = fe_files[0][0]
+        np.testing.assert_allclose(
+            ds["TEMP"].isel(time=0, level=0).values,
+            upper["t"].sel(hybrid=137.0).values[::-1],
+        )
+
+    def test_all_137_levels_convert(self):
+        ds = from_flex_extract(
+            flex_extract_file(FE_TIMES[0], levels=np.arange(1.0, 138.0))
+        )
+        # Model levels 137 to 39: an ARL header numbers at most 99 levels.
+        assert ds.sizes["level"] == 99
+        from arlmet.converters._era5 import _hybrid_levels
+
+        assert ds.arl.vertical_axis.levels[-1] == pytest.approx(
+            _hybrid_levels([39])[0], abs=5e-3
+        )
+
+    def test_fluxes_are_read_as_rates(self, fe_files):
+        sfc = fe_files[0][2]
+        ds = from_flex_extract(fe_files[0])
+        # Positive upward, and not divided by 3600.
+        np.testing.assert_allclose(
+            ds["SHTF"].isel(time=0).values, -sfc["sshf"].values[::-1], rtol=1e-6
+        )
+        np.testing.assert_allclose(
+            ds["DSWF"].isel(time=0).values, sfc["ssr"].values[::-1], rtol=1e-6
+        )
+        assert ds["SHTF"].attrs == {"units": "W m-2"}
+
+    def test_friction_velocity_from_the_stress(self, fe_files):
+        sfc, sp = fe_files[0][2], fe_files[0][3]["sp"]
+        ds = from_flex_extract(fe_files[0])
+        rho = sp.values / (arlmet.vertical.R_D * sfc["t2m"].values)
+        stress = np.hypot(sfc["ewss"].values, sfc["nsss"].values)
+        np.testing.assert_allclose(
+            ds["USTR"].isel(time=0).values, np.sqrt(stress / rho)[::-1], rtol=1e-5
+        )
+
+    def test_precipitation_at_the_valid_time(self, fe_files):
+        precip = fe_files[1][4]
+        ds = from_flex_extract([d for f in fe_files for d in f])
+        expected = (precip["lsp"] + precip["cp"]).isel(step=0).values[::-1] * 0.001
+        np.testing.assert_allclose(ds["TPP1"].isel(time=1).values, expected, rtol=1e-6)
+        assert ds["TPP1"].attrs == {"units": "m"}
+
+    def test_written_file_reads_back(self, fe_files, tmp_path):
+        ds = from_flex_extract([d for f in fe_files for d in f])
+        dest = tmp_path / "era5.arl"
+        arlmet.write_dataset(ds, dest)
+        back = arlmet.open_dataset(dest)
+        assert back.attrs["vertical_flag"] == 4
+        np.testing.assert_allclose(back["USTR"].values, ds["USTR"].values, atol=0.01)
+
+    def test_without_model_levels_raises(self, fe_files):
+        with pytest.raises(ValueError, match="model-level fields"):
+            from_flex_extract(fe_files[0][1:])
+
+    def test_without_surface_pressure_raises(self, fe_files):
+        files = [d for d in fe_files[0] if "sp" not in d]
+        with pytest.raises(ValueError, match="surface pressure 'sp'"):
+            from_flex_extract(files)
+
+    def test_not_a_dataset_raises(self):
+        with pytest.raises(TypeError, match="takes xarray.Datasets"):
+            from_flex_extract(["EA23053118"])
 
 
 class TestLatlonGrid:
