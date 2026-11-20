@@ -876,3 +876,66 @@ class TestForecastHourAbove99:
         ):
             rs = arl.create_recordset(self.HOUR, forecast=1000)
             rs.create_datarecord("PRSS", level=0, forecast=99, data=data)
+
+
+class TestLevelLimit:
+    """A record's header numbers its level in two characters: 99 levels at most."""
+
+    @staticmethod
+    def axis(n_levels):
+        return PressureAxis(levels=[0.0, *np.linspace(1000.0, 10.0, n_levels)])
+
+    def test_header_refuses_level_100(self):
+        from arlmet.record import Header
+
+        header = Header(2024, 7, 18, 0, 0, 99, (0, 0), "TEMP", 0, 0.0, 0.0)
+        assert len(header.tobytes()) == Header.N_BYTES
+        with pytest.raises(ValueError, match="levels 0 to 99"):
+            Header(2024, 7, 18, 0, 0, 100, (0, 0), "TEMP", 0, 0.0, 0.0).tobytes()
+
+    def test_file_takes_99_levels(self, tmp_path):
+        with File(
+            tmp_path / "ok.arl",
+            mode="w",
+            source="TEST",
+            grid=make_test_grid(),
+            vertical_axis=self.axis(99),
+        ) as arl:
+            assert len(arl.vertical_axis.levels) == 100
+
+    def test_file_refuses_100_levels(self, tmp_path):
+        with pytest.raises(ValueError, match="at most 99 levels above the surface"):
+            File(
+                tmp_path / "too_many.arl",
+                mode="w",
+                source="TEST",
+                grid=make_test_grid(),
+                vertical_axis=self.axis(100),
+            )
+        with (
+            File(
+                tmp_path / "set.arl", mode="w", source="TEST", grid=make_test_grid()
+            ) as arl,
+            pytest.raises(ValueError, match="got 100"),
+        ):
+            arl.vertical_axis = self.axis(100)
+
+    def test_write_dataset_refuses_100_levels_before_writing(self, tmp_path):
+        from arlmet.converters._latlon import latlon_grid
+        from arlmet.converters._pressure import arl_dataset
+
+        lat, lon = np.arange(40.0, 45.0, 0.25), np.arange(-112.0, -107.0, 0.25)
+        ds = arl_dataset(
+            latlon_grid(lat, lon),
+            self.axis(100),
+            pd.date_range("2024-07-18", periods=1),
+            source="TEST",
+        )
+        ds["TEMP"] = (
+            ("time", "level", "lat", "lon"),
+            np.full((1, 100, lat.size, lon.size), 250.0, dtype=np.float32),
+        )
+        dest = tmp_path / "too_many.arl"
+        with pytest.raises(ValueError, match="at most 99 levels above the surface"):
+            write_dataset(ds, dest)
+        assert list(tmp_path.iterdir()) == []

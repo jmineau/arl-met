@@ -45,6 +45,21 @@ def check_year(year: int) -> int:
     return year
 
 
+def check_level_count(n_levels: int) -> None:
+    """
+    Raise if *n_levels* levels above the surface do not fit an ARL file.
+
+    A record's header numbers its level in two characters, so a file holds
+    the surface and at most :attr:`Header.MAX_LEVEL` levels above it.
+    """
+    if n_levels > Header.MAX_LEVEL:
+        raise ValueError(
+            f"An ARL file holds at most {Header.MAX_LEVEL} levels above the "
+            f"surface (a record's header numbers its level in two characters); "
+            f"got {n_levels}."
+        )
+
+
 def letter_to_thousands(char: str) -> int:
     """Convert a header grid character to thousands: A=1000, B=2000, …; else 0."""
     if char in string.ascii_uppercase:
@@ -149,7 +164,9 @@ class Header:
         so :meth:`tobytes` writes ``min(forecast, 99)``, as HYSPLIT's ``pakrec``
         does (an index record keeps the full hour, up to 999, in its own field).
     level : int
-        ARL vertical level index.
+        ARL vertical level index: 0 for the surface, then 1 to
+        :attr:`MAX_LEVEL` from the ground up. The header holds it in two
+        characters.
     grid : tuple[int, int]
         Thousands part of the x and y grid sizes, as stored in the header's
         two grid characters (``(1000, 0)`` for a 1799x799 grid, written
@@ -168,6 +185,8 @@ class Header:
     ----------
     N_BYTES : int
         Fixed serialized size of the header.
+    MAX_LEVEL : int
+        The highest level index the header's two characters hold, 99.
     time : pandas.Timestamp
         Timestamp reconstructed from the header date fields.
 
@@ -192,6 +211,7 @@ class Header:
     initial_value: float
 
     N_BYTES: ClassVar[int] = 50
+    MAX_LEVEL: ClassVar[int] = 99
 
     FIELDS: ClassVar[dict[str, tuple[int, int, Callable[[str], Any]]]] = {
         "year": (0, 2, restore_year),
@@ -259,6 +279,11 @@ class Header:
         axis, ``@`` for no thousands (HYSPLIT's ``pakset``).
         """
         yy = check_year(self.year) % 100
+        if not 0 <= self.level <= self.MAX_LEVEL:
+            raise ValueError(
+                f"Level {self.level} does not fit an ARL record header, which holds "
+                f"levels 0 to {self.MAX_LEVEL}."
+            )
         # The grid number 99 below 1000 points, else a character per axis.
         grid = (
             "".join(thousands_to_letter(value) for value in self.grid)

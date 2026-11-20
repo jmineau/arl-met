@@ -19,7 +19,7 @@ from xarray.backends.locks import SerializableLock
 
 from arlmet._exceptions import ARLFormatError, ARLFormatWarning
 from arlmet._grid import Grid, Projection
-from arlmet._header import check_year, record_length_from_grid
+from arlmet._header import check_level_count, check_year, record_length_from_grid
 from arlmet._indexrecord import IndexRecord
 from arlmet._recordset import RecordSet
 from arlmet._time import ensure_timestamp
@@ -82,7 +82,8 @@ class File:
     grid : Grid, optional
         Horizontal grid metadata used when writing.
     vertical_axis : VerticalAxis, optional
-        Vertical axis metadata used when writing.
+        Vertical axis metadata used when writing: the surface and at most 99
+        levels above it, the most a record's header numbers.
 
     Attributes
     ----------
@@ -154,6 +155,8 @@ class File:
         # Must be consistent throughout the file
         self._source: str | None = source
         self._grid: Grid | None = grid
+        if self.mode == "w" and vertical_axis is not None:
+            check_level_count(len(vertical_axis.levels) - 1)
         self._vaxis: VerticalAxis | None = vertical_axis
 
         # Initialize recordsets as an ordered dict to preserve time order
@@ -239,6 +242,7 @@ class File:
         _require_mode(self, "w")
         if not isinstance(value, VerticalAxis):
             raise TypeError("vertical_axis must be a VerticalAxis instance.")
+        check_level_count(len(value.levels) - 1)
         self._vaxis = value
 
     @property

@@ -403,11 +403,22 @@ class TestFromEra5ModelLevels:
         with pytest.raises(ValueError, match="model level 23 is stored as the same"):
             from_era5(ml, sfc)
 
-    def test_lowest_usable_top_converts(self):
+    def test_lowest_99_levels_convert(self):
         from arlmet.converters._era5 import _hybrid_axis
 
-        axis = _hybrid_axis(list(range(137, 23, -1)))
-        assert len(axis.levels) == 115
+        axis = _hybrid_axis(list(range(137, 38, -1)))
+        assert len(axis.levels) == 100  # the ground, then model levels 137 to 39
+
+    def test_more_than_99_levels_raise(self, sfc):
+        # Levels 38 to 137 store distinct pressures, but are 100 levels.
+        ml = era5_model_levels(np.arange(38, 138))
+        with pytest.raises(ValueError, match="holds at most 99.*levels 39 to 137"):
+            from_era5(ml, sfc)
+
+    def test_collision_message_keeps_at_most_99(self, sfc):
+        ml = era5_model_levels(np.arange(1, 138))
+        with pytest.raises(ValueError, match="levels 39 to 137"):
+            from_era5(ml, sfc)
 
     def test_level_outside_l137_raises(self, sfc):
         with pytest.raises(ValueError, match="1 to 137, got 138"):
