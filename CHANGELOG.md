@@ -7,6 +7,13 @@ file alone: the entries are written at release (`just changelog` drafts them).
 
 ## [Unreleased]
 
+## [0.1.0b12] - 2026-11-19
+
+### Added
+
+- `internal_levels` takes a Dataset in `open_dataset`'s layout, such as a converter's output, as `sample_points` does. (#241, #242)
+- `from_gfs` takes a `bbox` and crops each field as it reads it, and writes `PBLH` from NCEP's HPBL. cfgrib drops HPBL from GFS forecast files, so `GFS_HPBL` holds the GRIB numbers to open it on its own, as `filter_by_keys` and `read_keys`. (#241, #242)
+
 ## [0.1.0b11] - 2026-11-19
 
 ### Added
