@@ -60,7 +60,8 @@ methods, keeping the import graph one-way, as `sample_points` imports `_xarray._
   (`_ops/subset.py`) refuses a crop too small for it before writing anything.
 - **Forecast hours.** The 50-byte label has two characters for the hour, the index
   record three: `Header.tobytes` writes `min(hour, 99)` (HYSPLIT's `pakrec`), the index
-  record keeps the full hour and raises above 999.
+  record keeps the full hour and raises above 999. The level has two characters too, so a
+  file holds at most `Header.MAX_LEVEL` (99) levels above the surface; `File` and `write_dataset` refuse more.
 - **Projection fields.** The 12 projection values are kept as stored (HYSPLIT reads
   them raw; to its `gbl2xy` a lat/lon `sync_lon` of -125 is not 235). `sync_x`/`sync_y`
   can lie off the grid: a projected crop keeps its source's sync point (`Grid.subset`).

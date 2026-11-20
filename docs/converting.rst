@@ -213,12 +213,14 @@ A made-up Dataset on five model levels stands in for the download here:
 
 Each ARL hybrid level is one number, as HYSPLIT's ``api2arl`` writes it: a
 pressure offset in whole hPa plus a sigma, so that the level's pressure is
-``offset + sigma * surface pressure`` (model level 120 is ``29.881``). Two
+``offset + sigma * surface pressure`` (model level 120 is ``29.881``). Three
 limits of that format decide which levels can be written:
 
 - The offsets of the levels above about model level 24 (near 5 hPa) round to
   the same whole hPa, so ``from_era5`` refuses them and names the first.
-  Keep levels 24 to 137, or fewer.
+- A record's header numbers its level in two characters, so an ARL file holds
+  at most 99 levels above the ground: keep model levels 39 to 137 (up to about
+  25 hPa), or fewer.
 - The index record at the start of each time step lists every level's
   variables and must fit in one record of ``nx * ny`` bytes, so a small crop
   holds fewer levels: a 61 x 61 cell grid holds about 60 levels of five

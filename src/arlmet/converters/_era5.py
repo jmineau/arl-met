@@ -7,6 +7,7 @@ from collections.abc import Sequence
 import numpy as np
 import xarray as xr
 
+from arlmet._header import Header
 from arlmet._indexrecord import format_fixed_width_float
 from arlmet.vertical import HybridAxis, VerticalAxis
 
@@ -94,8 +95,9 @@ def _hybrid_axis(model_levels: Sequence[float]) -> VerticalAxis:
     """
     Return the hybrid axis of ``model_levels`` (lowest first), the ground first as 1.
 
-    Raises if two levels are stored as the same pressure: a level above about
-    model level 24 rounds to the same whole hPa as the one below it.
+    Raises if two levels are stored as the same pressure (a level above about
+    model level 24 rounds to the same whole hPa as the one below it), or if
+    there are more levels than an ARL file holds (:func:`check_level_count`).
     """
     stored = [
         float(format_fixed_width_float(value, 6))
@@ -107,8 +109,16 @@ def _hybrid_axis(model_levels: Sequence[float]) -> VerticalAxis:
                 f"ERA5 model level {int(n)} is stored as the same pressure as the "
                 f"level below it: an ARL hybrid level holds its pressure offset in "
                 f"whole hPa. Leave out level {int(n)} and those above it (keep "
-                f"levels {int(n) + 1} to 137)."
+                f"at most {Header.MAX_LEVEL} levels, from 137 up: levels "
+                f"{max(int(n) + 1, 138 - Header.MAX_LEVEL)} to 137)."
             )
+    if len(stored) > Header.MAX_LEVEL:
+        raise ValueError(
+            f"ERA5 has {len(stored)} model levels here, but an ARL file holds at "
+            f"most {Header.MAX_LEVEL} (a record's header numbers its level in two "
+            f"characters). Keep the lowest {Header.MAX_LEVEL} or fewer: levels "
+            f"{138 - Header.MAX_LEVEL} to 137 at most."
+        )
     return HybridAxis(levels=[1.0, *stored])
 
 
@@ -139,7 +149,8 @@ def from_era5(levels: xr.Dataset, single_levels: xr.Dataset) -> xr.Dataset:
       writes it (Notes). HYSPLIT finds each level's pressure
       from the surface pressure, so ``single_levels`` must hold ``sp``.
       Levels above about model level 24 cannot be written: their pressure
-      offsets round to the same whole hPa (see Raises).
+      offsets round to the same whole hPa; and an ARL file holds at most 99
+      levels, so model levels 39 to 137 at most (see Raises).
 
     The variables converted are those of ``era52arl``'s default list, plus
     specific humidity, and on model levels those of ``api2arl``'s. Each is
@@ -198,10 +209,11 @@ def from_era5(levels: xr.Dataset, single_levels: xr.Dataset) -> xr.Dataset:
         or extra (an ensemble ``number``, a forecast ``step``), the latitudes
         or longitudes are not equally spaced, the two grids differ, or
         ``single_levels`` lacks a valid time of ``levels``. On model levels,
-        also if ``single_levels`` has no ``sp``, or two of the levels would be
-        stored as the same pressure (any above about model level 24): select
-        the levels below, for example ``levels.sel(model_level=slice(24,
-        None))``.
+        also if ``single_levels`` has no ``sp``, two of the levels would be
+        stored as the same pressure (any above about model level 24), or there
+        are more than 99 levels (an ARL record's header numbers its level in
+        two characters): select the lowest 99 or fewer, for example
+        ``levels.sel(model_level=slice(39, None))``.
 
     Notes
     -----

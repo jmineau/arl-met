@@ -14,7 +14,7 @@ import xarray as xr
 from xarray.core import indexing
 
 from arlmet._grid import Grid
-from arlmet._header import check_year
+from arlmet._header import check_level_count, check_year
 from arlmet._io import atomic_output, reject_same_file
 from arlmet._ops.sample.fields import mass_coupled
 from arlmet._ops.subset import normalize_levels, resolve_window, select_records
@@ -394,7 +394,9 @@ def write_dataset(
         steps, a time is outside 1940 to 2039 (a label's two-digit year cannot
         hold it), a ``lat``, ``lon``, ``x`` or ``y`` coordinate disagrees with
         the grid the ``arl_grid`` coordinate describes, the vertical axis
-        disagrees with the Dataset's own vertical coordinate, a slice is partly NaN
+        disagrees with the Dataset's own vertical coordinate or has more than
+        99 levels above the surface (a record's header numbers its level in
+        two characters), a slice is partly NaN
         or non-finite, an ``attrs["diff"]`` name
         is not one the name table pairs with its variable, or
         ``filename_or_obj`` is the file ``ds`` was opened from.
@@ -436,6 +438,7 @@ def write_dataset(
             "coordinate value)."
         )
     _check_vertical_axis_agrees(ds, resolved_vertical_axis)
+    check_level_count(len(resolved_vertical_axis.levels) - 1)
     if len(times):
         check_year(times.min().year)
         check_year(times.max().year)
