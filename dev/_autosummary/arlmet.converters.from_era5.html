@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=70c659db"></script>
+    <script src="../_static/documentation_options.js?v=81090253"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b13.dev1+gf3400f3d6" />
+  <meta name="docsearch:version" content="0.1.0b13.dev2+g06049944c" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -760,7 +760,8 @@ its levels from model level 137 up, each written as <code class="docutils litera
 writes it (Notes). HYSPLIT finds each level’s pressure
 from the surface pressure, so <code class="docutils literal notranslate"><span class="pre">single_levels</span></code> must hold <code class="docutils literal notranslate"><span class="pre">sp</span></code>.
 Levels above about model level 24 cannot be written: their pressure
-offsets round to the same whole hPa (see Raises).</p></li>
+offsets round to the same whole hPa; and an ARL file holds at most 99
+levels, so model levels 39 to 137 at most (see Raises).</p></li>
 </ul>
 <p>The variables converted are those of <code class="docutils literal notranslate"><span class="pre">era52arl</span></code>’s default list, plus
 specific humidity, and on model levels those of <code class="docutils literal notranslate"><span class="pre">api2arl</span></code>’s. Each is
@@ -883,10 +884,11 @@ accumulated fields: merge them first (<a class="reference external" href="https:
     or extra (an ensemble <code class="docutils literal notranslate"><span class="pre">number</span></code>, a forecast <code class="docutils literal notranslate"><span class="pre">step</span></code>), the latitudes
     or longitudes are not equally spaced, the two grids differ, or
     <code class="docutils literal notranslate"><span class="pre">single_levels</span></code> lacks a valid time of <code class="docutils literal notranslate"><span class="pre">levels</span></code>. On model levels,
-    also if <code class="docutils literal notranslate"><span class="pre">single_levels</span></code> has no <code class="docutils literal notranslate"><span class="pre">sp</span></code>, or two of the levels would be
-    stored as the same pressure (any above about model level 24): select
-    the levels below, for example <code class="docutils literal notranslate"><span class="pre">levels.sel(model_level=slice(24,</span>
-&#160;&#160;&#160; <span class="pre">None))</span></code>.</p>
+    also if <code class="docutils literal notranslate"><span class="pre">single_levels</span></code> has no <code class="docutils literal notranslate"><span class="pre">sp</span></code>, two of the levels would be
+    stored as the same pressure (any above about model level 24), or there
+    are more than 99 levels (an ARL record’s header numbers its level in
+    two characters): select the lowest 99 or fewer, for example
+    <code class="docutils literal notranslate"><span class="pre">levels.sel(model_level=slice(39,</span> <span class="pre">None))</span></code>.</p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>

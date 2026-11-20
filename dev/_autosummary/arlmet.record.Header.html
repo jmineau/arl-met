@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=70c659db"></script>
+    <script src="../_static/documentation_options.js?v=81090253"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b13.dev1+gf3400f3d6" />
+  <meta name="docsearch:version" content="0.1.0b13.dev2+g06049944c" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -755,7 +755,9 @@ derive a modified copy.</p>
 <li><p><strong>forecast</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – Forecast hour associated with the record. The label holds two digits,
 so <a class="reference internal" href="arlmet.record.Header.tobytes.html#arlmet.record.Header.tobytes" title="arlmet.record.Header.tobytes"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tobytes()</span></code></a> writes <code class="docutils literal notranslate"><span class="pre">min(forecast,</span> <span class="pre">99)</span></code>, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">pakrec</span></code>
 does (an index record keeps the full hour, up to 999, in its own field).</p></li>
-<li><p><strong>level</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – ARL vertical level index.</p></li>
+<li><p><strong>level</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – ARL vertical level index: 0 for the surface, then 1 to
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">MAX_LEVEL</span></code> from the ground up. The header holds it in two
+characters.</p></li>
 <li><p><strong>grid</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>]</span>) – Thousands part of the x and y grid sizes, as stored in the header’s
 two grid characters (<code class="docutils literal notranslate"><span class="pre">(1000,</span> <span class="pre">0)</span></code> for a 1799x799 grid, written
 <code class="docutils literal notranslate"><span class="pre">A&#64;</span></code>; <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0)</span></code> below 1000 points, written <code class="docutils literal notranslate"><span class="pre">99</span></code>). The remainders live in the index record, whose
@@ -767,7 +769,10 @@ two grid characters (<code class="docutils literal notranslate"><span class="pre
 </ul>
 </dd>
 <dt class="field-even">Variables<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>N_BYTES</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a>) – Fixed serialized size of the header.</p>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>N_BYTES</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a>) – Fixed serialized size of the header.</p></li>
+<li><p><strong>MAX_LEVEL</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a>) – The highest level index the header’s two characters hold, 99.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>

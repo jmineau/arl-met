@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=70c659db"></script>
+    <script src="../../../_static/documentation_options.js?v=81090253"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b13.dev1+gf3400f3d6" />
+  <meta name="docsearch:version" content="0.1.0b13.dev2+g06049944c" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -440,6 +440,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._header</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._indexrecord</span><span class="w"> </span><span class="kn">import</span> <span class="n">format_fixed_width_float</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">VerticalAxis</span>
 
@@ -527,8 +528,9 @@
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Return the hybrid axis of ``model_levels`` (lowest first), the ground first as 1.</span>
 
-<span class="sd">    Raises if two levels are stored as the same pressure: a level above about</span>
-<span class="sd">    model level 24 rounds to the same whole hPa as the one below it.</span>
+<span class="sd">    Raises if two levels are stored as the same pressure (a level above about</span>
+<span class="sd">    model level 24 rounds to the same whole hPa as the one below it), or if</span>
+<span class="sd">    there are more levels than an ARL file holds (:func:`check_level_count`).</span>
 <span class="sd">    """</span>
     <span class="n">stored</span> <span class="o">=</span> <span class="p">[</span>
         <span class="nb">float</span><span class="p">(</span><span class="n">format_fixed_width_float</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
@@ -540,8 +542,16 @@
                 <span class="sa">f</span><span class="s2">"ERA5 model level </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="si">}</span><span class="s2"> is stored as the same pressure as the "</span>
                 <span class="sa">f</span><span class="s2">"level below it: an ARL hybrid level holds its pressure offset in "</span>
                 <span class="sa">f</span><span class="s2">"whole hPa. Leave out level </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="si">}</span><span class="s2"> and those above it (keep "</span>
-                <span class="sa">f</span><span class="s2">"levels </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> to 137)."</span>
+                <span class="sa">f</span><span class="s2">"at most </span><span class="si">{</span><span class="n">Header</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="si">}</span><span class="s2"> levels, from 137 up: levels "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">138</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Header</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="p">)</span><span class="si">}</span><span class="s2"> to 137)."</span>
             <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stored</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">Header</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"ERA5 has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">stored</span><span class="p">)</span><span class="si">}</span><span class="s2"> model levels here, but an ARL file holds at "</span>
+            <span class="sa">f</span><span class="s2">"most </span><span class="si">{</span><span class="n">Header</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="si">}</span><span class="s2"> (a record's header numbers its level in two "</span>
+            <span class="sa">f</span><span class="s2">"characters). Keep the lowest </span><span class="si">{</span><span class="n">Header</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="si">}</span><span class="s2"> or fewer: levels "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="mi">138</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Header</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="si">}</span><span class="s2"> to 137 at most."</span>
+        <span class="p">)</span>
     <span class="k">return</span> <span class="n">HybridAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">*</span><span class="n">stored</span><span class="p">])</span>
 
 
@@ -574,7 +584,8 @@
 <span class="sd">      writes it (Notes). HYSPLIT finds each level's pressure</span>
 <span class="sd">      from the surface pressure, so ``single_levels`` must hold ``sp``.</span>
 <span class="sd">      Levels above about model level 24 cannot be written: their pressure</span>
-<span class="sd">      offsets round to the same whole hPa (see Raises).</span>
+<span class="sd">      offsets round to the same whole hPa; and an ARL file holds at most 99</span>
+<span class="sd">      levels, so model levels 39 to 137 at most (see Raises).</span>
 
 <span class="sd">    The variables converted are those of ``era52arl``'s default list, plus</span>
 <span class="sd">    specific humidity, and on model levels those of ``api2arl``'s. Each is</span>
@@ -633,10 +644,11 @@
 <span class="sd">        or extra (an ensemble ``number``, a forecast ``step``), the latitudes</span>
 <span class="sd">        or longitudes are not equally spaced, the two grids differ, or</span>
 <span class="sd">        ``single_levels`` lacks a valid time of ``levels``. On model levels,</span>
-<span class="sd">        also if ``single_levels`` has no ``sp``, or two of the levels would be</span>
-<span class="sd">        stored as the same pressure (any above about model level 24): select</span>
-<span class="sd">        the levels below, for example ``levels.sel(model_level=slice(24,</span>
-<span class="sd">        None))``.</span>
+<span class="sd">        also if ``single_levels`` has no ``sp``, two of the levels would be</span>
+<span class="sd">        stored as the same pressure (any above about model level 24), or there</span>
+<span class="sd">        are more than 99 levels (an ARL record's header numbers its level in</span>
+<span class="sd">        two characters): select the lowest 99 or fewer, for example</span>
+<span class="sd">        ``levels.sel(model_level=slice(39, None))``.</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>

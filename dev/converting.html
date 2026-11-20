@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=70c659db"></script>
+    <script src="_static/documentation_options.js?v=81090253"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b13.dev1+gf3400f3d6" />
+  <meta name="docsearch:version" content="0.1.0b13.dev2+g06049944c" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -610,7 +610,7 @@ files are stand in for the download:</p>
 <span class="go">Attributes:</span>
 <span class="go">    source:          ERA5</span>
 <span class="go">    vertical_flag:   2</span>
-<span class="go">    arlmet_version:  0.1.0b13.dev1+gf3400f3d6</span>
+<span class="go">    arlmet_version:  0.1.0b13.dev2+g06049944c</span>
 
 <span class="gp">In [6]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># level 1 is the highest pressure</span>
 <span class="gh">Out[6]: </span><span class="go">array([1000.,  850.,  700.,  500.])</span>
@@ -714,12 +714,14 @@ single-level fields of the same hours, which must include the surface pressure
 </div>
 <p>Each ARL hybrid level is one number, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">api2arl</span></code> writes it: a
 pressure offset in whole hPa plus a sigma, so that the level’s pressure is
-<code class="docutils literal notranslate"><span class="pre">offset</span> <span class="pre">+</span> <span class="pre">sigma</span> <span class="pre">*</span> <span class="pre">surface</span> <span class="pre">pressure</span></code> (model level 120 is <code class="docutils literal notranslate"><span class="pre">29.881</span></code>). Two
+<code class="docutils literal notranslate"><span class="pre">offset</span> <span class="pre">+</span> <span class="pre">sigma</span> <span class="pre">*</span> <span class="pre">surface</span> <span class="pre">pressure</span></code> (model level 120 is <code class="docutils literal notranslate"><span class="pre">29.881</span></code>). Three
 limits of that format decide which levels can be written:</p>
 <ul class="simple">
 <li><p>The offsets of the levels above about model level 24 (near 5 hPa) round to
-the same whole hPa, so <code class="docutils literal notranslate"><span class="pre">from_era5</span></code> refuses them and names the first.
-Keep levels 24 to 137, or fewer.</p></li>
+the same whole hPa, so <code class="docutils literal notranslate"><span class="pre">from_era5</span></code> refuses them and names the first.</p></li>
+<li><p>A record’s header numbers its level in two characters, so an ARL file holds
+at most 99 levels above the ground: keep model levels 39 to 137 (up to about
+25 hPa), or fewer.</p></li>
 <li><p>The index record at the start of each time step lists every level’s
 variables and must fit in one record of <code class="docutils literal notranslate"><span class="pre">nx</span> <span class="pre">*</span> <span class="pre">ny</span></code> bytes, so a small crop
 holds fewer levels: a 61 x 61 cell grid holds about 60 levels of five
@@ -857,7 +859,7 @@ those two files:</p>
 <span class="go">Attributes:</span>
 <span class="go">    source:          GFS</span>
 <span class="go">    vertical_flag:   2</span>
-<span class="go">    arlmet_version:  0.1.0b13.dev1+gf3400f3d6</span>
+<span class="go">    arlmet_version:  0.1.0b13.dev2+g06049944c</span>
 
 <span class="gp">In [19]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">"forecast_hour"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># the analysis's</span>
 <span class="gh">Out[19]: </span><span class="go">array([0])</span>
@@ -951,7 +953,7 @@ as cfgrib returns DWD’s files stand in for one forecast’s steps 0 to 3:</p>
 <span class="go">Attributes:</span>
 <span class="go">    source:          ICON</span>
 <span class="go">    vertical_flag:   2</span>
-<span class="go">    arlmet_version:  0.1.0b13.dev1+gf3400f3d6</span>
+<span class="go">    arlmet_version:  0.1.0b13.dev2+g06049944c</span>
 
 <span class="gp">In [25]: </span><span class="n">ds</span><span class="p">[</span><span class="s2">"TPP1"</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="s2">"lat"</span><span class="p">,</span> <span class="s2">"lon"</span><span class="p">])</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># m per hour; none at step 0</span>
 <span class="gh">Out[25]: </span><span class="go">array([       nan, 0.00037703, 0.00037703, 0.00037703])</span>
@@ -1015,7 +1017,7 @@ for them:</p>
 <span class="go">Attributes:</span>
 <span class="go">    source:          AWRF</span>
 <span class="go">    vertical_flag:   1</span>
-<span class="go">    arlmet_version:  0.1.0b13.dev1+gf3400f3d6</span>
+<span class="go">    arlmet_version:  0.1.0b13.dev2+g06049944c</span>
 
 <span class="gp">In [30]: </span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">grid</span>
 <span class="gh">Out[30]: </span><span class="go">Grid(lcc 12km, 30×25)</span>
