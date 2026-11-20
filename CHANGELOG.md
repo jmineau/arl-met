@@ -7,6 +7,16 @@ file alone: the entries are written at release (`just changelog` drafts them).
 
 ## [Unreleased]
 
+## [0.1.0b13] - 2026-11-20
+
+### Added
+
+- `converters.from_flex_extract(datasets)` reads the `EAyymmddhh` files flex_extract writes for FLEXPART: fluxes stay rates, every field goes on one longitude axis, `USTR` comes from the surface stress as FLEXPART makes it, `TPP1` from `lsp + cp`, and the lowest 99 model levels are kept. (#243, #245)
+
+### Fixed
+
+- An ARL record's header numbers its level in two characters, so a file holds at most 99 levels above the surface. `File` (write mode), `write_dataset` and `Header.tobytes` now say so before writing, instead of failing partway through with "Header serialization produced 51 bytes". `from_era5` raises for more than 99 model levels, and its message and the converting guide name model levels 39 to 137. (#244, #246)
+
 ## [0.1.0b12] - 2026-11-19
 
 ### Added
