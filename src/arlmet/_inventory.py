@@ -116,7 +116,7 @@ def _cache_path(
     """
     suffix = "-recursive" if recursive else ""
     if cache_dir is None and os.access(directory, os.W_OK):
-        return directory / f"{CACHE_NAME.removesuffix('.csv')}{suffix}.csv"
+        return _published_path(directory, recursive)
     folder = (
         Path(cache_dir).expanduser()
         if cache_dir is not None
@@ -124,6 +124,12 @@ def _cache_path(
     )
     digest = hashlib.sha256(str(directory.resolve()).encode()).hexdigest()[:12]
     return folder / f"{directory.name or 'root'}-{digest}{suffix}.csv"
+
+
+def _published_path(directory: Path, recursive: bool) -> Path:
+    """Return the table the folder's maintainer may keep beside its files."""
+    suffix = "-recursive" if recursive else ""
+    return directory / f"{CACHE_NAME.removesuffix('.csv')}{suffix}.csv"
 
 
 def _read_file(path: Path) -> dict[str, Any]:
@@ -253,6 +259,13 @@ def inventory(
     a few small reads. The cache is saved every 500 files, so an interrupted
     first inventory of a large archive keeps what it read.
 
+    When the cache is not beside the files (*directory* is read-only, or
+    *cache_dir* is given) and the folder holds the table its maintainer saved
+    there by running ``inventory`` on it, that table is the starting point,
+    read-only: a file whose size and modification time match its row is not
+    opened, and the rest are read. Rows already in your own cache win. A stale
+    published table therefore costs a few reads, never a wrong answer.
+
     Parameters
     ----------
     directory : path-like
@@ -305,7 +318,11 @@ def inventory(
         cache.parent.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
         raise _cache_error(cache, exc) from exc
-    cached = _read_cache(cache)
+    own = _read_cache(cache)
+    # A cache that is not beside the files starts from the table the folder's
+    # maintainer published there, read-only; the user's own rows win.
+    published = _published_path(directory, recursive)
+    cached = {**_read_cache(published), **own} if cache != published else own
 
     # Rows are keyed by the file's real path, so a file reached by several
     # paths is read and listed once.
@@ -351,7 +368,7 @@ def inventory(
                 if n % _SAVE_EVERY == 0:
                     logger.info("Read %d of %d files", n, len(to_read))
                     _write_cache(cache, rows)
-    if to_read or rows.keys() != cached.keys():
+    if to_read or rows.keys() != own.keys():
         _write_cache(cache, rows)
 
     # Built column by column so each has its type even when it is all NaT,
