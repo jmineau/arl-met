@@ -139,7 +139,7 @@ Which files are read
   links), or the archive without ``recursive``.
 - **Hidden files and folders, backup copies and copies set aside are
   skipped**: names that start with ``.`` (arl-met's own partial outputs and the
-  cache file), end in ``~``, ``.partial`` or ``.bad``, or hold ``.lock``. An
+  cache file), end in ``~``, ``.partial``, ``.bad`` or ``.lock``, or hold ``.lock.``. An
   archive that keeps a damaged file as ``name.bad`` beside its replacement is
   read as if only the replacement were there.
 - **Every other file is kept in the table.** One that is not ARL, is cut short,

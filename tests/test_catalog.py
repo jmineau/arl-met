@@ -227,6 +227,11 @@ class TestTable:
             archive / "20240701_00"
         ]
 
+    def test_a_name_that_only_starts_like_a_lock_file_is_read(self, archive):
+        shutil.copy(archive / "20240701_00", archive / "20240701_00.locked")
+
+        assert len(catalog(archive)) == 5
+
     def test_a_missing_directory_raises(self, tmp_path):
         with pytest.raises(FileNotFoundError, match="No directory"):
             catalog(tmp_path / "nowhere")

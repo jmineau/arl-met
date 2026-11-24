@@ -216,14 +216,15 @@ def _set_aside(name: str) -> bool:
     Whether a file or folder *name* is skipped, though its header may pass.
 
     Hidden names (``.``: arl-met's own partial outputs and the cache),
-    backup copies (``name~``, ``name.~1~``), lock files (``.lock``), a
+    backup copies (``name~``, ``name.~1~``), lock files (``name.lock``, ``name.lock.1``), a
     download cut short (``.partial``), and a copy set aside as damaged
     (``.bad``), as some archives keep beside the file that replaced it.
     """
     return (
         name.startswith(".")
         or name.endswith(("~", ".partial", ".bad"))
-        or ".lock" in name
+        or name.endswith(".lock")
+        or ".lock." in name
     )
 
 
@@ -269,7 +270,7 @@ def catalog(
     link that cannot be followed (its target is gone, or links loop) is a row
     with the reason in ``error``. Links to folders are not followed. Hidden
     files and folders (names starting with ``.``), backup copies (names
-    ending in ``~``), lock files (names holding ``.lock``) and copies set
+    ending in ``~``), lock files (names ending in ``.lock`` or holding ``.lock.``) and copies set
     aside (names ending in ``.partial`` or ``.bad``) are skipped. A file that is not ARL, or is damaged, is
     kept with the reason in ``error`` and is not used to cover a window.
 
