@@ -435,7 +435,7 @@ FE_LONS = np.arange(245.0, 251.0 + 0.01, 0.25)  # the model levels' and sp's
 FE_LEVELS = np.array([1.0, 20.0, 23.0, 24.0, 25.0, 100.0, 130.0, 137.0])
 
 
-def flex_extract_file(valid_time, *, seed=0, levels=FE_LEVELS):
+def flex_extract_file(valid_time, *, seed=0, levels=FE_LEVELS, lons=FE_LONS):
     """
     The cfgrib Datasets of one made-up flex_extract ``EAyymmddhh`` file.
 
@@ -446,7 +446,7 @@ def flex_extract_file(valid_time, *, seed=0, levels=FE_LEVELS):
     """
     rng = np.random.default_rng(seed)
     valid_time = pd.Timestamp(valid_time)
-    ny, nx = len(LATS), len(FE_LONS)
+    ny, nx = len(LATS), len(lons)
     flat = ("latitude", "longitude")
 
     def f(base, scale, shape=(ny, nx)):
@@ -468,7 +468,7 @@ def flex_extract_file(valid_time, *, seed=0, levels=FE_LEVELS):
 
     up = (len(levels), ny, nx)
     upper_dims = ("hybrid", *flat)
-    west = FE_LONS - 360.0
+    west = np.sort(np.where(lons >= 180.0, lons - 360.0, lons))
     steps = pd.to_timedelta([0, 1, 2], unit="h")
     precip = xr.Dataset(
         {
@@ -495,7 +495,7 @@ def flex_extract_file(valid_time, *, seed=0, levels=FE_LEVELS):
                 "q": (upper_dims, f(0.0, 0.01, up)),
                 "clwc": (upper_dims, f(0.0, 1e-4, up)),
             },
-            FE_LONS,
+            lons,
             extra={"hybrid": levels},
         ),
         cube(
@@ -522,7 +522,7 @@ def flex_extract_file(valid_time, *, seed=0, levels=FE_LEVELS):
             extra={"number": 0, "surface": 0.0},
             step_type="accum",
         ),
-        cube({"sp": (flat, f(7.0e4, 3.0e4))}, FE_LONS, extra={"surface": 1.0}),
+        cube({"sp": (flat, f(7.0e4, 3.0e4))}, lons, extra={"surface": 1.0}),
         precip,
     ]
 
@@ -550,6 +550,18 @@ class TestFromFlexExtract:
         # Every field on the model levels' longitudes, one grid.
         np.testing.assert_allclose(ds["lon"].values % 360.0, FE_LONS)
         assert ds.sizes["lon"] == len(FE_LONS)
+
+    def test_a_global_grid_is_put_on_0_to_360(self):
+        lons = np.arange(0.0, 360.0, 30.0)
+        files = flex_extract_file(FE_TIMES[0], lons=lons)
+        ds = from_flex_extract(files)
+
+        np.testing.assert_allclose(ds["lon"].values, lons)
+        # t2m is on -180 to 180: its column at -150 is the grid's at 210.
+        t2m = files[2]["t2m"].sel(longitude=-150.0).sortby("latitude")
+        np.testing.assert_allclose(
+            ds["T02M"].isel(time=0).sel(lon=210.0).values, t2m.values, rtol=1e-6
+        )
 
     def test_levels_above_24_are_left_out(self, fe_files):
         from arlmet.converters._era5 import _hybrid_levels
