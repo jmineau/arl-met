@@ -351,15 +351,13 @@ class TestCheck:
     def test_time_steps_out_of_order(self, tmp_path):
         path = tmp_path / "unordered.arl"
         both = ["PRSS", "TEMP"]
-        write_steps(
-            path,
-            [
-                ("2024-07-18 00:00", both),
-                ("2024-07-18 06:00", both),
-                ("2024-07-18 03:00", both),
-                ("2024-07-18 09:00", both),
-            ],
-        )
+        hours = ["00:00", "03:00", "06:00", "09:00"]
+        write_steps(path, [(f"2024-07-18 {hour}", both) for hour in hours])
+        # The writer refuses this order, so swap the second and third time steps.
+        raw = bytearray(path.read_bytes())
+        a, b, c = STEP_LENGTH, 2 * STEP_LENGTH, 3 * STEP_LENGTH
+        raw[a:b], raw[b:c] = raw[b:c], raw[a:b]
+        path.write_bytes(bytes(raw))
 
         with File(path) as arl:
             assert [t.hour for t in arl.times] == [0, 3, 6, 9]

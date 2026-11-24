@@ -1243,8 +1243,12 @@ class TestContainerSemantics:
             grid=grid,
             vertical_axis=PressureAxis(levels=[1000.0]),
         ) as arl:
-            for time in (late, early):  # written out of time order
+            for time in (early, late):
                 arl.add_record(time, "TEMP", 0, forecast=0, data=zeros)
+        # The writer refuses a time step out of order, so swap the two on disk.
+        raw = path.read_bytes()
+        half = len(raw) // 2
+        path.write_bytes(raw[half:] + raw[:half])
 
         with File(path) as arl:
             assert arl.times == [early, late]

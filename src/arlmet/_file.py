@@ -384,7 +384,9 @@ class File:
         ------
         ValueError
             If ``time`` is outside 1940 to 2039, the years a label's two-digit
-            year can hold.
+            year can hold, or is not later than every time already in the file:
+            HYSPLIT reads the time steps in file order, so they are written in
+            time order.
         """
         _require_mode(self, "w")
         if self.source is None or self.grid is None:
@@ -394,6 +396,14 @@ class File:
         source = grid = None  # skip checks in _create_recordset
         ts = ensure_timestamp(time)
         check_year(ts.year)
+        # Record sets are written in the order they are made, so the last is the latest.
+        latest = next(reversed(self._recordsets), None)
+        if latest is not None and ts < latest:
+            raise ValueError(
+                f"{_at(ts)} is earlier than {_at(latest)}, which is already in the "
+                "file. HYSPLIT reads the time steps in file order, so they must be "
+                "written in time order; sort them first (ds.sortby('time'))."
+            )
         return self._create_recordset(
             position=position, source=source, grid=grid, time=ts, forecast=forecast
         )

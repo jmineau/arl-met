@@ -391,7 +391,8 @@ def write_dataset(
     ValueError
         If the Dataset does not match the layout above (including a ``lat``,
         ``lon``, ``y`` or ``x`` coordinate that does not increase), has no time
-        steps, a time is outside 1940 to 2039 (a label's two-digit year cannot
+        steps, its times do not increase (HYSPLIT reads the time steps in file
+        order), a time is outside 1940 to 2039 (a label's two-digit year cannot
         hold it), a ``lat``, ``lon``, ``x`` or ``y`` coordinate disagrees with
         the grid the ``arl_grid`` coordinate describes, the vertical axis
         disagrees with the Dataset's own vertical coordinate or has more than
