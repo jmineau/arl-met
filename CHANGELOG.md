@@ -7,6 +7,20 @@ file alone: the entries are written at release (`just changelog` drafts them).
 
 ## [Unreleased]
 
+## [0.1.0b14] - 2026-11-24
+
+### Added
+
+- `Catalog.covering(start, end, missing_ok=True)` returns the files for the valid times that are held, without raising for the rest; `missing()` lists those, so a caller can find them elsewhere. (#249, #250)
+- A folder's first catalog is built by one process. The first to have files to open takes a lock folder beside the cache (`<cache>.lock`); the others, such as the tasks of a job array, wait, then read the table it saved and open only what is still missing. A lock whose cache has not changed for 5 minutes is taken over. (#249, #250)
+- A read-only folder's catalog starts from the table its maintainer saved beside the files (`.arlmet-catalog.csv`, or `-recursive`): a file whose size and modification time match its row is not opened again, and rows in your own cache win. Whoever syncs a shared archive keeps it current by running `arlmet.catalog(folder)` as the last step.
+
+### Changed
+
+- **Breaking: `arlmet.inventory` is now `arlmet.catalog`**, and `Inventory` is `Catalog` (the module is `_catalog`; the guide is `cataloging`). "Inventory" collides with emission inventories. The cache file is `.arlmet-catalog.csv` (and `-recursive`) and the user cache folder `arlmet/catalog`; a cache under the old name is not read, so the first call after upgrading reads every file again. No alias. (#249, #250)
+- `covering` leaves out a file when a longer file of the same source and grid holds every one of its valid times, such as a short crop beside the whole file, instead of raising "is in two files". Files of another source or grid, and two copies with the same times, still raise. (#249, #250)
+- A catalog skips copies set aside: names ending in `.bad`, `.partial` or `.lock`, or holding `.lock.`, as well as hidden names and backups. Hard links to one file are one row. (#249, #250)
+
 ## [0.1.0b13] - 2026-11-20
 
 ### Added
