@@ -290,6 +290,21 @@ class TestWriter:
 
         assert list(File(written_path).times) == list(utc)
 
+    def test_write_dataset_refuses_times_out_of_order(self, tmp_path):
+        """HYSPLIT reads time steps in file order, so a later one must not come first."""
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+        self.write_sample_file(source_path)
+        reversed_ds = open_dataset(source_path).isel(time=[1, 0])
+
+        with pytest.raises(ValueError, match=r"is earlier than .*ds\.sortby\('time'\)"):
+            write_dataset(reversed_ds, written_path)
+        assert not written_path.exists()
+
+        write_dataset(reversed_ds.sortby("time"), written_path)
+        with File(written_path) as arl:
+            assert arl.check() == []
+
     @pytest.mark.parametrize("dim", ["lat", "lon"])
     def test_write_dataset_rejects_a_descending_coordinate(self, tmp_path, dim):
         """Rows and columns are written in array order, so a flipped Dataset is refused."""
