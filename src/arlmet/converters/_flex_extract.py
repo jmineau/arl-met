@@ -69,10 +69,14 @@ def _longitudes(da: xr.DataArray) -> xr.DataArray:
     Return *da* with its longitudes from 0 to 360, or -180 to 180 across 0.
 
     flex_extract's files hold the same grid on both conventions; this puts
-    every field on one, so that they line up.
+    every field on one, so that they line up. A grid that goes all the way
+    round is put on 0 to 360, its columns turned to start at 0.
     """
     lon = np.asarray(da["longitude"].values, dtype=float) % 360.0
     if (np.diff(lon) <= 0).any():
+        # Equal steps that, with one more, make a whole turn.
+        if np.isclose((lon.max() - lon.min()) * lon.size / (lon.size - 1), 360.0):
+            return da.assign_coords(longitude=lon).sortby("longitude")
         lon = np.where(lon >= 180.0, lon - 360.0, lon)
     return da.assign_coords(longitude=lon)
 
@@ -122,7 +126,7 @@ def from_flex_extract(datasets: Iterable[xr.Dataset]) -> xr.Dataset:
       time (W m-2, N m-2, mm h-1), but keeps their GRIB names, units and
       ``stepType=accum``; they are read as the rates they are.
     - Some fields are on longitudes from 0 to 360 and others from -180 to 180,
-      on the same grid; all are put on one.
+      on the same grid; all are put on one (0 to 360 for a global grid).
     - The files hold all 137 model levels, more than an ARL file can: the
       lowest 99 are kept (model levels 137 to 39, up to about 25 hPa), as a
       record's header numbers its level in two characters. Fewer are kept when
