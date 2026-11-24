@@ -230,6 +230,15 @@ class TestWrite:
             assert np.isnan(record.read()).all()
             assert not np.isnan(arl[TIMES[0]][(1, "TEMP")].read()).any()
 
+    @pytest.mark.parametrize("name", [None, "NULL"])
+    def test_level_copy_keeps_a_missing_record_missing(self, tmp_path, name):
+        """Without a bbox the records are copied; a missing one stays missing."""
+        source = make_missing(write_file(tmp_path / "in.arl"), SECOND_TEMP, name=name)
+        dest = extract_subset(source, tmp_path / "copy.arl", levels=[0, 1])
+        with File(dest) as arl:
+            assert np.isnan(arl[TIMES[1]][(1, "TEMP")].read()).all()
+            assert not np.isnan(arl[TIMES[0]][(1, "TEMP")].read()).any()
+
     def test_crop_across_the_seam_keeps_a_missing_record_missing(self, tmp_path):
         # A crop across 0 E reads its columns in two pieces (#83); a missing
         # record still reads as NaN of the window's shape.

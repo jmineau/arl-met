@@ -15,7 +15,7 @@ from arlmet._header import Header, record_length_from_grid, split_grid_component
 from arlmet._indexrecord import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
 from arlmet._io import atomic_output, reject_same_file
 from arlmet.packing import calculate_checksum
-from arlmet.record import DataRecord
+from arlmet.record import DataRecord, _checked_header
 from arlmet.vertical import VerticalAxis
 
 if TYPE_CHECKING:
@@ -284,13 +284,8 @@ def _copy_subset_records(
                         f"{src.path}: record {rec.variable!r} at byte "
                         f"{rec.position} is truncated."
                     )
-                header = Header.from_bytes(raw[: Header.N_BYTES])
-                if header.variable != rec.variable or header.level != rec.level:
-                    raise ARLFormatError(
-                        f"DataRecord header mismatch at position {rec.position}: "
-                        f"expected variable '{rec.variable}' level {rec.level}, "
-                        f"got variable '{header.variable}' level '{header.level}'"
-                    )
+                # As the reader checks it: a header named NULL marks the record missing.
+                _checked_header(rec, raw)
                 # Write the record with its level renumbered, without copying it.
                 view = memoryview(raw)
                 out.write(view[:_LEVEL_START])
