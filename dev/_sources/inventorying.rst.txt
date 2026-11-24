@@ -164,6 +164,15 @@ are gone. :attr:`~arlmet.Inventory.cache` says where it is:
   Linux, ``~/Library/Caches/arlmet/inventory`` on macOS,
   ``%LOCALAPPDATA%\arlmet\inventory`` on Windows.
 
+When the cache is not in the folder and the folder holds
+``.arlmet-inventory.csv`` (or ``-recursive``), that table is read, never
+changed, as the starting point: files whose size and modification time match
+its rows are not opened again, and only the others are read before the full table
+is saved to your own cache. Rows in your own cache win over it. Whoever syncs a
+shared archive keeps this table current by running ``arlmet.inventory(folder)``
+as the last step of the sync. Rows are keyed by real path, so it helps readers
+who see the archive at the same real path.
+
 Pass ``cache_dir=`` to choose the folder yourself:
 
 .. code-block:: python
