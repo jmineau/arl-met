@@ -31,6 +31,19 @@ def reject_same_file(
         )
 
 
+def partial_path(dest: Path) -> Path:
+    """
+    Return a unique hidden temp path next to *dest*, ``.<name>.<12 hex>.partial``.
+
+    The random part keeps concurrent writers of one file apart, and a fetch's
+    lock watches temp files by this pattern (``archives._temp_sizes``).
+    """
+    # A random name rather than tempfile.mkstemp: mkstemp creates the file with
+    # mode 0600, which would strip group read from outputs in shared
+    # directories. The writer creates this file normally, honoring the umask.
+    return dest.with_name(f".{dest.name}.{secrets.token_hex(6)}.partial")
+
+
 @contextlib.contextmanager
 def atomic_output(dest: str | os.PathLike[str]) -> Iterator[Path]:
     """
@@ -51,10 +64,7 @@ def atomic_output(dest: str | os.PathLike[str]) -> Iterator[Path]:
         raise FileNotFoundError(
             f"The folder of dest {str(dest)!r} does not exist: {str(dest.parent)!r}."
         )
-    # A random name rather than tempfile.mkstemp: mkstemp creates the file with
-    # mode 0600, which would strip group read from outputs in shared
-    # directories. The writer creates this file normally, honoring the umask.
-    tmp_path = dest.with_name(f".{dest.name}.{secrets.token_hex(6)}.partial")
+    tmp_path = partial_path(dest)
     try:
         yield tmp_path
         os.replace(tmp_path, dest)
