@@ -1473,3 +1473,27 @@ class TestFromIcon:
     def test_not_a_dataset_raises(self):
         with pytest.raises(TypeError, match="takes xarray.Datasets"):
             from_icon(["icon.grib2"])  # pyrefly: ignore[bad-argument-type]
+
+
+class TestSortedWithoutCopy:
+    """A reversed axis is turned with a view; only a mixed one is sorted (a copy)."""
+
+    def test_in_order_reversed_and_mixed(self):
+        from arlmet.converters._pressure import _sorted
+
+        values = np.arange(12.0).reshape(4, 3)
+        ds = xr.Dataset(
+            {"f": (("lat", "lon"), values)}, coords={"lat": [3.0, 2.0, 1.0, 0.0]}
+        )
+
+        turned = _sorted(ds, "lat")
+        assert turned["lat"].values.tolist() == [0.0, 1.0, 2.0, 3.0]
+        assert np.shares_memory(turned["f"].values, values)
+        np.testing.assert_array_equal(turned["f"].values, values[::-1])
+
+        assert _sorted(ds, "lat", ascending=False) is ds
+
+        mixed = ds.assign_coords(lat=[2.0, 0.0, 3.0, 1.0])
+        np.testing.assert_array_equal(
+            _sorted(mixed, "lat")["f"].values, mixed.sortby("lat")["f"].values
+        )

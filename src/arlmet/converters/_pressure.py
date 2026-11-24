@@ -97,6 +97,24 @@ def stack_times(
     )
 
 
+def _sorted(ds: xr.Dataset, dim: str, *, ascending: bool = True) -> xr.Dataset:
+    """
+    Return *ds* sorted along *dim*, without copying it when it is in order or reversed.
+
+    ``sortby`` always copies the data; a converter's fields are in memory, so
+    a reversed axis (latitudes from the north, as GRIB has them) is turned with
+    a slice, which does not copy.
+    """
+    step = np.diff(ds[dim].values)
+    if not ascending:
+        step = -step
+    if (step > 0).all():
+        return ds
+    if (step < 0).all():
+        return ds.isel({dim: slice(None, None, -1)})
+    return ds.sortby(dim, ascending=ascending)
+
+
 def standardize(
     ds: xr.Dataset,
     names: Iterable[str],
@@ -172,7 +190,7 @@ def standardize(
     ds = ds.drop_vars(list(ds.coords)).rename_dims(renames).assign_coords(coords)
     if pd.Index(ds["time"].values).has_duplicates:
         raise ValueError(f"{label} has repeated valid times.")
-    return ds.sortby("lat")
+    return _sorted(ds, "lat")
 
 
 def field_variable(
@@ -277,7 +295,7 @@ def pressure_level_dataset(
             f"the first {missing[0]}."
         )
     surface = surface.sel(time=upper["time"].values)
-    upper = upper.sortby("level", ascending=False)
+    upper = _sorted(upper, "level", ascending=False)
 
     grid = latlon_grid(upper["lat"].values, upper["lon"].values)
     axis = vertical_axis([float(value) for value in upper["level"].values])
