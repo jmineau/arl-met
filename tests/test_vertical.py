@@ -839,3 +839,37 @@ class TestWrfFile:
             for z_kind in ("pressure", "agl"):
                 with pytest.raises(ValueError, match="PRES"):
                     f.sample_points(point, ["TEMP"], z_kind=z_kind, model_top=None)
+
+
+class TestHelpersOnSomeLevels:
+    """A Dataset holding some of a file's levels keeps their numbers in the file."""
+
+    @pytest.mark.parametrize("axis_type", [SigmaAxis, HybridAxis])
+    def test_pressure_of_some_levels_is_those_levels_pressure(
+        self, tmp_path, axis_type
+    ):
+        path = tmp_path / "column.arl"
+        _write_column_file(
+            path, axis=axis_type(levels=[1.0, 0.99, 0.95, 0.9]), pres=False
+        )
+        full = arlmet.open_dataset(path)
+
+        some = full.isel(level=[1, 2])
+        np.testing.assert_allclose(
+            arlmet.pressure(some).values,
+            arlmet.pressure(full).isel(level=[1, 2]).values,
+        )
+
+    def test_z_agl_of_some_levels_is_as_if_written_alone(self, tmp_path):
+        """Without T02M the column starts at the first level's sigma, here 0.95."""
+        path = tmp_path / "column.arl"
+        _write_column_file(
+            path, axis=SigmaAxis(levels=[1.0, 0.99, 0.95, 0.9]), pres=False
+        )
+        some = arlmet.open_dataset(path).drop_vars("T02M").isel(level=[1, 2]).load()
+
+        written = tmp_path / "some.arl"
+        arlmet.write_dataset(some, written)
+        np.testing.assert_allclose(
+            arlmet.z_agl(some).values, arlmet.z_agl(arlmet.open_dataset(written)).values
+        )
