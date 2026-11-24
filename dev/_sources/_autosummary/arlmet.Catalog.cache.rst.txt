@@ -1,0 +1,6 @@
+arlmet.Catalog.cache
+====================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: Catalog.cache

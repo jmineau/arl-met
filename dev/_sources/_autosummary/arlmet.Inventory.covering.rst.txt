@@ -1,5 +1,0 @@
-arlmet.Inventory.covering
-=========================
-
-.. currentmodule:: arlmet
-.. automethod:: Inventory.covering

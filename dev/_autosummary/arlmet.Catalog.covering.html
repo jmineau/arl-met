@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>arlmet.inventory &#8212; arl-met dev</title>
+    <title>arlmet.Catalog.covering &#8212; arl-met dev</title>
   
   
   
@@ -41,12 +41,12 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=83349273"></script>
+    <script src="../_static/documentation_options.js?v=d24aff0f"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../_static/copybutton.js?v=f281be69"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = '_autosummary/arlmet.inventory';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_autosummary/arlmet.Catalog.covering';</script>
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
@@ -58,13 +58,13 @@
     <link rel="icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="arlmet.Inventory" href="arlmet.Inventory.html" />
-    <link rel="prev" title="arlmet.converters.from_wrf" href="arlmet.converters.from_wrf.html" />
+    <link rel="next" title="arlmet.Catalog.missing" href="arlmet.Catalog.missing.html" />
+    <link rel="prev" title="arlmet.Catalog.table" href="arlmet.Catalog.table.html" />
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b14.dev1+g3986953c4" />
+  <meta name="docsearch:version" content="0.1.0b14.dev2+g134690204" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -73,7 +73,7 @@
   
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="arl-met">
-  <meta property="og:title" content="arlmet.inventory">
+  <meta property="og:title" content="arlmet.Catalog.covering">
   <meta property="og:description" content="Read, write, crop, and sample NOAA ARL meteorology files in Python.">
   <meta property="og:image" content="https://raw.githubusercontent.com/jmineau/arl-met/main/docs/_static/social-preview.png">
   <meta name="twitter:card" content="summary_large_image">
@@ -417,14 +417,14 @@
 <li class="toctree-l1"><a class="reference internal" href="arlmet.converters.from_wrf.html">arlmet.converters.from_wrf</a></li>
 </ul>
 <ul class="current nav bd-sidenav">
-<li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">arlmet.inventory</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="arlmet.Inventory.html">arlmet.Inventory</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l2"><a class="reference internal" href="arlmet.Inventory.cache.html">arlmet.Inventory.cache</a></li>
-<li class="toctree-l2"><a class="reference internal" href="arlmet.Inventory.directory.html">arlmet.Inventory.directory</a></li>
-<li class="toctree-l2"><a class="reference internal" href="arlmet.Inventory.step.html">arlmet.Inventory.step</a></li>
-<li class="toctree-l2"><a class="reference internal" href="arlmet.Inventory.table.html">arlmet.Inventory.table</a></li>
-<li class="toctree-l2"><a class="reference internal" href="arlmet.Inventory.covering.html">arlmet.Inventory.covering</a></li>
-<li class="toctree-l2"><a class="reference internal" href="arlmet.Inventory.missing.html">arlmet.Inventory.missing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="arlmet.catalog.html">arlmet.catalog</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="arlmet.Catalog.html">arlmet.Catalog</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Catalog.cache.html">arlmet.Catalog.cache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Catalog.directory.html">arlmet.Catalog.directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Catalog.step.html">arlmet.Catalog.step</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Catalog.table.html">arlmet.Catalog.table</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">arlmet.Catalog.covering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="arlmet.Catalog.missing.html">arlmet.Catalog.missing</a></li>
 </ul>
 </details></li>
 </ul>
@@ -720,7 +720,10 @@
     
     <li class="breadcrumb-item"><a href="../api.html" class="nav-link">API Reference</a></li>
     
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">arlmet.inventory</span></li>
+    
+    <li class="breadcrumb-item"><a href="arlmet.Catalog.html" class="nav-link">arlmet.Catalog</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">arlmet.Catalog.covering</span></li>
   </ul>
 </nav>
 </div>
@@ -737,76 +740,40 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="arlmet-inventory">
-<h1>arlmet.inventory<a class="headerlink" href="#arlmet-inventory" title="Link to this heading">#</a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="arlmet.inventory">
-<span class="sig-prename descclassname"><span class="pre">arlmet.</span></span><span class="sig-name descname"><span class="pre">inventory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">recursive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/_inventory.html#inventory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.inventory" title="Link to this definition">#</a></dt>
-<dd><p>Take an inventory of the ARL files in a directory by their headers.</p>
-<p>Each file in <em>directory</em> is opened once, and what its index records say
-is kept: its source, grid, first and last valid time, and time step. The
-table is cached, so a later call reads again only the files that are new
-or changed (by size or modification time) and drops the files that are
-gone. Use <a class="reference internal" href="arlmet.Inventory.covering.html#arlmet.Inventory.covering" title="arlmet.Inventory.covering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Inventory.covering()</span></code></a> to find the files for a time
-window.</p>
-<p>Links to files are followed, and each real file is one row, shown by its
-real path (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path.resolve" title="(in Python v3.15)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pathlib.Path.resolve()</span></code></a>) however many links reach it. A
-link that cannot be followed (its target is gone, or links loop) is a row
-with the reason in <code class="docutils literal notranslate"><span class="pre">error</span></code>. Links to folders are not followed. Hidden
-files and folders (names starting with <code class="docutils literal notranslate"><span class="pre">.</span></code>) and backup copies (names
-ending in <code class="docutils literal notranslate"><span class="pre">~</span></code>) are skipped. A file that is not ARL, or is damaged, is
-kept with the reason in <code class="docutils literal notranslate"><span class="pre">error</span></code> and is not used to cover a window.</p>
-<p>Files are opened 16 at a time: on a network filesystem each one waits on
-a few small reads. The cache is saved every 500 files, so an interrupted
-first inventory of a large archive keeps what it read.</p>
-<p>When the cache is not beside the files (<em>directory</em> is read-only, or
-<em>cache_dir</em> is given) and the folder holds the table its maintainer saved
-there by running <code class="docutils literal notranslate"><span class="pre">inventory</span></code> on it, that table is the starting point,
-read-only: a file whose size and modification time match its row is not
-opened, and the rest are read. Rows already in your own cache win. A stale
-published table therefore costs a few reads, never a wrong answer.</p>
+  <section id="arlmet-catalog-covering">
+<h1>arlmet.Catalog.covering<a class="headerlink" href="#arlmet-catalog-covering" title="Link to this heading">#</a></h1>
+<dl class="py method">
+<dt class="sig sig-object py" id="arlmet.Catalog.covering">
+<span class="sig-prename descclassname"><span class="pre">Catalog.</span></span><span class="sig-name descname"><span class="pre">covering</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_ok</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/arlmet/_catalog.html#Catalog.covering"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#arlmet.Catalog.covering" title="Link to this definition">#</a></dt>
+<dd><p>Return the files that cover a window, in time order.</p>
+<p>The files hold every valid time the window needs (<a class="reference internal" href="arlmet.Catalog.missing.html#arlmet.Catalog.missing" title="arlmet.Catalog.missing"><code class="xref py py-meth docutils literal notranslate"><span class="pre">missing()</span></code></a>):
+one every <a class="reference internal" href="arlmet.Catalog.step.html#arlmet.Catalog.step" title="arlmet.Catalog.step"><code class="xref py py-attr docutils literal notranslate"><span class="pre">step</span></code></a> from the one at or before <em>start</em> to the one at
+or after <em>end</em>. Files whose <code class="docutils literal notranslate"><span class="pre">error</span></code> is set are not used.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>directory</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">PathLike</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – The folder of ARL files.</p></li>
-<li><p><strong>recursive</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Also read every folder below <em>directory</em>, as a copy of NOAA’s
-<code class="docutils literal notranslate"><span class="pre">YYYY/MM/</span></code> layout needs. By default only the files directly in
-<em>directory</em> are read.</p></li>
-<li><p><strong>cache_dir</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/os.html#os.PathLike" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">PathLike</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>] | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – Folder for the cache file. By default the cache is
-<code class="docutils literal notranslate"><span class="pre">.arlmet-inventory.csv</span></code> (<code class="docutils literal notranslate"><span class="pre">.arlmet-inventory-recursive.csv</span></code> with
-<em>recursive</em>) in <em>directory</em> when <em>directory</em> is writable, and
-otherwise a file named after the directory in <code class="docutils literal notranslate"><span class="pre">$ARLMET_CACHE_DIR</span></code>,
-or in the platform’s user cache folder (<code class="docutils literal notranslate"><span class="pre">arlmet/inventory</span></code> in
-<code class="docutils literal notranslate"><span class="pre">$XDG_CACHE_HOME</span></code> on Linux) when that variable is not set.</p></li>
+<li><p><strong>start</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></span>) – The window, earlier time first. A time without a time zone is UTC;
+a time-zone-aware one is converted to UTC.</p></li>
+<li><p><strong>end</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></span>) – The window, earlier time first. A time without a time zone is UTC;
+a time-zone-aware one is converted to UTC.</p></li>
+<li><p><strong>missing_ok</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – Return the files for the times that are held, without raising
+when some are in no file. <a class="reference internal" href="arlmet.Catalog.missing.html#arlmet.Catalog.missing" title="arlmet.Catalog.missing"><code class="xref py py-meth docutils literal notranslate"><span class="pre">missing()</span></code></a> lists the rest, so you
+can find them elsewhere.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="arlmet.Inventory.html#arlmet.Inventory" title="arlmet._inventory.Inventory"><code class="xref py py-class docutils literal notranslate"><span class="pre">Inventory</span></code></a></span></p>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>]</span></p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#FileNotFoundError" title="(in Python v3.15)"><strong>FileNotFoundError</strong></a> – If <em>directory</em> does not exist.</p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#OSError" title="(in Python v3.15)"><strong>OSError</strong></a> – If the cache cannot be written, or a folder cannot be listed.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Warns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ARLFormatWarning</strong> – Whatever opening a file warns, such as a time step repeated byte for
-byte.</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If a valid time the window needs is in no file (the message lists
+    them) and <em>missing_ok</em> is false, if two files hold one of them
+    (the message names both), if <em>start</em> is after <em>end</em>, or if no
+    file is usable.</p>
 </dd>
 </dl>
-<div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<dl class="simple">
-<dt><a class="reference internal" href="arlmet.Inventory.covering.html#arlmet.Inventory.covering" title="arlmet.Inventory.covering"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Inventory.covering</span></code></a></dt><dd><p>The files for a time window.</p>
-</dd>
-<dt><a class="reference internal" href="arlmet.File.check.html#arlmet.File.check" title="arlmet.File.check"><code class="xref py py-obj docutils literal notranslate"><span class="pre">File.check</span></code></a></dt><dd><p>Damage that opening a file does not catch.</p>
-</dd>
-</dl>
-</div>
 <p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">inv</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">inventory</span><span class="p">(</span><span class="s2">"hrrr"</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">inv</span><span class="o">.</span><span class="n">covering</span><span class="p">(</span><span class="s2">"2021-01-14 06:00"</span><span class="p">,</span> <span class="s2">"2021-01-15 06:00"</span><span class="p">)</span>
-<span class="go">[PosixPath('hrrr/20210114_06-11_hrrr'), ..., PosixPath('hrrr/20210115_06-11_hrrr')]</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cat</span><span class="o">.</span><span class="n">covering</span><span class="p">(</span><span class="s2">"2021-01-14 06:00"</span><span class="p">,</span> <span class="s2">"2021-01-14 08:00"</span><span class="p">)</span>
+<span class="go">[PosixPath('hrrr/20210114_06-11_hrrr')]</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -824,20 +791,20 @@ byte.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="arlmet.converters.from_wrf.html"
+       href="arlmet.Catalog.table.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">arlmet.converters.from_wrf</p>
+        <p class="prev-next-title">arlmet.Catalog.table</p>
       </div>
     </a>
     <a class="right-next"
-       href="arlmet.Inventory.html"
+       href="arlmet.Catalog.missing.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">arlmet.Inventory</p>
+        <p class="prev-next-title">arlmet.Catalog.missing</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -860,14 +827,14 @@ byte.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.inventory"><code class="docutils literal notranslate"><span class="pre">inventory()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#arlmet.Catalog.covering"><code class="docutils literal notranslate"><span class="pre">Catalog.covering()</span></code></a></li>
 </ul>
   </nav></div>
 
   <div class="sidebar-secondary-item">
 
   <div class="tocsection sourcelink">
-    <a href="../_sources/_autosummary/arlmet.inventory.rst.txt">
+    <a href="../_sources/_autosummary/arlmet.Catalog.covering.rst.txt">
       <i class="fa-solid fa-file-lines"></i> Show Source
     </a>
   </div>

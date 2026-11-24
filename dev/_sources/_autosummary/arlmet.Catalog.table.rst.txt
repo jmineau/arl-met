@@ -1,0 +1,6 @@
+arlmet.Catalog.table
+====================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: Catalog.table

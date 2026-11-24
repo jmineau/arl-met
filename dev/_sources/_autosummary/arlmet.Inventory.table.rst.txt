@@ -1,6 +1,0 @@
-arlmet.Inventory.table
-======================
-
-.. currentmodule:: arlmet
-
-.. autoattribute:: Inventory.table

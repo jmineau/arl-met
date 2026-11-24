@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=83349273"></script>
+    <script src="_static/documentation_options.js?v=d24aff0f"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -59,12 +59,12 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Sampling Points" href="sampling.html" />
-    <link rel="prev" title="Taking an Inventory" href="inventorying.html" />
+    <link rel="prev" title="Cataloging a folder" href="cataloging.html" />
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b14.dev1+g3986953c4" />
+  <meta name="docsearch:version" content="0.1.0b14.dev2+g134690204" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -399,7 +399,7 @@
 <li class="toctree-l1"><a class="reference internal" href="writing.html">Writing ARL Files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="converting.html">Converting Other Models’ Output</a></li>
 <li class="toctree-l1"><a class="reference internal" href="concatenating.html">Concatenating ARL Files</a></li>
-<li class="toctree-l1"><a class="reference internal" href="inventorying.html">Taking an Inventory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cataloging.html">Cataloging a folder</a></li>
 <li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Probing a File</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sampling.html">Sampling Points</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vertical.html">Vertical Coordinates</a></li>
@@ -536,14 +536,14 @@ unverified until one of those has run on the file.</p>
 </section>
 <section id="when-to-use-it">
 <h2>When to use it<a class="headerlink" href="#when-to-use-it" title="Link to this heading">#</a></h2>
-<p><a class="reference internal" href="_autosummary/arlmet.inventory.html#arlmet.inventory" title="arlmet.inventory"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.inventory()</span></code></a> opens every file in a directory and reads every one of
+<p><a class="reference internal" href="_autosummary/arlmet.catalog.html#arlmet.catalog" title="arlmet.catalog"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.catalog()</span></code></a> opens every file in a directory and reads every one of
 its time steps, to build a table you can query by time window
-(<a class="reference internal" href="inventorying.html"><span class="doc">Taking an Inventory</span></a>); that is the right tool for finding the files a run needs.
+(<a class="reference internal" href="cataloging.html"><span class="doc">Cataloging a folder</span></a>); that is the right tool for finding the files a run needs.
 A probe is for when you already have one file’s path and want to know what
 it holds, or whether it looks whole, without paying for a directory’s worth
 of reads: for example, a quick look at a single downloaded file, or a
 lightweight first pass before deciding whether a file is worth the fuller
-read <code class="docutils literal notranslate"><span class="pre">inventory</span></code> or <code class="docutils literal notranslate"><span class="pre">check</span></code> give it.</p>
+read <code class="docutils literal notranslate"><span class="pre">catalog</span></code> or <code class="docutils literal notranslate"><span class="pre">check</span></code> give it.</p>
 </section>
 </section>
 
@@ -558,12 +558,12 @@ read <code class="docutils literal notranslate"><span class="pre">inventory</spa
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="inventorying.html"
+       href="cataloging.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Taking an Inventory</p>
+        <p class="prev-next-title">Cataloging a folder</p>
       </div>
     </a>
     <a class="right-next"
