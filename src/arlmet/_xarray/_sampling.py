@@ -202,7 +202,7 @@ class DatasetMet:
             else:
                 self._fields[(0, name)] = (variable.transpose("time", *h_dims), None)
         self._index = {time: i for i, time in enumerate(self.times)}
-        self._stored: dict[str, npt.NDArray[np.bool_]] = {}
+        self._stored: dict[tuple[int, str], bool] = {}
 
     def _is_stored(self, key: tuple[int, str]) -> bool:
         """
@@ -211,16 +211,17 @@ class DatasetMet:
         ``write_dataset`` decides it across all time steps: a (level,
         variable) with a value at any time step gets a record at every one.
         """
-        level, name = key
-        if name not in self._stored:
+        if key not in self._stored:
             variable, position = self._fields[key]
-            # One flag per level (or one for a surface variable), over time and grid.
-            stored = variable.notnull().any(
-                dim=[d for d in variable.dims if d != "level"]
+            if position is not None:
+                variable = variable.isel(level=position)
+            # One time step at a time, stopping at the first with a value: a
+            # lazy Dataset then reads one slice of a stored field, not all of it.
+            self._stored[key] = any(
+                bool(variable.isel(time=i).notnull().any())
+                for i in range(variable.sizes["time"])
             )
-            self._stored[name] = np.atleast_1d(np.asarray(stored.values, dtype=bool))
-        flags = self._stored[name]
-        return bool(flags[0] if level == 0 else flags[level - 1])
+        return self._stored[key]
 
     def __getitem__(self, time: Any) -> _DatasetTimeStep:
         return _DatasetTimeStep(self, self._index[ensure_timestamp(time)])
