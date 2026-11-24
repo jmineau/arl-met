@@ -1,0 +1,5 @@
+arlmet.Grid.subset
+==================
+
+.. currentmodule:: arlmet
+.. automethod:: Grid.subset

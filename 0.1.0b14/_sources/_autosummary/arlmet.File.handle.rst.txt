@@ -1,0 +1,6 @@
+arlmet.File.handle
+==================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: File.handle

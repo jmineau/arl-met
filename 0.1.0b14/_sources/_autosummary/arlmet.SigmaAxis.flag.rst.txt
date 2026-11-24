@@ -1,0 +1,6 @@
+arlmet.SigmaAxis.flag
+=====================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: SigmaAxis.flag

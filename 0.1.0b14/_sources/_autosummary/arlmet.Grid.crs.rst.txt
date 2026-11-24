@@ -1,0 +1,6 @@
+arlmet.Grid.crs
+===============
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: Grid.crs

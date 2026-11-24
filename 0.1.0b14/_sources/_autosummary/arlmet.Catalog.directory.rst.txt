@@ -1,0 +1,6 @@
+arlmet.Catalog.directory
+========================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: Catalog.directory

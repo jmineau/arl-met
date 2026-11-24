@@ -1,0 +1,6 @@
+arlmet.archives.GDASArchive.name
+================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: GDASArchive.name

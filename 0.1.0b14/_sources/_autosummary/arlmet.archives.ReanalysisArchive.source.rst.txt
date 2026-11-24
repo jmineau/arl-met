@@ -1,0 +1,6 @@
+arlmet.archives.ReanalysisArchive.source
+========================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: ReanalysisArchive.source

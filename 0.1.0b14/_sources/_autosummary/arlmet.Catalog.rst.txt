@@ -1,0 +1,36 @@
+﻿arlmet.Catalog
+==============
+
+.. currentmodule:: arlmet
+
+.. autoclass:: Catalog
+   :no-members:
+
+
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+   :nosignatures:
+
+   ~Catalog.cache
+   ~Catalog.directory
+   ~Catalog.step
+   ~Catalog.table
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~Catalog.covering
+   ~Catalog.missing
+
+
+

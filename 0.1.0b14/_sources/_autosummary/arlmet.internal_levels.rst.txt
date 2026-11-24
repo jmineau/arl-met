@@ -1,0 +1,6 @@
+﻿arlmet.internal\_levels
+=======================
+
+.. currentmodule:: arlmet
+
+.. autofunction:: internal_levels

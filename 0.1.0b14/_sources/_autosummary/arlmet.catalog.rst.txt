@@ -1,0 +1,6 @@
+﻿arlmet.catalog
+==============
+
+.. currentmodule:: arlmet
+
+.. autofunction:: catalog

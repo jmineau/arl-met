@@ -1,0 +1,29 @@
+﻿arlmet.GridWindow
+=================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: GridWindow
+   :no-members:
+
+
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+   :nosignatures:
+
+   ~GridWindow.nx
+   ~GridWindow.ny
+   ~GridWindow.shape
+   ~GridWindow.x_slice
+   ~GridWindow.y_slice
+
+
+
+
+

@@ -1,0 +1,6 @@
+arlmet.File.record\_length
+==========================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: File.record_length

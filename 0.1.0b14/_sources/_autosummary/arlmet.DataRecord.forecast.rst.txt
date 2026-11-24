@@ -1,0 +1,6 @@
+arlmet.DataRecord.forecast
+==========================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: DataRecord.forecast

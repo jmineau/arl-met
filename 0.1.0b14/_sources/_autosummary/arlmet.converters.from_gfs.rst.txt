@@ -1,0 +1,6 @@
+﻿arlmet.converters.from\_gfs
+===========================
+
+.. currentmodule:: arlmet.converters
+
+.. autofunction:: from_gfs

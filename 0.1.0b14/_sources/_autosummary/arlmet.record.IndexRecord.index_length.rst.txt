@@ -1,0 +1,6 @@
+arlmet.record.IndexRecord.index\_length
+=======================================
+
+.. currentmodule:: arlmet.record
+
+.. autoproperty:: IndexRecord.index_length

@@ -1,0 +1,6 @@
+arlmet.archives.GFSArchive.description
+======================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: GFSArchive.description
