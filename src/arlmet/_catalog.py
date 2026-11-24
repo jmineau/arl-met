@@ -356,7 +356,8 @@ def catalog(
     window.
 
     Links to files are followed, and each real file is one row, shown by its
-    real path (:meth:`pathlib.Path.resolve`) however many links reach it. A
+    real path (:meth:`pathlib.Path.resolve`) however many links reach it; of
+    hard links to one file, the first by name is the row. A
     link that cannot be followed (its target is gone, or links loop) is a row
     with the reason in ``error``. Links to folders are not followed. Hidden
     files and folders (names starting with ``.``), backup copies (names
@@ -441,6 +442,7 @@ def catalog(
     # paths is read and listed once.
     rows: dict[str, dict[str, Any]] = {}
     to_read: dict[str, os.stat_result] = {}
+    listed: set[tuple[int, int]] = set()
     for found in _walk(directory, recursive):
         try:
             real = found.resolve(strict=True)
@@ -449,6 +451,12 @@ def catalog(
             rows[str(found)] = {**_EMPTY, "error": f"Cannot follow the link: {exc}"}
             continue
         key = str(real)
+        # A hard link is the same file under a second name: the first name is kept.
+        # Some filesystems report no file id (0), and there every name is a file.
+        same_file = (stat.st_dev, stat.st_ino)
+        if stat.st_ino and same_file in listed:
+            continue
+        listed.add(same_file)
         if S_ISREG(stat.st_mode) and key not in rows:
             to_read[key] = stat
     _take_known(to_read, cached, rows)

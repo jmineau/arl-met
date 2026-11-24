@@ -130,7 +130,8 @@ Which files are read
   ``recursive``.
 - **Links to files are followed, and each real file is one row**, shown by its
   real path, so a link and the file it points to, or two links to one file,
-  never count as two files. A link whose target is gone, or a loop of links, is
+  never count as two files. Hard links to one file are one row too, under the
+  first of their names. A link whose target is gone, or a loop of links, is
   a row with the reason in ``error``. Links to folders are not followed.
 - **Subfolders are read in full with** ``recursive=True``, **old copies
   included.** An archive that keeps superseded files in a subfolder such as

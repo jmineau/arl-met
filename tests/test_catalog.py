@@ -660,6 +660,16 @@ class TestLinksAndFolders:
             archive / "20240701_06"
         ]
 
+    def test_hard_links_to_one_file_are_one_row(self, archive):
+        os.link(archive / "20240701_00", archive / "20240701_00_again")
+
+        cat = catalog(archive)
+
+        assert len(cat) == 4
+        assert cat.covering("2024-07-01 00:00", "2024-07-01 02:00") == [
+            archive / "20240701_00"
+        ]
+
     def test_a_link_is_shown_by_its_real_path(self, tmp_path):
         # A flat folder of links into a YYYY/MM tree, as a shared archive is.
         top = tmp_path.resolve() / "hrrr"
