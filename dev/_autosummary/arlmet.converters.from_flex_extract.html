@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=a6850acf"></script>
+    <script src="../_static/documentation_options.js?v=eeda18fb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b15.dev4+g249158e9c" />
+  <meta name="docsearch:version" content="0.1.0b15.dev5+gdb847e250" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -757,7 +757,7 @@ model levels. Each file’s valid time is one time step.</p>
 time (W m-2, N m-2, mm h-1), but keeps their GRIB names, units and
 <code class="docutils literal notranslate"><span class="pre">stepType=accum</span></code>; they are read as the rates they are.</p></li>
 <li><p>Some fields are on longitudes from 0 to 360 and others from -180 to 180,
-on the same grid; all are put on one.</p></li>
+on the same grid; all are put on one (0 to 360 for a global grid).</p></li>
 <li><p>The files hold all 137 model levels, more than an ARL file can: the
 lowest 99 are kept (model levels 137 to 39, up to about 25 hPa), as a
 record’s header numbers its level in two characters. Fewer are kept when
