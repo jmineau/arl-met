@@ -114,10 +114,9 @@ held, and ``missing`` lists the others:
 When two files hold the same valid time (a re-download kept under a new name,
 an older copy kept beside a newer one), ``covering`` raises ``ValueError`` and
 names both files, rather than choosing one. Move one of them out of the folder.
-``missing`` does not list such a time: it is held, twice. The one exception is
-a file whose every valid time a longer file of the same source and grid also
-holds, such as a few hours cut from a file and kept beside it: the longer file
-is used and the short one is left out.
+``missing`` does not list such a time: it is held, twice. A short file beside a
+longer one that holds the same hours, such as a few hours cut from a file and
+kept in its folder, is two files too: arl-met does not pick between them.
 
 Which files are read
 --------------------

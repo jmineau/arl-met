@@ -325,18 +325,9 @@ class TestCovering:
             f"{archive / '20240701_06.copy'}. Move one of them out of {archive}."
         )
 
-    def test_a_short_file_inside_a_longer_one_is_not_used(self, archive):
-        # Two hours of the 06:00 file, as a crop of the same grid would hold.
-        write_met(archive / "crop", ["2024-07-01 07:00", "2024-07-01 08:00"])
-        cat = catalog(archive)
-
-        assert len(cat) == 5
-        assert cat.covering("2024-07-01 07:00", "2024-07-01 08:00") == [
-            archive / "20240701_06"
-        ]
-
-    def test_a_short_file_of_another_grid_still_names_both(self, archive):
-        write_met(archive / "crop", ["2024-07-01 07:00", "2024-07-01 08:00"], nx=21)
+    def test_a_short_file_beside_a_longer_one_names_both(self, archive):
+        # Two hours of the 06:00 file, as a partial copy of it would hold.
+        write_met(archive / "part", ["2024-07-01 07:00", "2024-07-01 08:00"])
         cat = catalog(archive)
 
         with pytest.raises(ValueError, match="is in two files"):

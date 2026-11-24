@@ -533,46 +533,21 @@ class Catalog:
         self.directory = directory
         self.table = table
         self.cache = cache
-        # Each usable file's source and grid, and its valid times.
-        files: dict[Path, tuple[tuple[str, str], set[pd.Timestamp]]] = {}
+        # Each valid time a usable file holds, and the files that hold it.
+        holders: dict[pd.Timestamp, list[Path]] = {}
         usable = table[table["error"] == ""]
-        for path, source, grid, start, end, step in zip(
-            usable["path"],
-            usable["source"],
-            usable["grid"],
-            usable["start"],
-            usable["end"],
-            usable["step"],
-            strict=True,
+        for path, start, end, step in zip(
+            usable["path"], usable["start"], usable["end"], usable["step"], strict=True
         ):
             first = ensure_timestamp(start)
             times = (
-                {first}
+                [first]
                 if pd.isna(step)
-                else set(pd.date_range(first, ensure_timestamp(end), freq=step))
+                else list(pd.date_range(first, ensure_timestamp(end), freq=step))
             )
-            files[Path(path)] = ((source, grid), times)
-        # Each valid time, and the files that hold it.
-        holders: dict[pd.Timestamp, list[Path]] = {}
-        for path, (_, times) in files.items():
-            for time in sorted(times):
-                holders.setdefault(time, []).append(path)
-        # A file whose every time a longer file of its source and grid also
-        # holds, such as a short crop beside the whole file, is not used.
-        inside = {
-            path
-            for path, (product, times) in files.items()
-            if any(
-                files[other][0] == product
-                and len(files[other][1]) > len(times)
-                and times <= files[other][1]
-                for other in holders[min(times)]
-            )
-        }
-        self._holders = {
-            time: [path for path in paths if path not in inside]
-            for time, paths in holders.items()
-        }
+            for time in times:
+                holders.setdefault(time, []).append(Path(path))
+        self._holders = holders
         self._times = pd.DatetimeIndex(sorted(holders))
 
     #: The folder the catalog reads.
@@ -657,9 +632,7 @@ class Catalog:
 
         The files hold every valid time the window needs (:meth:`missing`):
         one every :attr:`step` from the one at or before *start* to the one at
-        or after *end*. Files whose ``error`` is set are not used, and neither
-        is a file whose every valid time a longer file of the same source and
-        grid also holds, such as a short crop kept beside the whole file.
+        or after *end*. Files whose ``error`` is set are not used.
 
         Parameters
         ----------
