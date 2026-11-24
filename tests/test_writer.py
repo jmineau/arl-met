@@ -11,7 +11,9 @@ from arlmet import File, open_dataset, write_dataset
 from arlmet._grid import Grid, Projection
 from arlmet.packing import pack, unpack
 from arlmet.record import IndexRecord
-from arlmet.vertical import PressureAxis
+from arlmet.vertical import PressureAxis, SigmaAxis
+
+from .test_vertical import _write_column_file
 
 
 def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
@@ -304,6 +306,23 @@ class TestWriter:
         write_dataset(reversed_ds.sortby("time"), written_path)
         with File(written_path) as arl:
             assert arl.check() == []
+
+    def test_write_dataset_refuses_levels_out_of_order(self, tmp_path):
+        """Levels are written in Dataset order, so a reordered Dataset is refused."""
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+        _write_column_file(source_path, axis=SigmaAxis(levels=[1.0, 0.99, 0.95, 0.9]))
+        ds = open_dataset(source_path)
+        reordered = ds.isel(level=[1, 0, 2])
+
+        with pytest.raises(ValueError, match=r"'level' coordinate must increase"):
+            write_dataset(reordered, written_path)
+        assert not written_path.exists()
+
+        write_dataset(reordered.sortby("level"), written_path)
+        np.testing.assert_allclose(
+            open_dataset(written_path)["TEMP"].values, ds["TEMP"].values
+        )
 
     @pytest.mark.parametrize("dim", ["lat", "lon"])
     def test_write_dataset_rejects_a_descending_coordinate(self, tmp_path, dim):
