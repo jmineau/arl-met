@@ -267,7 +267,14 @@ def variable_profile(
                 f"Variable '{variable}' is not available at time {recordset.time}."
             )
         levels = levels_of(recordset, variable)
-        if len(levels) == 1 or variable in _SURFACE_VARIABLES:
+        # One level is the same at every target only with no column to place it
+        # on (no PRSS): along a column a level above the ground starts from it.
+        no_column = column is None or not levels_of(recordset, "PRSS")
+        if (
+            variable in _SURFACE_VARIABLES
+            or levels == (0,)
+            or (len(levels) == 1 and no_column)
+        ):
             return Profile(fixed=samples[:, 0])
         if column is not None and levels[0] != 0:
             # Level 0 is the ground: start the profile there, as HYSPLIT does.
