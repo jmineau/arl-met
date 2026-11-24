@@ -337,7 +337,8 @@ def write_dataset(
     - upper-air variables use dims ``(time, level, y, x)`` or ``(time, level, lat, lon)``
     - all upper-air variables share the same ``level`` coordinate
 
-    Upper-air levels are written in ``level`` coordinate order and renumbered
+    Upper-air levels are written in ``level`` coordinate order, which must
+    increase (from the ground up, as the file's levels do), and renumbered
     ``1..N`` (surface is 0), so a Dataset holding a subset of a file's levels
     (e.g. from ``open_dataset(levels=...)`` or ``ds.sel(level=...)``) is
     written as a compact file, like :func:`arlmet.extract_subset` does.
@@ -437,6 +438,12 @@ def write_dataset(
             f"vertical_axis has {len(resolved_vertical_axis.levels)} levels, but the "
             f"Dataset needs {n_upper_levels + 1} (the surface plus one per 'level' "
             "coordinate value)."
+        )
+    # Levels are written in Dataset order, which must be the file's: ground up.
+    if "level" in ds.coords and not (np.diff(ds.coords["level"].values) > 0).all():
+        raise ValueError(
+            "The 'level' coordinate must increase, from the ground up, as the "
+            "file's levels do; sort the Dataset first, e.g. ds.sortby('level')."
         )
     _check_vertical_axis_agrees(ds, resolved_vertical_axis)
     check_level_count(len(resolved_vertical_axis.levels) - 1)
