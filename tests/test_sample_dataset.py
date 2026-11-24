@@ -230,6 +230,26 @@ def test_a_level_nan_everywhere_is_not_stored(tmp_path):
     )
 
 
+def test_a_lazy_dataset_reads_only_the_time_step_sampled(tmp_path, monkeypatch):
+    """Which levels hold data is settled from the first slice with a value."""
+    from arlmet.record import DataRecord
+
+    path = write_two_time_file(tmp_path / "two.arl")
+    read_times = []
+    read = DataRecord.read
+
+    def recording(self, *args, **kwargs):
+        read_times.append(self.time)
+        return read(self, *args, **kwargs)
+
+    monkeypatch.setattr(DataRecord, "read", recording)
+    points = pd.DataFrame({"lon": [20.0], "lat": [-5.0], "z": [950.0], "time": [TIME0]})
+    sample_points(arlmet.open_dataset(path), points, ["TEMP"], z_kind="pressure")
+
+    assert read_times
+    assert set(read_times) == {TIME0}
+
+
 def _two_time_dataset(tmp_path):
     """The deep pressure file (SHGT, PRSS, TEMP on 10 levels) at two times, as one Dataset."""
     parts = []
