@@ -50,7 +50,6 @@ import random
 import re
 import shutil
 import time
-import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager, suppress
@@ -62,7 +61,7 @@ from typing import Any, BinaryIO, ClassVar, Literal, NamedTuple, cast
 import pandas as pd
 from typing_extensions import override
 
-from arlmet._io import make_lock
+from arlmet._io import atomic_output, make_lock, partial_path
 from arlmet._time import ensure_timestamp
 
 logger = logging.getLogger(__name__)
@@ -100,18 +99,6 @@ def _bbox_value_tag(value: float) -> str:
     if math.isclose(value, round(value, 2), rel_tol=0.0, abs_tol=1e-9):
         return f"{value:.2f}"
     return repr(value)
-
-
-def _partial_path(dest: Path) -> Path:
-    """
-    Return a unique hidden temp path next to *dest*, ``.<name>.<random>.partial``.
-
-    Files are written here first and moved onto *dest* with :func:`os.replace`
-    once complete, so an interrupted fetch never leaves a truncated file under
-    the cached name. The random part keeps concurrent fetches of the same file
-    from writing to the same temp path.
-    """
-    return dest.with_name(f".{dest.name}.{uuid.uuid4().hex[:12]}.partial")
 
 
 def _level_ranges(levels: list[int]) -> str:
@@ -248,16 +235,13 @@ def _write_manifest(
     root: Path, manifest: Mapping[str, _Checked], keep: set[str]
 ) -> None:
     """Rewrite the manifest sorted by path, with only the files in *keep*."""
-    path = root / _MANIFEST_NAME
-    tmp = _partial_path(path)
-    try:
-        with open(tmp, "w", encoding="utf-8") as f:
-            for rel in sorted(manifest):
-                if rel in keep:
-                    f.write(manifest[rel].line(rel))
-        os.replace(tmp, path)
-    finally:
-        tmp.unlink(missing_ok=True)
+    with (
+        atomic_output(root / _MANIFEST_NAME) as tmp,
+        open(tmp, "w", encoding="utf-8") as f,
+    ):
+        for rel in sorted(manifest):
+            if rel in keep:
+                f.write(manifest[rel].line(rel))
 
 
 @contextmanager
@@ -298,7 +282,7 @@ def _temp_sizes(dest: Path) -> dict[str, int]:
     """
     Return the size of each temp file a fetch of *dest* is writing, by name.
 
-    Temp files can be nested (:func:`_partial_path` of a temp file, as a crop's
+    Temp files can be nested (``partial_path`` of a temp file, as a crop's
     download is), which adds dots in front and parts behind.
     """
     pattern = re.compile(
@@ -739,7 +723,7 @@ class Archive(ABC):
                     url = self._url(archive_path, mirror)
                     opts = self._storage_options(mirror)
                     logger.info("Fetching %s → %s", url, dest.name)
-                    staged = _partial_path(dest)
+                    staged = partial_path(dest)
                     try:
                         if bbox is not None or keep is not None:
                             self._fetch_and_crop(
@@ -1077,8 +1061,7 @@ class Archive(ABC):
         """
         import fsspec
 
-        tmp = _partial_path(dest)
-        try:
+        with atomic_output(dest) as tmp:
             with fsspec.open(url, "rb", **opts) as src, open(tmp, "wb") as dst:
                 # fsspec.open() stubs return IO[Any]; "rb"/"wb" mode guarantees BinaryIO.
                 out = (
@@ -1093,10 +1076,6 @@ class Archive(ABC):
                 raise _ChecksumError(
                     f"{url} has MD5 {out.md5.hexdigest()}, expected {expected_md5}"
                 )
-            os.replace(tmp, dest)
-        finally:
-            # Only left behind if the download failed before the replace.
-            tmp.unlink(missing_ok=True)
 
     def _fetch_and_crop(
         self,
@@ -1118,7 +1097,7 @@ class Archive(ABC):
         """
         from arlmet._ops.subset import extract_subset
 
-        raw = _partial_path(dest)
+        raw = partial_path(dest)
         try:
             self._download(url, raw, opts)
             # extract_subset writes the crop to a temp file and renames it onto
