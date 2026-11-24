@@ -206,6 +206,7 @@ lists the folder and compares sizes and times: 4 to 34 seconds there. The cache
 is saved every 500 files, so an interrupted first call resumes where it stopped.
 
 Run ``catalog`` once before starting many jobs on the same folder, such as a
-Slurm job array. Each job that finds no cache opens every file itself, and
-many doing so at once load a shared filesystem for nothing; with the cache
-written first, each only lists the folder.
+Slurm job array. Jobs that start together on a folder with no cache do not
+each open every file: the first opens them and the others wait for its table,
+so the whole array waits as long as one first call. With the cache written
+first, each job only lists the folder.

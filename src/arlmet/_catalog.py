@@ -13,18 +13,21 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import random
+import shutil
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from itertools import pairwise
 from pathlib import Path
 from stat import S_ISREG
+from time import monotonic, sleep
 from typing import Any
 
 import pandas as pd
 
 from arlmet._exceptions import ARLFormatError
 from arlmet._file import File, _at, _span
-from arlmet._io import atomic_output
+from arlmet._io import atomic_output, make_lock
 from arlmet._time import ensure_timestamp
 
 __all__ = ["Catalog", "catalog"]
@@ -41,6 +44,14 @@ CACHE_ENV = "ARLMET_CACHE_DIR"
 # Files read at once, and how many are read between saves of the cache.
 _READERS = 16
 _SAVE_EVERY = 500
+
+# A process waiting on another's catalog looks every _POLL seconds, and takes
+# the lock over when neither it nor the cache has changed for _STALL seconds (up
+# to a fifth longer, at random, so waiters do not all act at once). The builder
+# saves the cache every 500 files, which took about 80 seconds on a busy shared
+# filesystem; another NFS client can see the new file up to a minute late.
+_POLL = 2.0
+_STALL = 300.0
 
 # Columns of the public table, and of the cache file, which adds what tells
 # whether a file changed since it was read.
@@ -211,6 +222,85 @@ def _cache_error(cache: Path, exc: OSError) -> OSError:
     )
 
 
+def _take_known(
+    to_read: dict[str, os.stat_result],
+    cached: dict[str, dict[str, Any]],
+    rows: dict[str, dict[str, Any]],
+) -> None:
+    """Move each file of *to_read* whose size and modification time match its row in *cached* to *rows*."""
+    for key, stat in list(to_read.items()):
+        known = cached.get(key)
+        if (
+            known is not None
+            and known["size"] == stat.st_size
+            and known["mtime_ns"] == stat.st_mtime_ns
+        ):
+            rows[key] = known
+            del to_read[key]
+
+
+def _wait_for_build(lock: Path, cache: Path) -> None:
+    """
+    Wait while another process holds *lock* and opens files for *cache*.
+
+    It returns once the lock is gone. A lock with neither it nor *cache* changing
+    for the stall limit belongs to a process that died or hung: it is removed,
+    so this one can take it. As for a download's lock, time is measured on this
+    process's own clock, so no two clocks have to agree.
+    """
+    limit = _STALL * random.uniform(1, 1.2)
+    seen, since = None, monotonic()
+    logger.info("Waiting for another process's catalog cache %s", cache)
+    while True:
+        try:
+            held = lock.stat().st_ino
+        except OSError:  # the lock went while we looked: try for it
+            return
+        try:
+            saved = cache.stat()
+            now = (held, saved.st_ino, saved.st_size, saved.st_mtime_ns)
+        except OSError:  # not saved yet
+            now = (held,)
+        if now != seen:
+            seen, since = now, monotonic()
+        elif monotonic() - since > limit:
+            logger.warning("No progress on the catalog cache %s; taking it over", cache)
+            shutil.rmtree(lock, ignore_errors=True)
+            return
+        sleep(_POLL)
+
+
+def _read_files(
+    directory: Path,
+    cache: Path,
+    to_read: dict[str, os.stat_result],
+    rows: dict[str, dict[str, Any]],
+) -> None:
+    """Open the files of *to_read*, add their rows to *rows*, and save *cache*."""
+    if not to_read:
+        return
+    logger.info(
+        "Reading %d of %d files in %s",
+        len(to_read),
+        len(to_read) + len(rows),
+        directory,
+    )
+    # Opening a file waits on a few small reads, which on a network
+    # filesystem take far longer than parsing them, so several are read
+    # at once. The cache is saved as rows come in, so an interrupted
+    # first catalog of a large archive keeps what it read.
+    with ThreadPoolExecutor(_READERS) as pool:
+        read = pool.map(_read_file, [Path(key) for key in to_read])
+        for n, ((key, stat), row) in enumerate(
+            zip(to_read.items(), read, strict=True), start=1
+        ):
+            rows[key] = {**row, "size": stat.st_size, "mtime_ns": stat.st_mtime_ns}
+            if n % _SAVE_EVERY == 0:
+                logger.info("Read %d of %d files", n, len(to_read))
+                _write_cache(cache, rows)
+    _write_cache(cache, rows)
+
+
 def _set_aside(name: str) -> bool:
     """
     Whether a file or folder *name* is skipped, though its header may pass.
@@ -276,7 +366,11 @@ def catalog(
 
     Files are opened 16 at a time: on a network filesystem each one waits on
     a few small reads. The cache is saved every 500 files, so an interrupted
-    first catalog of a large archive keeps what it read.
+    first catalog of a large archive keeps what it read. Processes that start
+    on the same folder at once, such as the tasks of a Slurm job array, open
+    its files one process at a time: the first holds a lock folder beside the
+    cache (its name ending in ``.lock``) and the others wait, then read the
+    table it saved. A lock with no progress for 5 minutes is taken over.
 
     When the cache is not beside the files (*directory* is read-only, or
     *cache_dir* is given) and the folder holds the table its maintainer saved
@@ -355,39 +449,33 @@ def catalog(
             rows[str(found)] = {**_EMPTY, "error": f"Cannot follow the link: {exc}"}
             continue
         key = str(real)
-        if not S_ISREG(stat.st_mode) or key in rows or key in to_read:
-            continue
-        known = cached.get(key)
-        if (
-            known is not None
-            and known["size"] == stat.st_size
-            and known["mtime_ns"] == stat.st_mtime_ns
-        ):
-            rows[key] = known
-        else:
+        if S_ISREG(stat.st_mode) and key not in rows:
             to_read[key] = stat
+    _take_known(to_read, cached, rows)
 
-    if to_read:
-        logger.info(
-            "Reading %d of %d files in %s",
-            len(to_read),
-            len(to_read) + len(rows),
-            directory,
-        )
-        # Opening a file waits on a few small reads, which on a network
-        # filesystem take far longer than parsing them, so several are read
-        # at once. The cache is saved as rows come in, so an interrupted
-        # first catalog of a large archive keeps what it read.
-        with ThreadPoolExecutor(_READERS) as pool:
-            read = pool.map(_read_file, [Path(key) for key in to_read])
-            for n, ((key, stat), row) in enumerate(
-                zip(to_read.items(), read, strict=True), start=1
-            ):
-                rows[key] = {**row, "size": stat.st_size, "mtime_ns": stat.st_mtime_ns}
-                if n % _SAVE_EVERY == 0:
-                    logger.info("Read %d of %d files", n, len(to_read))
-                    _write_cache(cache, rows)
-    if to_read or rows.keys() != own.keys():
+    # One process at a time opens files for a cache: the first to make the lock
+    # folder beside it reads them, and the others wait, then take the rows it
+    # saved. A process with nothing to read takes no lock.
+    lock = cache.with_name(f"{cache.name}.lock")
+    while to_read:
+        try:
+            mine = make_lock(lock)
+        except OSError:  # a cache folder we cannot write: no lock, the save says why
+            _read_files(directory, cache, to_read, rows)
+            break
+        if not mine:
+            _wait_for_build(lock, cache)
+        # The rows another process saved while this one listed the folder or waited.
+        own = _read_cache(cache)
+        _take_known(to_read, own, rows)
+        if mine:
+            try:
+                _read_files(directory, cache, to_read, rows)
+            finally:
+                shutil.rmtree(lock, ignore_errors=True)
+            own = rows  # what the cache now holds
+            break
+    if rows.keys() != own.keys():
         _write_cache(cache, rows)
 
     # Built column by column so each has its type even when it is all NaT,

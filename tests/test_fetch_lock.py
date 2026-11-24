@@ -156,13 +156,13 @@ def test_a_finished_file_needs_no_lock(tmp_path, opened):
 def test_a_file_finished_just_before_the_lock_is_not_downloaded_again(
     tmp_path, opened, monkeypatch
 ):
-    make_lock = archives._make_lock
+    make_lock = archives.make_lock
 
     def finished_meanwhile(lock):
         (tmp_path / NAME).write_bytes(b"holder's")
         return make_lock(lock)
 
-    monkeypatch.setattr(archives, "_make_lock", finished_meanwhile)
+    monkeypatch.setattr(archives, "make_lock", finished_meanwhile)
 
     HRRRArchive().fetch(START, START, dest_dir=tmp_path)
 

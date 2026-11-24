@@ -1,11 +1,13 @@
-"""Safe output-path helpers shared by the ARL writers."""
+"""Safe output-path helpers shared by the ARL writers, and the lock folder."""
 
 from __future__ import annotations
 
 import contextlib
 import os
 import secrets
+import socket
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -58,3 +60,26 @@ def atomic_output(dest: str | os.PathLike[str]) -> Iterator[Path]:
         os.replace(tmp_path, dest)
     finally:
         tmp_path.unlink(missing_ok=True)
+
+
+def make_lock(lock: Path) -> bool:
+    """
+    Make the lock folder *lock* and return True, or False if it is already there.
+
+    ``mkdir`` is atomic, also on NFS, where a ``flock`` may not be seen by
+    another host. The folder holds a file naming the host, process and start
+    time. A caller killed without a chance to clean up (``kill -9``, a lost
+    node) leaves it behind.
+    """
+    try:
+        lock.mkdir()
+    except FileExistsError:
+        return False
+    started = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+    # The note only helps a person; the folder is the lock.
+    with contextlib.suppress(OSError):
+        (lock / "owner").write_text(
+            f"host {socket.gethostname()}, process {os.getpid()}, started {started}\n",
+            encoding="utf-8",
+        )
+    return True

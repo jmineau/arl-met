@@ -1,7 +1,10 @@
 """Tests for the catalog of a directory of ARL files, read from their headers."""
 
+import logging
 import os
 import shutil
+import threading
+import time
 
 import numpy as np
 import pandas as pd
@@ -575,6 +578,74 @@ class TestCache:
             OSError, match="Cannot write the catalog cache.*ARLMET_CACHE_DIR"
         ):
             catalog(archive, cache_dir=blocker)
+
+
+class TestOneBuildAtATime:
+    @pytest.fixture(autouse=True)
+    def fast_polling(self, monkeypatch):
+        monkeypatch.setattr(_catalog, "_POLL", 0.01)
+
+    def test_a_second_caller_waits_for_the_build_and_opens_no_file(
+        self, archive, monkeypatch
+    ):
+        cache = catalog(archive).cache
+        built = cache.read_bytes()
+        cache.unlink()
+        lock = archive / ".arlmet-catalog.csv.lock"
+        lock.mkdir()  # another process is building the table
+        reads = []
+        real = _catalog._read_file
+        monkeypatch.setattr(
+            _catalog, "_read_file", lambda p: reads.append(p) or real(p)
+        )
+        result = []
+        waiter = threading.Thread(target=lambda: result.append(catalog(archive)))
+        waiter.start()
+
+        time.sleep(0.2)
+        assert waiter.is_alive()
+        cache.write_bytes(built)  # the builder saves its table and lets go
+        lock.rmdir()
+        waiter.join(5)
+
+        assert reads == []
+        assert len(result[0]) == 4
+
+    def test_a_lock_with_no_progress_is_taken_over(self, archive, monkeypatch, caplog):
+        monkeypatch.setattr(_catalog, "_STALL", 0.05)
+        lock = archive / ".arlmet-catalog.csv.lock"
+        lock.mkdir()  # left by a process that was killed
+
+        with caplog.at_level(logging.WARNING, logger="arlmet._catalog"):
+            cat = catalog(archive)
+
+        assert len(cat) == 4
+        assert not lock.exists()
+        assert "taking it over" in caplog.text
+
+    def test_a_complete_table_takes_no_lock_and_waits_for_nobody(
+        self, archive, monkeypatch
+    ):
+        catalog(archive)
+        (archive / ".arlmet-catalog.csv.lock").mkdir()  # another process is building
+        monkeypatch.setattr(_catalog, "make_lock", pytest.fail)
+        monkeypatch.setattr(_catalog, "_wait_for_build", pytest.fail)
+
+        assert len(catalog(archive)) == 4
+
+    def test_a_read_only_cache_folder_still_says_how_to_choose_another(
+        self, archive, tmp_path
+    ):
+        folder = tmp_path / "read-only"
+        folder.mkdir()
+        folder.chmod(0o555)
+        try:
+            if os.access(folder, os.W_OK):
+                pytest.skip("running as a user who can write anywhere")
+            with pytest.raises(OSError, match="Cannot write the catalog cache"):
+                catalog(archive, cache_dir=folder)
+        finally:
+            folder.chmod(0o755)
 
 
 class TestLinksAndFolders:

@@ -159,7 +159,9 @@ methods, keeping the import graph one-way, as `sample_points` imports `_xarray._
    `Archive.fetch` also takes a `mkdir` lock `.<name>.lock` per file; waiters watch the temp files'
    sizes on their own timer and take over a lock with no growth for 5 minutes. The lock only saves
    work: every copy has its own temp file. A finished file is not replaced without `overwrite`,
-   because that gives a reader on another NFS client `ESTALE`.
+   because that gives a reader on another NFS client `ESTALE`. `catalog` takes the same kind of lock
+   (`_io.make_lock`), `<cache>.lock` beside its cache, only while it opens files; waiters then read
+   the saved table, and take over a lock whose cache has not changed for 5 minutes.
 10. **Metadata types are immutable values**: `Projection`, `Grid`, `GridWindow`,
     `Header` and `IndexRecord` are frozen dataclasses, and `VerticalAxis` blocks
     assignment and keeps `levels` read-only. Hashing and `cached_property`
