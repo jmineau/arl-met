@@ -15,6 +15,7 @@ import xarray as xr
 
 import arlmet
 from arlmet import File, sample_points
+from arlmet.vertical import SigmaAxis
 
 from .test_sample import (
     TIME0,
@@ -33,6 +34,7 @@ from .test_sample import (
     write_varying_wrf_file,
     write_wind_file,
 )
+from .test_vertical import _write_column_file
 
 T = pd.Timestamp("2024-07-18 00:00")
 
@@ -338,3 +340,32 @@ def test_a_dataset_not_in_the_layout_is_refused(tmp_path, edit, message):
     ds = edit(arlmet.open_dataset(path))
     with pytest.raises(ValueError, match=message):
         sample_points(ds, _points(path).assign(z=100.0), ["TEMP"], z_kind="agl")
+
+
+class TestOneUpperLevel:
+    """A variable stored at one level above the ground still has a column (#254)."""
+
+    def test_one_level_is_not_the_same_at_every_height(self, tmp_path):
+        path = tmp_path / "column.arl"
+        _write_column_file(path, axis=SigmaAxis(levels=[1.0, 0.99, 0.95, 0.9]))
+        full = arlmet.open_dataset(path)
+        one = arlmet.open_dataset(path, levels=[0, 1])
+
+        def sample(ds, z, z_kind, **kwargs):
+            points = pd.DataFrame({"lon": -100.0, "lat": 50.0, "z": z})
+            return arlmet.sample_points(ds, points, ["TEMP"], z_kind=z_kind, **kwargs)
+
+        # Below level 1 the column is the same, from the ground (T02M) up.
+        heights = [50.0, 5000.0, 20000.0]
+        got = sample(one, heights, "agl", model_top=None)["TEMP"].to_numpy()
+        want = sample(full, heights, "agl", model_top=None)["TEMP"].to_numpy()
+        np.testing.assert_allclose(got[0], want[0], rtol=1e-6)
+        assert got[0] != 283.0  # not level 1's value
+        assert np.isnan(got[1:]).all()  # above the Dataset's top
+
+        # 900 hPa is below the 850 hPa ground, 500 hPa above the top.
+        pressures = [900.0, 845.0, 500.0]
+        got = sample(one, pressures, "pressure")["TEMP"].to_numpy()
+        want = sample(full, pressures, "pressure")["TEMP"].to_numpy()
+        np.testing.assert_allclose(got[1], want[1], rtol=1e-6)
+        assert np.isnan(got[[0, 2]]).all()
