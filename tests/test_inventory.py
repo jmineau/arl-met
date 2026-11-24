@@ -453,6 +453,43 @@ class TestCache:
         assert inv.cache.is_file()
         assert sorted(p.name for p in archive.iterdir()) == before
 
+    def test_a_published_table_is_the_starting_point_for_another_cache(
+        self, archive, tmp_path, monkeypatch
+    ):
+        published = inventory(archive)  # the maintainer's run: table beside the files
+        before = published.cache.read_bytes()
+        reads = []
+        real = _inventory._read_file
+        monkeypatch.setattr(
+            _inventory, "_read_file", lambda p: reads.append(p) or real(p)
+        )
+
+        own = inventory(archive, cache_dir=tmp_path / "mine")
+
+        assert reads == []
+        assert own.cache.parent == tmp_path / "mine"
+        assert own.cache.is_file()
+        assert own.table["path"].tolist() == published.table["path"].tolist()
+        assert published.cache.read_bytes() == before
+
+    def test_a_stale_published_table_costs_only_the_changed_files(
+        self, archive, tmp_path, monkeypatch
+    ):
+        inventory(archive)
+        new = write_met(
+            archive / "20240702_00", pd.date_range("2024-07-02", periods=2, freq="h")
+        )
+        reads = []
+        real = _inventory._read_file
+        monkeypatch.setattr(
+            _inventory, "_read_file", lambda p: reads.append(p) or real(p)
+        )
+
+        own = inventory(archive, cache_dir=tmp_path / "mine")
+
+        assert [p.resolve() for p in reads] == [new.resolve()]
+        assert new.resolve() in set(own.table["path"])
+
     def test_the_user_cache_follows_xdg_without_the_variable(
         self, archive, tmp_path, monkeypatch
     ):
