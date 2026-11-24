@@ -55,14 +55,14 @@ Finding Files
 -------------
 
 Find the files that cover a time window by their headers. See the
-:doc:`inventorying` guide.
+:doc:`cataloging` guide.
 
 .. autosummary::
    :toctree: _autosummary
    :nosignatures:
 
-   inventory
-   Inventory
+   catalog
+   Catalog
 
 Probing One File
 ----------------

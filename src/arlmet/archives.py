@@ -49,14 +49,12 @@ import os
 import random
 import re
 import shutil
-import socket
 import time
 import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, BinaryIO, ClassVar, Literal, NamedTuple, cast
@@ -64,6 +62,7 @@ from typing import Any, BinaryIO, ClassVar, Literal, NamedTuple, cast
 import pandas as pd
 from typing_extensions import override
 
+from arlmet._io import make_lock
 from arlmet._time import ensure_timestamp
 
 logger = logging.getLogger(__name__)
@@ -261,28 +260,6 @@ def _write_manifest(
         tmp.unlink(missing_ok=True)
 
 
-def _make_lock(lock: Path) -> bool:
-    """
-    Make the lock folder *lock* and return True, or False if it is already there.
-
-    ``mkdir`` is atomic, also on NFS, where a ``flock`` may not be seen by
-    another host. The folder holds a file naming the host, process and start
-    time. A caller killed without a chance to clean up (``kill -9``, a lost
-    node) leaves it behind.
-    """
-    try:
-        lock.mkdir()
-    except FileExistsError:
-        return False
-    started = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
-    with suppress(OSError):  # the note only helps a person; the folder is the lock
-        (lock / "owner").write_text(
-            f"host {socket.gethostname()}, process {os.getpid()}, started {started}\n",
-            encoding="utf-8",
-        )
-    return True
-
-
 @contextmanager
 def _sync_lock(root: Path) -> Iterator[None]:
     """
@@ -292,7 +269,7 @@ def _sync_lock(root: Path) -> Iterator[None]:
     run stops the next sync.
     """
     lock = root / _LOCK_NAME
-    if not _make_lock(lock):
+    if not make_lock(lock):
         try:
             owner = (lock / "owner").read_text(encoding="utf-8").strip()
         except OSError:
@@ -358,7 +335,7 @@ def _fetch_turn(dest: Path, *, overwrite: bool) -> Iterator[bool]:
     dead: list[str] = []
     try:
         while overwrite or not dest.exists():
-            if _make_lock(lock):
+            if make_lock(lock):
                 try:
                     # Another caller may have finished before we made the lock.
                     yield overwrite or not dest.exists()

@@ -1,7 +1,10 @@
-"""Tests for the inventory of a directory of ARL files, read from their headers."""
+"""Tests for the catalog of a directory of ARL files, read from their headers."""
 
+import logging
 import os
 import shutil
+import threading
+import time
 
 import numpy as np
 import pandas as pd
@@ -9,7 +12,7 @@ import pytest
 import xarray as xr
 
 import arlmet
-from arlmet import ARLFormatWarning, Inventory, _inventory, inventory
+from arlmet import ARLFormatWarning, Catalog, _catalog, catalog
 
 AXIS = arlmet.SigmaAxis(levels=[1.0])
 
@@ -77,11 +80,11 @@ def user_cache(tmp_path, monkeypatch):
 
 class TestTable:
     def test_one_row_per_file_from_the_headers(self, archive):
-        inv = inventory(archive)
+        cat = catalog(archive)
 
-        assert isinstance(inv, Inventory)
-        assert len(inv) == 4
-        table = inv.table
+        assert isinstance(cat, Catalog)
+        assert len(cat) == 4
+        table = cat.table
         assert list(table.columns) == [
             "path",
             "source",
@@ -106,7 +109,7 @@ class TestTable:
         assert first["step"] == pd.Timedelta(hours=1)
         assert first["error"] == ""
         assert table["end"].iloc[-1] == pd.Timestamp("2024-07-01 23:00")
-        assert inv.step == pd.Timedelta(hours=1)
+        assert cat.step == pd.Timedelta(hours=1)
 
     def test_names_do_not_matter(self, tmp_path):
         # The times come from the headers, so any name works.
@@ -117,41 +120,41 @@ class TestTable:
             tmp_path / "aaa", pd.date_range("2024-07-01 03:00", periods=3, freq="h")
         )
 
-        inv = inventory(tmp_path)
+        cat = catalog(tmp_path)
 
-        assert inv.covering("2024-07-01 01:00", "2024-07-01 04:00") == [
+        assert cat.covering("2024-07-01 01:00", "2024-07-01 04:00") == [
             tmp_path / "zzz",
             tmp_path / "aaa",
         ]
 
     def test_a_window_with_a_time_zone_is_converted_to_utc(self, archive):
-        inv = inventory(archive)
+        cat = catalog(archive)
         # 2024-06-30 18:00 to 2024-07-01 04:00 in Denver is 00:00 to 10:00 UTC.
         start = pd.Timestamp("2024-06-30 18:00", tz="America/Denver")
         end = pd.Timestamp("2024-07-01 04:00", tz="America/Denver")
 
-        assert inv.covering(start, end) == inv.covering(
+        assert cat.covering(start, end) == cat.covering(
             "2024-07-01 00:00", "2024-07-01 10:00"
         )
-        assert inv.missing(start, end) == []
+        assert cat.missing(start, end) == []
 
     def test_a_file_that_is_not_arl_is_kept_with_its_error(self, archive):
         (archive / "README.TXT").write_text("HRRR 3 km archive\n" * 40)
         (archive / "empty").write_bytes(b"")
 
-        inv = inventory(archive)
+        cat = catalog(archive)
 
         errors = dict(
-            zip([p.name for p in inv.table["path"]], inv.table["error"], strict=True)
+            zip([p.name for p in cat.table["path"]], cat.table["error"], strict=True)
         )
         assert "README.TXT" in errors["README.TXT"]  # the message names the file
         assert "holds no index record" in errors["empty"]
-        rows = inv.table.set_index(inv.table["path"].map(lambda p: p.name))
+        rows = cat.table.set_index(cat.table["path"].map(lambda p: p.name))
         assert pd.isna(rows.loc["README.TXT", "start"])
         assert rows.loc["empty", "source"] == ""
         # Unusable rows sort last and are not used to cover a window.
-        assert [p.name for p in inv.table["path"][-2:]] == ["README.TXT", "empty"]
-        assert len(inv.covering("2024-07-01 00:00", "2024-07-01 23:00")) == 4
+        assert [p.name for p in cat.table["path"][-2:]] == ["README.TXT", "empty"]
+        assert len(cat.covering("2024-07-01 00:00", "2024-07-01 23:00")) == 4
 
     def test_uneven_time_steps_are_an_error_and_not_used(self, tmp_path):
         times = pd.to_datetime(
@@ -159,9 +162,9 @@ class TestTable:
         )
         write_met(tmp_path / "gap", times)
 
-        inv = inventory(tmp_path)
+        cat = catalog(tmp_path)
 
-        row = inv.table.iloc[0]
+        row = cat.table.iloc[0]
         assert row["error"] == (
             "Its time steps are not evenly spaced: 2024-07-01 01:00 to "
             "2024-07-01 03:00 is 2 h; the first two are 1 h apart."
@@ -170,19 +173,19 @@ class TestTable:
         assert row["end"] == pd.Timestamp("2024-07-01 03:00")
         assert pd.isna(row["step"])
         with pytest.raises(ValueError, match="No usable ARL file"):
-            inv.covering("2024-07-01 00:00", "2024-07-01 01:00")
+            cat.covering("2024-07-01 00:00", "2024-07-01 01:00")
 
     def test_a_file_of_one_time_step_has_no_step(self, tmp_path):
         write_met(tmp_path / "one", ["2024-07-01 06:00"])
 
-        inv = inventory(tmp_path)
+        cat = catalog(tmp_path)
 
-        assert pd.isna(inv.table["step"].iloc[0])
-        assert inv.step is None
-        assert inv.covering("2024-07-01 06:00", "2024-07-01 06:00") == [
+        assert pd.isna(cat.table["step"].iloc[0])
+        assert cat.step is None
+        assert cat.covering("2024-07-01 06:00", "2024-07-01 06:00") == [
             tmp_path / "one"
         ]
-        assert inv.missing("2024-07-01 06:00", "2024-07-01 07:00") == [
+        assert cat.missing("2024-07-01 06:00", "2024-07-01 07:00") == [
             pd.Timestamp("2024-07-01 07:00")
         ]
 
@@ -194,9 +197,9 @@ class TestTable:
         once.unlink()
 
         with pytest.warns(ARLFormatWarning, match="repeated"):
-            inv = inventory(tmp_path)
+            cat = catalog(tmp_path)
 
-        row = inv.table.iloc[0]
+        row = cat.table.iloc[0]
         assert row["error"] == ""
         assert (row["start"], row["end"]) == (
             pd.Timestamp("2024-07-01 00:00"),
@@ -209,21 +212,37 @@ class TestTable:
         (archive / "deprecated").mkdir()
         shutil.copy(archive / "20240701_00", archive / "deprecated" / "20240701_00")
 
-        inv = inventory(archive)
+        cat = catalog(archive)
 
-        assert len(inv) == 4
-        assert inv.covering("2024-07-01 00:00", "2024-07-01 02:00") == [
+        assert len(cat) == 4
+        assert cat.covering("2024-07-01 00:00", "2024-07-01 02:00") == [
             archive / "20240701_00"
         ]
 
+    @pytest.mark.parametrize("ending", [".bad", ".partial", ".lock", ".lock.1"])
+    def test_a_copy_set_aside_is_not_read(self, archive, ending):
+        shutil.copy(archive / "20240701_00", archive / f"20240701_00{ending}")
+
+        cat = catalog(archive)
+
+        assert len(cat) == 4
+        assert cat.covering("2024-07-01 00:00", "2024-07-01 02:00") == [
+            archive / "20240701_00"
+        ]
+
+    def test_a_name_that_only_starts_like_a_lock_file_is_read(self, archive):
+        shutil.copy(archive / "20240701_00", archive / "20240701_00.locked")
+
+        assert len(catalog(archive)) == 5
+
     def test_a_missing_directory_raises(self, tmp_path):
         with pytest.raises(FileNotFoundError, match="No directory"):
-            inventory(tmp_path / "nowhere")
+            catalog(tmp_path / "nowhere")
 
     def test_repr_shows_file_names(self, archive):
-        text = repr(inventory(archive))
+        text = repr(catalog(archive))
 
-        assert text.startswith(f"Inventory({str(archive)!r}: 4 files, 0 not used)")
+        assert text.startswith(f"Catalog({str(archive)!r}: 4 files, 0 not used)")
         assert "20240701_18" in text
         assert str(archive / "20240701_18") not in text
 
@@ -231,38 +250,38 @@ class TestTable:
 class TestCovering:
     def test_brackets_the_window(self, archive):
         # 05:30 to 12:00 needs 05:00 (before the start) through 12:00.
-        inv = inventory(archive)
+        cat = catalog(archive)
 
-        assert inv.covering("2024-07-01 05:30", "2024-07-01 12:00") == [
+        assert cat.covering("2024-07-01 05:30", "2024-07-01 12:00") == [
             archive / "20240701_00",
             archive / "20240701_06",
             archive / "20240701_12",
         ]
-        assert inv.missing("2024-07-01 05:30", "2024-07-01 12:00") == []
+        assert cat.missing("2024-07-01 05:30", "2024-07-01 12:00") == []
 
     def test_a_window_on_whole_hours_needs_only_its_own(self, archive):
-        inv = inventory(archive)
+        cat = catalog(archive)
 
-        assert inv.covering("2024-07-01 06:00", "2024-07-01 11:00") == [
+        assert cat.covering("2024-07-01 06:00", "2024-07-01 11:00") == [
             archive / "20240701_06"
         ]
-        assert inv.covering("2024-07-01 11:00", "2024-07-01 11:00") == [
+        assert cat.covering("2024-07-01 11:00", "2024-07-01 11:00") == [
             archive / "20240701_06"
         ]
         # 11:00 to 11:30 needs 12:00, in the next file.
-        assert inv.covering("2024-07-01 11:00", "2024-07-01 11:30") == [
+        assert cat.covering("2024-07-01 11:00", "2024-07-01 11:30") == [
             archive / "20240701_06",
             archive / "20240701_12",
         ]
 
     def test_missing_hours_are_listed(self, archive):
         (archive / "20240701_06").unlink()
-        inv = inventory(archive)
+        cat = catalog(archive)
 
         hours = pd.date_range("2024-07-01 06:00", periods=6, freq="h")
-        assert inv.missing("2024-07-01 05:30", "2024-07-01 12:00") == list(hours)
+        assert cat.missing("2024-07-01 05:30", "2024-07-01 12:00") == list(hours)
         with pytest.raises(ValueError) as exc:
-            inv.covering("2024-07-01 05:30", "2024-07-01 12:00")
+            cat.covering("2024-07-01 05:30", "2024-07-01 12:00")
         assert str(exc.value) == (
             f"No file in {archive} holds 2024-07-01 06:00, 2024-07-01 07:00, "
             "2024-07-01 08:00, 2024-07-01 09:00, 2024-07-01 10:00, "
@@ -270,40 +289,59 @@ class TestCovering:
         )
 
     def test_hours_past_the_archive_are_missing(self, archive):
-        inv = inventory(archive)
+        cat = catalog(archive)
 
         # The last time is 23:00; 00:00 and 01:00 the next day are needed.
-        assert inv.missing("2024-07-01 22:00", "2024-07-02 00:30") == [
+        assert cat.missing("2024-07-01 22:00", "2024-07-02 00:30") == [
             pd.Timestamp("2024-07-02 00:00"),
             pd.Timestamp("2024-07-02 01:00"),
         ]
         # Before the first time, the steps are counted back from it.
-        assert inv.missing("2024-06-30 22:30", "2024-07-01 00:00") == [
+        assert cat.missing("2024-06-30 22:30", "2024-07-01 00:00") == [
             pd.Timestamp("2024-06-30 22:00"),
             pd.Timestamp("2024-06-30 23:00"),
         ]
 
     def test_more_than_ten_missing_hours_are_counted(self, archive):
-        inv = inventory(archive)
+        cat = catalog(archive)
 
         with pytest.raises(ValueError, match=r"2024-07-02 09:00 and 2 more, which"):
-            inv.covering("2024-07-02 00:00", "2024-07-02 11:00")
+            cat.covering("2024-07-02 00:00", "2024-07-02 11:00")
 
     def test_two_files_with_one_hour_name_both(self, archive):
-        shutil.copy(archive / "20240701_06", archive / "20240701_06.bad")
-        inv = inventory(archive)
+        shutil.copy(archive / "20240701_06", archive / "20240701_06.copy")
+        cat = catalog(archive)
 
         # Hours the copy does not hold are found as before.
-        assert inv.covering("2024-07-01 00:00", "2024-07-01 05:00") == [
+        assert cat.covering("2024-07-01 00:00", "2024-07-01 05:00") == [
             archive / "20240701_00"
         ]
         # An hour in both is not missing, but the files are ambiguous.
-        assert inv.missing("2024-07-01 05:00", "2024-07-01 07:00") == []
+        assert cat.missing("2024-07-01 05:00", "2024-07-01 07:00") == []
         with pytest.raises(ValueError) as exc:
-            inv.covering("2024-07-01 05:00", "2024-07-01 07:00")
+            cat.covering("2024-07-01 05:00", "2024-07-01 07:00")
         assert str(exc.value) == (
             f"2024-07-01 06:00 is in two files, {archive / '20240701_06'} and "
-            f"{archive / '20240701_06.bad'}. Move one of them out of {archive}."
+            f"{archive / '20240701_06.copy'}. Move one of them out of {archive}."
+        )
+
+    def test_a_short_file_beside_a_longer_one_names_both(self, archive):
+        # Two hours of the 06:00 file, as a partial copy of it would hold.
+        write_met(archive / "part", ["2024-07-01 07:00", "2024-07-01 08:00"])
+        cat = catalog(archive)
+
+        with pytest.raises(ValueError, match="is in two files"):
+            cat.covering("2024-07-01 07:00", "2024-07-01 08:00")
+
+    def test_missing_ok_returns_the_files_for_the_hours_held(self, archive):
+        (archive / "20240701_12").unlink()
+        cat = catalog(archive)
+
+        assert cat.covering(
+            "2024-07-01 10:00", "2024-07-01 19:00", missing_ok=True
+        ) == [archive / "20240701_06", archive / "20240701_18"]
+        assert cat.missing("2024-07-01 10:00", "2024-07-01 19:00") == list(
+            pd.date_range("2024-07-01 12:00", periods=6, freq="h")
         )
 
     def test_the_step_is_the_most_common_spacing(self, tmp_path):
@@ -316,48 +354,48 @@ class TestCovering:
         )
         write_met(tmp_path / "c", ["2024-07-02 00:00", "2024-07-02 01:00"])
 
-        inv = inventory(tmp_path)
+        cat = catalog(tmp_path)
 
-        assert inv.step == pd.Timedelta(hours=3)
-        assert inv.covering("2024-07-01 07:00", "2024-07-01 13:00") == [
+        assert cat.step == pd.Timedelta(hours=3)
+        assert cat.covering("2024-07-01 07:00", "2024-07-01 13:00") == [
             tmp_path / "a",
             tmp_path / "b",
         ]
 
     def test_start_after_end_raises(self, archive):
-        inv = inventory(archive)
+        cat = catalog(archive)
 
         with pytest.raises(ValueError, match="is after end"):
-            inv.covering("2024-07-01 06:00", "2024-07-01 05:00")
+            cat.covering("2024-07-01 06:00", "2024-07-01 05:00")
 
     def test_an_empty_directory_covers_nothing(self, tmp_path):
-        inv = inventory(tmp_path)
+        cat = catalog(tmp_path)
 
-        assert len(inv) == 0
+        assert len(cat) == 0
         with pytest.raises(ValueError, match="No usable ARL file"):
-            inv.missing("2024-07-01 00:00", "2024-07-01 01:00")
+            cat.missing("2024-07-01 00:00", "2024-07-01 01:00")
 
 
 class TestCache:
     def test_cache_is_beside_a_writable_directory(self, archive, user_cache):
-        inv = inventory(archive)
+        cat = catalog(archive)
 
-        assert inv.cache == archive / ".arlmet-inventory.csv"
-        assert inv.cache.is_file()
+        assert cat.cache == archive / ".arlmet-catalog.csv"
+        assert cat.cache.is_file()
         assert not user_cache.exists()
 
     def test_cache_is_reused_and_refreshed(self, archive, monkeypatch):
-        inventory(archive)
+        catalog(archive)
         read = []
-        real_read_file = _inventory._read_file
+        real_read_file = _catalog._read_file
         monkeypatch.setattr(
-            _inventory,
+            _catalog,
             "_read_file",
             lambda path: read.append(path.name) or real_read_file(path),
         )
 
         # Nothing changed: no file is opened.
-        again = inventory(archive)
+        again = catalog(archive)
         assert read == []
         assert len(again) == 4
         assert again.table["start"].iloc[0] == pd.Timestamp("2024-07-01 00:00")
@@ -370,7 +408,7 @@ class TestCache:
             pd.date_range("2024-07-01 12:00", periods=3, freq="h"),
         )
         (archive / "20240701_18").unlink()
-        refreshed = inventory(archive)
+        refreshed = catalog(archive)
 
         assert sorted(read) == ["20240701_12", "20240702_00"]
         assert [p.name for p in refreshed.table["path"]] == [
@@ -382,60 +420,60 @@ class TestCache:
         assert refreshed.table["end"].iloc[2] == pd.Timestamp("2024-07-01 14:00")
 
     def test_an_interrupted_index_keeps_what_it_saved(self, archive, monkeypatch):
-        monkeypatch.setattr(_inventory, "_SAVE_EVERY", 2)
-        real_read_file = _inventory._read_file
+        monkeypatch.setattr(_catalog, "_SAVE_EVERY", 2)
+        real_read_file = _catalog._read_file
 
         def stops_at_the_last(path):
             if path.name == "20240701_18":
                 raise RuntimeError("interrupted")
             return real_read_file(path)
 
-        monkeypatch.setattr(_inventory, "_read_file", stops_at_the_last)
+        monkeypatch.setattr(_catalog, "_read_file", stops_at_the_last)
         with pytest.raises(RuntimeError, match="interrupted"):
-            inventory(archive)
+            catalog(archive)
 
         # The cache was saved after the first two files; the rest are read now.
         read = []
         monkeypatch.setattr(
-            _inventory,
+            _catalog,
             "_read_file",
             lambda path: read.append(path.name) or real_read_file(path),
         )
-        inv = inventory(archive)
+        cat = catalog(archive)
         assert sorted(read) == ["20240701_12", "20240701_18"]
-        assert len(inv) == 4
+        assert len(cat) == 4
 
     def test_errors_are_cached_too(self, archive, monkeypatch):
         (archive / "README.TXT").write_text("not ARL\n")
-        first = inventory(archive)
-        monkeypatch.setattr(_inventory, "_read_file", pytest.fail)
+        first = catalog(archive)
+        monkeypatch.setattr(_catalog, "_read_file", pytest.fail)
 
-        again = inventory(archive)
+        again = catalog(archive)
 
         assert list(again.table["error"]) == list(first.table["error"])
 
     def test_a_cache_of_another_layout_is_rebuilt(self, archive):
         # The first version keyed rows by file name; its cache is ignored.
         stat = (archive / "20240701_00").stat()
-        (archive / ".arlmet-inventory.csv").write_text(
+        (archive / ".arlmet-catalog.csv").write_text(
             "name,size,mtime_ns,source,grid,start,end,step,error\n"
             f"20240701_00,{stat.st_size},{stat.st_mtime_ns},OLD,g,"
             "2000-01-01 00:00:00,2000-01-01 05:00:00,0 days 01:00:00,\n"
         )
 
-        inv = inventory(archive)
+        cat = catalog(archive)
 
-        assert inv.table["start"].iloc[0] == pd.Timestamp("2024-07-01 00:00")
-        assert set(inv.table["source"]) == {"TEST"}
-        assert inv.cache is not None
-        assert inv.cache.read_text().startswith("path,size,mtime_ns,")
+        assert cat.table["start"].iloc[0] == pd.Timestamp("2024-07-01 00:00")
+        assert set(cat.table["source"]) == {"TEST"}
+        assert cat.cache is not None
+        assert cat.cache.read_text().startswith("path,size,mtime_ns,")
 
     def test_a_recursive_index_has_its_own_cache(self, archive):
-        flat = inventory(archive)
-        deep = inventory(archive, recursive=True)
+        flat = catalog(archive)
+        deep = catalog(archive, recursive=True)
 
-        assert flat.cache == archive / ".arlmet-inventory.csv"
-        assert deep.cache == archive / ".arlmet-inventory-recursive.csv"
+        assert flat.cache == archive / ".arlmet-catalog.csv"
+        assert deep.cache == archive / ".arlmet-catalog-recursive.csv"
 
     def test_read_only_directory_uses_the_user_cache(self, archive, user_cache):
         before = sorted(p.name for p in archive.iterdir())
@@ -443,28 +481,28 @@ class TestCache:
         try:
             if os.access(archive, os.W_OK):
                 pytest.skip("running as a user who can write anywhere")
-            inv = inventory(archive)
+            cat = catalog(archive)
         finally:
             archive.chmod(0o755)
 
-        assert inv.cache is not None
-        assert inv.cache.parent == user_cache / "inventory"
-        assert inv.cache.name.startswith("hrrr-") and inv.cache.suffix == ".csv"
-        assert inv.cache.is_file()
+        assert cat.cache is not None
+        assert cat.cache.parent == user_cache / "catalog"
+        assert cat.cache.name.startswith("hrrr-") and cat.cache.suffix == ".csv"
+        assert cat.cache.is_file()
         assert sorted(p.name for p in archive.iterdir()) == before
 
     def test_a_published_table_is_the_starting_point_for_another_cache(
         self, archive, tmp_path, monkeypatch
     ):
-        published = inventory(archive)  # the maintainer's run: table beside the files
+        published = catalog(archive)  # the maintainer's run: table beside the files
         before = published.cache.read_bytes()
         reads = []
-        real = _inventory._read_file
+        real = _catalog._read_file
         monkeypatch.setattr(
-            _inventory, "_read_file", lambda p: reads.append(p) or real(p)
+            _catalog, "_read_file", lambda p: reads.append(p) or real(p)
         )
 
-        own = inventory(archive, cache_dir=tmp_path / "mine")
+        own = catalog(archive, cache_dir=tmp_path / "mine")
 
         assert reads == []
         assert own.cache.parent == tmp_path / "mine"
@@ -475,17 +513,17 @@ class TestCache:
     def test_a_stale_published_table_costs_only_the_changed_files(
         self, archive, tmp_path, monkeypatch
     ):
-        inventory(archive)
+        catalog(archive)
         new = write_met(
             archive / "20240702_00", pd.date_range("2024-07-02", periods=2, freq="h")
         )
         reads = []
-        real = _inventory._read_file
+        real = _catalog._read_file
         monkeypatch.setattr(
-            _inventory, "_read_file", lambda p: reads.append(p) or real(p)
+            _catalog, "_read_file", lambda p: reads.append(p) or real(p)
         )
 
-        own = inventory(archive, cache_dir=tmp_path / "mine")
+        own = catalog(archive, cache_dir=tmp_path / "mine")
 
         assert [p.resolve() for p in reads] == [new.resolve()]
         assert new.resolve() in set(own.table["path"])
@@ -495,22 +533,22 @@ class TestCache:
     ):
         monkeypatch.delenv("ARLMET_CACHE_DIR")
         monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "xdg"))
-        monkeypatch.setattr(_inventory.sys, "platform", "linux")
-        monkeypatch.setattr(_inventory.os, "access", lambda *args: False)
+        monkeypatch.setattr(_catalog.sys, "platform", "linux")
+        monkeypatch.setattr(_catalog.os, "access", lambda *args: False)
 
-        inv = inventory(archive)
+        cat = catalog(archive)
 
-        assert inv.cache is not None
-        assert inv.cache.parent == tmp_path / "xdg" / "arlmet" / "inventory"
-        assert not (archive / ".arlmet-inventory.csv").exists()
+        assert cat.cache is not None
+        assert cat.cache.parent == tmp_path / "xdg" / "arlmet" / "catalog"
+        assert not (archive / ".arlmet-catalog.csv").exists()
 
     def test_cache_dir_argument_wins(self, archive, tmp_path):
-        inv = inventory(archive, cache_dir=tmp_path / "mine")
+        cat = catalog(archive, cache_dir=tmp_path / "mine")
 
-        assert inv.cache is not None
-        assert inv.cache.parent == tmp_path / "mine"
-        assert inv.cache.is_file()
-        assert not (archive / ".arlmet-inventory.csv").exists()
+        assert cat.cache is not None
+        assert cat.cache.parent == tmp_path / "mine"
+        assert cat.cache.is_file()
+        assert not (archive / ".arlmet-catalog.csv").exists()
 
     def test_two_directories_of_one_name_get_two_caches(self, tmp_path):
         a = tmp_path / "a" / "hrrr"
@@ -518,8 +556,8 @@ class TestCache:
         a.mkdir(parents=True)
         b.mkdir(parents=True)
 
-        first = inventory(a, cache_dir=tmp_path / "caches")
-        second = inventory(b, cache_dir=tmp_path / "caches")
+        first = catalog(a, cache_dir=tmp_path / "caches")
+        second = catalog(b, cache_dir=tmp_path / "caches")
 
         assert first.cache != second.cache
 
@@ -528,21 +566,99 @@ class TestCache:
         blocker.write_text("")
 
         with pytest.raises(
-            OSError, match="Cannot write the inventory cache.*ARLMET_CACHE_DIR"
+            OSError, match="Cannot write the catalog cache.*ARLMET_CACHE_DIR"
         ):
-            inventory(archive, cache_dir=blocker)
+            catalog(archive, cache_dir=blocker)
+
+
+class TestOneBuildAtATime:
+    @pytest.fixture(autouse=True)
+    def fast_polling(self, monkeypatch):
+        monkeypatch.setattr(_catalog, "_POLL", 0.01)
+
+    def test_a_second_caller_waits_for_the_build_and_opens_no_file(
+        self, archive, monkeypatch
+    ):
+        cache = catalog(archive).cache
+        built = cache.read_bytes()
+        cache.unlink()
+        lock = archive / ".arlmet-catalog.csv.lock"
+        lock.mkdir()  # another process is building the table
+        reads = []
+        real = _catalog._read_file
+        monkeypatch.setattr(
+            _catalog, "_read_file", lambda p: reads.append(p) or real(p)
+        )
+        result = []
+        waiter = threading.Thread(target=lambda: result.append(catalog(archive)))
+        waiter.start()
+
+        time.sleep(0.2)
+        assert waiter.is_alive()
+        cache.write_bytes(built)  # the builder saves its table and lets go
+        lock.rmdir()
+        waiter.join(5)
+
+        assert reads == []
+        assert len(result[0]) == 4
+
+    def test_a_lock_with_no_progress_is_taken_over(self, archive, monkeypatch, caplog):
+        monkeypatch.setattr(_catalog, "_STALL", 0.05)
+        lock = archive / ".arlmet-catalog.csv.lock"
+        lock.mkdir()  # left by a process that was killed
+
+        with caplog.at_level(logging.WARNING, logger="arlmet._catalog"):
+            cat = catalog(archive)
+
+        assert len(cat) == 4
+        assert not lock.exists()
+        assert "taking it over" in caplog.text
+
+    def test_a_complete_table_takes_no_lock_and_waits_for_nobody(
+        self, archive, monkeypatch
+    ):
+        catalog(archive)
+        (archive / ".arlmet-catalog.csv.lock").mkdir()  # another process is building
+        monkeypatch.setattr(_catalog, "make_lock", pytest.fail)
+        monkeypatch.setattr(_catalog, "_wait_for_build", pytest.fail)
+
+        assert len(catalog(archive)) == 4
+
+    def test_a_read_only_cache_folder_still_says_how_to_choose_another(
+        self, archive, tmp_path
+    ):
+        folder = tmp_path / "read-only"
+        folder.mkdir()
+        folder.chmod(0o555)
+        try:
+            if os.access(folder, os.W_OK):
+                pytest.skip("running as a user who can write anywhere")
+            with pytest.raises(OSError, match="Cannot write the catalog cache"):
+                catalog(archive, cache_dir=folder)
+        finally:
+            folder.chmod(0o755)
 
 
 class TestLinksAndFolders:
     def test_a_link_and_its_target_are_one_row(self, archive):
         os.symlink(archive / "20240701_06", archive / "zz-link")
 
-        inv = inventory(archive)
+        cat = catalog(archive)
 
-        assert len(inv) == 4
-        assert list(inv.table["path"]).count(archive / "20240701_06") == 1
-        assert inv.covering("2024-07-01 06:00", "2024-07-01 07:00") == [
+        assert len(cat) == 4
+        assert list(cat.table["path"]).count(archive / "20240701_06") == 1
+        assert cat.covering("2024-07-01 06:00", "2024-07-01 07:00") == [
             archive / "20240701_06"
+        ]
+
+    def test_hard_links_to_one_file_are_one_row(self, archive):
+        os.link(archive / "20240701_00", archive / "20240701_00_again")
+
+        cat = catalog(archive)
+
+        assert len(cat) == 4
+        assert cat.covering("2024-07-01 00:00", "2024-07-01 02:00") == [
+            archive / "20240701_00"
         ]
 
     def test_a_link_is_shown_by_its_real_path(self, tmp_path):
@@ -554,8 +670,8 @@ class TestLinksAndFolders:
         for name in ("20240701_00", "20240701_06"):
             os.symlink(month / name, top / name)
 
-        flat = inventory(top)
-        deep = inventory(top, recursive=True)
+        flat = catalog(top)
+        deep = catalog(top, recursive=True)
 
         expected = [month / "20240701_00", month / "20240701_06"]
         assert list(flat.table["path"]) == expected
@@ -567,23 +683,23 @@ class TestLinksAndFolders:
         os.symlink(archive / "20240701_12", other / "first")
         os.symlink(other / "first", other / "second")
 
-        inv = inventory(other)
+        cat = catalog(other)
 
-        assert list(inv.table["path"]) == [archive / "20240701_12"]
-        assert inv.table["error"].iloc[0] == ""
+        assert list(cat.table["path"]) == [archive / "20240701_12"]
+        assert cat.table["error"].iloc[0] == ""
 
     def test_a_broken_link_is_a_row_with_its_error(self, archive, tmp_path):
         os.symlink(tmp_path / "gone", archive / "broken")
 
-        inv = inventory(archive)
-        again = inventory(archive)  # the cache does not hide it
+        cat = catalog(archive)
+        again = catalog(archive)  # the cache does not hide it
 
-        for table in (inv.table, again.table):
+        for table in (cat.table, again.table):
             row = table.iloc[-1]
             assert row["path"] == archive / "broken"
             assert row["error"].startswith("Cannot follow the link: ")
             assert pd.isna(row["start"])
-        assert len(inv.covering("2024-07-01 00:00", "2024-07-01 23:00")) == 4
+        assert len(cat.covering("2024-07-01 00:00", "2024-07-01 23:00")) == 4
 
     def test_a_link_loop_is_a_row_with_its_error(self, archive):
         os.symlink(archive / "loop-b", archive / "loop-a")
@@ -592,13 +708,13 @@ class TestLinksAndFolders:
         (archive / "sub").mkdir()
         os.symlink(archive, archive / "sub" / "up")
 
-        inv = inventory(archive, recursive=True)
+        cat = catalog(archive, recursive=True)
 
-        errors = inv.table.set_index(inv.table["path"].map(lambda p: p.name))["error"]
+        errors = cat.table.set_index(cat.table["path"].map(lambda p: p.name))["error"]
         assert errors["loop-a"].startswith("Cannot follow the link: ")
         assert errors["loop-b"].startswith("Cannot follow the link: ")
         assert "up" not in errors
-        assert len(inv) == 6
+        assert len(cat) == 6
 
     def test_recursive_reads_a_yyyy_mm_tree(self, tmp_path):
         top = tmp_path.resolve() / "hrrr"
@@ -608,11 +724,11 @@ class TestLinksAndFolders:
         six_hour_blocks(june, "2024-06-30 18:00", 1)
         six_hour_blocks(july, "2024-07-01 00:00", 2)
 
-        assert len(inventory(top)) == 0
-        inv = inventory(top, recursive=True)
+        assert len(catalog(top)) == 0
+        cat = catalog(top, recursive=True)
 
-        assert len(inv) == 3
-        assert inv.covering("2024-06-30 23:30", "2024-07-01 06:00") == [
+        assert len(cat) == 3
+        assert cat.covering("2024-06-30 23:30", "2024-07-01 06:00") == [
             june / "20240630_18",
             july / "20240701_00",
             july / "20240701_06",
@@ -624,27 +740,26 @@ class TestLinksAndFolders:
         shutil.copy(archive / "20240701_06", archive / "deprecated" / "20240701_06")
 
         assert (
-            len(inventory(archive).covering("2024-07-01 06:00", "2024-07-01 07:00"))
-            == 1
+            len(catalog(archive).covering("2024-07-01 06:00", "2024-07-01 07:00")) == 1
         )
-        inv = inventory(archive, recursive=True)
+        cat = catalog(archive, recursive=True)
         with pytest.raises(ValueError, match="is in two files"):
-            inv.covering("2024-07-01 06:00", "2024-07-01 07:00")
+            cat.covering("2024-07-01 06:00", "2024-07-01 07:00")
 
     def test_hidden_folders_are_not_read(self, archive):
         (archive / ".hidden").mkdir()
         shutil.copy(archive / "20240701_06", archive / ".hidden" / "20240701_06")
 
-        assert len(inventory(archive, recursive=True)) == 4
+        assert len(catalog(archive, recursive=True)) == 4
 
 
 class TestNames:
-    def test_inventory_is_the_function_and_its_module_is_private(self):
+    def test_catalog_is_the_function_and_its_module_is_private(self):
         import importlib
 
-        assert callable(arlmet.inventory)
-        assert arlmet.inventory is _inventory.inventory
-        assert arlmet.Inventory is _inventory.Inventory
+        assert callable(arlmet.catalog)
+        assert arlmet.catalog is _catalog.catalog
+        assert arlmet.Catalog is _catalog.Catalog
         for gone in ("index", "DirectoryIndex"):
             assert not hasattr(arlmet, gone)
         for gone in (
@@ -669,7 +784,7 @@ class TestNames:
                 assert name not in arlmet.__all__
                 assert not hasattr(arlmet, name)
         assert {"R_D", "G"} <= set(vertical.__all__)
-        assert {"inventory", "Inventory", "probe", "Probe"} <= set(arlmet.__all__)
+        assert {"catalog", "Catalog", "probe", "Probe"} <= set(arlmet.__all__)
 
     def test_only_modules_with_names_of_their_own_are_public(self):
         import pkgutil

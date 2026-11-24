@@ -10,10 +10,10 @@ The byte-level codec is not imported here: ``Header`` and ``IndexRecord`` are in
 """
 
 from . import converters
+from ._catalog import Catalog, catalog
 from ._exceptions import ARLFormatError, ARLFormatWarning
 from ._file import File
 from ._grid import Grid, GridWindow, Projection
-from ._inventory import Inventory, inventory
 from ._ops import (
     InternalLevels,
     concat,
@@ -63,8 +63,8 @@ __all__ = [
     "InternalLevels",
     "concat",
     "concat_by_time",
-    "inventory",
-    "Inventory",
+    "catalog",
+    "Catalog",
     "probe",
     "Probe",
     "ARLFormatError",

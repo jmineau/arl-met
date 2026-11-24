@@ -212,7 +212,7 @@ Module layout
      _time.py       ensure_timestamp()
      archives.py    Archive, HRRRArchive, NAMArchive, GDASArchive, ...;
                     ARCHIVES registry, get_archive(): NOAA archive downloads
-     _inventory.py  inventory(), Inventory: a folder's files by their headers
+     _catalog.py    catalog(), Catalog: a folder's files by their headers
      _probe.py      probe(), Probe: one file from two index records
      _ops/
        subset.py    extract_subset(), resolve_window(), normalize_levels()
@@ -252,7 +252,7 @@ means inside a function body):
                   record, _recordset, vertical;
                   lazy: _ops.sample, _ops.subset, _xarray.dataset
    _probe       → _exceptions, _grid, _header, _indexrecord
-   _inventory   → _exceptions, _file, _io, _time
+   _catalog     → _exceptions, _file, _io, _time
    _ops.subset  → _io, _exceptions, _file, _grid, _header, _indexrecord, packing, record, vertical
    _ops.sample  → _time, _grid, vertical; lazy: _file
    _ops.concat  → _exceptions, _file, _io
