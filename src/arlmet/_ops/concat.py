@@ -291,9 +291,10 @@ def concat_by_time(
     ValueError
         If ``pattern`` matches no files, a matched file cannot be read as ARL,
         a file's valid times straddle a ``freq`` bin boundary, or ``template``
-        formats two bins to the same filename. :func:`concat`'s grid/axis and
-        duplicate-time checks also apply within each group. All checks run
-        before any output is written.
+        formats two bins to the same filename; these are checked before any
+        output is written. :func:`concat`'s grid/axis and duplicate-time checks
+        also apply within each group, as that group's file is written, so an
+        error in a later bin leaves the files of the earlier bins in place.
 
     Examples
     --------
