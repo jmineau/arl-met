@@ -1,9 +1,9 @@
 """
-Take an inventory of a directory of ARL files by their headers.
+Catalog a directory of ARL files by their headers.
 
-:func:`inventory` opens each file in a directory once, keeps what its
+:func:`catalog` opens each file in a directory once, keeps what its
 index records say (source, grid, first and last valid time, time step) in a
-small table, and caches the table in a CSV file. :meth:`Inventory.covering`
+small table, and caches the table in a CSV file. :meth:`Catalog.covering`
 then finds the files that cover a time window without knowing how the files
 are named.
 """
@@ -27,12 +27,12 @@ from arlmet._file import File, _at, _span
 from arlmet._io import atomic_output
 from arlmet._time import ensure_timestamp
 
-__all__ = ["Inventory", "inventory"]
+__all__ = ["Catalog", "catalog"]
 
 logger = logging.getLogger(__name__)
 
 #: Name of the cache file written beside the files it lists.
-CACHE_NAME = ".arlmet-inventory.csv"
+CACHE_NAME = ".arlmet-catalog.csv"
 
 #: Environment variable naming the folder for caches that cannot sit beside
 #: their directory.
@@ -74,7 +74,7 @@ _EMPTY: dict[str, Any] = {
 
 def _user_cache_dir() -> Path:
     """
-    Return the folder for inventory caches that cannot sit beside their directory.
+    Return the folder for catalog caches that cannot sit beside their directory.
 
     ``$ARLMET_CACHE_DIR`` when it is set, else ``arlmet`` in the platform's
     user cache folder: ``$XDG_CACHE_HOME`` or ``~/.cache`` on Linux,
@@ -96,7 +96,7 @@ def _user_cache_dir() -> Path:
             root = Path(xdg) if xdg else Path.home() / ".cache"
     except RuntimeError as exc:
         raise ValueError(
-            f"No user cache folder for the inventory ({exc}). Pass cache_dir= or "
+            f"No user cache folder for the catalog ({exc}). Pass cache_dir= or "
             f"set {CACHE_ENV}."
         ) from exc
     return root / "arlmet"
@@ -108,9 +108,9 @@ def _cache_path(
     """
     Return the cache file for *directory*.
 
-    It is ``.arlmet-inventory.csv`` in *directory* when that is writable;
+    It is ``.arlmet-catalog.csv`` in *directory* when that is writable;
     otherwise, or when *cache_dir* is given, a file named after the
-    directory in *cache_dir* or the user cache folder. A recursive inventory has
+    directory in *cache_dir* or the user cache folder. A recursive catalog has
     its own file, ending in ``-recursive``, so the two never replace each
     other's rows.
     """
@@ -120,7 +120,7 @@ def _cache_path(
     folder = (
         Path(cache_dir).expanduser()
         if cache_dir is not None
-        else _user_cache_dir() / "inventory"
+        else _user_cache_dir() / "catalog"
     )
     digest = hashlib.sha256(str(directory.resolve()).encode()).hexdigest()[:12]
     return folder / f"{directory.name or 'root'}-{digest}{suffix}.csv"
@@ -171,7 +171,7 @@ def _read_cache(cache: Path) -> dict[str, dict[str, Any]]:
     try:
         table = pd.read_csv(cache, dtype=str, keep_default_na=False)
     except (OSError, ValueError) as exc:
-        logger.warning("Ignoring the unreadable inventory cache %s: %s", cache, exc)
+        logger.warning("Ignoring the unreadable catalog cache %s: %s", cache, exc)
         return {}
     if list(table.columns) != _CACHE_COLUMNS:
         return {}
@@ -206,7 +206,7 @@ def _write_cache(cache: Path, rows: dict[str, dict[str, Any]]) -> None:
 def _cache_error(cache: Path, exc: OSError) -> OSError:
     """Return the error for a cache that cannot be written, saying how to choose another place."""
     return OSError(
-        f"Cannot write the inventory cache {cache}: {exc}. Pass cache_dir= "
+        f"Cannot write the catalog cache {cache}: {exc}. Pass cache_dir= "
         f"or set {CACHE_ENV} to a folder you can write to."
     )
 
@@ -231,20 +231,20 @@ def _walk(folder: Path, recursive: bool) -> list[Path]:
     return found
 
 
-def inventory(
+def catalog(
     directory: str | os.PathLike[str],
     *,
     recursive: bool = False,
     cache_dir: str | os.PathLike[str] | None = None,
-) -> Inventory:
+) -> Catalog:
     """
-    Take an inventory of the ARL files in a directory by their headers.
+    Catalog the ARL files in a directory by their headers.
 
     Each file in *directory* is opened once, and what its index records say
     is kept: its source, grid, first and last valid time, and time step. The
     table is cached, so a later call reads again only the files that are new
     or changed (by size or modification time) and drops the files that are
-    gone. Use :meth:`Inventory.covering` to find the files for a time
+    gone. Use :meth:`Catalog.covering` to find the files for a time
     window.
 
     Links to files are followed, and each real file is one row, shown by its
@@ -257,11 +257,11 @@ def inventory(
 
     Files are opened 16 at a time: on a network filesystem each one waits on
     a few small reads. The cache is saved every 500 files, so an interrupted
-    first inventory of a large archive keeps what it read.
+    first catalog of a large archive keeps what it read.
 
     When the cache is not beside the files (*directory* is read-only, or
     *cache_dir* is given) and the folder holds the table its maintainer saved
-    there by running ``inventory`` on it, that table is the starting point,
+    there by running ``catalog`` on it, that table is the starting point,
     read-only: a file whose size and modification time match its row is not
     opened, and the rest are read. Rows already in your own cache win. A stale
     published table therefore costs a few reads, never a wrong answer.
@@ -276,15 +276,15 @@ def inventory(
         *directory* are read.
     cache_dir : path-like, optional
         Folder for the cache file. By default the cache is
-        ``.arlmet-inventory.csv`` (``.arlmet-inventory-recursive.csv`` with
+        ``.arlmet-catalog.csv`` (``.arlmet-catalog-recursive.csv`` with
         *recursive*) in *directory* when *directory* is writable, and
         otherwise a file named after the directory in ``$ARLMET_CACHE_DIR``,
-        or in the platform's user cache folder (``arlmet/inventory`` in
+        or in the platform's user cache folder (``arlmet/catalog`` in
         ``$XDG_CACHE_HOME`` on Linux) when that variable is not set.
 
     Returns
     -------
-    Inventory
+    Catalog
 
     Raises
     ------
@@ -301,13 +301,13 @@ def inventory(
 
     See Also
     --------
-    Inventory.covering : The files for a time window.
+    Catalog.covering : The files for a time window.
     File.check : Damage that opening a file does not catch.
 
     Examples
     --------
-    >>> inv = arlmet.inventory("hrrr")  # doctest: +SKIP
-    >>> inv.covering("2021-01-14 06:00", "2021-01-15 06:00")  # doctest: +SKIP
+    >>> cat = arlmet.catalog("hrrr")  # doctest: +SKIP
+    >>> cat.covering("2021-01-14 06:00", "2021-01-15 06:00")  # doctest: +SKIP
     [PosixPath('hrrr/20210114_06-11_hrrr'), ..., PosixPath('hrrr/20210115_06-11_hrrr')]
     """
     directory = Path(directory).expanduser().absolute()
@@ -358,7 +358,7 @@ def inventory(
         # Opening a file waits on a few small reads, which on a network
         # filesystem take far longer than parsing them, so several are read
         # at once. The cache is saved as rows come in, so an interrupted
-        # first inventory of a large archive keeps what it read.
+        # first catalog of a large archive keeps what it read.
         with ThreadPoolExecutor(_READERS) as pool:
             read = pool.map(_read_file, [Path(key) for key in to_read])
             for n, ((key, stat), row) in enumerate(
@@ -389,19 +389,19 @@ def inventory(
         columns=_TABLE_COLUMNS,
     )
     table = table.sort_values("start", kind="stable", na_position="last")
-    return Inventory(directory, table.reset_index(drop=True), cache=cache)
+    return Catalog(directory, table.reset_index(drop=True), cache=cache)
 
 
-class Inventory:
+class Catalog:
     """
     The ARL files in a directory, by the times their headers say they hold.
 
-    Made by :func:`arlmet.inventory`.
+    Made by :func:`arlmet.catalog`.
 
     Parameters
     ----------
     directory : pathlib.Path
-        The folder the inventory reads.
+        The folder the catalog reads.
     table : pandas.DataFrame
         One row per file (see :attr:`table`).
     cache : pathlib.Path, optional
@@ -418,24 +418,49 @@ class Inventory:
         self.directory = directory
         self.table = table
         self.cache = cache
-        # Each valid time a usable file holds, and the files that hold it.
-        holders: dict[pd.Timestamp, list[Path]] = {}
+        # Each usable file's source and grid, and its valid times.
+        files: dict[Path, tuple[tuple[str, str], set[pd.Timestamp]]] = {}
         usable = table[table["error"] == ""]
-        for path, start, end, step in zip(
-            usable["path"], usable["start"], usable["end"], usable["step"], strict=True
+        for path, source, grid, start, end, step in zip(
+            usable["path"],
+            usable["source"],
+            usable["grid"],
+            usable["start"],
+            usable["end"],
+            usable["step"],
+            strict=True,
         ):
             first = ensure_timestamp(start)
             times = (
-                [first]
+                {first}
                 if pd.isna(step)
-                else list(pd.date_range(first, ensure_timestamp(end), freq=step))
+                else set(pd.date_range(first, ensure_timestamp(end), freq=step))
             )
-            for time in times:
-                holders.setdefault(time, []).append(Path(path))
-        self._holders = holders
+            files[Path(path)] = ((source, grid), times)
+        # Each valid time, and the files that hold it.
+        holders: dict[pd.Timestamp, list[Path]] = {}
+        for path, (_, times) in files.items():
+            for time in sorted(times):
+                holders.setdefault(time, []).append(path)
+        # A file whose every time a longer file of its source and grid also
+        # holds, such as a short crop beside the whole file, is not used.
+        inside = {
+            path
+            for path, (product, times) in files.items()
+            if any(
+                files[other][0] == product
+                and len(files[other][1]) > len(times)
+                and times <= files[other][1]
+                for other in holders[min(times)]
+            )
+        }
+        self._holders = {
+            time: [path for path in paths if path not in inside]
+            for time, paths in holders.items()
+        }
         self._times = pd.DatetimeIndex(sorted(holders))
 
-    #: The folder the inventory reads.
+    #: The folder the catalog reads.
     directory: Path
 
     #: One row per file, sorted by ``start``, then name. The columns are ``path``,
@@ -458,7 +483,7 @@ class Inventory:
 
         See Also
         --------
-        Inventory.missing : The valid times no file holds.
+        Catalog.missing : The valid times no file holds.
         """
         if len(self._times) < 2:
             return None
@@ -506,24 +531,30 @@ class Inventory:
 
         Examples
         --------
-        >>> inv.missing("2021-01-14 06:00", "2021-01-14 08:00")  # doctest: +SKIP
+        >>> cat.missing("2021-01-14 06:00", "2021-01-14 08:00")  # doctest: +SKIP
         [Timestamp('2021-01-14 07:00:00')]
         """
         return [t for t in self._needed(start, end) if t not in self._holders]
 
-    def covering(self, start: Any, end: Any) -> list[Path]:
+    def covering(self, start: Any, end: Any, *, missing_ok: bool = False) -> list[Path]:
         """
         Return the files that cover a window, in time order.
 
         The files hold every valid time the window needs (:meth:`missing`):
         one every :attr:`step` from the one at or before *start* to the one at
-        or after *end*. Files whose ``error`` is set are not used.
+        or after *end*. Files whose ``error`` is set are not used, and neither
+        is a file whose every valid time a longer file of the same source and
+        grid also holds, such as a short crop kept beside the whole file.
 
         Parameters
         ----------
         start, end : datetime-like
             The window, earlier time first. A time without a time zone is UTC;
             a time-zone-aware one is converted to UTC.
+        missing_ok : bool, default False
+            Return the files for the times that are held, without raising
+            when some are in no file. :meth:`missing` lists the rest, so you
+            can find them elsewhere.
 
         Returns
         -------
@@ -533,17 +564,18 @@ class Inventory:
         ------
         ValueError
             If a valid time the window needs is in no file (the message lists
-            them), if two files hold one of them (the message names both), if
-            *start* is after *end*, or if no file is usable.
+            them) and *missing_ok* is false, if two files hold one of them
+            (the message names both), if *start* is after *end*, or if no
+            file is usable.
 
         Examples
         --------
-        >>> inv.covering("2021-01-14 06:00", "2021-01-14 08:00")  # doctest: +SKIP
+        >>> cat.covering("2021-01-14 06:00", "2021-01-14 08:00")  # doctest: +SKIP
         [PosixPath('hrrr/20210114_06-11_hrrr')]
         """
         needed = self._needed(start, end)
         missing = [t for t in needed if t not in self._holders]
-        if missing:
+        if missing and not missing_ok:
             listed = ", ".join(_at(t) for t in missing[:10])
             if len(missing) > 10:
                 listed += f" and {len(missing) - 10} more"
@@ -553,7 +585,9 @@ class Inventory:
             )
         files: list[Path] = []
         for time in needed:
-            holders = self._holders[time]
+            holders = self._holders.get(time, [])
+            if not holders:
+                continue
             if len(holders) > 1:
                 raise ValueError(
                     f"{_at(time)} is in two files, {holders[0]} and "
@@ -564,7 +598,7 @@ class Inventory:
         return files
 
     def __len__(self) -> int:
-        """Return the number of files in the inventory."""
+        """Return the number of files in the catalog."""
         return len(self.table)
 
     def __repr__(self) -> str:
@@ -572,6 +606,6 @@ class Inventory:
         n_bad = int((self.table["error"] != "").sum())
         names = self.table.assign(path=[path.name for path in self.table["path"]])
         return (
-            f"Inventory({str(self.directory)!r}: {len(self)} files, "
+            f"Catalog({str(self.directory)!r}: {len(self)} files, "
             f"{n_bad} not used)\n{names!r}"
         )

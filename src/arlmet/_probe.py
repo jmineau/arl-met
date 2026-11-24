@@ -71,7 +71,7 @@ class Probe:
     --------
     probe : Builds a Probe.
     arlmet.File.check : Full validation, by reading every index record.
-    arlmet.inventory : Reads every time step of a whole directory.
+    arlmet.catalog : Reads every time step of a whole directory.
     """
 
     path: Path
@@ -123,7 +123,7 @@ def probe(path: str | os.PathLike[str]) -> Probe:
     --------
     Probe : The returned summary.
     arlmet.File.check : Full validation, by reading every index record.
-    arlmet.inventory : Reads every time step of a whole directory.
+    arlmet.catalog : Reads every time step of a whole directory.
 
     Examples
     --------

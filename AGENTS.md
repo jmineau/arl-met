@@ -35,7 +35,7 @@ src/arlmet/
   packing.py, _pack.c                  pack, unpack, checksum; the C extension for both codecs
   collection.py                        RecordCollection protocol, VariableView, VariableAccessor
   _exceptions.py, _io.py, _time.py     ARLFormatError/Warning; atomic outputs; timestamps
-  archives.py; _inventory.py, _probe.py  NOAA archive downloads and sync; inventory, Inventory; probe, Probe
+  archives.py; _catalog.py, _probe.py  NOAA archive downloads and sync; catalog, Catalog; probe, Probe
   _ops/                                extract_subset, sample_points and internal_levels (in `sample/`), concat, concat_by_time
   converters/                          from_era5, from_flex_extract, from_gfs, from_icon, from_wrf (in `_era5.py`, ...)
   _xarray/                             open/write_dataset, engine="arl", ds.arl, pressure/z_agl/z_msl; a Dataset as a sample_points input (`_sampling.py`)
@@ -169,7 +169,7 @@ methods, keeping the import graph one-way, as `sample_points` imports `_xarray._
     The byte-level codec is public only in `arlmet.record` (`Header`, `IndexRecord`, `LvlInfo`,
     `VarInfo`, beside `DataRecord`; code in `_header.py`, `_indexrecord.py`) and `arlmet.packing`,
     not re-exported by `arlmet`. "Index" is the format's index record only: a folder's files are
-    `arlmet.inventory` / `Inventory`. HYSPLIT's constants `R_D` and `G` are
+    `arlmet.catalog` / `Catalog`. HYSPLIT's constants `R_D` and `G` are
     in `arlmet.vertical.__all__` (PYSTILT uses them). Options after the obvious leading
     arguments are keyword-only, except that `packing.unpack` keeps six positional arguments
     (the wheel smoke test in `publish.yml` calls it so).

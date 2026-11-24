@@ -15,7 +15,7 @@ damage, and understanding the file format.
    writing
    converting
    concatenating
-   inventorying
+   cataloging
    probing
    sampling
    vertical
