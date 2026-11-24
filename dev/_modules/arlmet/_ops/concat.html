@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=24192f0f"></script>
+    <script src="../../../_static/documentation_options.js?v=fe9abc3e"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b15.dev6+gb40402f93" />
+  <meta name="docsearch:version" content="0.1.0b15.dev7+gc960b0784" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -729,9 +729,10 @@
 <span class="sd">    ValueError</span>
 <span class="sd">        If ``pattern`` matches no files, a matched file cannot be read as ARL,</span>
 <span class="sd">        a file's valid times straddle a ``freq`` bin boundary, or ``template``</span>
-<span class="sd">        formats two bins to the same filename. :func:`concat`'s grid/axis and</span>
-<span class="sd">        duplicate-time checks also apply within each group. All checks run</span>
-<span class="sd">        before any output is written.</span>
+<span class="sd">        formats two bins to the same filename; these are checked before any</span>
+<span class="sd">        output is written. :func:`concat`'s grid/axis and duplicate-time checks</span>
+<span class="sd">        also apply within each group, as that group's file is written, so an</span>
+<span class="sd">        error in a later bin leaves the files of the earlier bins in place.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
