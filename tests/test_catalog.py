@@ -216,6 +216,17 @@ class TestTable:
             archive / "20240701_00"
         ]
 
+    @pytest.mark.parametrize("ending", [".bad", ".partial", ".lock", ".lock.1"])
+    def test_a_copy_set_aside_is_not_read(self, archive, ending):
+        shutil.copy(archive / "20240701_00", archive / f"20240701_00{ending}")
+
+        cat = catalog(archive)
+
+        assert len(cat) == 4
+        assert cat.covering("2024-07-01 00:00", "2024-07-01 02:00") == [
+            archive / "20240701_00"
+        ]
+
     def test_a_missing_directory_raises(self, tmp_path):
         with pytest.raises(FileNotFoundError, match="No directory"):
             catalog(tmp_path / "nowhere")
@@ -290,7 +301,7 @@ class TestCovering:
             cat.covering("2024-07-02 00:00", "2024-07-02 11:00")
 
     def test_two_files_with_one_hour_name_both(self, archive):
-        shutil.copy(archive / "20240701_06", archive / "20240701_06.bad")
+        shutil.copy(archive / "20240701_06", archive / "20240701_06.copy")
         cat = catalog(archive)
 
         # Hours the copy does not hold are found as before.
@@ -303,7 +314,7 @@ class TestCovering:
             cat.covering("2024-07-01 05:00", "2024-07-01 07:00")
         assert str(exc.value) == (
             f"2024-07-01 06:00 is in two files, {archive / '20240701_06'} and "
-            f"{archive / '20240701_06.bad'}. Move one of them out of {archive}."
+            f"{archive / '20240701_06.copy'}. Move one of them out of {archive}."
         )
 
     def test_a_short_file_inside_a_longer_one_is_not_used(self, archive):

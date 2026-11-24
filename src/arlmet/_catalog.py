@@ -211,17 +211,34 @@ def _cache_error(cache: Path, exc: OSError) -> OSError:
     )
 
 
+def _set_aside(name: str) -> bool:
+    """
+    Whether a file or folder *name* is skipped, though its header may pass.
+
+    Hidden names (``.``: arl-met's own partial outputs and the cache),
+    backup copies (``name~``, ``name.~1~``), lock files (``.lock``), a
+    download cut short (``.partial``), and a copy set aside as damaged
+    (``.bad``), as some archives keep beside the file that replaced it.
+    """
+    return (
+        name.startswith(".")
+        or name.endswith(("~", ".partial", ".bad"))
+        or ".lock" in name
+    )
+
+
 def _walk(folder: Path, recursive: bool) -> list[Path]:
     """
     Return the files and links in *folder*, in name order, and in its subfolders with *recursive*.
 
-    Hidden names (``.``) and backup copies (``~``) are left out, and links to
+    Hidden names (``.``), backup copies (``~``) and copies set aside
+    (:func:`_set_aside`) are left out, and links to
     folders are not followed, so a link loop cannot make the walk go round.
     """
     found: list[Path] = []
     with os.scandir(folder) as entries:
         for entry in sorted(entries, key=lambda e: e.name):
-            if entry.name.startswith(".") or entry.name.endswith("~"):
+            if _set_aside(entry.name):
                 continue
             if entry.is_dir(follow_symlinks=False):
                 if recursive:
@@ -251,8 +268,9 @@ def catalog(
     real path (:meth:`pathlib.Path.resolve`) however many links reach it. A
     link that cannot be followed (its target is gone, or links loop) is a row
     with the reason in ``error``. Links to folders are not followed. Hidden
-    files and folders (names starting with ``.``) and backup copies (names
-    ending in ``~``) are skipped. A file that is not ARL, or is damaged, is
+    files and folders (names starting with ``.``), backup copies (names
+    ending in ``~``), lock files (names holding ``.lock``) and copies set
+    aside (names ending in ``.partial`` or ``.bad``) are skipped. A file that is not ARL, or is damaged, is
     kept with the reason in ``error`` and is not used to cover a window.
 
     Files are opened 16 at a time: on a network filesystem each one waits on

@@ -137,8 +137,11 @@ Which files are read
   ``deprecated/`` holds two files for those hours, and ``covering`` raises for
   them. Take the folder of live files instead (a year, or the flat folder of
   links), or the archive without ``recursive``.
-- **Hidden files and folders and backup copies are skipped**: names that start
-  with ``.`` (arl-met's own partial outputs and the cache file) or end in ``~``.
+- **Hidden files and folders, backup copies and copies set aside are
+  skipped**: names that start with ``.`` (arl-met's own partial outputs and the
+  cache file), end in ``~``, ``.partial`` or ``.bad``, or hold ``.lock``. An
+  archive that keeps a damaged file as ``name.bad`` beside its replacement is
+  read as if only the replacement were there.
 - **Every other file is kept in the table.** One that is not ARL, is cut short,
   holds no time step, or whose time steps are not evenly spaced (HYSPLIT stops
   where the spacing changes) gets the reason in ``error``, and ``covering`` does
