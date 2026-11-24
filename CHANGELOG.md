@@ -18,7 +18,6 @@ file alone: the entries are written at release (`just changelog` drafts them).
 ### Changed
 
 - **Breaking: `arlmet.inventory` is now `arlmet.catalog`**, and `Inventory` is `Catalog` (the module is `_catalog`; the guide is `cataloging`). "Inventory" collides with emission inventories. The cache file is `.arlmet-catalog.csv` (and `-recursive`) and the user cache folder `arlmet/catalog`; a cache under the old name is not read, so the first call after upgrading reads every file again. No alias. (#249, #250)
-- `covering` leaves out a file when a longer file of the same source and grid holds every one of its valid times, such as a short crop beside the whole file, instead of raising "is in two files". Files of another source or grid, and two copies with the same times, still raise. (#249, #250)
 - A catalog skips copies set aside: names ending in `.bad`, `.partial` or `.lock`, or holding `.lock.`, as well as hidden names and backups. Hard links to one file are one row. (#249, #250)
 
 ## [0.1.0b13] - 2026-11-20
