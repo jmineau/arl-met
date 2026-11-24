@@ -32,15 +32,14 @@ def _sigma_hybrid_pressure(
         raise ValueError("Dataset has no 'level' coordinate.")
 
     prss = ds["PRSS"]
-    level_ints = ds.coords["level"].values.astype(int).tolist()
     n_spatial = len(ds.arl.grid.dims)
 
     prss_vals = prss.values
     orig_shape = prss_vals.shape
-    # to_pressure returns (..., all_levels) — select only the dataset's levels
-    p_all = axis.to_pressure(surface_pressure=prss_vals.reshape(-1))
-    p_flat = p_all[:, level_ints]  # (n, nlev_dataset)
-    nlev = len(level_ints)
+    # The Dataset's axis is the surface, then its own levels in order (whatever
+    # their numbers in the file), so its levels are axis levels 1 to N.
+    p_flat = axis.to_pressure(surface_pressure=prss_vals.reshape(-1))[:, 1:]
+    nlev = p_flat.shape[1]
 
     p_arr = p_flat.reshape(*orig_shape, nlev)
     # Move the last (level) axis before the spatial dims
@@ -93,7 +92,7 @@ def _hysplit_z_agl_da(
     p = pressure(ds).transpose(*temp.dims).values
     prss = ds["PRSS"].values
     if isinstance(axis, (SigmaAxis, WrfAxis)):
-        first_sigma = axis.levels[int(temp["level"].values[0])]
+        first_sigma = axis.levels[1]  # the Dataset's first level (see pressure)
     else:
         first_sigma = np.take(p, 0, axis=level_ax) / prss
     surface_t = next((ds[n].values for n in ("T02M", "TMPS") if n in ds), None)
