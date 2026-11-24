@@ -506,3 +506,14 @@ def test_concat_by_time_open_ended_start_or_end(tmp_path):
 
     assert [p.name for p in from_day2] == ["20240102_hrrr"]
     assert [p.name for p in until_day1] == ["20240101_hrrr"]
+
+
+def test_concat_by_time_converts_aware_bounds_to_utc(tmp_path):
+    src = tmp_path / "hrrr"
+    populate_hrrr_dir(src)
+    kwargs = {"pattern": "*_hrrr", "template": "{time:%Y%m%d}_hrrr"}
+
+    # 17:00 in Denver on January 1 is 00:00 UTC on January 2.
+    out = concat_by_time(src, tmp_path / "a", start="2024-01-01 17:00-07:00", **kwargs)
+
+    assert [p.name for p in out] == ["20240102_hrrr"]

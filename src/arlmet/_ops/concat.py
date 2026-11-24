@@ -31,6 +31,7 @@ import pandas as pd
 from arlmet._exceptions import ARLFormatError
 from arlmet._file import File
 from arlmet._io import atomic_output
+from arlmet._time import ensure_timestamp
 
 __all__ = ["concat", "concat_by_time"]
 
@@ -269,7 +270,8 @@ def concat_by_time(
         like ``".*.arl"``.
     start, end : str or pandas.Timestamp, optional
         Inclusive bounds on each file's first valid time; files outside them
-        are skipped. Either may be omitted to leave that side open.
+        are skipped. Either may be omitted to leave that side open. A time
+        without a time zone is UTC; a time-zone-aware one is converted to UTC.
     template : str, default "{time:%Y%m%d}_arl"
         ``str.format`` template for output filenames, given the bin start time
         as ``time`` (a ``pandas.Timestamp``), e.g. ``"{time:%Y%m%d}_hrrr"``. It
@@ -326,8 +328,8 @@ def concat_by_time(
     if not candidates:
         raise ValueError(f"No files matched pattern {pattern!r} in {directory}.")
 
-    start_time = None if start is None else pd.Timestamp(start)
-    end_time = None if end is None else pd.Timestamp(end)
+    start_time = None if start is None else ensure_timestamp(start)
+    end_time = None if end is None else ensure_timestamp(end)
 
     groups: dict[pd.Timestamp, list[Path]] = defaultdict(list)
     for path in candidates:
