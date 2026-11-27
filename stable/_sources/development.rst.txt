@@ -14,8 +14,11 @@ HYSPLIT routines arl-met mirrors
 arl-met follows HYSPLIT's own reader and writer wherever the format leaves room
 for choice. Every agreement figure below comes from HYSPLIT v5.3.2's own
 library, run by the Fortran drivers in ``validation/`` (the files, the points
-and HYSPLIT's values are there, with the steps to run them again);
-``extract_subset`` is checked against ``xtrct_grid`` built from the same
+and HYSPLIT's values are there, with the steps to run them again); the internal
+grid (``metlvl``) is the one HYSPLIT 5.4.0 and later pick, which differs from
+5.3.x only for model tops below about 1.1 km (``ZPH1(9)`` went from 9.88 to
+8.88), and a run's own grid, from its ``MESSAGE`` file, can be passed as
+``internal_grid``; ``extract_subset`` is checked against ``xtrct_grid`` built from the same
 HYSPLIT source. The Fortran routines it matches:
 
 .. list-table::
@@ -65,7 +68,8 @@ HYSPLIT source. The Fortran routines it matches:
        bilinearly from the four grid points around it
      - :func:`arlmet.sample_points` interpolates each of the four grid points'
        columns to the point's height, then blends them (``_ops/sample/``,
-       ``node_plan``); on HRRR, WRF, GFS, GDAS and NAM files it agrees with the
+       ``node_plan``, which builds each grid point's column once for all the
+       points around it); on HRRR, WRF, GFS, GDAS and NAM files it agrees with the
        compiled ``prfsig``/``prfprs``/``prfecm`` and ``adv3nt`` to float precision
    * - ``metlvl`` / ``zindex`` / ``prfend``
      - the run's internal vertical grid: ``metlvl`` picks one of six grids

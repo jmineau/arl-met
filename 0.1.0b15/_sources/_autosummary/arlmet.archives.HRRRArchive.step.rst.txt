@@ -1,0 +1,6 @@
+arlmet.archives.HRRRArchive.step
+================================
+
+.. currentmodule:: arlmet.archives
+
+.. autoattribute:: HRRRArchive.step

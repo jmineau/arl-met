@@ -1,0 +1,6 @@
+arlmet.Grid.wraps\_lon
+======================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: Grid.wraps_lon

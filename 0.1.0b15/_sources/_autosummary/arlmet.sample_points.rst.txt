@@ -1,0 +1,6 @@
+﻿arlmet.sample\_points
+=====================
+
+.. currentmodule:: arlmet
+
+.. autofunction:: sample_points

@@ -1,0 +1,6 @@
+arlmet.Catalog.step
+===================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: Catalog.step

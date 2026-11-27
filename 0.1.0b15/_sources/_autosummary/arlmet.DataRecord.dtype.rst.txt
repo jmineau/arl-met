@@ -1,0 +1,6 @@
+arlmet.DataRecord.dtype
+=======================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: DataRecord.dtype

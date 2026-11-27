@@ -1,0 +1,6 @@
+arlmet.RecordSet.source
+=======================
+
+.. currentmodule:: arlmet
+
+.. autoproperty:: RecordSet.source

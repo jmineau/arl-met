@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet._ops.concat &#8212; arl-met 0.1.0b14</title>
+    <title>arlmet._ops.concat &#8212; arl-met 0.1.0b15</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=d0c30248"></script>
+    <script src="../../../_static/documentation_options.js?v=74bb8651"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b14';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b15';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b14" />
+  <meta name="docsearch:version" content="0.1.0b15" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -464,6 +464,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARLFormatError</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_output</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._time</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_timestamp</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"concat"</span><span class="p">,</span> <span class="s2">"concat_by_time"</span><span class="p">]</span>
 
@@ -707,7 +708,8 @@
 <span class="sd">        like ``".*.arl"``.</span>
 <span class="sd">    start, end : str or pandas.Timestamp, optional</span>
 <span class="sd">        Inclusive bounds on each file's first valid time; files outside them</span>
-<span class="sd">        are skipped. Either may be omitted to leave that side open.</span>
+<span class="sd">        are skipped. Either may be omitted to leave that side open. A time</span>
+<span class="sd">        without a time zone is UTC; a time-zone-aware one is converted to UTC.</span>
 <span class="sd">    template : str, default "{time:%Y%m%d}_arl"</span>
 <span class="sd">        ``str.format`` template for output filenames, given the bin start time</span>
 <span class="sd">        as ``time`` (a ``pandas.Timestamp``), e.g. ``"{time:%Y%m%d}_hrrr"``. It</span>
@@ -729,9 +731,10 @@
 <span class="sd">    ValueError</span>
 <span class="sd">        If ``pattern`` matches no files, a matched file cannot be read as ARL,</span>
 <span class="sd">        a file's valid times straddle a ``freq`` bin boundary, or ``template``</span>
-<span class="sd">        formats two bins to the same filename. :func:`concat`'s grid/axis and</span>
-<span class="sd">        duplicate-time checks also apply within each group. All checks run</span>
-<span class="sd">        before any output is written.</span>
+<span class="sd">        formats two bins to the same filename; these are checked before any</span>
+<span class="sd">        output is written. :func:`concat`'s grid/axis and duplicate-time checks</span>
+<span class="sd">        also apply within each group, as that group's file is written, so an</span>
+<span class="sd">        error in a later bin leaves the files of the earlier bins in place.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -763,8 +766,8 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">candidates</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No files matched pattern </span><span class="si">{</span><span class="n">pattern</span><span class="si">!r}</span><span class="s2"> in </span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
 
-    <span class="n">start_time</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
-    <span class="n">end_time</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">end</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+    <span class="n">end_time</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">end</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
 
     <span class="n">groups</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>

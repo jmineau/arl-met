@@ -1,0 +1,6 @@
+arlmet.HybridAxis.flag
+======================
+
+.. currentmodule:: arlmet
+
+.. autoattribute:: HybridAxis.flag

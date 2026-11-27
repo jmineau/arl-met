@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet._xarray._vertical &#8212; arl-met 0.1.0b14</title>
+    <title>arlmet._xarray._vertical &#8212; arl-met 0.1.0b15</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=d0c30248"></script>
+    <script src="../../../_static/documentation_options.js?v=74bb8651"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b14';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b15';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b14" />
+  <meta name="docsearch:version" content="0.1.0b15" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -465,15 +465,14 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Dataset has no 'level' coordinate."</span><span class="p">)</span>
 
     <span class="n">prss</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"PRSS"</span><span class="p">]</span>
-    <span class="n">level_ints</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s2">"level"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
     <span class="n">n_spatial</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span>
 
     <span class="n">prss_vals</span> <span class="o">=</span> <span class="n">prss</span><span class="o">.</span><span class="n">values</span>
     <span class="n">orig_shape</span> <span class="o">=</span> <span class="n">prss_vals</span><span class="o">.</span><span class="n">shape</span>
-    <span class="c1"># to_pressure returns (..., all_levels) — select only the dataset's levels</span>
-    <span class="n">p_all</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">to_pressure</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss_vals</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-    <span class="n">p_flat</span> <span class="o">=</span> <span class="n">p_all</span><span class="p">[:,</span> <span class="n">level_ints</span><span class="p">]</span>  <span class="c1"># (n, nlev_dataset)</span>
-    <span class="n">nlev</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">level_ints</span><span class="p">)</span>
+    <span class="c1"># The Dataset's axis is the surface, then its own levels in order (whatever</span>
+    <span class="c1"># their numbers in the file), so its levels are axis levels 1 to N.</span>
+    <span class="n">p_flat</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">to_pressure</span><span class="p">(</span><span class="n">surface_pressure</span><span class="o">=</span><span class="n">prss_vals</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))[:,</span> <span class="mi">1</span><span class="p">:]</span>
+    <span class="n">nlev</span> <span class="o">=</span> <span class="n">p_flat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="n">p_arr</span> <span class="o">=</span> <span class="n">p_flat</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">*</span><span class="n">orig_shape</span><span class="p">,</span> <span class="n">nlev</span><span class="p">)</span>
     <span class="c1"># Move the last (level) axis before the spatial dims</span>
@@ -526,7 +525,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="n">pressure</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">*</span><span class="n">temp</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
     <span class="n">prss</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"PRSS"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="p">(</span><span class="n">SigmaAxis</span><span class="p">,</span> <span class="n">WrfAxis</span><span class="p">)):</span>
-        <span class="n">first_sigma</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">temp</span><span class="p">[</span><span class="s2">"level"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
+        <span class="n">first_sigma</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># the Dataset's first level (see pressure)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">first_sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">level_ax</span><span class="p">)</span> <span class="o">/</span> <span class="n">prss</span>
     <span class="n">surface_t</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">ds</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"T02M"</span><span class="p">,</span> <span class="s2">"TMPS"</span><span class="p">)</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>

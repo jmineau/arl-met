@@ -1,0 +1,37 @@
+﻿arlmet.RecordSet
+================
+
+.. currentmodule:: arlmet
+
+.. autoclass:: RecordSet
+   :no-members:
+
+
+
+
+
+
+.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+   :nosignatures:
+
+   ~RecordSet.grid
+   ~RecordSet.mode
+   ~RecordSet.record_length
+   ~RecordSet.records
+   ~RecordSet.source
+   ~RecordSet.vertical_axis
+
+
+
+.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   ~RecordSet.create_datarecord
+
+
+

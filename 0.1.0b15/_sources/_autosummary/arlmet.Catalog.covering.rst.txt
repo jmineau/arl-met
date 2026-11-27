@@ -1,0 +1,5 @@
+arlmet.Catalog.covering
+=======================
+
+.. currentmodule:: arlmet
+.. automethod:: Catalog.covering

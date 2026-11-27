@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>arlmet.converters._wrf &#8212; arl-met 0.1.0b14</title>
+    <title>arlmet.converters._wrf &#8212; arl-met 0.1.0b15</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=d0c30248"></script>
+    <script src="../../../_static/documentation_options.js?v=74bb8651"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -49,7 +49,7 @@
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.23.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://jmineau.github.io/arl-met/switcher.json';
-        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b14';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = '0.1.0b15';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             true;
         </script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b14" />
+  <meta name="docsearch:version" content="0.1.0b15" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -646,8 +646,9 @@
 <span class="sd">    axis (vertical flag 1) whose offset is the model top ``P_TOP``, or with</span>
 <span class="sd">    WRF's hybrid coordinate (``HYBRID_OPT`` 2) a :class:`arlmet.WrfAxis`</span>
 <span class="sd">    (flag 5). The precipitation of a time step is what fell since the one</span>
-<span class="sd">    before, scaled to one hour; the first time step has none, so join every</span>
-<span class="sd">    file of a run before converting.</span>
+<span class="sd">    before, scaled to one hour. The first time step has none: it is 0 where</span>
+<span class="sd">    the run starts (``XTIME`` 0) and missing otherwise, so join every file of a</span>
+<span class="sd">    run before converting.</span>
 
 <span class="sd">    With ``winds="averaged"`` (a run with ``do_avgflx_em = 1``), ``UWND``,</span>
 <span class="sd">    ``VWND`` and ``WWND`` are WRF's ``AVGFLX_RUM``, ``AVGFLX_RVM`` and</span>
@@ -745,10 +746,14 @@
             <span class="n">out</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">field_variable</span><span class="p">(</span><span class="n">arl</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]),</span> <span class="n">field</span><span class="p">,</span> <span class="n">surface_dims</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">"PSFC"</span> <span class="ow">and</span> <span class="s2">"RAINC"</span> <span class="ow">in</span> <span class="n">ds</span> <span class="ow">and</span> <span class="s2">"RAINNC"</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
             <span class="c1"># Hourly totals from the run's accumulations, as arw2arl makes them.</span>
+            <span class="c1"># Before the first step the rain is 0 only at the run's start;</span>
+            <span class="c1"># joined files that begin later leave it unknown (missing).</span>
             <span class="n">rain</span> <span class="o">=</span> <span class="n">arl</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">"RAINC"</span><span class="p">]</span> <span class="o">+</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"RAINNC"</span><span class="p">])</span> <span class="o">*</span> <span class="mf">0.001</span>
             <span class="n">step</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">minutes</span><span class="p">,</span> <span class="n">prepend</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+            <span class="n">before</span> <span class="o">=</span> <span class="mf">0.0</span> <span class="k">if</span> <span class="n">minutes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
             <span class="n">fell</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-                <span class="p">[</span><span class="n">xr</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">rain</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span> <span class="n">rain</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="s2">"time"</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="s2">"time"</span>
+                <span class="p">[</span><span class="n">xr</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">rain</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">before</span><span class="p">),</span> <span class="n">rain</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="s2">"time"</span><span class="p">)],</span>
+                <span class="n">dim</span><span class="o">=</span><span class="s2">"time"</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">per_hour</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
                 <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">step</span><span class="p">),</span> <span class="mf">60.0</span> <span class="o">/</span> <span class="n">step</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">dims</span><span class="o">=</span><span class="s2">"time"</span>
