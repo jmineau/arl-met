@@ -25,11 +25,14 @@ __all__ = [
     "Field",
     "arl_dataset",
     "field_variable",
+    "forecast_hours",
+    "keep_shortest_step",
     "pressure_axis",
     "pressure_level_dataset",
     "scalar_coord",
     "stack_times",
     "standardize",
+    "surface_dataset",
 ]
 
 TIME_DIMS = ("valid_time", "time")
@@ -94,6 +97,46 @@ def stack_times(
             ) from exc
     return xr.Dataset(variables).assign_coords(
         time=pd.DatetimeIndex(list(times)).values
+    )
+
+
+def keep_shortest_step(
+    found: dict[tuple[pd.Timestamp, str], tuple[pd.Timedelta, xr.DataArray]],
+    key: tuple[pd.Timestamp, str],
+    step: pd.Timedelta,
+    da: xr.DataArray,
+) -> None:
+    """Record ``da`` at ``key`` (valid time, name) in ``found`` unless a shorter forecast step holds it."""
+    kept = found.get(key)
+    if kept is None or step < kept[0]:
+        found[key] = (step, da)
+
+
+def forecast_hours(
+    upper: Mapping[tuple[pd.Timestamp, str], tuple[pd.Timedelta, Any]],
+    times: Sequence[pd.Timestamp],
+) -> list[int]:
+    """Return each of ``times``' forecast hour: its shortest step in ``upper``, in whole hours."""
+    return [
+        int(
+            min(step for (t, _), (step, _) in upper.items() if t == time)
+            / pd.Timedelta("1h")
+        )
+        for time in times
+    ]
+
+
+def surface_dataset(
+    found: Mapping[tuple[pd.Timestamp, str], xr.DataArray],
+    times: Sequence[pd.Timestamp],
+    upper_ds: xr.Dataset,
+    names: Iterable[str],
+) -> xr.Dataset:
+    """Return the single-level fields ``names`` in ``found`` as a :func:`standardize`'d Dataset, with none of them when ``found`` is empty."""
+    if not found:
+        return upper_ds.isel(level=0, drop=True)[[]]
+    return standardize(
+        stack_times(found, times), names, upper=False, label="single levels"
     )
 
 

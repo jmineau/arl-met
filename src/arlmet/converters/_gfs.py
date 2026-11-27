@@ -11,10 +11,13 @@ import xarray as xr
 
 from ._pressure import (
     Field,
+    forecast_hours,
+    keep_shortest_step,
     pressure_level_dataset,
     scalar_coord,
     stack_times,
     standardize,
+    surface_dataset,
 )
 
 __all__ = ["GFS_HPBL", "from_gfs"]
@@ -299,9 +302,7 @@ def from_gfs(
                 if arl in {f.name for f in PRESSURE_LEVEL_FIELDS.values()}
                 else surface
             )
-            kept = target.get((time, arl))
-            if kept is None or step < kept[0]:
-                target[(time, arl)] = (step, da)
+            keep_shortest_step(target, (time, arl), step, da)
 
     times = sorted({time for time, _ in upper})
     if not times:
@@ -309,13 +310,7 @@ def from_gfs(
             "None of the Datasets holds GFS pressure-level fields "
             f"({', '.join(PRESSURE_LEVEL_FIELDS)} on isobaricInhPa)."
         )
-    hours = [
-        int(
-            min(step for (t, _), (step, _) in upper.items() if t == time)
-            / pd.Timedelta("1h")
-        )
-        for time in times
-    ]
+    hours = forecast_hours(upper, times)
 
     upper_ds = standardize(
         stack_times({k: da for k, (_, da) in upper.items()}, times),
@@ -323,15 +318,8 @@ def from_gfs(
         upper=True,
         label="pressure levels",
     )
-    surface_ds = (
-        standardize(
-            stack_times({k: da for k, (_, da) in surface.items()}, times),
-            list(_SINGLE_LEVEL_FIELDS),
-            upper=False,
-            label="single levels",
-        )
-        if surface
-        else upper_ds.isel(level=0, drop=True)[[]]
+    surface_ds = surface_dataset(
+        {k: da for k, (_, da) in surface.items()}, times, upper_ds, _SINGLE_LEVEL_FIELDS
     )
     upper_fields = {f.name: f for f in PRESSURE_LEVEL_FIELDS.values()}
     return pressure_level_dataset(
