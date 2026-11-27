@@ -1299,9 +1299,68 @@ def test_step_is_not_the_span_of_a_file():
     for cls, hours_per_file, time_steps in [(HRRRArchive, 6, 6), (NAMArchive, 24, 8)]:
         archive = cls()
         t0 = pd.Timestamp("2021-01-15")
-        last_hour = t0 + pd.Timedelta(hours=hours_per_file - 1)
-        assert archive.paths_for_range(t0, last_hour) == [archive._archive_path(t0)]
+        last_step = t0 + (time_steps - 1) * archive.step
+        assert archive.paths_for_range(t0, last_step) == [archive._archive_path(t0)]
         assert pd.Timedelta(hours=hours_per_file) / archive.step == time_steps
+
+
+def test_a_window_ending_after_a_files_last_step_needs_the_next_file():
+    """The three reproductions of issue 300: each file ends before the window does."""
+    nam = NAMArchive().paths_for_range("2024-07-18 00", "2024-07-18 22")
+    assert nam == ["nam12/2024/07/20240718_nam12", "nam12/2024/07/20240719_nam12"]
+    hrrr = HRRRArchive().paths_for_range("2024-07-18 00", "2024-07-18 05:30")
+    assert hrrr == [
+        "hrrr/2024/07/20240718_00-05_hrrr",
+        "hrrr/2024/07/20240718_06-11_hrrr",
+    ]
+    gdas = GDASArchive().paths_for_range("2024-07-07 00", "2024-07-07 23")
+    assert gdas == ["gdas1/2024/gdas1.jul24.w1", "gdas1/2024/gdas1.jul24.w2"]
+
+
+def _first_file_boundary(archive):
+    """Return the first hour, from 2020-07-02, whose file differs from the hour before."""
+    hour = pd.Timestamp("2020-07-02")
+    for _ in range(24 * 45):
+        if archive._archive_path(hour) != archive._archive_path(
+            hour - pd.Timedelta(hours=1)
+        ):
+            return hour
+        hour += pd.Timedelta(hours=1)
+    raise AssertionError(f"no file boundary found for {archive.name}")
+
+
+@pytest.mark.parametrize("name", sorted(_STEP_HOURS))
+def test_a_window_covers_the_time_steps_around_it_in_every_archive(name):
+    """The window needs the step at or before its start and the one at or after its end."""
+    from arlmet.archives import ARCHIVES
+
+    archive = ARCHIVES[name]()
+    step = archive.step
+    boundary = _first_file_boundary(archive)
+    before = archive._archive_path(boundary - step)  # holds the last step before
+    after = archive._archive_path(boundary)  # holds the first step after
+    assert before != after
+    minute = pd.Timedelta(minutes=1)
+
+    # Ending on a file's last time step needs no more.
+    assert archive.paths_for_range(boundary - 2 * step, boundary - step) == [before]
+    # Ending between that step and the next needs the next file...
+    assert archive.paths_for_range(boundary - 2 * step, boundary - minute) == [
+        before,
+        after,
+    ]
+    # ...and so does starting there, which needs the step before it.
+    assert archive.paths_for_range(boundary - step + minute, boundary + step) == [
+        before,
+        after,
+    ]
+    # Starting on a file's first time step needs nothing earlier.
+    assert archive.paths_for_range(boundary, boundary + step) == [after]
+    # The order of the two times does not matter (a backward run).
+    assert archive.paths_for_range(boundary - minute, boundary - 2 * step) == [
+        before,
+        after,
+    ]
 
 
 def test_a_custom_archive_inherits_its_parents_step():
