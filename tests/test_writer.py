@@ -9,6 +9,7 @@ from xarray.core import indexing
 import arlmet
 from arlmet import File, open_dataset, write_dataset
 from arlmet._grid import Grid, Projection
+from arlmet._xarray._coords import _extract_dataset_vertical_axis
 from arlmet.packing import pack, unpack
 from arlmet.record import IndexRecord
 from arlmet.vertical import PressureAxis, SigmaAxis
@@ -171,6 +172,7 @@ class TestWriter:
         assert ds.attrs["source"] == "TEST"
         assert ds.arl.vertical_axis.flag == 2
         assert ds.arl.vertical_axis.levels.tolist() == [0.0, 1000.0]
+        assert ds.arl.vertical_axis == _extract_dataset_vertical_axis(ds)
         assert "forecast_hour" in ds.coords
         assert "forecast_hour" not in ds.data_vars
         assert ds["forecast_hour"].dims == ("time",)

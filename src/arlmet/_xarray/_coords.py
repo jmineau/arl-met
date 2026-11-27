@@ -151,6 +151,14 @@ def vaxis_from_coord(
     return VerticalAxis.from_flag(flag, levels=[surface, *phys_values], offset=offset)
 
 
+def _physical_level_coord(ds: xr.Dataset) -> xr.DataArray | None:
+    """Return the physical coordinate on ``level`` (the one with ``attrs["surface"]``), or None."""
+    for coord in ds.coords.values():
+        if coord.dims == ("level",) and "surface" in coord.attrs:
+            return coord
+    return None
+
+
 def _extract_dataset_vertical_axis(
     ds: xr.Dataset,
     explicit_vertical_axis: VerticalAxis | None = None,
@@ -172,10 +180,9 @@ def _extract_dataset_vertical_axis(
     if flag is None:
         raise ValueError(f"Dataset is missing attrs['vertical_flag']; {fix}.")
 
-    level_coord = ds.coords["level"]
-    for _coord_name, coord in ds.coords.items():
-        if coord.dims == ("level",) and "surface" in coord.attrs:
-            return vaxis_from_coord(int(flag), level_coord, coord)
+    coord = _physical_level_coord(ds)
+    if coord is not None:
+        return vaxis_from_coord(int(flag), ds.coords["level"], coord)
 
     raise ValueError(
         f"Dataset is missing a physical level coordinate with attrs['surface']; {fix}."
