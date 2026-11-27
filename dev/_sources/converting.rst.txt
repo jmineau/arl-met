@@ -452,8 +452,9 @@ staggered winds where WRF puts them, ``UWND`` on the west and ``VWND`` on the
 south face of each cell, and HYSPLIT (and :func:`arlmet.sample_points`) read
 them there. ``WWND`` is WRF's vertical velocity as a pressure tendency
 (hPa s-1), and ``TPP1`` the precipitation since the time step before, per
-hour, each with a ``DIF*`` record. The first time step has no precipitation,
-as ``arw2arl`` writes it when it has no earlier file.
+hour, each with a ``DIF*`` record. The first time step has no earlier one to
+take the rain from: it is 0 where the run starts and missing otherwise (as in
+this example, which starts at hour 6), and HYSPLIT skips a missing record.
 
 Converted alongside ``arw2arl`` from the same four hours of a 12 km WRF run,
 every field matched its file but the two it computes, ``TEMP`` and ``WWND``,
