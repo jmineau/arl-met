@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../../_static/documentation_options.js?v=c5077a5c"></script>
+    <script src="../../../../_static/documentation_options.js?v=9623d845"></script>
     <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b15.dev19+gc9058c156" />
+  <meta name="docsearch:version" content="0.1.0b15.dev21+g07c514acd" />
   
     
     <script src="../../../../_static/searchtools.js"></script>
@@ -472,6 +472,10 @@
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"InternalLevels"</span><span class="p">,</span> <span class="s2">"internal_levels"</span><span class="p">,</span> <span class="s2">"sample_on_internal_levels"</span><span class="p">]</span>
 
+<span class="c1">#: A run's internal grid as HYSPLIT's MESSAGE file prints it, ``Internal grid</span>
+<span class="c1">#: parameters (nlvl,aa,bb,cc)``: level ``k`` (1 to ``nlvl``) is ``aa k**2 + bb k + cc`` m.</span>
+<span class="n">InternalGrid</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+
 <span class="c1">#: The quadratic internal grids HYSPLIT's ``metlvl.f`` chooses from, finest</span>
 <span class="c1">#: last: level ``k`` (from 1) is ``a k**2 + b k + c`` meters above the ground</span>
 <span class="c1">#: at zero terrain.</span>
@@ -483,8 +487,9 @@
     <span class="p">(</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
     <span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
 <span class="p">)</span>
-<span class="c1">#: ``metlvl.f``'s meters per hPa by 100 hPa (100 to 900) and by 10 hPa (10 to 90).</span>
-<span class="n">_ZPH1</span> <span class="o">=</span> <span class="p">(</span><span class="mf">17.98</span><span class="p">,</span> <span class="mf">14.73</span><span class="p">,</span> <span class="mf">13.09</span><span class="p">,</span> <span class="mf">11.98</span><span class="p">,</span> <span class="mf">11.15</span><span class="p">,</span> <span class="mf">10.52</span><span class="p">,</span> <span class="mf">10.04</span><span class="p">,</span> <span class="mf">9.75</span><span class="p">,</span> <span class="mf">9.88</span><span class="p">)</span>
+<span class="c1">#: ``metlvl.f``'s meters per hPa by 100 hPa (100 to 900) and by 10 hPa (10 to 90). The last</span>
+<span class="c1">#: entry of ``_ZPH1`` is 8.88 as in HYSPLIT 5.4.0 and later (5.3.x has 9.88).</span>
+<span class="n">_ZPH1</span> <span class="o">=</span> <span class="p">(</span><span class="mf">17.98</span><span class="p">,</span> <span class="mf">14.73</span><span class="p">,</span> <span class="mf">13.09</span><span class="p">,</span> <span class="mf">11.98</span><span class="p">,</span> <span class="mf">11.15</span><span class="p">,</span> <span class="mf">10.52</span><span class="p">,</span> <span class="mf">10.04</span><span class="p">,</span> <span class="mf">9.75</span><span class="p">,</span> <span class="mf">8.88</span><span class="p">)</span>
 <span class="n">_ZPH2</span> <span class="o">=</span> <span class="p">(</span><span class="mf">31.37</span><span class="p">,</span> <span class="mf">27.02</span><span class="p">,</span> <span class="mf">24.59</span><span class="p">,</span> <span class="mf">22.92</span><span class="p">,</span> <span class="mf">21.65</span><span class="p">,</span> <span class="mf">20.66</span><span class="p">,</span> <span class="mf">19.83</span><span class="p">,</span> <span class="mf">19.13</span><span class="p">,</span> <span class="mf">18.51</span><span class="p">)</span>
 
 <span class="c1">#: Variables HYSPLIT carries above a file's top on its internal levels at the</span>
@@ -537,6 +542,32 @@
         <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"heights"</span><span class="p">,</span> <span class="n">heights</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_from_grid</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">grid</span><span class="p">:</span> <span class="n">InternalGrid</span><span class="p">,</span> <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InternalLevels</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the levels of *grid* ``(nlvl, a, b, c)`` for a run with *model_top*."""</span>
+        <span class="n">nlvl</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">grid</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">nlvl</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">))</span>
+            <span class="ow">and</span> <span class="n">nlvl</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+            <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"internal_grid must be (nlvl, a, b, c): an integer number of levels "</span>
+                <span class="sa">f</span><span class="s2">"of at least 1 and finite a, b, c, got </span><span class="si">{</span><span class="n">grid</span><span class="si">!r}</span><span class="s2">."</span>
+            <span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nlvl</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+        <span class="n">heights</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">k</span> <span class="o">*</span> <span class="n">k</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">*</span> <span class="n">k</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">heights</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">heights</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"internal_grid </span><span class="si">{</span><span class="n">grid</span><span class="si">!r}</span><span class="s2"> gives levels that are not positive and rising."</span>
+            <span class="p">)</span>
+        <span class="n">zmdl</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">model_top</span><span class="p">)),</span> <span class="mf">25000.0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">zmdl</span><span class="o">=</span><span class="n">zmdl</span><span class="p">,</span> <span class="n">heights</span><span class="o">=</span><span class="n">heights</span><span class="p">,</span> <span class="n">zmdlt</span><span class="o">=</span><span class="n">zmdl</span> <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">"RAMS"</span> <span class="k">else</span> <span class="mf">20000.0</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_for_axis</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="n">VerticalAxis</span><span class="p">,</span> <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InternalLevels</span><span class="p">:</span>
@@ -587,11 +618,8 @@
             <span class="n">count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="o">-</span><span class="n">b</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dist</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">f32</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">a</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">dist</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span>
             <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="n">needed</span><span class="p">:</span>
                 <span class="k">break</span>
-        <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-        <span class="n">heights</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">k</span> <span class="o">*</span> <span class="n">k</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">*</span> <span class="n">k</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
-        <span class="n">zmdl</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">model_top</span><span class="p">)),</span> <span class="mf">25000.0</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">zmdl</span><span class="o">=</span><span class="n">zmdl</span><span class="p">,</span> <span class="n">heights</span><span class="o">=</span><span class="n">heights</span><span class="p">,</span> <span class="n">zmdlt</span><span class="o">=</span><span class="n">zmdl</span> <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">"RAMS"</span> <span class="k">else</span> <span class="mf">20000.0</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_grid</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">count</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">)),</span> <span class="n">model_top</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">source</span>
         <span class="p">)</span>
 
 <div class="viewcode-block" id="InternalLevels.scale">
@@ -690,7 +718,10 @@
 <div class="viewcode-block" id="internal_levels">
 <a class="viewcode-back" href="../../../../_autosummary/arlmet.internal_levels.html#arlmet.internal_levels">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">internal_levels</span><span class="p">(</span>
-    <span class="n">file</span><span class="p">:</span> <span class="n">File</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">25000.0</span>
+    <span class="n">file</span><span class="p">:</span> <span class="n">File</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">25000.0</span><span class="p">,</span>
+    <span class="n">internal_grid</span><span class="p">:</span> <span class="n">InternalGrid</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InternalLevels</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Return HYSPLIT's internal vertical levels for a run on *file* with *model_top*.</span>
@@ -700,7 +731,11 @@
 <span class="sd">    them. For the run's top of model domain and the file's vertical grid,</span>
 <span class="sd">    HYSPLIT's ``metlvl.f`` picks one of six grids of heights ``a k**2 + b k +</span>
 <span class="sd">    c``; these are the levels :func:`sample_points` uses at heights with the</span>
-<span class="sd">    same ``model_top``.</span>
+<span class="sd">    same ``model_top``. Without *internal_grid* the grid is the one HYSPLIT</span>
+<span class="sd">    5.4.0 and later pick; earlier versions pick a different one only for a</span>
+<span class="sd">    model top below about 1.1 km (``metlvl.f``'s table of meters per hPa</span>
+<span class="sd">    changed at 900 hPa and higher). A run's own grid is exact for any HYSPLIT</span>
+<span class="sd">    version: pass it as *internal_grid*.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -713,6 +748,15 @@
 <span class="sd">        The run's top of model domain [m] (the ``CONTROL`` line after the</span>
 <span class="sd">        vertical motion option; PYSTILT's ``z_top``), as in</span>
 <span class="sd">        :func:`sample_points`.</span>
+<span class="sd">    internal_grid : tuple of (int, float, float, float), optional</span>
+<span class="sd">        The grid a HYSPLIT run used, ``(nlvl, aa, bb, cc)`` as the run's</span>
+<span class="sd">        ``MESSAGE`` file prints it after ``Internal grid parameters</span>
+<span class="sd">        (nlvl,aa,bb,cc)``: level ``k`` (1 to ``nlvl``) is ``aa k**2 + bb k +</span>
+<span class="sd">        cc`` meters above ground at 0 m. It is used as it is, whatever the</span>
+<span class="sd">        file's vertical grid, and the grid in ``MESSAGE`` is exact for any</span>
+<span class="sd">        HYSPLIT version. Only the file's source is read then (a path is still</span>
+<span class="sd">        opened). Default None: the grid HYSPLIT 5.4.0 and later pick for the</span>
+<span class="sd">        file and *model_top*. arl-met does not read ``MESSAGE``.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -721,7 +765,9 @@
 <span class="sd">    Raises</span>
 <span class="sd">    ------</span>
 <span class="sd">    ValueError</span>
-<span class="sd">        If *model_top* is not a positive number.</span>
+<span class="sd">        If *model_top* is not a positive number, or *internal_grid* is not</span>
+<span class="sd">        ``(nlvl, a, b, c)`` with an integer ``nlvl`` of at least 1, finite</span>
+<span class="sd">        numbers, and heights that are positive and rise.</span>
 
 <span class="sd">    See Also</span>
 <span class="sd">    --------</span>
@@ -736,6 +782,13 @@
 <span class="sd">    25000.0</span>
 <span class="sd">    &gt;&gt;&gt; levels.heights[:4]</span>
 <span class="sd">    array([ 10.,  75., 200., 385.])</span>
+
+<span class="sd">    A run's own grid, from its ``MESSAGE`` line ``41 15.0 -5.0 0.0``:</span>
+
+<span class="sd">    &gt;&gt;&gt; arlmet.internal_levels("met.arl", internal_grid=(41, 15.0, -5.0, 0.0)).heights[</span>
+<span class="sd">    ...     :3</span>
+<span class="sd">    ... ]</span>
+<span class="sd">    array([ 10.,  50., 120.])</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span>  <span class="c1"># lazy: _file imports this module</span>
 
@@ -748,17 +801,22 @@
             <span class="n">DatasetMet</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">DatasetMet</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">InternalLevels</span><span class="o">.</span><span class="n">_for_axis</span><span class="p">(</span>
-            <span class="n">dataset</span><span class="o">.</span><span class="n">vertical_axis</span><span class="p">,</span> <span class="n">model_top</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">source</span>
-        <span class="p">)</span>
+        <span class="n">met</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">DatasetMet</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_levels_for</span><span class="p">(</span><span class="n">met</span><span class="p">,</span> <span class="n">model_top</span><span class="p">,</span> <span class="n">internal_grid</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">File</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">InternalLevels</span><span class="o">.</span><span class="n">_for_axis</span><span class="p">(</span>
-            <span class="n">file</span><span class="o">.</span><span class="n">vertical_axis</span><span class="p">,</span> <span class="n">model_top</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">source</span>
-        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">_levels_for</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">model_top</span><span class="p">,</span> <span class="n">internal_grid</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">File</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">InternalLevels</span><span class="o">.</span><span class="n">_for_axis</span><span class="p">(</span><span class="n">met</span><span class="o">.</span><span class="n">vertical_axis</span><span class="p">,</span> <span class="n">model_top</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">met</span><span class="o">.</span><span class="n">source</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">_levels_for</span><span class="p">(</span><span class="n">met</span><span class="p">,</span> <span class="n">model_top</span><span class="p">,</span> <span class="n">internal_grid</span><span class="p">)</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_levels_for</span><span class="p">(</span>
+    <span class="n">met</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">internal_grid</span><span class="p">:</span> <span class="n">InternalGrid</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InternalLevels</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the levels of *internal_grid*, or those HYSPLIT 5.4+ picks for *met*."""</span>
+    <span class="k">if</span> <span class="n">internal_grid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">InternalLevels</span><span class="o">.</span><span class="n">_from_grid</span><span class="p">(</span><span class="n">internal_grid</span><span class="p">,</span> <span class="n">model_top</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">met</span><span class="o">.</span><span class="n">source</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">InternalLevels</span><span class="o">.</span><span class="n">_for_axis</span><span class="p">(</span><span class="n">met</span><span class="o">.</span><span class="n">vertical_axis</span><span class="p">,</span> <span class="n">model_top</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">met</span><span class="o">.</span><span class="n">source</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_pressure_above_top</span><span class="p">(</span>
