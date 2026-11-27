@@ -50,8 +50,9 @@ _HYSPLIT_GRIDS = (
     (5.0, 5.0, 0.0),
     (2.5, 2.5, 0.0),
 )
-#: ``metlvl.f``'s meters per hPa by 100 hPa (100 to 900) and by 10 hPa (10 to 90).
-_ZPH1 = (17.98, 14.73, 13.09, 11.98, 11.15, 10.52, 10.04, 9.75, 9.88)
+#: ``metlvl.f``'s meters per hPa by 100 hPa (100 to 900) and by 10 hPa (10 to 90). The last
+#: entry of ``_ZPH1`` is 8.88 as in HYSPLIT 5.4.0 and later (5.3.x has 9.88).
+_ZPH1 = (17.98, 14.73, 13.09, 11.98, 11.15, 10.52, 10.04, 9.75, 8.88)
 _ZPH2 = (31.37, 27.02, 24.59, 22.92, 21.65, 20.66, 19.83, 19.13, 18.51)
 
 #: Variables HYSPLIT carries above a file's top on its internal levels at the
@@ -256,7 +257,10 @@ def internal_levels(
     them. For the run's top of model domain and the file's vertical grid,
     HYSPLIT's ``metlvl.f`` picks one of six grids of heights ``a k**2 + b k +
     c``; these are the levels :func:`sample_points` uses at heights with the
-    same ``model_top``.
+    same ``model_top``. The grid is the one HYSPLIT 5.4.0 and later pick;
+    earlier versions pick a different one only for a model top below about
+    1.1 km (``metlvl.f``'s table of meters per hPa changed at 900 hPa and
+    higher).
 
     Parameters
     ----------

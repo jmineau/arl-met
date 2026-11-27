@@ -73,6 +73,14 @@ decoded fields too, and stores no HYSPLIT values.
 The drivers were linked against `libhysplit.a` built from HYSPLIT **v5.3.2** (the `v5.3.2`
 commit of the Lin group's HYSPLIT checkout; later commits there change `advpnt.f`,
 `emspnt.f` and `hymodelc.F`, none of which a driver calls). No CHPC module is used.
+The stored values in `sampling/hysplit/` are from that build. `metlvl.f`'s pressure-to-height table
+changed in 5.4.0 (`ZPH1(9)` 9.88 to 8.88), which alters the internal grid only for model tops below
+about 1.1 km, and arl-met follows the newer table. The 2026-11-26 check of those tops used a
+library built from **v5.4.2**: `build.sh`, then `sampling/compare.py --zdata TOP` on HRRR (sigma),
+NAM 12 km and GDAS 1° (pressure) for tops of 300, 600, 800, 1100, 1200 and 25000 m (40 random
+points and 20 nodes each). Every grid agrees in level count and in height to 0.001 m (HRRR with a
+300 m top: 11 levels from 5 m; NAM and GDAS with 600, 800 and 1100 m: 7, 8 and 9 levels), and the
+sampled values to 0.001 K and m/s and 0.005 hPa on HRRR, less on the others.
 `build.sh` also builds HYSPLIT's `xtrct_grid` from the same checkout; `tests/test_subset_slow.py`
 compares `extract_subset` with it (set `ARLMET_XTRCT_GRID` to use another binary), so that test
 is skipped, in CI too, where `validation/build/xtrct_grid` does not exist.

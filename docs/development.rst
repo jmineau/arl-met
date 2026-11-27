@@ -14,8 +14,10 @@ HYSPLIT routines arl-met mirrors
 arl-met follows HYSPLIT's own reader and writer wherever the format leaves room
 for choice. Every agreement figure below comes from HYSPLIT v5.3.2's own
 library, run by the Fortran drivers in ``validation/`` (the files, the points
-and HYSPLIT's values are there, with the steps to run them again);
-``extract_subset`` is checked against ``xtrct_grid`` built from the same
+and HYSPLIT's values are there, with the steps to run them again); the internal
+grid (``metlvl``) is the one HYSPLIT 5.4.0 and later pick, which differs from
+5.3.x only for model tops below about 1.1 km (``ZPH1(9)`` went from 9.88 to
+8.88); ``extract_subset`` is checked against ``xtrct_grid`` built from the same
 HYSPLIT source. The Fortran routines it matches:
 
 .. list-table::
