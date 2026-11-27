@@ -54,6 +54,19 @@ parent DataArray's ``diff`` attr to the DIF record name:
        record = met[met.times[0]][(1, "WWND")]
        print([dif.variable for dif in record.diffs])
 
+A file's ``DIF*`` records are added into their parents when it is opened, and
+:func:`arlmet.open_dataset` sets each parent's ``diff`` attr to the record's
+name, so a round trip writes them again without any setting by hand:
+
+.. ipython:: python
+
+   back = arlmet.open_dataset("edited-with-diff.arl")
+   back["WWND"].attrs["diff"]
+   arlmet.write_dataset(back, "round-trip.arl")
+   with arlmet.File("round-trip.arl") as met:
+       record = met[met.times[0]][(1, "WWND")]
+       print([dif.variable for dif in record.diffs])
+
 Dataset write contract
 ----------------------
 
