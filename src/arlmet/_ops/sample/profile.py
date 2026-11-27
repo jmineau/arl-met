@@ -17,8 +17,9 @@ from typing import TYPE_CHECKING, Any, Literal
 import numpy as np
 import numpy.typing as npt
 
-from arlmet.vertical import TerrainAxis
+from arlmet.vertical import PressureAxis, TerrainAxis
 
+from .column import column_for
 from .fields import levels_of, sample_levels
 from .horizontal import Plan
 
@@ -250,7 +251,8 @@ def variable_profile(
 
     *variable* is an ARL field name or ``'pressure'``, the pressure itself
     (a terrain-following file's from its ``PRES`` field: NaN without one or
-    off the internal levels). *z_kind* is the coordinate of the targets:
+    off the internal levels; level 0 of a pressure-level file is ``PRSS``
+    whatever the file stores there, so it needs ``PRSS``). *z_kind* is the coordinate of the targets:
     ``'native'`` a (fractional) level index, ``'pressure'`` hPa, ``'agl'``
     meters above the ground. Along a *column* level 0 is the ground, and a
     variable without a record there takes its ground value
@@ -268,8 +270,15 @@ def variable_profile(
             # Terrain-following files have no pressure coordinate of their own.
             return Profile(fixed=np.full(n_points, np.nan, dtype=np.float32))
         levels: tuple[int, ...] = tuple(range(len(axis.levels)))
+        pressure_column = column
+        if column is None and isinstance(axis, PressureAxis):
+            # A pressure-level file stores level 0 as 0 hPa, but level 0 is the
+            # ground: its pressure is PRSS, as on a sigma file (#299).
+            pressure_column = column_for(
+                recordset, plan, z_kind="pressure", levels=None
+            )
         values = _vertical_coords(
-            axis, levels, z_kind="pressure", column=column, n_points=n_points
+            axis, levels, z_kind="pressure", column=pressure_column, n_points=n_points
         )
     else:
         samples = (

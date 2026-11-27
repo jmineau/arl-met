@@ -43,7 +43,7 @@ _T950 = 285.5 + 10.0 * np.log(1001.5 / 950.0) / np.log(1001.5 / 900.0)
 
 def write_sampling_file(path, *, time: pd.Timestamp, temp_offset: float = 0.0):
     grid = make_test_grid()
-    vertical_axis = PressureAxis(levels=[1000.0, 900.0, 800.0])
+    vertical_axis = PressureAxis(levels=[0.0, 900.0, 800.0])
     yy, xx = np.meshgrid(np.arange(grid.ny), np.arange(grid.nx), indexing="ij")
     base = 10.0 * yy + xx
 
@@ -101,7 +101,7 @@ def _level_dz(pressure_level: float) -> float:
 def write_deep_sampling_file(path, *, time: pd.Timestamp, temp_offset: float = 0.0):
     grid = make_test_grid(nx=30, ny=30)
     levels = [
-        1000.0,
+        0.0,
         900.0,
         800.0,
         700.0,
@@ -663,7 +663,7 @@ def write_sampling_file_with_hgts(path, *, time: pd.Timestamp):
     TEMP: 280, 290, 300 K at each level.
     """
     grid = make_test_grid()
-    vertical_axis = PressureAxis(levels=[1000.0, 900.0, 800.0])
+    vertical_axis = PressureAxis(levels=[0.0, 900.0, 800.0])
     terrain_data = np.full((grid.ny, grid.nx), 200.0, dtype=np.float32)
     surface_pressure = np.full((grid.ny, grid.nx), 1000.0, dtype=np.float32)
     hgts_values = [200.0, 1200.0, 2200.0]
@@ -814,7 +814,7 @@ class TestFlag2RequiresHgts:
         path = tmp_path / "no_hgts.arl"
         time = pd.Timestamp("2024-07-18")
         grid = make_test_grid()
-        vaxis = PressureAxis(levels=[1000.0, 900.0, 800.0])
+        vaxis = PressureAxis(levels=[0.0, 900.0, 800.0])
         terrain = np.full((grid.ny, grid.nx), 100.0, dtype=np.float32)
         temp = np.full((grid.ny, grid.nx), 280.0, dtype=np.float32)
 
@@ -832,7 +832,7 @@ class TestFlag2RequiresHgts:
         path = tmp_path / "no_hgts.arl"
         time = pd.Timestamp("2024-07-18")
         grid = make_test_grid()
-        vaxis = PressureAxis(levels=[1000.0, 900.0, 800.0])
+        vaxis = PressureAxis(levels=[0.0, 900.0, 800.0])
         terrain = np.full((grid.ny, grid.nx), 100.0, dtype=np.float32)
         temp = np.full((grid.ny, grid.nx), 280.0, dtype=np.float32)
 
@@ -1962,6 +1962,61 @@ def test_pressure_at_native_levels_off_the_grid_is_nan(tmp_path):
     assert np.isnan(result["TEMP"].iloc[1])
 
 
+def _write_pressure_file_with_zero_level(path, *, prss: bool = True):
+    """The reproduction of #299: a pressure-level file that stores level 0 as 0 hPa, ground at 980 hPa."""
+    fields = {
+        (0, "SHGT"): 200.0,
+        (1, "TEMP"): 290.0,
+        (2, "TEMP"): 285.0,
+        (3, "TEMP"): 280.0,
+        (1, "HGTS"): 50.0,
+        (2, "HGTS"): 900.0,
+        (3, "HGTS"): 1900.0,
+    }
+    if prss:
+        fields[(0, "PRSS")] = 980.0
+    with File(
+        path,
+        mode="w",
+        source="TEST",
+        grid=make_test_grid(),
+        vertical_axis=PressureAxis(levels=[0.0, 1000.0, 900.0, 800.0]),
+    ) as arl:
+        rs = arl.create_recordset("2024-07-18", forecast=0)
+        for (level, name), value in fields.items():
+            rs.create_datarecord(
+                name,
+                level,
+                forecast=0,
+                data=np.full((20, 20), value, np.float32),
+            )
+
+
+def test_pressure_at_native_level_0_of_a_pressure_file_is_the_surface_pressure(
+    tmp_path,
+):
+    """Level 0 is the ground, at PRSS, not the 0 hPa the file stores, and z in [0, 1) starts from it (#299)."""
+    path = tmp_path / "p.arl"
+    _write_pressure_file_with_zero_level(path)
+    points = pd.DataFrame(
+        {"lon": [25.0] * 4, "lat": [-5.0] * 4, "z": [0.0, 0.5, 1.0, 1.5]}
+    )
+    result = sample_points(path, points, ["pressure", "PRSS"], z_kind="native")
+    np.testing.assert_allclose(result["PRSS"], 980.0)
+    # Level 0 is the ground; level 1 is the stored 1000 hPa (below it, as NCEP
+    # extrapolates), then 900 hPa; between levels the stored pressure is read linearly.
+    np.testing.assert_allclose(result["pressure"], [980.0, 990.0, 1000.0, 950.0])
+
+
+def test_pressure_at_native_levels_of_a_pressure_file_without_prss_raises(tmp_path):
+    """Without PRSS level 0 has no pressure: the error names the missing field (#299)."""
+    path = tmp_path / "p.arl"
+    _write_pressure_file_with_zero_level(path, prss=False)
+    points = pd.DataFrame({"lon": [25.0], "lat": [-5.0], "z": [1.5]})
+    with pytest.raises(ValueError, match="PRSS"):
+        sample_points(path, points, ["pressure"], z_kind="native")
+
+
 class TestHorizontalInterpolation:
     """Verify bilinear weights and nearest-neighbor snapping."""
 
@@ -2418,7 +2473,7 @@ class TestMultiTimeFile:
         time1 = pd.Timestamp("2024-07-18 06:00")
 
         grid = make_test_grid()
-        vaxis = PressureAxis(levels=[1000.0, 900.0, 800.0])
+        vaxis = PressureAxis(levels=[0.0, 900.0, 800.0])
 
         with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
             for t, base in [(time0, 280.0), (time1, 300.0)]:
@@ -2462,7 +2517,7 @@ T950_TWO = 280.0 + 10.0 * np.log(1000.0 / 950.0) / np.log(1000.0 / 900.0)
 def write_two_time_file(path):
     """Write uniform TEMP that samples to T950_TWO (TIME0) and 20 K more (TIME1) at 950 hPa."""
     grid = make_test_grid()
-    vaxis = PressureAxis(levels=[1000.0, 900.0, 800.0])
+    vaxis = PressureAxis(levels=[0.0, 900.0, 800.0])
     prss = np.full((grid.ny, grid.nx), 1000.0, dtype=np.float32)
     with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as arl:
         for t, base in [(TIME0, 280.0), (TIME1, 300.0)]:
@@ -2670,7 +2725,7 @@ def make_lambert_grid(nx: int = 30, ny: int = 30) -> Grid:
 
 def write_wind_file(path, grid: Grid, *, time: pd.Timestamp, u: float, v: float):
     """Single-level file with uniform grid-relative winds on *grid*."""
-    vertical_axis = PressureAxis(levels=[1000.0, 850.0])  # level 0 holds surface fields
+    vertical_axis = PressureAxis(levels=[0.0, 850.0])  # level 0 holds surface fields
     shape = (grid.ny, grid.nx)
     with File(
         path, mode="w", source="TEST", grid=grid, vertical_axis=vertical_axis
