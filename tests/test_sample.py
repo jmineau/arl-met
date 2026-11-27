@@ -3098,6 +3098,54 @@ def test_internal_levels_need_a_positive_model_top(tmp_path, model_top):
         arlmet.internal_levels(path, model_top=model_top)
 
 
+def test_a_given_internal_grid_is_used_as_it_is(tmp_path):
+    path = tmp_path / "hilly.arl"
+    write_hilly_file(path)
+    # A run's MESSAGE line "Internal grid parameters (nlvl,aa,bb,cc): 5 2.0 3.0 1.0"
+    levels = arlmet.internal_levels(
+        path, model_top=3000, internal_grid=(5, 2.0, 3.0, 1.0)
+    )
+    np.testing.assert_array_equal(levels.heights, [6.0, 15.0, 28.0, 45.0, 66.0])
+    assert levels.zmdl == 25000.0
+    picked = arlmet.internal_levels(path, model_top=3000)
+    assert len(picked.heights) != 5  # not the grid arl-met would pick
+
+
+@pytest.mark.parametrize(
+    "grid",
+    [
+        (0, 5.0, 5.0, 0.0),
+        (2.5, 5.0, 5.0, 0.0),
+        (3.0, 5.0, 5.0, 0.0),
+        (3, np.nan, 5.0, 0.0),
+    ]
+    + [(3, 5.0, -50.0, 0.0), (3, 5.0, 5.0, -20.0)],
+)
+def test_an_invalid_internal_grid_raises(tmp_path, grid):
+    path = tmp_path / "hilly.arl"
+    write_hilly_file(path)
+    with pytest.raises(ValueError, match="internal_grid"):
+        arlmet.internal_levels(path, internal_grid=grid)
+    with pytest.raises(ValueError, match="internal_grid"):
+        sample_points(
+            path,
+            _cell_points([(4.3, 7.6)], 400.0),
+            ["TEMP"],
+            z_kind="agl",
+            internal_grid=grid,
+        )
+
+
+def test_internal_grid_applies_to_heights_with_a_model_top(tmp_path):
+    path = tmp_path / "hilly.arl"
+    write_hilly_file(path)
+    points = _cell_points([(4.3, 7.6)], 400.0)
+    grid = (5, 2.0, 3.0, 1.0)
+    for kw in ({"z_kind": "pressure"}, {"z_kind": "agl", "model_top": None}):
+        with pytest.raises(ValueError, match="internal_grid"):
+            sample_points(path, points, ["TEMP"], internal_grid=grid, **kw)
+
+
 def test_internal_levels_heights_at_terrain():
     from arlmet._ops.sample.internal import InternalLevels
 
@@ -3304,6 +3352,29 @@ class TestHysplitInternalLevels:
         with File(path) as met:
             result = met.sample_points(points, ["TEMP"], z_kind="agl", model_top=25000)
         pd.testing.assert_frame_equal(result, expected)
+
+    def test_a_given_grid_replaces_the_one_arlmet_picks(self, tmp_path):
+        path = tmp_path / "hilly.arl"
+        write_hilly_file(path)
+        points = _cell_points(self.XY, 400.0)
+        picked = arlmet.internal_levels(path, model_top=25000)
+        a, b, c = 30.0, -25.0, 5.0  # the grid it picks here, as MESSAGE prints it
+        k = np.arange(1, len(picked.heights) + 1)
+        np.testing.assert_array_equal(picked.heights, a * k * k + b * k + c)
+        grid = (len(picked.heights), a, b, c)
+        same = sample_points(path, points, ["TEMP"], z_kind="agl", internal_grid=grid)
+        expected = sample_points(path, points, ["TEMP"], z_kind="agl")
+        pd.testing.assert_frame_equal(same, expected)
+        with File(path) as met:
+            from_file = met.sample_points(
+                points, ["TEMP"], z_kind="agl", internal_grid=grid
+            )
+        pd.testing.assert_frame_equal(from_file, expected)
+        # Another grid is used as it is: a coarser one reads another value
+        coarse = sample_points(
+            path, points, ["TEMP"], z_kind="agl", internal_grid=(3, 500.0, 0.0, 100.0)
+        )
+        assert not np.allclose(coarse["TEMP"], expected["TEMP"])
 
     def test_pressure_levels_skip_a_level_below_the_first_internal_level(
         self, tmp_path

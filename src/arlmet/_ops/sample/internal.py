@@ -39,6 +39,10 @@ if TYPE_CHECKING:
 
 __all__ = ["InternalLevels", "internal_levels", "sample_on_internal_levels"]
 
+#: A run's internal grid as HYSPLIT's MESSAGE file prints it, ``Internal grid
+#: parameters (nlvl,aa,bb,cc)``: level ``k`` (1 to ``nlvl``) is ``aa k**2 + bb k + cc`` m.
+InternalGrid = tuple[int, float, float, float]
+
 #: The quadratic internal grids HYSPLIT's ``metlvl.f`` chooses from, finest
 #: last: level ``k`` (from 1) is ``a k**2 + b k + c`` meters above the ground
 #: at zero terrain.
@@ -103,6 +107,32 @@ class InternalLevels:
         object.__setattr__(self, "heights", heights)
 
     @classmethod
+    def _from_grid(
+        cls, grid: InternalGrid, model_top: float, *, source: str = ""
+    ) -> InternalLevels:
+        """Return the levels of *grid* ``(nlvl, a, b, c)`` for a run with *model_top*."""
+        nlvl, a, b, c = grid
+        if not (
+            isinstance(nlvl, (int, np.integer))
+            and nlvl >= 1
+            and np.isfinite([a, b, c]).all()
+        ):
+            raise ValueError(
+                "internal_grid must be (nlvl, a, b, c): an integer number of levels "
+                f"of at least 1 and finite a, b, c, got {grid!r}."
+            )
+        k = np.arange(1, nlvl + 1, dtype=float)
+        heights = float(a) * k * k + float(b) * k + float(c)
+        if heights[0] <= 0 or (np.diff(heights) <= 0).any():
+            raise ValueError(
+                f"internal_grid {grid!r} gives levels that are not positive and rising."
+            )
+        zmdl = max(abs(float(model_top)), 25000.0)
+        return cls(
+            zmdl=zmdl, heights=heights, zmdlt=zmdl if source == "RAMS" else 20000.0
+        )
+
+    @classmethod
     def _for_axis(
         cls, axis: VerticalAxis, model_top: float, *, source: str = ""
     ) -> InternalLevels:
@@ -153,11 +183,8 @@ class InternalLevels:
             count = int((-b + np.sqrt(dist)) / (f32(2.0) * a)) + 1 if dist >= 0 else 1
             if count > needed:
                 break
-        k = np.arange(1, count + 1, dtype=float)
-        heights = float(a) * k * k + float(b) * k + float(c)
-        zmdl = max(abs(float(model_top)), 25000.0)
-        return cls(
-            zmdl=zmdl, heights=heights, zmdlt=zmdl if source == "RAMS" else 20000.0
+        return cls._from_grid(
+            (count, float(a), float(b), float(c)), model_top, source=source
         )
 
     def scale(self, terrain: npt.ArrayLike) -> npt.NDArray[np.float64]:
@@ -247,7 +274,10 @@ class InternalLevels:
 
 
 def internal_levels(
-    file: File | str | os.PathLike[str] | xr.Dataset, *, model_top: float = 25000.0
+    file: File | str | os.PathLike[str] | xr.Dataset,
+    *,
+    model_top: float = 25000.0,
+    internal_grid: InternalGrid | None = None,
 ) -> InternalLevels:
     """
     Return HYSPLIT's internal vertical levels for a run on *file* with *model_top*.
@@ -257,10 +287,11 @@ def internal_levels(
     them. For the run's top of model domain and the file's vertical grid,
     HYSPLIT's ``metlvl.f`` picks one of six grids of heights ``a k**2 + b k +
     c``; these are the levels :func:`sample_points` uses at heights with the
-    same ``model_top``. The grid is the one HYSPLIT 5.4.0 and later pick;
-    earlier versions pick a different one only for a model top below about
-    1.1 km (``metlvl.f``'s table of meters per hPa changed at 900 hPa and
-    higher).
+    same ``model_top``. Without *internal_grid* the grid is the one HYSPLIT
+    5.4.0 and later pick; earlier versions pick a different one only for a
+    model top below about 1.1 km (``metlvl.f``'s table of meters per hPa
+    changed at 900 hPa and higher). A run's own grid is exact for any HYSPLIT
+    version: pass it as *internal_grid*.
 
     Parameters
     ----------
@@ -273,6 +304,15 @@ def internal_levels(
         The run's top of model domain [m] (the ``CONTROL`` line after the
         vertical motion option; PYSTILT's ``z_top``), as in
         :func:`sample_points`.
+    internal_grid : tuple of (int, float, float, float), optional
+        The grid a HYSPLIT run used, ``(nlvl, aa, bb, cc)`` as the run's
+        ``MESSAGE`` file prints it after ``Internal grid parameters
+        (nlvl,aa,bb,cc)``: level ``k`` (1 to ``nlvl``) is ``aa k**2 + bb k +
+        cc`` meters above ground at 0 m. It is used as it is, whatever the
+        file's vertical grid, and the grid in ``MESSAGE`` is exact for any
+        HYSPLIT version. Only the file's source is read then (a path is still
+        opened). Default None: the grid HYSPLIT 5.4.0 and later pick for the
+        file and *model_top*. arl-met does not read ``MESSAGE``.
 
     Returns
     -------
@@ -281,7 +321,9 @@ def internal_levels(
     Raises
     ------
     ValueError
-        If *model_top* is not a positive number.
+        If *model_top* is not a positive number, or *internal_grid* is not
+        ``(nlvl, a, b, c)`` with an integer ``nlvl`` of at least 1, finite
+        numbers, and heights that are positive and rise.
 
     See Also
     --------
@@ -296,6 +338,13 @@ def internal_levels(
     25000.0
     >>> levels.heights[:4]
     array([ 10.,  75., 200., 385.])
+
+    A run's own grid, from its ``MESSAGE`` line ``41 15.0 -5.0 0.0``:
+
+    >>> arlmet.internal_levels("met.arl", internal_grid=(41, 15.0, -5.0, 0.0)).heights[
+    ...     :3
+    ... ]
+    array([ 10.,  50., 120.])
     """
     from arlmet._file import File  # lazy: _file imports this module
 
@@ -308,16 +357,21 @@ def internal_levels(
             DatasetMet,
         )
 
-        dataset = DatasetMet(file)
-        return InternalLevels._for_axis(
-            dataset.vertical_axis, model_top, source=dataset.source
-        )
+        met: Any = DatasetMet(file)
+        return _levels_for(met, model_top, internal_grid)
     if isinstance(file, File):
-        return InternalLevels._for_axis(
-            file.vertical_axis, model_top, source=file.source
-        )
+        return _levels_for(file, model_top, internal_grid)
     with File(file) as met:
-        return InternalLevels._for_axis(met.vertical_axis, model_top, source=met.source)
+        return _levels_for(met, model_top, internal_grid)
+
+
+def _levels_for(
+    met: Any, model_top: float, internal_grid: InternalGrid | None
+) -> InternalLevels:
+    """Return the levels of *internal_grid*, or those HYSPLIT 5.4+ picks for *met*."""
+    if internal_grid is not None:
+        return InternalLevels._from_grid(internal_grid, model_top, source=met.source)
+    return InternalLevels._for_axis(met.vertical_axis, model_top, source=met.source)
 
 
 def _pressure_above_top(

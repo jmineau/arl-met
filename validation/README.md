@@ -81,6 +81,9 @@ NAM 12 km and GDAS 1° (pressure) for tops of 300, 600, 800, 1100, 1200 and 2500
 points and 20 nodes each). Every grid agrees in level count and in height to 0.001 m (HRRR with a
 300 m top: 11 levels from 5 m; NAM and GDAS with 600, 800 and 1100 m: 7, 8 and 9 levels), and the
 sampled values to 0.001 K and m/s and 0.005 hPa on HRRR, less on the others.
+The run's own grid is in its `MESSAGE` file (`Internal grid parameters (nlvl,aa,bb,cc)`), which
+`sample_points(internal_grid=...)` takes; a v5.4.2 `hyts_std` run on the HRRR file with a 300 m top
+printed `11 2.5 2.5 0.0` and sampling with that grid gives the same values as above.
 `build.sh` also builds HYSPLIT's `xtrct_grid` from the same checkout; `tests/test_subset_slow.py`
 compares `extract_subset` with it (set `ARLMET_XTRCT_GRID` to use another binary), so that test
 is skipped, in CI too, where `validation/build/xtrct_grid` does not exist.

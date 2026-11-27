@@ -39,7 +39,12 @@ from .horizontal import (
     node_plan,
     rotate_winds,
 )
-from .internal import InternalLevels, sample_on_internal_levels
+from .internal import (
+    InternalGrid,
+    InternalLevels,
+    _levels_for,
+    sample_on_internal_levels,
+)
 from .profile import ColumnZKind, sample_variable
 
 if TYPE_CHECKING:
@@ -218,6 +223,7 @@ def _sample_time(
     method: SampleMethod,
     wind_pairs: Sequence[tuple[str, str]],
     model_top: float | None,
+    internal_grid: InternalGrid | None,
 ) -> dict[str, npt.NDArray[Any]]:
     """
     Sample variables at points (normalized by :func:`_normalize_points`) that all share one valid time.
@@ -249,9 +255,7 @@ def _sample_time(
     else:
         column_z = z_kind
     if column_z == "agl" and model_top is not None:
-        levels = InternalLevels._for_axis(
-            file.vertical_axis, model_top, source=file.source
-        )
+        levels = _levels_for(file, model_top, internal_grid)
 
     # On a WRF file UWND and VWND are on their own staggered grids: each is
     # sampled at its own array position, from the columns of the grid points
@@ -323,6 +327,7 @@ def sample_points(
     method: SampleMethod = "linear",
     earth_relative: bool = False,
     model_top: float | None = _DEFAULT_MODEL_TOP,
+    internal_grid: InternalGrid | None = None,
 ) -> pd.DataFrame:
     """
     Sample meteorological variables at arbitrary (lon, lat, z, time) points.
@@ -412,6 +417,18 @@ def sample_points(
         NaN above a file's top. The default applies at heights only: at
         ``"pressure"`` and ``"native"`` it is ignored, and a value passed with
         either raises.
+    internal_grid : tuple of (int, float, float, float), optional
+        The internal grid a HYSPLIT run used, ``(nlvl, aa, bb, cc)`` as the
+        run's ``MESSAGE`` file prints it after ``Internal grid parameters
+        (nlvl,aa,bb,cc)``: level ``k`` (1 to ``nlvl``) is ``aa k**2 + bb k +
+        cc`` meters above ground at 0 m. It replaces the grid arl-met would
+        pick, is used as it is, and is exact for any HYSPLIT version; the
+        levels still follow the terrain up to ``max(model_top, 25000)``, so
+        pass the run's ``model_top`` too. Default None: the grid HYSPLIT 5.4.0
+        and later pick for the file and ``model_top`` (HYSPLIT 5.3.x picks a
+        different one only for a top below about 1.1 km). arl-met does not
+        read ``MESSAGE``. Applies at heights with a ``model_top``: passing it
+        otherwise raises.
 
     Returns
     -------
@@ -434,8 +451,9 @@ def sample_points(
         time, a point time is in none of the files, a time is in more than one
         file, a variable name collides with a column of ``points``, ``z_kind``
         or ``method`` is invalid, a field that ``z_kind`` requires is
-        missing, or ``model_top`` is passed with ``z_kind`` ``"pressure"`` or
-        ``"native"`` or is not a positive number.
+        missing, ``model_top`` is passed with ``z_kind`` ``"pressure"`` or
+        ``"native"`` or is not a positive number, or ``internal_grid`` is passed
+        without heights and a ``model_top`` or is not a valid grid.
 
     Examples
     --------
@@ -480,6 +498,15 @@ def sample_points(
             raise ValueError(
                 f"model_top must be a positive number of meters, got {model_top!r}."
             )
+    if internal_grid is not None:
+        if z_kind not in ("agl", "msl") or model_top is None:
+            raise ValueError(
+                "internal_grid applies to heights with a model_top: z_kind must be "
+                "'agl' or 'msl' and model_top must not be None."
+            )
+        InternalLevels._from_grid(
+            internal_grid, 25000.0
+        )  # check it before any file opens
     names = (variables,) if isinstance(variables, str) else tuple(map(str, variables))
     if not names:
         raise ValueError("variables must include at least one variable name.")
@@ -523,6 +550,7 @@ def sample_points(
                 method=method,
                 wind_pairs=wind_pairs,
                 model_top=model_top,
+                internal_grid=internal_grid,
             )
             for name, values in sampled.items():
                 columns[name][rows] = values

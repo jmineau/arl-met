@@ -238,6 +238,22 @@ column, samples at those heights.
    levels.heights[:5]
    levels.heights_at([0.0, 1500.0])[:, :3]  # over 0 m and 1500 m of terrain
 
+**A run's own grid.** Without more, arl-met picks the grid itself, as HYSPLIT
+5.4.0 and later do. A run says which grid it used: its ``MESSAGE`` file has a
+line ``Internal grid parameters (nlvl,aa,bb,cc)`` followed by four numbers
+(for example ``41 15.0 -5.0 0.0``, heights ``aa k**2 + bb k + cc`` for
+k = 1 to ``nlvl``), the same in every HYSPLIT version and exact for the run
+whatever its version. Pass them as ``internal_grid=(nlvl, aa, bb, cc)`` to
+:func:`arlmet.sample_points` or :func:`arlmet.internal_levels` and that grid is
+used as it is. arl-met does not read ``MESSAGE``; the caller does. The run's
+``model_top`` is still needed for ``ZMDL``, where the levels go flat.
+
+.. ipython:: python
+
+   arlmet.internal_levels(
+       "met.arl", model_top=25000, internal_grid=(41, 15.0, -5.0, 0.0)
+   ).heights[:3]
+
 The default applies at heights only. At pressures and native levels
 ``model_top`` plays no part and the default is ignored; passing a value there
 raises ``ValueError``.
