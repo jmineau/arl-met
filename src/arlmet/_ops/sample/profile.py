@@ -261,7 +261,11 @@ def variable_profile(
             axis, levels, z_kind="pressure", column=column, n_points=n_points
         )
     else:
-        samples = sample_levels(recordset, variable, plan)
+        samples = (
+            sample_levels(recordset, variable, plan)
+            if column is None
+            else column.sample(variable)
+        )
         if samples is None:
             raise KeyError(
                 f"Variable '{variable}' is not available at time {recordset.time}."
