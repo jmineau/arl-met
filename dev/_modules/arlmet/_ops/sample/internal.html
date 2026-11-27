@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../../_static/documentation_options.js?v=e0694180"></script>
+    <script src="../../../../_static/documentation_options.js?v=9cc4bafb"></script>
     <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b15.dev17+gfed5a8ece" />
+  <meta name="docsearch:version" content="0.1.0b15.dev18+g30f3686f1" />
   
     
     <script src="../../../../_static/searchtools.js"></script>
@@ -797,57 +797,65 @@
     <span class="n">levels</span><span class="p">:</span> <span class="n">InternalLevels</span><span class="p">,</span>
     <span class="n">nodes</span><span class="p">:</span> <span class="n">Plan</span><span class="p">,</span>
     <span class="n">weights</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">cells</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">column</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Sample *variable* at each point as HYSPLIT does on its internal levels.</span>
 
-<span class="sd">    At each grid point around a point (*nodes*, *weights*) the profile is read</span>
-<span class="sd">    at the internal levels ``k`` and ``k + 1`` (:meth:`InternalLevels._position`)</span>
-<span class="sd">    above that grid point's own ground, and the value is ``f`` of the way</span>
-<span class="sd">    between them; the grid points are then blended. Above a column's top</span>
-<span class="sd">    ``TEMP``, ``UWND`` and ``VWND`` keep the value of the last internal level</span>
-<span class="sd">    below it and pressure falls hydrostatically from there</span>
-<span class="sd">    (:func:`_pressure_above_top`), as HYSPLIT fills its internal levels;</span>
-<span class="sd">    another variable is NaN there.</span>
+<span class="sd">    At each grid point around a point (row *cells* of *nodes*, with *weights*:</span>
+<span class="sd">    :func:`~.horizontal.node_plan`) the profile is read at the internal</span>
+<span class="sd">    levels ``k`` and ``k + 1`` (:meth:`InternalLevels._position`) above that</span>
+<span class="sd">    grid point's own ground, and the value is ``f`` of the way between them;</span>
+<span class="sd">    the grid points are then blended. Above a column's top ``TEMP``, ``UWND``</span>
+<span class="sd">    and ``VWND`` keep the value of the last internal level below it and</span>
+<span class="sd">    pressure falls hydrostatically from there (:func:`_pressure_above_top`),</span>
+<span class="sd">    as HYSPLIT fills its internal levels; another variable is NaN there. Each</span>
+<span class="sd">    grid point's column is read once at each internal layer its points are in.</span>
 <span class="sd">    """</span>
-    <span class="n">kk</span><span class="p">,</span> <span class="n">ff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">))</span>
     <span class="n">h</span> <span class="o">=</span> <span class="n">levels</span><span class="o">.</span><span class="n">heights</span>
-    <span class="n">scale</span> <span class="o">=</span> <span class="n">levels</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">terrain</span><span class="p">)</span>
-    <span class="n">k_lo</span><span class="p">,</span> <span class="n">k_hi</span> <span class="o">=</span> <span class="n">kk</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">kk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># Everything up to the blend depends only on the grid point and the layer.</span>
+    <span class="n">pairs</span><span class="p">,</span> <span class="n">at</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">((</span><span class="n">cells</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">+</span> <span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">cell</span><span class="p">,</span> <span class="n">k_lo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divmod</span><span class="p">(</span><span class="n">pairs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">))</span>
+    <span class="n">k_hi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">k_lo</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">scale</span> <span class="o">=</span> <span class="n">levels</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">terrain</span><span class="p">)[</span><span class="n">cell</span><span class="p">]</span>
     <span class="n">profile</span> <span class="o">=</span> <span class="n">variable_profile</span><span class="p">(</span>
         <span class="n">recordset</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">z_kind</span><span class="o">=</span><span class="s2">"agl"</span><span class="p">,</span> <span class="n">plan</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="n">column</span>
     <span class="p">)</span>
-    <span class="n">lo</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="n">k_lo</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">hi</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="n">k_hi</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">lo</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="n">k_lo</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale</span><span class="p">,</span> <span class="n">cell</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">hi</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="n">k_hi</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale</span><span class="p">,</span> <span class="n">cell</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
 
     <span class="n">held</span> <span class="o">=</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">_HELD_ABOVE_TOP</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">held</span> <span class="ow">or</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">PRESSURE_VARIABLES</span><span class="p">)</span> <span class="ow">and</span> <span class="n">profile</span><span class="o">.</span><span class="n">fixed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">top</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">top</span><span class="p">()</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">top</span><span class="p">()[</span><span class="n">cell</span><span class="p">]</span>
         <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
             <span class="c1"># the last internal level at or below each column's top</span>
             <span class="n">k_top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">top</span> <span class="o">/</span> <span class="n">scale</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">"right"</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
             <span class="n">rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">((</span><span class="n">h</span><span class="p">[</span><span class="n">k_hi</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale</span> <span class="o">&gt;</span> <span class="n">top</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">k_top</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">))</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
-            <span class="n">k_top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_top</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-            <span class="n">h_top</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="n">k_top</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale</span>
-            <span class="n">base</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">h_top</span><span class="p">)[</span><span class="n">rows</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">k_top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_top</span><span class="p">[</span><span class="n">rows</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">h_top</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="n">k_top</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="n">profile</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">h_top</span><span class="p">,</span> <span class="n">cell</span><span class="p">[</span><span class="n">rows</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">held</span><span class="p">:</span>
                 <span class="n">extended</span> <span class="o">=</span> <span class="p">[</span><span class="n">base</span><span class="p">,</span> <span class="n">base</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">t_top</span> <span class="o">=</span> <span class="n">variable_profile</span><span class="p">(</span>
                     <span class="n">recordset</span><span class="p">,</span> <span class="s2">"TEMP"</span><span class="p">,</span> <span class="n">z_kind</span><span class="o">=</span><span class="s2">"agl"</span><span class="p">,</span> <span class="n">plan</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="n">column</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">h_top</span><span class="p">)[</span><span class="n">rows</span><span class="p">]</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">h_top</span><span class="p">,</span> <span class="n">cell</span><span class="p">[</span><span class="n">rows</span><span class="p">])</span>
                 <span class="n">tv_top</span> <span class="o">=</span> <span class="n">interp_profiles</span><span class="p">(</span>
-                    <span class="n">column</span><span class="o">.</span><span class="n">virtual_temperature</span><span class="p">,</span> <span class="n">column</span><span class="o">.</span><span class="n">z_agl</span><span class="p">,</span> <span class="n">h_top</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="kc">True</span>
-                <span class="p">)[</span><span class="n">rows</span><span class="p">]</span>
+                    <span class="n">column</span><span class="o">.</span><span class="n">virtual_temperature</span><span class="p">,</span>
+                    <span class="n">column</span><span class="o">.</span><span class="n">z_agl</span><span class="p">,</span>
+                    <span class="n">h_top</span><span class="p">,</span>
+                    <span class="n">column</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">rows</span><span class="o">=</span><span class="n">cell</span><span class="p">[</span><span class="n">rows</span><span class="p">],</span>
+                <span class="p">)</span>
                 <span class="n">extended</span> <span class="o">=</span> <span class="p">[</span>
                     <span class="n">_pressure_above_top</span><span class="p">(</span>
                         <span class="n">base</span><span class="p">,</span>
                         <span class="n">t_top</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">),</span>
                         <span class="n">tv_top</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">),</span>
-                        <span class="n">k_top</span><span class="p">[</span><span class="n">rows</span><span class="p">],</span>
-                        <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_at</span><span class="p">[</span><span class="n">rows</span><span class="p">],</span> <span class="n">k_top</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                        <span class="n">k_top</span><span class="p">,</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k_at</span><span class="p">[</span><span class="n">rows</span><span class="p">],</span> <span class="n">k_top</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                         <span class="n">h</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">scale</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
                     <span class="p">)</span>
                     <span class="k">for</span> <span class="n">k_at</span> <span class="ow">in</span> <span class="p">(</span><span class="n">k_lo</span><span class="p">,</span> <span class="n">k_hi</span><span class="p">)</span>
@@ -855,11 +863,12 @@
             <span class="k">for</span> <span class="n">values</span><span class="p">,</span> <span class="n">k_at</span><span class="p">,</span> <span class="n">above</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
                 <span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">),</span> <span class="p">(</span><span class="n">k_lo</span><span class="p">,</span> <span class="n">k_hi</span><span class="p">),</span> <span class="n">extended</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span>
             <span class="p">):</span>
-                <span class="n">past</span> <span class="o">=</span> <span class="n">k_at</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">k_top</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span>
+                <span class="n">past</span> <span class="o">=</span> <span class="n">k_at</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">k_top</span>
                 <span class="n">values</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">past</span><span class="p">,</span> <span class="n">above</span><span class="p">,</span> <span class="n">values</span><span class="p">[</span><span class="n">rows</span><span class="p">])</span>
 
+    <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="n">lo</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">cells</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">hi</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">cells</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
-        <span class="n">at_nodes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ff</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">lo</span> <span class="o">+</span> <span class="n">ff</span> <span class="o">*</span> <span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">))</span>
+        <span class="n">at_nodes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">f</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">lo</span> <span class="o">+</span> <span class="n">f</span> <span class="o">*</span> <span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">blend</span><span class="p">(</span><span class="n">at_nodes</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
 </pre></div>
 
