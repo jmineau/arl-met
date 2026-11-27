@@ -7,6 +7,31 @@ file alone: the entries are written at release (`just changelog` drafts them).
 
 ## [Unreleased]
 
+## [0.1.0b15] - 2026-11-26
+
+### Added
+
+- `sample_points` takes a run's own internal grid as `internal_grid`.
+
+### Changed
+
+- `sample_points` reads each field once per time step and builds each grid point's column once, not once per point; a lazy Dataset reads one slice per field to find its levels, not every time step.
+- A reversed latitude or level axis is turned with a view instead of copying every field in the converters.
+- `from_gfs` and `from_icon` share their step and surface handling; internal refactors in `archives`, `xarray` and `write_dataset`.
+
+### Fixed
+
+- A time step earlier than one already written is refused, as HYSPLIT reads them in file order. (#272)
+- Cropping without a bbox copies a record named `NULL` as missing, as the reader takes it. (#273)
+- `pressure` and `z_agl` of a Dataset holding some of a file's levels. (#274)
+- `sample_points`: a variable at one level above the ground starts from the ground, not the same at every height. (#275)
+- `from_flex_extract` puts a global grid on 0 to 360 instead of refusing it. (#278)
+- `concat_by_time` converts a time-zone-aware start or end to UTC.
+- `write_dataset` refuses a Dataset whose levels are not in order, as they are written in Dataset order.
+- `from_wrf` writes the first `TPP1` as missing when the files start mid-run.
+- The converters accept a single pressure or model level given as a scalar coordinate, `from_gfs` included for pressure-level fields.
+- Internal levels follow HYSPLIT 5.4.0 and later, whose `metlvl` table has 8.88 m/hPa at 900 hPa and up.
+
 ## [0.1.0b14] - 2026-11-24
 
 ### Added
