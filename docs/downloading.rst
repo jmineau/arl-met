@@ -143,6 +143,14 @@ Download files for a time range
 keys are removed automatically when the requested time range spans multiple
 hours within the same ARL file.
 
+HYSPLIT needs the time step at or before the start of a run and the one at or
+after its end, so the range is widened to whole steps first, and ``fetch()``
+returns every file that holds one of them. For HRRR, a window that ends at
+05:30 includes the file of 06:00 to 11:00, because its last step in the first
+file is 05:00. A window that ends on a step (05:00) does not. ``paths_for_range()``
+and ``sync()`` follow the same rule, as :func:`arlmet.catalog` does for
+files you already have.
+
 Archive files are named by UTC. A time without a time zone is UTC, and a
 time-zone-aware one is converted to UTC, so
 ``pd.Timestamp("2024-07-31 20:00", tz="America/Denver")`` selects the files

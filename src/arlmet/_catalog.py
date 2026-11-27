@@ -582,9 +582,7 @@ class Catalog:
 
     def _needed(self, start: Any, end: Any) -> list[pd.Timestamp]:
         """Return the valid times a window needs: every step from the one at or before *start* to the one at or after *end*."""
-        start, end = ensure_timestamp(start), ensure_timestamp(end)
-        if start > end:
-            raise ValueError(f"start {start} is after end {end}.")
+        start, end = sorted([ensure_timestamp(start), ensure_timestamp(end)])
         if not len(self._times):
             raise ValueError(f"No usable ARL file in {self.directory}.")
         step = self.step
@@ -606,8 +604,10 @@ class Catalog:
         Parameters
         ----------
         start, end : datetime-like
-            The window, earlier time first. A time without a time zone is UTC;
-            a time-zone-aware one is converted to UTC.
+            The window, in either order (a backward run has *start* after
+            *end*, as in :meth:`Archive.fetch <arlmet.archives.Archive.fetch>`).
+            A time without a time zone is UTC; a time-zone-aware one is
+            converted to UTC.
 
         Returns
         -------
@@ -617,7 +617,7 @@ class Catalog:
         Raises
         ------
         ValueError
-            If *start* is after *end*, or no file in the directory is usable.
+            If no file in the directory is usable.
 
         Examples
         --------
@@ -637,8 +637,10 @@ class Catalog:
         Parameters
         ----------
         start, end : datetime-like
-            The window, earlier time first. A time without a time zone is UTC;
-            a time-zone-aware one is converted to UTC.
+            The window, in either order (a backward run has *start* after
+            *end*, as in :meth:`Archive.fetch <arlmet.archives.Archive.fetch>`).
+            A time without a time zone is UTC; a time-zone-aware one is
+            converted to UTC.
         missing_ok : bool, default False
             Return the files for the times that are held, without raising
             when some are in no file. :meth:`missing` lists the rest, so you
@@ -653,8 +655,7 @@ class Catalog:
         ValueError
             If a valid time the window needs is in no file (the message lists
             them) and *missing_ok* is false, if two files hold one of them
-            (the message names both), if *start* is after *end*, or if no
-            file is usable.
+            (the message names both), or if no file is usable.
 
         Examples
         --------

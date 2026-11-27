@@ -362,11 +362,14 @@ class TestCovering:
             tmp_path / "b",
         ]
 
-    def test_start_after_end_raises(self, archive):
+    def test_a_backward_window_covers_what_a_forward_one_does(self, archive):
         cat = catalog(archive)
 
-        with pytest.raises(ValueError, match="is after end"):
-            cat.covering("2024-07-01 06:00", "2024-07-01 05:00")
+        forward = cat.covering("2024-07-01 05:00", "2024-07-01 06:00")
+        assert cat.covering("2024-07-01 06:00", "2024-07-01 05:00") == forward
+        assert cat.missing("2024-07-01 06:00", "2024-07-01 05:00") == cat.missing(
+            "2024-07-01 05:00", "2024-07-01 06:00"
+        )
 
     def test_an_empty_directory_covers_nothing(self, tmp_path):
         cat = catalog(tmp_path)

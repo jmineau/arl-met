@@ -576,6 +576,13 @@ class Archive(ABC):
         Each path is relative to the archive root and is the same on every
         mirror, e.g. ``"hrrr/2024/07/20240718_00-05_hrrr"``.
 
+        HYSPLIT interpolates between the time steps around each time, so the
+        window is widened to whole :attr:`step` multiples: down to the time step
+        at or before *start* and up to the one at or after *end*, as
+        :meth:`Catalog.covering <arlmet.Catalog.covering>` does. A window that
+        ends after a file's last time step therefore includes the next file
+        (NAM 12 km, 3-hourly, to ``22:00`` needs the next day's ``00:00``).
+
         Handles backward trajectories (``start > end``) by normalizing to
         chronological order before scanning.
 
@@ -598,16 +605,22 @@ class Archive(ABC):
         """
         # Convert to UTC before flooring: a zone offset by half an hour
         # (India, Newfoundland) has its hours at :30 UTC.
-        t0 = ensure_timestamp(start).floor("h")
-        t1 = ensure_timestamp(end).floor("h")
-        if t0 > t1:
-            t0, t1 = t1, t0
-
-        if t0 < self.start_date:
+        first, last = sorted([ensure_timestamp(start), ensure_timestamp(end)])
+        first_hour = first.floor("h")
+        if first_hour < self.start_date:
             raise ValueError(
                 f"{type(self).__name__} archive begins {self.start_date:%Y-%m-%d}, "
-                f"but the requested range starts at {t0} UTC."
+                f"but the requested range starts at {first_hour} UTC."
             )
+
+        # Time steps fall on whole multiples of the step from 00 UTC. The window
+        # needs the one at or before its start and the one at or after its end
+        # (the end's exact time, not its hour: 05:30 needs 06:00).
+        step = self.step
+        midnight = first.normalize()
+        t0 = midnight + ((first - midnight) // step) * step
+        midnight = last.normalize()
+        t1 = midnight - ((midnight - last) // step) * step
 
         seen: set[str] = set()
         paths: list[str] = []
@@ -633,6 +646,10 @@ class Archive(ABC):
     ) -> list[Path]:
         """
         Download ARL files covering ``[start, end]`` to *dest_dir*.
+
+        The files are those of :meth:`paths_for_range`: the window is widened
+        to the time step at or before *start* and the one at or after *end*, so
+        a window ending after a file's last time step includes the next file.
 
         Parameters
         ----------
