@@ -939,6 +939,19 @@ class TestFromGfs:
         ds = from_gfs(gfs_file("2025-09-01 06:00", 6, old_names=True))
         assert {"SHTF", "DSWF"} <= set(ds.data_vars)
 
+    def test_one_level_as_a_scalar(self):
+        # cfgrib squeezes a single pressure level to a scalar coordinate.
+        one = gfs_file("2025-09-01 00:00", 0, levels=np.array([850.0]))
+        expected = from_gfs(one)
+        squeezed = [
+            cube.isel(isobaricInhPa=0) if "isobaricInhPa" in cube.dims else cube
+            for cube in one
+        ]
+        ds = from_gfs(squeezed)
+        assert ds["TEMP"].dims == ("time", "level", "lat", "lon")
+        assert ds["pressure"].values.tolist() == [850.0]
+        xr.testing.assert_identical(ds, expected)
+
     def test_different_levels_raise(self):
         cubes = [
             *gfs_file("2025-09-01 00:00", 0),
