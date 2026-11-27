@@ -7,7 +7,7 @@ import xarray as xr
 from arlmet._grid import Grid
 from arlmet.vertical import VerticalAxis
 
-from ._coords import grid_from_coord, vaxis_from_coord
+from ._coords import _physical_level_coord, grid_from_coord, vaxis_from_coord
 
 __all__ = ["ARLDatasetAccessor"]
 
@@ -48,11 +48,10 @@ class ARLDatasetAccessor:
         flag = self._obj.attrs.get("vertical_flag")
         if flag is None or "level" not in self._obj.coords:
             return None
-        level_coord = self._obj.coords["level"]
-        for _cname, cvar in self._obj.coords.items():
-            if cvar.dims == ("level",) and "surface" in cvar.attrs:
-                return vaxis_from_coord(int(flag), level_coord, cvar)
-        return None
+        coord = _physical_level_coord(self._obj)
+        if coord is None:
+            return None
+        return vaxis_from_coord(int(flag), self._obj.coords["level"], coord)
 
     @property
     def source(self) -> str:
