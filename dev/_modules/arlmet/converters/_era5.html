@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=09f3fb4c"></script>
+    <script src="../../../_static/documentation_options.js?v=b8f4d30b"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b15.dev22+g2a0825c49" />
+  <meta name="docsearch:version" content="0.1.0b15.dev23+g0690c50d5" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -445,12 +445,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">HybridAxis</span><span class="p">,</span> <span class="n">VerticalAxis</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">._l137</span><span class="w"> </span><span class="kn">import</span> <span class="n">L137_A</span><span class="p">,</span> <span class="n">L137_B</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._pressure</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span><span class="p">,</span> <span class="n">pressure_level_dataset</span><span class="p">,</span> <span class="n">standardize</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._pressure</span><span class="w"> </span><span class="kn">import</span> <span class="n">GRAVITY</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">pressure_level_dataset</span><span class="p">,</span> <span class="n">standardize</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"from_era5"</span><span class="p">]</span>
 
-<span class="c1">#: ECMWF's gravity (m s-2): geopotential height is geopotential over it.</span>
-<span class="n">GRAVITY</span> <span class="o">=</span> <span class="mf">9.80665</span>
 <span class="c1">#: Seconds in the hour each ERA5 hourly accumulation covers.</span>
 <span class="n">HOUR</span> <span class="o">=</span> <span class="mf">3600.0</span>
 
@@ -524,6 +522,22 @@
     <span class="k">return</span> <span class="n">values</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_stored_levels</span><span class="p">(</span><span class="n">model_levels</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return the ARL level values of ``model_levels`` as an ARL file stores them (6 characters)."""</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="nb">float</span><span class="p">(</span><span class="n">format_fixed_width_float</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">_hybrid_levels</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">model_levels</span><span class="p">])</span>
+    <span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_first_repeated</span><span class="p">(</span><span class="n">stored</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the index of the first stored level no higher than the one before it, or None."""</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">below</span><span class="p">,</span> <span class="n">above</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">stored</span><span class="p">,</span> <span class="n">stored</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">_pressure_at</span><span class="p">(</span><span class="n">above</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">_pressure_at</span><span class="p">(</span><span class="n">below</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">i</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_axis</span><span class="p">(</span><span class="n">model_levels</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">VerticalAxis</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Return the hybrid axis of ``model_levels`` (lowest first), the ground first as 1.</span>
@@ -532,19 +546,17 @@
 <span class="sd">    model level 24 rounds to the same whole hPa as the one below it), or if</span>
 <span class="sd">    there are more levels than an ARL file holds (:func:`check_level_count`).</span>
 <span class="sd">    """</span>
-    <span class="n">stored</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="nb">float</span><span class="p">(</span><span class="n">format_fixed_width_float</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
-        <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">_hybrid_levels</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">model_levels</span><span class="p">])</span>
-    <span class="p">]</span>
-    <span class="k">for</span> <span class="n">below</span><span class="p">,</span> <span class="n">above</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">stored</span><span class="p">,</span> <span class="n">stored</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">model_levels</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">_pressure_at</span><span class="p">(</span><span class="n">above</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">_pressure_at</span><span class="p">(</span><span class="n">below</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"ERA5 model level </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="si">}</span><span class="s2"> is stored as the same pressure as the "</span>
-                <span class="sa">f</span><span class="s2">"level below it: an ARL hybrid level holds its pressure offset in "</span>
-                <span class="sa">f</span><span class="s2">"whole hPa. Leave out level </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="si">}</span><span class="s2"> and those above it (keep "</span>
-                <span class="sa">f</span><span class="s2">"at most </span><span class="si">{</span><span class="n">Header</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="si">}</span><span class="s2"> levels, from 137 up: levels "</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">138</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Header</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="p">)</span><span class="si">}</span><span class="s2"> to 137)."</span>
-            <span class="p">)</span>
+    <span class="n">stored</span> <span class="o">=</span> <span class="n">_stored_levels</span><span class="p">(</span><span class="n">model_levels</span><span class="p">)</span>
+    <span class="n">repeated</span> <span class="o">=</span> <span class="n">_first_repeated</span><span class="p">(</span><span class="n">stored</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">repeated</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">model_levels</span><span class="p">[</span><span class="n">repeated</span><span class="p">]</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"ERA5 model level </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="si">}</span><span class="s2"> is stored as the same pressure as the "</span>
+            <span class="sa">f</span><span class="s2">"level below it: an ARL hybrid level holds its pressure offset in "</span>
+            <span class="sa">f</span><span class="s2">"whole hPa. Leave out level </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="si">}</span><span class="s2"> and those above it (keep "</span>
+            <span class="sa">f</span><span class="s2">"at most </span><span class="si">{</span><span class="n">Header</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="si">}</span><span class="s2"> levels, from 137 up: levels "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">138</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Header</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="p">)</span><span class="si">}</span><span class="s2"> to 137)."</span>
+        <span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stored</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">Header</span><span class="o">.</span><span class="n">MAX_LEVEL</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"ERA5 has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">stored</span><span class="p">)</span><span class="si">}</span><span class="s2"> model levels here, but an ARL file holds at "</span>
