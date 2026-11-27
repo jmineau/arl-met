@@ -389,3 +389,87 @@ class TestOneUpperLevel:
         want = sample(full, pressures, "pressure")["TEMP"].to_numpy()
         np.testing.assert_allclose(got[1], want[1], rtol=1e-6)
         assert np.isnan(got[[0, 2]]).all()
+
+
+#: Files with three or more levels, and the ways to keep some of them (#270).
+DEEP = ["deep-pressure", "pressure-column", "hilly-sigma", "hilly-pressure", "wrf"]
+SUBSETS = {
+    "isel": lambda path: arlmet.open_dataset(path).isel(level=[1, 2]),
+    "skip": lambda path: arlmet.open_dataset(path).isel(level=[0, 2]),
+    "levels": lambda path: arlmet.open_dataset(path, levels=[0, 1]),
+}
+
+
+@pytest.mark.parametrize("name", DEEP)
+@pytest.mark.parametrize("subset", SUBSETS)
+@pytest.mark.parametrize(("z_kind", "model_top", "z"), CASES)
+def test_dataset_of_some_levels_samples_as_its_file(
+    tmp_path, name, subset, z_kind, model_top, z
+):
+    """A Dataset holding some of a file's levels is the file of those levels alone."""
+    original = tmp_path / f"{name}.arl"
+    WRITERS[name](original)
+    ds = SUBSETS[subset](original)
+    path = tmp_path / "some.arl"
+    arlmet.write_dataset(ds, path)
+    base = _points(path)
+    points = pd.concat([base.assign(z=value) for value in z], ignore_index=True)
+
+    for variable in _variables(path):
+        from_file = _sample(path, points, [variable], z_kind, model_top)
+        from_dataset = _sample(ds, points, [variable], z_kind, model_top)
+        _assert_same(from_file, from_dataset)
+
+
+@pytest.mark.parametrize(
+    ("name", "drop"),
+    [
+        ("hilly-sigma", []),
+        ("hilly-sigma", ["T02M"]),  # the column starts at the first level's sigma
+        ("hilly-sigma", ["PRES", "T02M"]),  # pressure from sigma and PRSS
+        ("wrf", []),
+        ("wrf", ["T02M"]),
+    ],
+)
+@pytest.mark.parametrize("subset", SUBSETS)
+def test_dataset_of_some_levels_reads_each_level_where_it_is(
+    tmp_path, name, drop, subset
+):
+    """
+    At a level's own height or pressure the Dataset gives that level's value (#253, #254).
+
+    Checked against the Dataset's own values and the full file's; the column
+    ends at the Dataset's top and at the ground, not at the file's.
+    """
+    path = tmp_path / f"{name}.arl"
+    WRITERS[name](path)
+    some = SUBSETS[subset](path).drop_vars(drop)
+    node = {"time": 0, "lat": 5, "lon": 7}
+    where = some.isel(**node)
+    heights = arlmet.z_agl(some).isel(**node).values.astype(float)
+    pressures = arlmet.pressure(some).isel(**node).values.astype(float)
+
+    def sample(z, z_kind):
+        point = {"lon": float(where["lon"]), "lat": float(where["lat"])}
+        points = pd.DataFrame(
+            {**point, "z": z, "time": pd.Timestamp(where["time"].values)}
+        )
+        kwargs = {"model_top": None} if z_kind == "agl" else {}
+        out = sample_points(some, points, ["TEMP"], z_kind=z_kind, **kwargs)
+        return out["TEMP"].to_numpy()
+
+    # A hair inside the top level: the heights and pressures come from float32 fields.
+    want = where["TEMP"].values
+    np.testing.assert_allclose(sample(heights * (1 - 1e-4), "agl"), want, rtol=1e-4)
+    np.testing.assert_allclose(
+        sample(pressures * (1 + 1e-5), "pressure"), want, rtol=1e-4
+    )
+    full = arlmet.open_dataset(path).isel(**node)["TEMP"]
+    np.testing.assert_allclose(
+        want, full.sel(level=some["level"].values).values, rtol=1e-5
+    )
+
+    # Above the Dataset's top, and below the ground, there is no value.
+    assert np.isnan(sample([heights.max() + 500.0], "agl")).all()
+    assert np.isnan(sample([0.5 * pressures.min()], "pressure")).all()
+    assert np.isnan(sample([float(where["PRSS"]) + 20.0], "pressure")).all()
