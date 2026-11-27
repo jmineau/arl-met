@@ -211,8 +211,9 @@ def from_wrf(
     axis (vertical flag 1) whose offset is the model top ``P_TOP``, or with
     WRF's hybrid coordinate (``HYBRID_OPT`` 2) a :class:`arlmet.WrfAxis`
     (flag 5). The precipitation of a time step is what fell since the one
-    before, scaled to one hour; the first time step has none, so join every
-    file of a run before converting.
+    before, scaled to one hour. The first time step has none: it is 0 where
+    the run starts (``XTIME`` 0) and missing otherwise, so join every file of a
+    run before converting.
 
     With ``winds="averaged"`` (a run with ``do_avgflx_em = 1``), ``UWND``,
     ``VWND`` and ``WWND`` are WRF's ``AVGFLX_RUM``, ``AVGFLX_RVM`` and
@@ -310,10 +311,14 @@ def from_wrf(
             out[field.name] = field_variable(arl(ds[name]), field, surface_dims)
         if name == "PSFC" and "RAINC" in ds and "RAINNC" in ds:
             # Hourly totals from the run's accumulations, as arw2arl makes them.
+            # Before the first step the rain is 0 only at the run's start;
+            # joined files that begin later leave it unknown (missing).
             rain = arl(ds["RAINC"] + ds["RAINNC"]) * 0.001
             step = np.diff(minutes, prepend=np.nan)
+            before = 0.0 if minutes[0] == 0 else np.nan
             fell = xr.concat(
-                [xr.zeros_like(rain.isel(time=[0])), rain.diff("time")], dim="time"
+                [xr.full_like(rain.isel(time=[0]), before), rain.diff("time")],
+                dim="time",
             )
             per_hour = xr.DataArray(
                 np.where(np.isfinite(step), 60.0 / step, 0.0), dims="time"
