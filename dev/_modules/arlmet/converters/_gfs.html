@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=9623d845"></script>
+    <script src="../../../_static/documentation_options.js?v=09f3fb4c"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b15.dev21+g07c514acd" />
+  <meta name="docsearch:version" content="0.1.0b15.dev22+g2a0825c49" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -536,7 +536,11 @@
     <span class="n">step_type</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"GRIB_stepType"</span><span class="p">,</span> <span class="s2">"instant"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">type_of_level</span> <span class="o">==</span> <span class="s2">"isobaricInhPa"</span><span class="p">:</span>
         <span class="n">field</span> <span class="o">=</span> <span class="n">PRESSURE_LEVEL_FIELDS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">step_type</span> <span class="o">==</span> <span class="s2">"instant"</span> <span class="ow">and</span> <span class="s2">"isobaricInhPa"</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="n">step_type</span> <span class="o">==</span> <span class="s2">"instant"</span>
+            <span class="ow">and</span> <span class="s2">"isobaricInhPa"</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">coords</span>
+        <span class="p">):</span>
             <span class="k">return</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">type_of_level</span> <span class="o">==</span> <span class="s2">"surface"</span> <span class="ow">and</span> <span class="n">step_type</span> <span class="o">==</span> <span class="s2">"instant"</span> <span class="ow">and</span> <span class="n">_is_hpbl</span><span class="p">(</span><span class="n">da</span><span class="p">):</span>
@@ -727,7 +731,11 @@
         <span class="n">step_value</span> <span class="o">=</span> <span class="n">scalar_coord</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"step"</span><span class="p">)</span>
         <span class="n">step</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="mi">0</span> <span class="k">if</span> <span class="n">step_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">step_value</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">arl</span> <span class="ow">in</span> <span class="n">names</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">da</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">da</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">"isobaricInhPa"</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">coords</span> <span class="ow">and</span> <span class="s2">"isobaricInhPa"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+                <span class="c1"># One level: cfgrib squeezes it to a scalar, which the next line drops.</span>
+                <span class="n">da</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="s2">"isobaricInhPa"</span><span class="p">)</span>
+            <span class="n">da</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">bbox</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">da</span> <span class="o">=</span> <span class="n">_crop</span><span class="p">(</span><span class="n">da</span><span class="p">,</span> <span class="n">bbox</span><span class="p">)</span>
             <span class="c1"># Read once: cfgrib reads a whole message on every access.</span>
