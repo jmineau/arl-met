@@ -35,6 +35,9 @@ __all__ = [
     "surface_dataset",
 ]
 
+#: Standard gravity (m s-2), the WMO's: ECMWF and DWD divide geopotential by it.
+GRAVITY = 9.80665
+
 TIME_DIMS = ("valid_time", "time")
 LEVEL_DIMS = ("pressure_level", "isobaricInhPa", "level")
 LAT_DIMS = ("latitude", "lat")

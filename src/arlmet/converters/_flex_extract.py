@@ -8,17 +8,12 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from arlmet._indexrecord import format_fixed_width_float
+from arlmet._header import Header
 from arlmet.vertical import R_D
 
-from ._era5 import (
-    GRAVITY,
-    MODEL_LEVEL_FIELDS,
-    _hybrid_axis,
-    _hybrid_levels,
-    _pressure_at,
-)
+from ._era5 import MODEL_LEVEL_FIELDS, _first_repeated, _hybrid_axis, _stored_levels
 from ._pressure import (
+    GRAVITY,
     Field,
     pressure_level_dataset,
     scalar_coord,
@@ -81,30 +76,17 @@ def _longitudes(da: xr.DataArray) -> xr.DataArray:
     return da.assign_coords(longitude=lon)
 
 
-#: The most levels above the ground an ARL file holds: a record's header
-#: numbers its level in two characters.
-MAX_LEVELS = 99
-
-
 def _storable(model_levels: Iterable[float]) -> list[float]:
     """
     Return the model levels an ARL file can hold, from the ground up.
 
     They stop below the first level whose pressure offset rounds to the same
     whole hPa as the level below it (above about model level 24, see
-    :func:`arlmet.converters.from_era5`), and at :data:`MAX_LEVELS`.
+    :func:`arlmet.converters.from_era5`), and at :attr:`Header.MAX_LEVEL`.
     """
     levels = sorted((float(n) for n in model_levels), reverse=True)
-    stored = [
-        float(format_fixed_width_float(value, 6))
-        for value in _hybrid_levels([int(n) for n in levels])
-    ]
-    kept = levels[:1]
-    for below, above, n in zip(stored, stored[1:], levels[1:], strict=False):
-        if _pressure_at(above) >= _pressure_at(below):
-            break
-        kept.append(n)
-    return kept[:MAX_LEVELS]
+    repeated = _first_repeated(_stored_levels(levels))
+    return levels[:repeated][: Header.MAX_LEVEL]
 
 
 def from_flex_extract(datasets: Iterable[xr.Dataset]) -> xr.Dataset:

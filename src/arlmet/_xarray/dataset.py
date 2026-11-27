@@ -447,9 +447,8 @@ def write_dataset(
         )
     _check_vertical_axis_agrees(ds, resolved_vertical_axis)
     check_level_count(len(resolved_vertical_axis.levels) - 1)
-    if len(times):
-        check_year(times.min().year)
-        check_year(times.max().year)
+    check_year(times.min().year)
+    check_year(times.max().year)
     forecast_hours = _extract_dataset_forecast_hours(ds, times)
 
     data_vars = list(ds.data_vars)

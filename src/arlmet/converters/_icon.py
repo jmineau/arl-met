@@ -12,6 +12,7 @@ import pandas as pd
 import xarray as xr
 
 from ._pressure import (
+    GRAVITY,
     Field,
     forecast_hours,
     keep_shortest_step,
@@ -23,8 +24,6 @@ from ._pressure import (
 )
 
 __all__ = ["from_icon"]
-
-GRAVITY = 9.80665  # m s-2, the WMO standard ICON's geopotential is divided by
 
 #: ICON's pressure-level variables (cfgrib names, ``isobaricInhPa``) and their ARL fields.
 PRESSURE_LEVEL_FIELDS: dict[str, Field] = {
