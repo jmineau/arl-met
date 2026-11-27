@@ -107,8 +107,10 @@ variables share one ``level`` coordinate.
    ds["TEMP"] = ds["TEMP"] - 273.15
    arlmet.write_dataset(ds, "edited.arl")
 
-If you need a trailing DIF record for a parent variable, set the parent
-DataArray's ``diff`` attr before writing:
+A file's ``DIF*`` records are added into their parents when it is opened, and
+:func:`arlmet.write_dataset` writes them again. To make a trailing DIF record
+for a variable that has none, set the parent DataArray's ``diff`` attr before
+writing:
 
 .. ipython:: python
 

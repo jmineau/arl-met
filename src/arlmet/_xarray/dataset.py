@@ -153,6 +153,12 @@ def _build_dataset_from_file(
             window=read_window,
         )
         ds[name] = xr.Variable(dims, indexing.LazilyIndexedArray(backend))
+        # The values already include the DIF records; naming the first one
+        # lets write_dataset write that DIF record again.
+        for record in records_by_variable[name].values():
+            if record.diffs:
+                ds[name].attrs["diff"] = record.diffs[0].variable
+                break
     if met.times and mass_coupled(met[met.times[0]]):
         for name, description in _MASS_COUPLED_WINDS.items():
             if name in ds:
@@ -304,7 +310,10 @@ def open_dataset(
     -------
     xarray.Dataset
         ``attrs`` holds ``source``, ``vertical_flag`` and ``arlmet_version``,
-        the arlmet version that built the Dataset.
+        the arlmet version that built the Dataset. Each ``DIF*`` record is
+        added into its parent's values, and the parent variable's
+        ``attrs["diff"]`` names it, so :func:`arlmet.write_dataset` writes it
+        again.
     """
     from arlmet._file import File
 
@@ -368,6 +377,9 @@ def write_dataset(
     HYSPLIT's name table pairs with the variable: ``DIFW`` for ``WWND`` or
     ``DZDT`` and ``DIFT`` for ``TKEN`` or ``TKEU`` above the surface, any
     ``DIF*`` name for ``TPP*`` or ``PRT*`` at the surface.
+    :func:`arlmet.open_dataset` sets ``attrs["diff"]`` on each variable whose
+    records have a ``DIF*`` record, so an opened Dataset keeps its DIF records
+    when written back.
 
     Parameters
     ----------

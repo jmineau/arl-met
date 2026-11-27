@@ -101,7 +101,6 @@ import arlmet
 
 ds = arlmet.open_dataset("met.arl")
 ds["TEMP"] = ds["TEMP"] - 273.15
-ds["WWND"].attrs["diff"] = "DIFW"
 arlmet.write_dataset(ds, "edited.arl")
 ```
 

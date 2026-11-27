@@ -933,8 +933,8 @@ class TestDataset:
         written = tmp_path / "written.arl"
         write_multi_dif_file(source)
         ds = open_dataset(source)
-        for parent, dif in DIF_OF.items():
-            ds[parent].attrs["diff"] = dif
+        # open_dataset names each parent's DIF record.
+        assert {name: ds[name].attrs.get("diff") for name in DIF_OF} == DIF_OF
 
         write_dataset(ds, written)
 
@@ -974,7 +974,9 @@ class TestDataset:
         written = tmp_path / "written.arl"
         write_multi_dif_file(source)
         ds = open_dataset(source)
-        ds["WWND"].attrs["diff"] = "DIFW"
+        for name in ds:
+            if name != "WWND":
+                ds[name].attrs.pop("diff", None)
 
         write_dataset(ds, written)
 

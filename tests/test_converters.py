@@ -209,6 +209,24 @@ class TestFromEra5:
             assert [d.variable for d in records[(1, "WWND")].diffs] == ["DIFW"]
             assert [d.variable for d in records[(0, "TPP1")].diffs] == ["DIFR"]
 
+    def test_open_then_write_keeps_the_diff_records(self, pl, sfc, tmp_path):
+        ds = from_era5(pl, sfc)
+        first, second = tmp_path / "a.arl", tmp_path / "b.arl"
+        arlmet.write_dataset(ds, first)
+        back = arlmet.open_dataset(first)
+        assert back["WWND"].attrs["diff"] == "DIFW"
+        assert back["TPP1"].attrs["diff"] == "DIFR"
+        assert "diff" not in back["TEMP"].attrs
+        arlmet.write_dataset(back, second)
+        for path in (first, second):
+            with arlmet.File(path) as met:
+                records = met[met.times[0]]
+                assert [d.variable for d in records[(1, "WWND")].diffs] == ["DIFW"]
+                assert [d.variable for d in records[(0, "TPP1")].diffs] == ["DIFR"]
+        # The second file is as close to the original as the first, not 8-bit.
+        err = abs(arlmet.open_dataset(second)["WWND"] - ds["WWND"]).max().item()
+        assert err < 1e-6
+
     def test_lazy_inputs_stay_lazy(self, pl, sfc):
         ds = from_era5(pl.chunk({"valid_time": 1}), sfc.chunk({"valid_time": 1}))
         assert ds["TEMP"].chunks is not None
