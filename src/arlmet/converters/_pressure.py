@@ -174,7 +174,7 @@ def standardize(
     as cfgrib gives a forecast's), the levels (the first of ``level_dims``
     the Dataset has: pressures in hPa by default), and the cell centers
     from south to north; every other coordinate (``number``, ``expver``,
-    ``step``, ...) is dropped. A single time step may be a scalar coordinate.
+    ``step``, ...) is dropped. A single time step or level may be a scalar coordinate.
     """
     if not isinstance(ds, xr.Dataset):
         raise TypeError(f"{label} must be an xarray.Dataset, got {type(ds).__name__}.")
@@ -193,6 +193,10 @@ def standardize(
         scalar = _pick(TIME_DIMS, ds.coords, "time", label)
         ds = ds.expand_dims(scalar)
     time_dim = _pick(TIME_DIMS, ds.dims, "time", label)
+    if upper and not any(name in ds.dims for name in level_dims):
+        # One level, as a scalar coordinate (cfgrib squeezes a single level).
+        scalar = _pick(level_dims, ds.coords, level_kind, label)
+        ds = ds.expand_dims(scalar, axis=1)
     valid = ds.coords.get("valid_time")
     times = (
         valid if valid is not None and valid.dims == (time_dim,) else ds[time_dim]
