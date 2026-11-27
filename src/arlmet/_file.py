@@ -851,6 +851,7 @@ class File:
         method: Literal["linear", "nearest"] = "linear",
         earth_relative: bool = False,
         model_top: float | None = _DEFAULT_MODEL_TOP,
+        internal_grid: tuple[int, float, float, float] | None = None,
     ) -> pd.DataFrame:
         """
         Sample fields from this file at arbitrary lon/lat/z points.
@@ -937,6 +938,10 @@ class File:
             PYSTILT's default top. ``None`` reads each grid point's column at
             the point's own height instead, which is not HYSPLIT's value. See
             :func:`arlmet.sample_points`.
+        internal_grid : tuple of (int, float, float, float), optional
+            The run's own internal grid ``(nlvl, aa, bb, cc)``, as its
+            ``MESSAGE`` file prints it, used as it is instead of the grid
+            arl-met would pick. See :func:`arlmet.sample_points`.
 
         Returns
         -------
@@ -980,6 +985,7 @@ class File:
             method=method,
             earth_relative=earth_relative,
             model_top=model_top,
+            internal_grid=internal_grid,
         )
 
     def to_dataset(
