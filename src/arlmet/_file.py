@@ -911,8 +911,10 @@ class File:
             is interpolated as ``ln p``, as HYSPLIT does. Where the first level
             is below the ground (its ``PRES`` above ``PRSS``) the ground values
             are passed over at heights, as in HYSPLIT, and that level is left
-            out at pressures. The *Vertical Coordinates* guide has the
-            details.
+            out at pressures. On a pressure-level file the virtual
+            ``"pressure"`` at native levels is ``PRSS`` at level 0 (which the
+            file stores as 0 hPa), and ``PRSS`` is required. The *Vertical
+            Coordinates* guide has the details.
         method : {"linear", "nearest"}, default "linear"
             Horizontal interpolation: bilinear or nearest grid point. At
             heights (``"agl"``, ``"msl"``), as in HYSPLIT, the column at each

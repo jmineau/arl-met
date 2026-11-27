@@ -181,7 +181,9 @@ geometric mean, not 950. Sampling at pressures (``z_kind="pressure"``) starts
 at the ground too and leaves out the levels at or below it, interpolating in
 ``ln p``: a point below the ground is NaN. Sampling at native levels uses the
 stored levels as they are, below the ground included, and interpolates
-linearly.
+linearly. The one exception is the virtual ``"pressure"`` at level 0: a
+pressure-level file stores that level as 0 hPa, but it is the ground, so it
+reads ``PRSS`` (an error without a ``PRSS`` field), as on a sigma file.
 
 On NOAA's NAM 12 km and GDAS 1-degree files, at five western-US points from
 1 m to 3 km above ground, ``TEMP``, ``UWND`` and ``VWND`` agree with the
@@ -322,5 +324,6 @@ Limitations
   field; it is not derived.
 - Only sigma, hybrid, WRF and pressure-level files take the ground as a level
   in :func:`arlmet.sample_points` (pressure-level files at heights and
-  pressures, not at native levels); on terrain-following (flag=3) files a point
+  pressures, not at native levels, where only ``"pressure"`` takes the ground at
+  level 0); on terrain-following (flag=3) files a point
   below the lowest level with data is NaN.
