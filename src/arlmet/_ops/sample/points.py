@@ -4,7 +4,7 @@
 How one time step is sampled (:func:`_sample_time`):
 
 1. Place the points on the grid (:mod:`.horizontal`).
-2. Build the column of the time step at the grid points around each point
+2. Build the column of the time step once at each grid point around any point
    (:mod:`.column`), whose fields are read as HYSPLIT reads them (:mod:`.fields`).
 3. Interpolate each variable's profile (:mod:`.profile`) to the point's ``z``
    at each of those grid points, on HYSPLIT's internal levels at heights
@@ -260,32 +260,37 @@ def _sample_time(
     stagger = WRF_STAGGER if file.source == "AWRF" else {}
     staggered = {name: stagger[name] for name in variable_names if name in stagger}
     each_level_first = column_z == "pressure"
-    nodes: dict[tuple[float, float], tuple[Plan, npt.NDArray[Any], Column | None]] = {}
+    nodes: dict[
+        tuple[float, float],
+        tuple[Plan, npt.NDArray[Any], npt.NDArray[Any], Column | None],
+    ] = {}
     for shift in {(0.0, 0.0), *staggered.values()}:
         shifted = (
             plan
             if shift == (0.0, 0.0)
             else build_plan(recordset.grid, lon, lat, method=method, stagger=shift)
         )
-        var_nodes, weights = node_plan(shifted, each_level_first=each_level_first)
+        var_nodes, weights, cells = node_plan(
+            shifted, each_level_first=each_level_first
+        )
         column = column_for(recordset, var_nodes, z_kind=column_z, levels=levels)
-        nodes[shift] = (var_nodes, weights, column)
+        nodes[shift] = (var_nodes, weights, cells, column)
 
     place = None
     if levels is not None:
         # The particle's terrain, interpolated from the grid points' as HYSPLIT
         # interpolates its terrain array, places it among the internal levels.
-        _, weights, column = nodes[(0.0, 0.0)]
+        _, weights, cells, column = nodes[(0.0, 0.0)]
         assert column is not None
-        place = levels._position(targets, blend(column.terrain, weights))
+        place = levels._position(targets, blend(column.terrain[cells], weights))
 
     sampled: dict[str, npt.NDArray[Any]] = {}
     for variable in variable_names:
-        var_nodes, weights, column = nodes[staggered.get(variable, (0.0, 0.0))]
+        var_nodes, weights, cells, column = nodes[staggered.get(variable, (0.0, 0.0))]
         if place is not None:
             assert levels is not None and column is not None
             sampled[variable] = sample_on_internal_levels(
-                recordset, variable, *place, levels, var_nodes, weights, column
+                recordset, variable, *place, levels, var_nodes, weights, cells, column
             )
         else:
             at_nodes = sample_variable(
@@ -295,6 +300,7 @@ def _sample_time(
                 z_kind=column_z,
                 plan=var_nodes,
                 column=column,
+                rows=cells.ravel(),
             )
             sampled[variable] = blend(at_nodes, weights)
     rotate_winds(sampled, file.grid, lon, lat, wind_pairs)

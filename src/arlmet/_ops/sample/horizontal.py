@@ -224,31 +224,44 @@ def sample_field(field: npt.NDArray[Any], plan: Plan) -> npt.NDArray[Any]:
 
 def node_plan(
     plan: Plan, *, each_level_first: bool = False
-) -> tuple[Plan, npt.NDArray[Any]]:
+) -> tuple[Plan, npt.NDArray[Any], npt.NDArray[Any]]:
     """
     Return the grid points that each point of *plan* is blended from, and their weights.
 
-    Returns ``(nodes, weights)``: *nodes* samples, without interpolating, the
-    four grid points around each point (``(x0, y0)``, ``(x1, y0)``, ``(x0,
-    y1)``, ``(x1, y1)``, in that order, each a block of ``n_points`` rows), and
-    *weights* ``(4, n_points)`` are their bilinear weights. Each grid point's
-    profile is then built and interpolated to the point's height before the
-    values are blended (:func:`blend`), as HYSPLIT's ``prfcom`` builds a
-    profile at each grid point and ``adv3nt`` blends them. With ``"nearest"``,
-    or with *each_level_first*, *plan* is its own one grid point, weight 1:
-    each level is then blended first and the blended column interpolated.
+    Returns ``(nodes, weights, cells)``: *nodes* samples, without
+    interpolating, each grid point around any point once, *weights* ``(k,
+    n_points)`` are the bilinear weights of a point's ``k`` grid points
+    (``(x0, y0)``, ``(x1, y0)``, ``(x0, y1)``, ``(x1, y1)``, in that order;
+    ``k`` is 1 with ``"nearest"``), 0 for a point off the grid, and *cells*
+    ``(k, n_points)`` the row of *nodes* that holds each of them. Each grid
+    point's profile is then built once and interpolated to each of its
+    points' heights before the values are blended (:func:`blend`), as HYSPLIT's
+    ``prfcom`` builds a profile at each grid point and ``adv3nt`` blends them.
+    With *each_level_first*, *plan* is its own one grid point per point,
+    weight 1: each level is then blended first and the blended column
+    interpolated.
     """
-    if plan.method == "nearest" or each_level_first:
-        return plan, np.ones((1, plan.n_points))
-    x = np.concatenate([plan.x0, plan.x1, plan.x0, plan.x1])
-    y = np.concatenate([plan.y0, plan.y0, plan.y1, plan.y1])
-    wx, wy = plan.wx, plan.wy
-    weights = np.stack([(1 - wx) * (1 - wy), wx * (1 - wy), (1 - wx) * wy, wx * wy])
-    zeros = np.zeros(len(x))
-    nodes = Plan(
-        "nearest", plan.window, np.tile(plan.inside, 4), x, x, y, y, zeros, zeros
-    )
-    return nodes, weights
+    if each_level_first:
+        return plan, np.ones((1, plan.n_points)), np.arange(plan.n_points)[None, :]
+    if plan.method == "nearest":
+        x, y = plan.x0[None, :], plan.y0[None, :]
+        weights = np.ones((1, plan.n_points))
+    else:
+        x = np.stack([plan.x0, plan.x1, plan.x0, plan.x1])
+        y = np.stack([plan.y0, plan.y0, plan.y1, plan.y1])
+        wx, wy = plan.wx, plan.wy
+        weights = np.stack([(1 - wx) * (1 - wy), wx * (1 - wy), (1 - wx) * wy, wx * wy])
+    # A point off the grid takes no value from the grid point it was clipped to.
+    weights = np.where(plan.inside, weights, 0.0)
+    width = int(x.max(initial=0)) + 1
+    keys, cells = np.unique((y * width + x).ravel(), return_inverse=True)
+    cells = cells.reshape(x.shape)
+    inside = np.zeros(len(keys), dtype=bool)
+    inside[cells[:, plan.inside]] = True
+    ys, xs = np.divmod(keys, width)
+    zeros = np.zeros(len(keys))
+    nodes = Plan("nearest", plan.window, inside, xs, xs, ys, ys, zeros, zeros)
+    return nodes, weights, cells
 
 
 def blend(values: npt.NDArray[Any], weights: npt.NDArray[Any]) -> npt.NDArray[Any]:

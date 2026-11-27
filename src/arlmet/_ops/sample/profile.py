@@ -136,21 +136,24 @@ def interp_profiles(
     targets: npt.NDArray[Any],
     *,
     column: bool = False,
+    rows: npt.NDArray[Any] | None = None,
 ) -> npt.NDArray[Any]:
     """
-    Interpolate each row of *values* at its target: ``(n_points,)`` float32.
+    Interpolate each row of *values* at its target: ``(n_targets,)`` float32.
 
-    *values* are ``(n_points, n_levels)``, *coords* the same or ``(n_levels,)``
-    for every point, *targets* ``(n_points,)``. *column*: heights along a
-    column from the ground up, walked in level order (:func:`_interp_column`)
-    instead of sorted (:func:`_interp_profile`).
+    *values* are ``(n_rows, n_levels)``, *coords* the same or ``(n_levels,)``
+    for every row, *targets* ``(n_targets,)``, each read on the row *rows*
+    gives (by default the target's own: one target per row). *column*:
+    heights along a column from the ground up, walked in level order
+    (:func:`_interp_column`) instead of sorted (:func:`_interp_profile`).
     """
     interp = _interp_column if column else _interp_profile
     coords = np.broadcast_to(coords, values.shape)
-    out = np.empty(values.shape[0], dtype=np.float32)
-    for start in range(0, values.shape[0], _INTERP_CHUNK):
-        rows = slice(start, start + _INTERP_CHUNK)
-        out[rows] = interp(values[rows], coords[rows], targets[rows])
+    out = np.empty(len(targets), dtype=np.float32)
+    for start in range(0, len(targets), _INTERP_CHUNK):
+        chunk = slice(start, start + _INTERP_CHUNK)
+        at = chunk if rows is None else rows[chunk]
+        out[chunk] = interp(values[at], coords[at], targets[chunk])
     return out
 
 
@@ -174,15 +177,23 @@ class Profile:
     walk: bool = False
     fixed: npt.NDArray[Any] | None = None
 
-    def at(self, targets: npt.NDArray[Any]) -> npt.NDArray[Any]:
-        """Return the value at each row's target: ``(rows,)`` float32, NaN outside the profile."""
+    def at(
+        self, targets: npt.NDArray[Any], rows: npt.NDArray[Any] | None = None
+    ) -> npt.NDArray[Any]:
+        """
+        Return the value at each target: float32, NaN outside the profile.
+
+        Each target is read on the row *rows* gives, by default its own row.
+        """
         if self.fixed is not None:
-            return self.fixed
+            return self.fixed if rows is None else self.fixed[rows]
         assert self.values is not None and self.coords is not None
         if self.log_coords:
             with np.errstate(divide="ignore", invalid="ignore"):
                 targets = np.log(np.asarray(targets, dtype=float))
-        out = interp_profiles(self.values, self.coords, targets, column=self.walk)
+        out = interp_profiles(
+            self.values, self.coords, targets, column=self.walk, rows=rows
+        )
         return np.exp(out) if self.log_p else out
 
     def top(self) -> npt.NDArray[Any]:
@@ -316,15 +327,16 @@ def sample_variable(
     z_kind: ColumnZKind,
     plan: Plan,
     column: Column | None,
+    rows: npt.NDArray[Any],
 ) -> npt.NDArray[Any]:
-    """Interpolate *variable* to each target along each row's column: ``(n_points,)`` float32."""
+    """Interpolate *variable* to each target along the column of row *rows* of *plan*: float32."""
     if variable == "pressure" and z_kind == "pressure":
         # Pressure at a pressure is the target itself, NaN below the ground.
         if column is None:
             return targets.astype(np.float32, copy=False)
-        above_ground = targets <= column.surface_pressure
+        above_ground = targets <= column.surface_pressure[rows]
         return np.where(above_ground, targets, np.nan).astype(np.float32)
     profile = variable_profile(
         recordset, variable, z_kind=z_kind, plan=plan, column=column
     )
-    return profile.at(targets)
+    return profile.at(targets, rows)
