@@ -12,12 +12,10 @@ from arlmet._indexrecord import format_fixed_width_float
 from arlmet.vertical import HybridAxis, VerticalAxis
 
 from ._l137 import L137_A, L137_B
-from ._pressure import Field, pressure_level_dataset, standardize
+from ._pressure import GRAVITY, Field, pressure_level_dataset, standardize
 
 __all__ = ["from_era5"]
 
-#: ECMWF's gravity (m s-2): geopotential height is geopotential over it.
-GRAVITY = 9.80665
 #: Seconds in the hour each ERA5 hourly accumulation covers.
 HOUR = 3600.0
 
@@ -91,6 +89,22 @@ def _hybrid_levels(model_levels: Sequence[int]) -> list[float]:
     return values
 
 
+def _stored_levels(model_levels: Sequence[float]) -> list[float]:
+    """Return the ARL level values of ``model_levels`` as an ARL file stores them (6 characters)."""
+    return [
+        float(format_fixed_width_float(value, 6))
+        for value in _hybrid_levels([int(n) for n in model_levels])
+    ]
+
+
+def _first_repeated(stored: Sequence[float]) -> int | None:
+    """Return the index of the first stored level no higher than the one before it, or None."""
+    for i, (below, above) in enumerate(zip(stored, stored[1:], strict=False), 1):
+        if _pressure_at(above) >= _pressure_at(below):
+            return i
+    return None
+
+
 def _hybrid_axis(model_levels: Sequence[float]) -> VerticalAxis:
     """
     Return the hybrid axis of ``model_levels`` (lowest first), the ground first as 1.
@@ -99,19 +113,17 @@ def _hybrid_axis(model_levels: Sequence[float]) -> VerticalAxis:
     model level 24 rounds to the same whole hPa as the one below it), or if
     there are more levels than an ARL file holds (:func:`check_level_count`).
     """
-    stored = [
-        float(format_fixed_width_float(value, 6))
-        for value in _hybrid_levels([int(n) for n in model_levels])
-    ]
-    for below, above, n in zip(stored, stored[1:], model_levels[1:], strict=False):
-        if _pressure_at(above) >= _pressure_at(below):
-            raise ValueError(
-                f"ERA5 model level {int(n)} is stored as the same pressure as the "
-                f"level below it: an ARL hybrid level holds its pressure offset in "
-                f"whole hPa. Leave out level {int(n)} and those above it (keep "
-                f"at most {Header.MAX_LEVEL} levels, from 137 up: levels "
-                f"{max(int(n) + 1, 138 - Header.MAX_LEVEL)} to 137)."
-            )
+    stored = _stored_levels(model_levels)
+    repeated = _first_repeated(stored)
+    if repeated is not None:
+        n = model_levels[repeated]
+        raise ValueError(
+            f"ERA5 model level {int(n)} is stored as the same pressure as the "
+            f"level below it: an ARL hybrid level holds its pressure offset in "
+            f"whole hPa. Leave out level {int(n)} and those above it (keep "
+            f"at most {Header.MAX_LEVEL} levels, from 137 up: levels "
+            f"{max(int(n) + 1, 138 - Header.MAX_LEVEL)} to 137)."
+        )
     if len(stored) > Header.MAX_LEVEL:
         raise ValueError(
             f"ERA5 has {len(stored)} model levels here, but an ARL file holds at "
