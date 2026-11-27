@@ -352,57 +352,65 @@ def sample_on_internal_levels(
     levels: InternalLevels,
     nodes: Plan,
     weights: npt.NDArray[Any],
+    cells: npt.NDArray[Any],
     column: Column,
 ) -> npt.NDArray[Any]:
     """
     Sample *variable* at each point as HYSPLIT does on its internal levels.
 
-    At each grid point around a point (*nodes*, *weights*) the profile is read
-    at the internal levels ``k`` and ``k + 1`` (:meth:`InternalLevels._position`)
-    above that grid point's own ground, and the value is ``f`` of the way
-    between them; the grid points are then blended. Above a column's top
-    ``TEMP``, ``UWND`` and ``VWND`` keep the value of the last internal level
-    below it and pressure falls hydrostatically from there
-    (:func:`_pressure_above_top`), as HYSPLIT fills its internal levels;
-    another variable is NaN there.
+    At each grid point around a point (row *cells* of *nodes*, with *weights*:
+    :func:`~.horizontal.node_plan`) the profile is read at the internal
+    levels ``k`` and ``k + 1`` (:meth:`InternalLevels._position`) above that
+    grid point's own ground, and the value is ``f`` of the way between them;
+    the grid points are then blended. Above a column's top ``TEMP``, ``UWND``
+    and ``VWND`` keep the value of the last internal level below it and
+    pressure falls hydrostatically from there (:func:`_pressure_above_top`),
+    as HYSPLIT fills its internal levels; another variable is NaN there. Each
+    grid point's column is read once at each internal layer its points are in.
     """
-    kk, ff = np.tile(k, len(weights)), np.tile(f, len(weights))
     h = levels.heights
-    scale = levels.scale(column.terrain)
-    k_lo, k_hi = kk, np.minimum(kk + 1, len(h) - 1)
+    # Everything up to the blend depends only on the grid point and the layer.
+    pairs, at = np.unique((cells * len(h) + k).ravel(), return_inverse=True)
+    cell, k_lo = np.divmod(pairs, len(h))
+    k_hi = np.minimum(k_lo + 1, len(h) - 1)
+    scale = levels.scale(column.terrain)[cell]
     profile = variable_profile(
         recordset, variable, z_kind="agl", plan=nodes, column=column
     )
-    lo = profile.at(h[k_lo] * scale).astype(float)
-    hi = profile.at(h[k_hi] * scale).astype(float)
+    lo = profile.at(h[k_lo] * scale, cell).astype(float)
+    hi = profile.at(h[k_hi] * scale, cell).astype(float)
 
     held = variable in _HELD_ABOVE_TOP
     if (held or variable in PRESSURE_VARIABLES) and profile.fixed is None:
-        top = profile.top()
+        top = profile.top()[cell]
         with np.errstate(invalid="ignore"):
             # the last internal level at or below each column's top
             k_top = np.searchsorted(h, top / scale, side="right") - 1
             rows = np.flatnonzero((h[k_hi] * scale > top) & (k_top >= 0))
         if len(rows):
-            k_top = np.maximum(k_top, 0)
-            h_top = h[k_top] * scale
-            base = profile.at(h_top)[rows].astype(float)
+            k_top = np.maximum(k_top[rows], 0)
+            h_top = h[k_top] * scale[rows]
+            base = profile.at(h_top, cell[rows]).astype(float)
             if held:
                 extended = [base, base]
             else:
                 t_top = variable_profile(
                     recordset, "TEMP", z_kind="agl", plan=nodes, column=column
-                ).at(h_top)[rows]
+                ).at(h_top, cell[rows])
                 tv_top = interp_profiles(
-                    column.virtual_temperature, column.z_agl, h_top, column=True
-                )[rows]
+                    column.virtual_temperature,
+                    column.z_agl,
+                    h_top,
+                    column=True,
+                    rows=cell[rows],
+                )
                 extended = [
                     _pressure_above_top(
                         base,
                         t_top.astype(float),
                         tv_top.astype(float),
-                        k_top[rows],
-                        np.maximum(k_at[rows], k_top[rows] + 1),
+                        k_top,
+                        np.maximum(k_at[rows], k_top + 1),
                         h[None, :] * scale[rows, None],
                     )
                     for k_at in (k_lo, k_hi)
@@ -410,9 +418,10 @@ def sample_on_internal_levels(
             for values, k_at, above in zip(
                 (lo, hi), (k_lo, k_hi), extended, strict=True
             ):
-                past = k_at[rows] > k_top[rows]
+                past = k_at[rows] > k_top
                 values[rows] = np.where(past, above, values[rows])
 
+    lo, hi = lo[at].reshape(cells.shape), hi[at].reshape(cells.shape)
     with np.errstate(invalid="ignore"):
-        at_nodes = np.where(ff == 0.0, lo, lo + ff * (hi - lo))
+        at_nodes = np.where(f == 0.0, lo, lo + f * (hi - lo))
     return blend(at_nodes, weights)

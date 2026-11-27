@@ -65,7 +65,8 @@ HYSPLIT source. The Fortran routines it matches:
        bilinearly from the four grid points around it
      - :func:`arlmet.sample_points` interpolates each of the four grid points'
        columns to the point's height, then blends them (``_ops/sample/``,
-       ``node_plan``); on HRRR, WRF, GFS, GDAS and NAM files it agrees with the
+       ``node_plan``, which builds each grid point's column once for all the
+       points around it); on HRRR, WRF, GFS, GDAS and NAM files it agrees with the
        compiled ``prfsig``/``prfprs``/``prfecm`` and ``adv3nt`` to float precision
    * - ``metlvl`` / ``zindex`` / ``prfend``
      - the run's internal vertical grid: ``metlvl`` picks one of six grids

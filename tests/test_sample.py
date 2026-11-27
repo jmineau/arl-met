@@ -1930,6 +1930,38 @@ class TestPressureColumnAsHysplit:
         np.testing.assert_allclose(result["TEMP"], [np.nan, expected], atol=1e-3)
 
 
+def test_node_plan_builds_each_grid_point_once():
+    """Points in one cell share its four grid points; a point off the grid has no weight (#261)."""
+    from arlmet._ops.sample.horizontal import build_plan, node_plan
+
+    # three in the first cell, one east of the grid
+    lon = np.array([20.2, 20.7, 20.4, 50.0])
+    lat = np.array([-9.8, -9.3, -9.5, -9.5])
+    nodes, weights, cells = node_plan(
+        build_plan(make_test_grid(), lon, lat, method="linear")
+    )
+    assert cells.shape == weights.shape == (4, 4)
+    assert (cells[:, :3] == cells[:, :1]).all()
+    corners = {(int(nodes.x0[c]), int(nodes.y0[c])) for c in cells[:, 0]}
+    assert corners == {(0, 0), (1, 0), (0, 1), (1, 1)}
+    assert nodes.inside[cells[:, 0]].all() and not nodes.inside[cells[:, 3]].any()
+    assert (weights[:, 3] == 0.0).all()
+    np.testing.assert_allclose(weights[:, :3].sum(axis=0), 1.0)
+
+
+def test_pressure_at_native_levels_off_the_grid_is_nan(tmp_path):
+    """A pressure-level file's pressure at native levels is NaN off the grid, as the fields are (#291)."""
+    path = tmp_path / "met.arl"
+    time = pd.Timestamp("2024-07-18 00:00")
+    write_sampling_file(path, time=time)
+    points = pd.DataFrame({"lon": [20.5, 80.0], "lat": [-9.5, -9.5], "z": [1.0, 1.0]})
+    result = sample_points(
+        path, points, ["TEMP", "pressure"], time=time, z_kind="native"
+    )
+    np.testing.assert_allclose(result["pressure"], [900.0, np.nan])
+    assert np.isnan(result["TEMP"].iloc[1])
+
+
 class TestHorizontalInterpolation:
     """Verify bilinear weights and nearest-neighbor snapping."""
 
