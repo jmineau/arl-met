@@ -196,8 +196,10 @@ argument. A run with another top passes it as ``model_top``:
 
 - **Internal levels.** For the run's top and the file's vertical grid,
   HYSPLIT's ``metlvl`` picks one of six grids of heights ``a k**2 + b k + c``
-  (k = 1, 2, ...): on an HRRR file with a 25 km top, 41 levels at 10, 50, 120,
-  220 m, ...; on GFS 0.25°, 71 levels at 10, 30, 60 m, .... Between two levels
+  (k = 1, 2, ...), the one HYSPLIT 5.4.0 and later pick (earlier versions differ
+  only for a top below about 1.1 km): on an HRRR file with a 25 km top, 41
+  levels at 10, 50, 120, 220 m, ...; on GFS 0.25°, 71 levels at 10, 30, 60 m,
+  .... Between two levels
   the value is linear, and below the first level (10 m, or 5 m on the finest
   grid) it is that level's value.
 - **Terrain-following sigma.** The levels follow the terrain: above a grid

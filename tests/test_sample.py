@@ -87,7 +87,7 @@ def write_sampling_file(path, *, time: pd.Timestamp, temp_offset: float = 0.0):
     }
 
 
-_Z_PHI1 = [17.98, 14.73, 13.09, 11.98, 11.15, 10.52, 10.04, 9.75, 9.88]
+_Z_PHI1 = [17.98, 14.73, 13.09, 11.98, 11.15, 10.52, 10.04, 9.75, 8.88]
 _Z_PHI2 = [31.37, 27.02, 24.59, 22.92, 21.65, 20.66, 19.83, 19.13, 18.51]
 
 
@@ -2989,6 +2989,12 @@ def test_sample_points_regional_latlon_first_column_at_its_own_lon(tmp_path, syn
 #: by HYSPLIT's own METINI and METLVL).
 _METLVL_AXES = {
     "sigma5": SigmaAxis(levels=[1.0, 0.99, 0.95, 0.9, 0.8]),
+    # HRRR's lowest 16 sigma levels: with a 300 m top ZPH1(9) = 8.88 (HYSPLIT 5.4.0+)
+    # gives 11 levels from 5 m; 9.88 (5.3.x) gave 8 from 10 m (#271)
+    "hrrr16": SigmaAxis(
+        levels=[1.0, 0.999, 0.996, 0.9905, 0.981, 0.967, 0.949, 0.9275, 0.904, 0.8785]
+        + [0.85, 0.8185, 0.784, 0.7465, 0.706, 0.6625]
+    ),
     "sigma41": SigmaAxis(levels=[round(1.0 - 0.0245 * k, 4) for k in range(41)]),
     "pressure40": PressureAxis(levels=[0.0] + [1000.0 - 25.0 * k for k in range(39)]),
     "hybrid30": HybridAxis(
@@ -3011,6 +3017,7 @@ _METLVL_AXES = {
         ("sigma5", 10000, 19, (30, -25, 5), 25000),
         ("sigma5", 40000, 37, (30, -25, 5), 40000),
         ("sigma5", 3000, 11, (30, -25, 5), 25000),
+        ("hrrr16", 300, 11, (2.5, 2.5, 0), 25000),
         ("sigma41", 25000, 51, (10, -10, 10), 25000),
         ("sigma41", 10000, 33, (10, -10, 10), 25000),
         ("sigma41", 40000, 46, (20, -15, 5), 40000),
