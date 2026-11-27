@@ -1070,13 +1070,31 @@ class TestFromWrf:
         wrf = wrf_output(minutes=(360.0, 390.0, 420.0))  # every 30 minutes
         ds = from_wrf(wrf)
         rain = (wrf["RAINC"] + wrf["RAINNC"]).values * 0.001
-        assert (ds["TPP1"].isel(time=0).values == 0).all()
+        assert np.isnan(ds["TPP1"].isel(time=0).values).all()  # run began earlier
         np.testing.assert_allclose(
             ds["TPP1"].isel(time=slice(1, None)).values,
             np.diff(rain, axis=0) * 2.0,  # scaled to one hour
             rtol=1e-5,
             atol=1e-9,
         )
+
+    def test_precipitation_is_zero_at_the_runs_start(self):
+        ds = from_wrf(wrf_output(minutes=(0.0, 60.0, 120.0)))
+        assert (ds["TPP1"].isel(time=0).values == 0).all()
+        assert np.isfinite(ds["TPP1"].values).all()
+
+    def test_precipitation_missing_before_a_later_start_is_written_missing(
+        self, tmp_path
+    ):
+        dest = tmp_path / "wrf.arl"
+        arlmet.write_dataset(from_wrf(wrf_output()), dest)  # starts at minute 360
+        with arlmet.File(dest) as met:
+            first, second = (met[t][(0, "TPP1")] for t in met.times[:2])
+            assert first.header.forecast < 0  # flagged missing, which HYSPLIT skips
+            assert second.header.forecast >= 0
+        back = arlmet.open_dataset(dest)
+        assert np.isnan(back["TPP1"].isel(time=0).values).all()
+        assert np.isfinite(back["TPP1"].isel(time=slice(1, None)).values).all()
 
     def test_written_file_reads_back(self, tmp_path):
         ds = from_wrf(wrf_output())
