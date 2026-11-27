@@ -2060,6 +2060,26 @@ def write_hilly_file(path, *, flag=1, source="TEST", grid=None):
             rs.create_datarecord("VWND", level=level, forecast=0, data=f32(vwnd))
 
 
+def test_each_field_is_read_once_per_time_step(tmp_path, monkeypatch):
+    """TEMP and SPHU feed the column and the profiles but are read once each (#264)."""
+    from arlmet._ops.sample import fields
+
+    path = tmp_path / "hilly.arl"
+    write_hilly_file(path)
+    reads = []
+    read_field = fields._read_field
+
+    def counting(recordset, variable, level, window):
+        reads.append((variable, level))
+        return read_field(recordset, variable, level, window)
+
+    monkeypatch.setattr(fields, "_read_field", counting)
+    points = pd.DataFrame({"lon": [21.3], "lat": [-8.6], "z": [20000.0]})
+    sample_points(path, points, ["TEMP", "pressure"], time=_COLUMN_TIME, z_kind="agl")
+    assert len(reads) == len(set(reads))
+    assert ("TEMP", 1) in reads and ("SPHU", 1) in reads
+
+
 class TestBetweenGridPointsAsHysplit:
     """
     Between grid points, each grid point's column is interpolated first (#116).

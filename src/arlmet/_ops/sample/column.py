@@ -6,13 +6,14 @@ One class per HYSPLIT routine that builds a column at each grid point:
 coefficients), ``prfprs`` (pressure, flag 2), ``prfter`` (terrain-following,
 flag 3) and ``prfecm`` (hybrid, flag 4). Level 0 is the ground: 0 m above it,
 at the surface pressure ``PRSS``. Every variable sampled at a time step shares
-its column; each field is read only when first needed, and every array is
+its column; each field is read once, when first needed, and every array is
 ``(n_points, n_levels)`` over all the axis's levels, or ``(n_points,)`` for
 the ground.
 """
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -85,15 +86,35 @@ class Column:
         self.levels = levels
         self.axis = recordset.vertical_axis
         self.upper = list(range(1, len(self.axis.levels)))
+        self._samples: dict[tuple[str, tuple[int, ...]], npt.NDArray[Any] | None] = {}
+
+    def sample(
+        self, variable: str, levels: Sequence[int] | None = None
+    ) -> npt.NDArray[Any] | None:
+        """
+        :func:`~.fields.sample_levels` at the column's points, read once per variable and levels.
+
+        The column's own fields (``TEMP``, ``SPHU``, ...) and the profiles of
+        the variables sampled with it share the read (#264).
+        """
+        key = (
+            variable,
+            levels_of(self.recordset, variable) if levels is None else tuple(levels),
+        )
+        if key not in self._samples:
+            self._samples[key] = sample_levels(
+                self.recordset, variable, self.plan, key[1]
+            )
+        return self._samples[key]
 
     def _surface(self, variable: str) -> npt.NDArray[Any] | None:
         """Sample the surface field *variable*, or None if the time step lacks it."""
-        values = sample_levels(self.recordset, variable, self.plan, [0])
+        values = self.sample(variable, [0])
         return None if values is None else values[:, 0]
 
     def _upper(self, variable: str) -> npt.NDArray[Any] | None:
         """Sample *variable* at every level above ground, or None if absent."""
-        return sample_levels(self.recordset, variable, self.plan, self.upper)
+        return self.sample(variable, self.upper)
 
     def _upper_pres(self, flag_name: str) -> npt.NDArray[Any]:
         """``PRSS`` at the ground, then the ``PRES`` field, which this kind of file must hold."""
