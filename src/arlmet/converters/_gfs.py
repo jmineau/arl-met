@@ -103,7 +103,11 @@ def _arl_name(ds: xr.Dataset, name: str, da: xr.DataArray) -> str | None:
     step_type = da.attrs.get("GRIB_stepType", "instant")
     if type_of_level == "isobaricInhPa":
         field = PRESSURE_LEVEL_FIELDS.get(name)
-        if field is not None and step_type == "instant" and "isobaricInhPa" in da.dims:
+        if (
+            field is not None
+            and step_type == "instant"
+            and "isobaricInhPa" in da.coords
+        ):
             return field.name
         return None
     if type_of_level == "surface" and step_type == "instant" and _is_hpbl(da):
@@ -292,7 +296,11 @@ def from_gfs(
         step_value = scalar_coord(ds, "step")
         step = pd.Timedelta(0 if step_value is None else step_value)
         for name, arl in names.items():
-            da = ds[name].reset_coords(drop=True)
+            da = ds[name]
+            if "isobaricInhPa" in da.coords and "isobaricInhPa" not in da.dims:
+                # One level: cfgrib squeezes it to a scalar, which the next line drops.
+                da = da.expand_dims("isobaricInhPa")
+            da = da.reset_coords(drop=True)
             if bbox is not None:
                 da = _crop(da, bbox)
             # Read once: cfgrib reads a whole message on every access.
