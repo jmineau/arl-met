@@ -267,7 +267,7 @@ def from_era5(levels: xr.Dataset, single_levels: xr.Dataset) -> xr.Dataset:
     surface = standardize(
         single_levels, SINGLE_LEVEL_FIELDS, upper=False, label="single_levels"
     )
-    if not any(dim in levels.dims for dim in MODEL_LEVEL_DIMS):
+    if not any(dim in levels.coords for dim in MODEL_LEVEL_DIMS):
         upper = standardize(levels, PRESSURE_LEVEL_FIELDS, upper=True, label="levels")
         return pressure_level_dataset(
             upper,

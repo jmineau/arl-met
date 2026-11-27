@@ -232,6 +232,21 @@ class TestFromEra5:
         assert ds.sizes["time"] == 1
         assert ds["TEMP"].dims == ("time", "level", "lat", "lon")
 
+    def test_one_level_as_a_scalar(self, sfc):
+        # cfgrib squeezes a single pressure level to a scalar coordinate.
+        one = era5_pressure_levels(level_dim="isobaricInhPa").isel(isobaricInhPa=[0])
+        expected = from_era5(one, sfc)
+        ds = from_era5(one.isel(isobaricInhPa=0), sfc)
+        assert ds["TEMP"].dims == ("time", "level", "lat", "lon")
+        assert ds["pressure"].values.tolist() == [500.0]
+        xr.testing.assert_identical(ds, expected)
+
+    def test_one_time_step_and_one_level_as_scalars(self, sfc):
+        one = era5_pressure_levels(level_dim="isobaricInhPa").isel(isobaricInhPa=[0])
+        ds = from_era5(one.isel(isobaricInhPa=0, valid_time=0), sfc.isel(valid_time=0))
+        assert ds.sizes["time"] == ds.sizes["level"] == 1
+        assert ds["TEMP"].dims == ("time", "level", "lat", "lon")
+
     def test_surface_times_follow_the_pressure_levels(self, pl):
         more = pd.date_range(TIMES[0] - pd.Timedelta("1h"), periods=4, freq="h")
         sfc = era5_single_levels(more)
@@ -381,6 +396,14 @@ class TestFromEra5ModelLevels:
         expected = from_era5(era5_model_levels(), sfc)
         cfgrib = era5_model_levels(level_dim="hybrid")
         xr.testing.assert_identical(from_era5(cfgrib, sfc), expected)
+
+    def test_one_level_as_a_scalar(self, sfc):
+        one = era5_model_levels(level_dim="hybrid").isel(hybrid=[0])
+        expected = from_era5(one, sfc)
+        ds = from_era5(one.isel(hybrid=0), sfc)
+        assert ds["TEMP"].dims == ("time", "level", "lat", "lon")
+        assert ds.sizes["level"] == 1
+        xr.testing.assert_identical(ds, expected)
 
     def test_written_file_is_hybrid_and_reads_back(self, sfc, tmp_path):
         ds = from_era5(era5_model_levels(), sfc)
