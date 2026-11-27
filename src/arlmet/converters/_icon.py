@@ -13,10 +13,13 @@ import xarray as xr
 
 from ._pressure import (
     Field,
+    forecast_hours,
+    keep_shortest_step,
     pressure_level_dataset,
     scalar_coord,
     stack_times,
     standardize,
+    surface_dataset,
 )
 
 __all__ = ["from_icon"]
@@ -292,9 +295,7 @@ def from_icon(datasets: Iterable[xr.Dataset]) -> xr.Dataset:
         """Return the shortest forecast step's field at each valid time."""
         out: dict[tuple[pd.Timestamp, str], tuple[pd.Timedelta, xr.DataArray]] = {}
         for (start, step, name), da in found.items():
-            kept = out.get((start + step, name))
-            if kept is None or step < kept[0]:
-                out[(start + step, name)] = (step, da)
+            keep_shortest_step(out, (start + step, name), step, da)
         return out
 
     upper_found: _Found = {
@@ -311,10 +312,7 @@ def from_icon(datasets: Iterable[xr.Dataset]) -> xr.Dataset:
             "None of the Datasets holds ICON pressure-level fields "
             f"({', '.join(PRESSURE_LEVEL_FIELDS)} on isobaricInhPa)."
         )
-    hours = [
-        int(min(step for (t, _), (step, _) in upper.items() if t == time) / _HOUR)
-        for time in times
-    ]
+    hours = forecast_hours(upper, times)
 
     parts = {
         **by_valid_time(single["instant"]),
@@ -338,16 +336,7 @@ def from_icon(datasets: Iterable[xr.Dataset]) -> xr.Dataset:
         upper=True,
         label="pressure levels",
     )
-    surface_ds = (
-        standardize(
-            stack_times(surface, times),
-            list(_SINGLE_LEVEL_FIELDS),
-            upper=False,
-            label="single levels",
-        )
-        if surface
-        else upper_ds.isel(level=0, drop=True)[[]]
-    )
+    surface_ds = surface_dataset(surface, times, upper_ds, _SINGLE_LEVEL_FIELDS)
     return pressure_level_dataset(
         upper_ds,
         surface_ds,
