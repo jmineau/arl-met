@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=acd0aa04"></script>
+    <script src="_static/documentation_options.js?v=6e3e892c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev20+g9e5ed12e6" />
+  <meta name="docsearch:version" content="0.1.0b16.dev21+g7b609cbb7" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -623,8 +623,12 @@ reads back with the same pairs.</p>
 the header’s initial value, then each row across from its first cell, adding
 one difference at a time in single precision. A value smaller in magnitude than
 the record’s precision (<code class="docutils literal notranslate"><span class="pre">2**exponent</span> <span class="pre">/</span> <span class="pre">254</span></code>) is read as zero, except in the
-first column, which HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">pakinp</span></code> leaves as it is. <a class="reference internal" href="_autosummary/arlmet.packing.unpack.html#arlmet.packing.unpack" title="arlmet.packing.unpack"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.packing.unpack()</span></code></a>
-follows <code class="docutils literal notranslate"><span class="pre">pakinp</span></code> step for step and gives the same <code class="docutils literal notranslate"><span class="pre">float32</span></code> values.</p>
+first column, which HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">pakinp</span></code> leaves as it is. A uniform field has
+no differences, so its exponent is 1 and its precision 2/254 (about 0.00787):
+a constant smaller than that (a <code class="docutils literal notranslate"><span class="pre">UMOF</span></code> or <code class="docutils literal notranslate"><span class="pre">TPP1</span></code> of 0.005) is read back as
+zero past the first column, by arl-met and by HYSPLIT, and writing it warns.
+<a class="reference internal" href="_autosummary/arlmet.packing.unpack.html#arlmet.packing.unpack" title="arlmet.packing.unpack"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.packing.unpack()</span></code></a> follows <code class="docutils literal notranslate"><span class="pre">pakinp</span></code> step for step and gives the
+same <code class="docutils literal notranslate"><span class="pre">float32</span></code> values.</p>
 <p>Writing is HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">pakout</span></code>: the exponent is the smallest that holds the
 largest difference between neighbors, each byte is the difference from the
 previous value as a reader will rebuild it, and values are packed as they are
