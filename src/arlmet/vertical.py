@@ -8,7 +8,7 @@ coordinates.
 
 from abc import ABC, abstractmethod
 from dataclasses import FrozenInstanceError
-from typing import Any, ClassVar, Final
+from typing import Any, ClassVar
 
 import numpy as np
 import numpy.typing as npt
@@ -30,19 +30,6 @@ __all__ = [
 # matching them keeps every height within float32 noise of HYSPLIT's own (#150).
 R_D = 287.04  # dry air gas constant [J/(kg·K)]
 G = 9.80616  # HYSPLIT's gravity [m/s²] (standard gravity is 9.80665)
-
-
-class _DefaultModelTop(float):
-    """
-    The top of model domain ``sample_points`` uses when ``model_top`` is not passed.
-
-    It is 25000 m, PYSTILT's ``HysplitConfig.z_top`` default. It is its own
-    object so a caller's explicit ``model_top=25000.0`` can be told from no
-    argument (``is``): the default is ignored where an explicit value raises.
-    """
-
-
-_DEFAULT_MODEL_TOP: Final = _DefaultModelTop(25000.0)
 
 
 def hypsometric_z_agl(

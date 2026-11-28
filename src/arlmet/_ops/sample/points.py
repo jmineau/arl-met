@@ -14,6 +14,7 @@ How one time step is sampled (:func:`_sample_time`):
 from __future__ import annotations
 
 import os
+import warnings
 from collections.abc import Iterable, Mapping, Sequence
 from contextlib import ExitStack
 from typing import TYPE_CHECKING, Any, Literal, Protocol, Union, get_args
@@ -25,7 +26,7 @@ import xarray as xr
 
 from arlmet._time import ensure_timestamp
 from arlmet._version import __version__
-from arlmet.vertical import _DEFAULT_MODEL_TOP, TerrainAxis
+from arlmet.vertical import TerrainAxis
 
 from .column import Column, column_for, terrain_at
 from .fields import TimeStep, levels_of
@@ -341,7 +342,8 @@ def sample_points(
     z_kind: ZKind = "pressure",
     method: SampleMethod = "linear",
     earth_relative: bool = False,
-    model_top: float | None = _DEFAULT_MODEL_TOP,
+    model_top: float | None = None,
+    file_levels: bool = False,
     internal_grid: InternalGrid | None = None,
 ) -> pd.DataFrame:
     """
@@ -409,7 +411,7 @@ def sample_points(
           HYSPLIT's ``prfsig`` and ``prfecm`` do; pressure files use
           ``HGTS - SHGT`` from the ground up; terrain-following files
           scale the stored levels as HYSPLIT's ``prfter`` does (with
-          ``model_top=None``, the stored levels as they are).
+          ``file_levels=True``, the stored levels as they are).
         - ``"msl"``: meters above mean sea level, taken as the height
           above the ground at the point (less ``SHGT`` there), then as
           ``"agl"``. Every file needs ``SHGT``.
@@ -444,27 +446,31 @@ def sample_points(
         the grid axes to east/north, using the meridian convergence of each
         file's grid. Both components of a pair must be requested. No effect on
         lat/lon grids.
-    model_top : float or None, default 25000
+    model_top : float, optional
         The HYSPLIT run's top of model domain [m], the ``CONTROL`` file's
-        line after the vertical motion option (PYSTILT's ``z_top``, 25000 by
-        default). At heights (``"agl"``, ``"msl"``) the values are the ones a
-        HYSPLIT run with that top uses: on HYSPLIT's own internal levels
-        (those its ``metlvl`` picks for this file's vertical grid), which
-        follow the terrain as sigma surfaces that go flat at
-        ``max(model_top, 25000)`` m, linear between those levels, the first
-        level's value below it (10 m, or 5 m on the finest grid), and above a
-        file's top ``TEMP``, ``UWND``, ``VWND`` and pressure extrapolated as
-        HYSPLIT does (other variables NaN there). A sigma, terrain-following,
-        hybrid or WRF file without ``SHGT`` takes HYSPLIT's terrain estimate
-        from ``PRSS``. The default matches a run with PYSTILT's default top; a run with another
-        top needs its value, because below 25 km the internal levels depend on
-        it (the *Sampling* guide says how far). ``None`` reads each grid
-        point's column at the point's own height above that grid point's
-        ground, between the file's own levels, which is not what HYSPLIT does
-        (differences of up to 4.6 K, 3.5 m/s and 1.9 hPa below 5 km) and gives
-        NaN above a file's top. The default applies at heights only: at
-        ``"pressure"`` and ``"native"`` it is ignored, and a value passed with
-        either raises.
+        line after the vertical motion option (PYSTILT's ``z_top``). Default
+        None: 25000 at heights, PYSTILT's default. At heights (``"agl"``,
+        ``"msl"``) the values are the ones a HYSPLIT run with that top uses: on
+        HYSPLIT's own internal levels (those its ``metlvl`` picks for this
+        file's vertical grid), which follow the terrain as sigma surfaces that
+        go flat at ``max(model_top, 25000)`` m, linear between those levels,
+        the first level's value below it (10 m, or 5 m on the finest grid),
+        and above a file's top ``TEMP``, ``UWND``, ``VWND`` and pressure
+        extrapolated as HYSPLIT does (other variables NaN there). A sigma,
+        terrain-following, hybrid or WRF file without ``SHGT`` takes HYSPLIT's
+        terrain estimate from ``PRSS``. A run with another top needs its value,
+        because below 25 km the internal levels depend on it (the *Sampling*
+        guide says how far). At ``"pressure"`` and ``"native"`` there is no
+        model top: a value passed there is ignored and warns, so a wrapper
+        can forward its own default and read the warning.
+    file_levels : bool, default False
+        Sample at heights on the file's own levels, not HYSPLIT's internal
+        ones: each grid point's column is read at the point's own height above
+        that grid point's ground, between the file's own levels, which is not
+        what HYSPLIT does (differences of up to 4.6 K, 3.5 m/s and 1.9 hPa
+        below 5 km) and gives NaN above a file's top. It takes no
+        ``model_top`` or ``internal_grid``. It has no effect at ``"pressure"``
+        and ``"native"``, which always use the file's levels.
     internal_grid : tuple of (int, float, float, float), optional
         The internal grid a HYSPLIT run used, ``(nlvl, aa, bb, cc)`` as the
         run's ``MESSAGE`` file prints it after ``Internal grid parameters
@@ -475,7 +481,7 @@ def sample_points(
         pass the run's ``model_top`` too. Default None: the grid HYSPLIT 5.4.0
         and later pick for the file and ``model_top`` (HYSPLIT 5.3.x picks a
         different one only for a top below about 1.1 km). arl-met does not
-        read ``MESSAGE``. Applies at heights with a ``model_top``: passing it
+        read ``MESSAGE``. Applies at heights on HYSPLIT's levels: passing it
         otherwise raises.
 
     Returns
@@ -487,8 +493,8 @@ def sample_points(
         is on it, so a projected grid's edge nodes, given by the longitude and
         latitude :meth:`arlmet.Grid.calculate_coords` reports, have values.
         ``result.attrs["arlmet_version"]`` is the arlmet version that sampled.
-        At heights (``z_kind`` ``"agl"`` or ``"msl"``) with a ``model_top``,
-        ``result.attrs["model_top"]`` is the one used [m]; with ``model_top=None``
+        At heights (``z_kind`` ``"agl"`` or ``"msl"``),
+        ``result.attrs["model_top"]`` is the one used [m]; with ``file_levels=True``
         or at pressures it is absent.
 
     Raises
@@ -501,9 +507,15 @@ def sample_points(
         or ``method`` is invalid, a field that ``z_kind`` requires is
         missing, ``z_kind`` is ``"pressure"`` on a terrain-following file
         without ``PRES``,
-        ``model_top`` is passed with ``z_kind`` ``"pressure"`` or
-        ``"native"`` or is not a positive number, or ``internal_grid`` is passed
-        without heights and a ``model_top`` or is not a valid grid.
+        ``model_top`` is not a positive number at heights, ``file_levels`` is
+        combined with ``model_top`` or ``internal_grid`` at heights, or
+        ``internal_grid`` is passed at pressures or native levels or is not a
+        valid grid.
+
+    Warns
+    -----
+    UserWarning
+        If ``model_top`` is passed with ``z_kind`` ``"pressure"`` or ``"native"``.
 
     Examples
     --------
@@ -539,24 +551,32 @@ def sample_points(
         raise ValueError("z_kind must be one of 'native', 'pressure', 'agl', or 'msl'.")
     if method not in get_args(SampleMethod):
         raise ValueError("method must be 'linear' or 'nearest'.")
-    if model_top is not None and model_top is not _DEFAULT_MODEL_TOP:
-        if z_kind not in ("agl", "msl"):
-            raise ValueError(
-                "model_top applies to heights: z_kind must be 'agl' or 'msl'."
+    heights = z_kind in ("agl", "msl")
+    if model_top is not None:
+        if not heights:
+            warnings.warn(
+                "model_top applies to heights: it is ignored at "
+                f"z_kind={z_kind!r}, which has no model top.",
+                stacklevel=2,
             )
-        if not (np.isfinite(model_top) and model_top > 0):
+            model_top = None
+        elif file_levels:
+            raise ValueError("file_levels=True takes no model_top.")
+        elif not (np.isfinite(model_top) and model_top > 0):
             raise ValueError(
                 f"model_top must be a positive number of meters, got {model_top!r}."
             )
     if internal_grid is not None:
-        if z_kind not in ("agl", "msl") or model_top is None:
+        if not heights or file_levels:
             raise ValueError(
-                "internal_grid applies to heights with a model_top: z_kind must be "
-                "'agl' or 'msl' and model_top must not be None."
+                "internal_grid applies to heights on HYSPLIT's internal levels: "
+                "z_kind must be 'agl' or 'msl' and file_levels must be False."
             )
         InternalLevels._from_grid(
             internal_grid, 25000.0
         )  # check it before any file opens
+    if heights and not file_levels and model_top is None:
+        model_top = 25000.0
     names = (variables,) if isinstance(variables, str) else tuple(map(str, variables))
     if not names:
         raise ValueError("variables must include at least one variable name.")
@@ -608,6 +628,6 @@ def sample_points(
     for name, values in columns.items():
         result[name] = values
     result.attrs["arlmet_version"] = __version__
-    if z_kind in ("agl", "msl") and model_top is not None:
+    if model_top is not None:
         result.attrs["model_top"] = float(model_top)
     return result
