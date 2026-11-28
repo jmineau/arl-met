@@ -88,6 +88,11 @@ class _DatasetTimeStep:
         """The vertical axis ``write_dataset`` would write."""
         return self._met.vertical_axis
 
+    @property
+    def variables(self) -> set[str]:
+        """The names of the variables the Dataset holds."""
+        return {name for _, name in self._met._fields}
+
     def _slice(self, key: tuple[int, str]) -> xr.DataArray:
         variable, position = self._met._fields[key]
         if position is None:

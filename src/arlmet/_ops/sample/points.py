@@ -186,6 +186,27 @@ def _check_wind_pairs(variable_names: Sequence[str]) -> list[tuple[str, str]]:
     return pairs
 
 
+def _check_variables(file: Met, time: pd.Timestamp, names: Sequence[str]) -> None:
+    """Raise if the time step at *time* holds none of a variable in *names*, listing those it holds."""
+    recordset = file[ensure_timestamp(time)]
+    absent = [n for n in names if n != "pressure" and not levels_of(recordset, n)]
+    if absent:
+        from arlmet._recordset import RecordSet  # lazy: _recordset imports this module
+        from arlmet._xarray._sampling import (
+            _DatasetTimeStep,
+        )  # lazy: _xarray imports _ops
+
+        if isinstance(recordset, RecordSet):
+            held = {r.variable for r in recordset.records}
+        else:
+            assert isinstance(recordset, _DatasetTimeStep)
+            held = recordset.variables
+        raise ValueError(
+            f"Variable {', '.join(map(repr, absent))} is not in the met at {time}. "
+            f"It holds: {', '.join(sorted(held))}. Check the spelling."
+        )
+
+
 def _map_times(files: Sequence[Met]) -> dict[pd.Timestamp, Met]:
     """Map each valid time to the one input that contains it."""
     time_map: dict[pd.Timestamp, Met] = {}
@@ -502,8 +523,9 @@ def sample_points(
         ``time`` column, no time is given and the inputs hold more than one
         time, a point time is in none of the files, a time is in more than one
         file, a variable name collides with a column of ``points``, ``z_kind``
-        or ``method`` is invalid, a field that ``z_kind`` requires is
-        missing, ``z_kind`` is ``"pressure"`` on a terrain-following file
+        or ``method`` is invalid, a variable is not in a time step the points
+        use (the message lists the variables it holds), a field that
+        ``z_kind`` requires is missing, ``z_kind`` is ``"pressure"`` on a terrain-following file
         without ``PRES``,
         ``model_top`` is not a positive number at heights, ``file_levels`` is
         combined with ``model_top`` or ``internal_grid`` at heights, or
@@ -604,6 +626,10 @@ def sample_points(
                 + _describe_times(sorted(time_map))
                 + "."
             )
+
+        # Before any sampling, so a misspelled name fails at once and says what is there.
+        for point_time in point_times:
+            _check_variables(time_map[ensure_timestamp(point_time)], point_time, names)
 
         columns = {name: np.full(len(coords), np.nan) for name in names}
         for code, point_time in enumerate(point_times):
