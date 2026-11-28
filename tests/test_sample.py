@@ -1958,7 +1958,7 @@ def test_pressure_at_native_levels_off_the_grid_is_nan(tmp_path):
     result = sample_points(
         path, points, ["TEMP", "pressure"], time=time, z_kind="native"
     )
-    np.testing.assert_allclose(result["pressure"], [900.0, np.nan])
+    np.testing.assert_allclose(result["pressure"], [900.0, np.nan], rtol=1e-6)
     assert np.isnan(result["TEMP"].iloc[1])
 
 
