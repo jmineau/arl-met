@@ -228,7 +228,8 @@ def _vertical_coords(
     if z_kind == "native":
         per_level = np.asarray(levels, dtype=float)
     elif z_kind == "agl":
-        per_level = axis.to_height_agl()[levels]
+        # Only a terrain-following file off the internal levels: Z* unscaled.
+        per_level = np.asarray(axis.levels, dtype=float)[levels]
     elif isinstance(axis, TerrainAxis):
         raise ValueError(
             "z_kind='pressure' is not supported for terrain-following (flag=3) vertical axes."

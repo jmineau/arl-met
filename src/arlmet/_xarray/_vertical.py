@@ -16,6 +16,7 @@ from arlmet.vertical import (
     TerrainAxis,
     WrfAxis,
     _hysplit_z_agl,
+    _terrain_following_z_agl,
 )
 
 __all__ = ["pressure", "z_agl", "z_msl"]
@@ -212,8 +213,11 @@ def z_agl(ds: xr.Dataset) -> xr.DataArray:
           adiabatically), and the virtual temperature is ``TEMP (1 + 0.61 q)``
           with ``q`` from ``SPHU``, else ``RELH``, else 0. Requires ``PRSS``
           and ``TEMP`` (or ``THET`` and ``PRES``).
-        - **flag=3**: the stored 1D ``height`` non-dim coord ``(level,)`` —
-          terrain-following levels are heights AGL.
+        - **flag=3**: ``Z* (1 - SHGT / 20000)`` from the stored ``height``
+          coordinate ``Z*``, as HYSPLIT's ``prfter`` and
+          :func:`arlmet.sample_points` put the levels (``ZMDL``, 25000 m at
+          ``sample_points``' default ``model_top``, in place of 20000 on a
+          file whose source is ``RAMS``). Requires ``SHGT``.
         - **flag=5** (WRF): as flag 1 with ``PRES``, as HYSPLIT's ``prfsig``
           does for a WRF file without WRF's hybrid coefficients; the ground
           temperature without ``T02M`` is the first level's brought down
@@ -235,11 +239,22 @@ def z_agl(ds: xr.Dataset) -> xr.DataArray:
         return _hysplit_z_agl_da(ds, vaxis)
 
     if isinstance(vaxis, TerrainAxis):
-        if "height" not in ds.coords:
+        if "height" not in ds.coords or "SHGT" not in ds:
             raise ValueError(
-                "Dataset has no 'height' coordinate and no 'HGTS' variable."
+                "z_agl() for terrain-following (flag=3) files requires the 'height' "
+                "coordinate and 'SHGT' in dataset."
             )
-        return ds.coords["height"]
+        # A RAMS file's ZMDLT is ZMDL: 25000 m at sample_points' default model_top.
+        zmdlt = 25000.0 if ds.attrs.get("source") == "RAMS" else 20000.0
+        shgt = ds["SHGT"]
+        z = _terrain_following_z_agl(ds.coords["height"], shgt, zmdlt)
+        z = z.transpose(*shgt.dims[: -len(ds.arl.grid.dims)], "level", ...)
+        z.attrs = {
+            "units": "m",
+            "long_name": "height above ground level",
+            "standard_name": "height",
+        }
+        return z
 
     raise NotImplementedError(f"z_agl() is not supported for {type(vaxis).__name__}.")
 

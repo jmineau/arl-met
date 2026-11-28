@@ -29,6 +29,7 @@ from arlmet.vertical import (
     WrfAxis,
     _hysplit_virtual_temperature,
     _hysplit_z_agl,
+    _terrain_following_z_agl,
 )
 
 from .fields import levels_of, sample_levels
@@ -375,8 +376,8 @@ class _TerrainColumn(Column):
     @cached_property
     def z_agl(self) -> npt.NDArray[Any]:
         """``Z* (1 - zsfc / ZMDLT)`` [m] at each grid point, as ``prfter`` scales the stored levels."""
-        terrain = np.asarray(self.terrain, dtype=float)
-        z = np.outer(1.0 - terrain / self._zmdlt, self.axis.levels)
+        terrain = np.asarray(self.terrain, dtype=float)[:, None]
+        z = _terrain_following_z_agl(self.axis.levels, terrain, self._zmdlt)
         z[:, 0] = 0.0
         return z
 
