@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=fe24116e"></script>
+    <script src="../_static/documentation_options.js?v=b6dc473e"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev3+ge601182a0" />
+  <meta name="docsearch:version" content="0.1.0b16.dev4+g6aafcd054" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -748,6 +748,12 @@
 <dd><p>Return deduplicated, sorted archive paths covering <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end]</span></code>.</p>
 <p>Each path is relative to the archive root and is the same on every
 mirror, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;hrrr/2024/07/20240718_00-05_hrrr&quot;</span></code>.</p>
+<p>HYSPLIT interpolates between the time steps around each time, so the
+window is widened to whole <a class="reference internal" href="arlmet.archives.Archive.step.html#arlmet.archives.Archive.step" title="arlmet.archives.Archive.step"><code class="xref py py-attr docutils literal notranslate"><span class="pre">step</span></code></a> multiples: down to the time step
+at or before <em>start</em> and up to the one at or after <em>end</em>, as
+<a class="reference internal" href="arlmet.Catalog.covering.html#arlmet.Catalog.covering" title="arlmet.Catalog.covering"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Catalog.covering</span></code></a> does. A window that
+ends after a file’s last time step therefore includes the next file
+(NAM 12 km, 3-hourly, to <code class="docutils literal notranslate"><span class="pre">22:00</span></code> needs the next day’s <code class="docutils literal notranslate"><span class="pre">00:00</span></code>).</p>
 <p>Handles backward trajectories (<code class="docutils literal notranslate"><span class="pre">start</span> <span class="pre">&gt;</span> <span class="pre">end</span></code>) by normalizing to
 chronological order before scanning.</p>
 <dl class="field-list simple">

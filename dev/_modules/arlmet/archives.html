@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=fe24116e"></script>
+    <script src="../../_static/documentation_options.js?v=b6dc473e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev3+ge601182a0" />
+  <meta name="docsearch:version" content="0.1.0b16.dev4+g6aafcd054" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1019,6 +1019,13 @@
 <span class="sd">        Each path is relative to the archive root and is the same on every</span>
 <span class="sd">        mirror, e.g. ``"hrrr/2024/07/20240718_00-05_hrrr"``.</span>
 
+<span class="sd">        HYSPLIT interpolates between the time steps around each time, so the</span>
+<span class="sd">        window is widened to whole :attr:`step` multiples: down to the time step</span>
+<span class="sd">        at or before *start* and up to the one at or after *end*, as</span>
+<span class="sd">        :meth:`Catalog.covering &lt;arlmet.Catalog.covering&gt;` does. A window that</span>
+<span class="sd">        ends after a file's last time step therefore includes the next file</span>
+<span class="sd">        (NAM 12 km, 3-hourly, to ``22:00`` needs the next day's ``00:00``).</span>
+
 <span class="sd">        Handles backward trajectories (``start &gt; end``) by normalizing to</span>
 <span class="sd">        chronological order before scanning.</span>
 
@@ -1041,16 +1048,22 @@
 <span class="sd">        """</span>
         <span class="c1"># Convert to UTC before flooring: a zone offset by half an hour</span>
         <span class="c1"># (India, Newfoundland) has its hours at :30 UTC.</span>
-        <span class="n">t0</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="s2">"h"</span><span class="p">)</span>
-        <span class="n">t1</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">end</span><span class="p">)</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="s2">"h"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">t0</span> <span class="o">&gt;</span> <span class="n">t1</span><span class="p">:</span>
-            <span class="n">t0</span><span class="p">,</span> <span class="n">t1</span> <span class="o">=</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t0</span>
-
-        <span class="k">if</span> <span class="n">t0</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="p">:</span>
+        <span class="n">first</span><span class="p">,</span> <span class="n">last</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">start</span><span class="p">),</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">end</span><span class="p">)])</span>
+        <span class="n">first_hour</span> <span class="o">=</span> <span class="n">first</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="s2">"h"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">first_hour</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> archive begins </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start_date</span><span class="si">:</span><span class="s2">%Y-%m-%d</span><span class="si">}</span><span class="s2">, "</span>
-                <span class="sa">f</span><span class="s2">"but the requested range starts at </span><span class="si">{</span><span class="n">t0</span><span class="si">}</span><span class="s2"> UTC."</span>
+                <span class="sa">f</span><span class="s2">"but the requested range starts at </span><span class="si">{</span><span class="n">first_hour</span><span class="si">}</span><span class="s2"> UTC."</span>
             <span class="p">)</span>
+
+        <span class="c1"># Time steps fall on whole multiples of the step from 00 UTC. The window</span>
+        <span class="c1"># needs the one at or before its start and the one at or after its end</span>
+        <span class="c1"># (the end's exact time, not its hour: 05:30 needs 06:00).</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span>
+        <span class="n">midnight</span> <span class="o">=</span> <span class="n">first</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">midnight</span> <span class="o">+</span> <span class="p">((</span><span class="n">first</span> <span class="o">-</span> <span class="n">midnight</span><span class="p">)</span> <span class="o">//</span> <span class="n">step</span><span class="p">)</span> <span class="o">*</span> <span class="n">step</span>
+        <span class="n">midnight</span> <span class="o">=</span> <span class="n">last</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+        <span class="n">t1</span> <span class="o">=</span> <span class="n">midnight</span> <span class="o">-</span> <span class="p">((</span><span class="n">midnight</span> <span class="o">-</span> <span class="n">last</span><span class="p">)</span> <span class="o">//</span> <span class="n">step</span><span class="p">)</span> <span class="o">*</span> <span class="n">step</span>
 
         <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
         <span class="n">paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1079,6 +1092,10 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Download ARL files covering ``[start, end]`` to *dest_dir*.</span>
+
+<span class="sd">        The files are those of :meth:`paths_for_range`: the window is widened</span>
+<span class="sd">        to the time step at or before *start* and the one at or after *end*, so</span>
+<span class="sd">        a window ending after a file's last time step includes the next file.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>

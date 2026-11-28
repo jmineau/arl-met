@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=fe24116e"></script>
+    <script src="../../_static/documentation_options.js?v=b6dc473e"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev3+ge601182a0" />
+  <meta name="docsearch:version" content="0.1.0b16.dev4+g6aafcd054" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -1020,9 +1020,7 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_needed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Return the valid times a window needs: every step from the one at or before *start* to the one at or after *end*."""</span>
-        <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">start</span><span class="p">),</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;</span> <span class="n">end</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"start </span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2"> is after end </span><span class="si">{</span><span class="n">end</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">start</span><span class="p">),</span> <span class="n">ensure_timestamp</span><span class="p">(</span><span class="n">end</span><span class="p">)])</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_times</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No usable ARL file in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
         <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span>
@@ -1046,8 +1044,10 @@
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        start, end : datetime-like</span>
-<span class="sd">            The window, earlier time first. A time without a time zone is UTC;</span>
-<span class="sd">            a time-zone-aware one is converted to UTC.</span>
+<span class="sd">            The window, in either order (a backward run has *start* after</span>
+<span class="sd">            *end*, as in :meth:`Archive.fetch &lt;arlmet.archives.Archive.fetch&gt;`).</span>
+<span class="sd">            A time without a time zone is UTC; a time-zone-aware one is</span>
+<span class="sd">            converted to UTC.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1057,7 +1057,7 @@
 <span class="sd">        Raises</span>
 <span class="sd">        ------</span>
 <span class="sd">        ValueError</span>
-<span class="sd">            If *start* is after *end*, or no file in the directory is usable.</span>
+<span class="sd">            If no file in the directory is usable.</span>
 
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
@@ -1080,8 +1080,10 @@
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        start, end : datetime-like</span>
-<span class="sd">            The window, earlier time first. A time without a time zone is UTC;</span>
-<span class="sd">            a time-zone-aware one is converted to UTC.</span>
+<span class="sd">            The window, in either order (a backward run has *start* after</span>
+<span class="sd">            *end*, as in :meth:`Archive.fetch &lt;arlmet.archives.Archive.fetch&gt;`).</span>
+<span class="sd">            A time without a time zone is UTC; a time-zone-aware one is</span>
+<span class="sd">            converted to UTC.</span>
 <span class="sd">        missing_ok : bool, default False</span>
 <span class="sd">            Return the files for the times that are held, without raising</span>
 <span class="sd">            when some are in no file. :meth:`missing` lists the rest, so you</span>
@@ -1096,8 +1098,7 @@
 <span class="sd">        ValueError</span>
 <span class="sd">            If a valid time the window needs is in no file (the message lists</span>
 <span class="sd">            them) and *missing_ok* is false, if two files hold one of them</span>
-<span class="sd">            (the message names both), if *start* is after *end*, or if no</span>
-<span class="sd">            file is usable.</span>
+<span class="sd">            (the message names both), or if no file is usable.</span>
 
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
