@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=a5e89da6"></script>
+    <script src="../../_static/documentation_options.js?v=cafeaa6f"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev7+gc06fa2c6c" />
+  <meta name="docsearch:version" content="0.1.0b16.dev8+ga896c3b00" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -456,7 +456,6 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._indexrecord</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._recordset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordSet</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._time</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_timestamp</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.collection</span><span class="w"> </span><span class="kn">import</span> <span class="n">VariableAccessor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span><span class="p">,</span> <span class="n">_corrects</span><span class="p">,</span> <span class="n">_is_missing</span><span class="p">,</span> <span class="n">_require_mode</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">_DEFAULT_MODEL_TOP</span><span class="p">,</span> <span class="n">VerticalAxis</span>
 
@@ -528,8 +527,6 @@
 <span class="sd">        Active file mode.</span>
 <span class="sd">    times : list[pandas.Timestamp]</span>
 <span class="sd">        Sorted valid times discovered in the file.</span>
-<span class="sd">    variables : VariableAccessor</span>
-<span class="sd">        Lazy accessor for variable-wise views inherited from RecordCollection.</span>
 
 <span class="sd">    Methods</span>
 <span class="sd">    -------</span>
@@ -601,7 +598,6 @@
         <span class="c1"># byte position, bytes in the time step). HYSPLIT finds a time step by</span>
         <span class="c1"># its position, so check() and concat need this order, not ``times``.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">variables</span> <span class="o">=</span> <span class="n">VariableAccessor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
         <span class="c1"># Scan the file to populate recordsets in read mode</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">!=</span> <span class="s2">"w"</span><span class="p">:</span>

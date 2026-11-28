@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=a5e89da6"></script>
+    <script src="_static/documentation_options.js?v=cafeaa6f"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -62,7 +62,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev7+gc06fa2c6c" />
+  <meta name="docsearch:version" content="0.1.0b16.dev8+ga896c3b00" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -652,7 +652,6 @@ the compiled <code class="docutils literal notranslate"><span class="pre">prfsig
   _recordset.py  RecordSet: the records of one valid time
   record.py      DataRecord (one packed 2D field); public home of Header,
                  IndexRecord, LvlInfo, VarInfo
-  collection.py  RecordCollection protocol, VariableView, VariableAccessor
   _header.py     Header: the 50-byte record header codec, grid letter helpers
   _indexrecord.py IndexRecord, VarInfo, LvlInfo: the index record codec
   _grid.py       Projection, Grid, GridWindow: horizontal geometry only
@@ -698,9 +697,8 @@ packing      → _pack (C extension), _grid
 _header      → _time, _exceptions, _grid
 _indexrecord → _time, _exceptions, _grid, _header, vertical
 record       → _exceptions, _grid, _header, _indexrecord, packing, vertical
-collection   → _grid, record, vertical
-_recordset   → collection, _grid, _header, _indexrecord, record, vertical
-_file        → _time, collection, _exceptions, _grid, _header, _indexrecord,
+_recordset   → _grid, _header, _indexrecord, record, vertical
+_file        → _time, _exceptions, _grid, _header, _indexrecord,
                record, _recordset, vertical;
                lazy: _ops.sample, _ops.subset, _xarray.dataset
 _probe       → _exceptions, _grid, _header, _indexrecord
