@@ -58,6 +58,11 @@ Vertical coordinate flags
    * - 5
      - WRF hybrid sigma-pressure
 
+A Dataset names the coordinate on ``level`` after the flag: ``sigma``,
+``pressure``, ``height``, ``hybrid`` or ``eta`` (flags 1 to 5). A ``hybrid``
+value is the pressure offset in hPa (its whole part) plus sigma (its fraction),
+as HYSPLIT stores it, so ``159.42`` is an offset of 159 hPa and a sigma of 0.42.
+
 Pressure
 --------
 

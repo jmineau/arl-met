@@ -34,13 +34,26 @@ PROJECTION_ATTRS = (
     "sync_lon",
 )
 
-# (coord_name, CF standard_name, units) by vertical flag
-_PHYS_COORD: dict[int, tuple[str, str, str]] = {
-    1: ("sigma", "atmosphere_sigma_coordinate", "1"),
-    2: ("pressure", "air_pressure", "hPa"),
-    3: ("height", "height", "m"),
-    4: ("sigma", "atmosphere_hybrid_sigma_pressure_coordinate", "1"),
-    5: ("eta", "atmosphere_hybrid_sigma_pressure_coordinate", "1"),
+# (coord_name, attrs) by vertical flag. A flag-4 level stores the offset in hPa
+# plus the sigma (HYSPLIT's ``4:hybrid``), which no CF coordinate describes.
+_PHYS_COORD: dict[int, tuple[str, dict[str, str]]] = {
+    1: ("sigma", {"standard_name": "atmosphere_sigma_coordinate", "units": "1"}),
+    2: ("pressure", {"standard_name": "air_pressure", "units": "hPa"}),
+    3: ("height", {"standard_name": "height", "units": "m"}),
+    4: (
+        "hybrid",
+        {
+            "description": "hybrid level: the whole part is the pressure offset "
+            "in hPa and the fraction is sigma"
+        },
+    ),
+    5: (
+        "eta",
+        {
+            "standard_name": "atmosphere_hybrid_sigma_pressure_coordinate",
+            "units": "1",
+        },
+    ),
 }
 
 
@@ -114,13 +127,12 @@ def physical_coord_for_vaxis(
         raise NotImplementedError(
             f"Physical coordinate for vertical_flag={vaxis.flag} is not implemented."
         )
-    coord_name, standard_name, units = _PHYS_COORD[vaxis.flag]
+    coord_name, coord_attrs = _PHYS_COORD[vaxis.flag]
     all_levels = vaxis.levels
     surface_val = float(all_levels[0])
     values = np.asarray([all_levels[i] for i in level_indices], dtype=float)
     attrs: dict[str, Any] = {
-        "standard_name": standard_name,
-        "units": units,
+        **coord_attrs,
         "surface": surface_val,
         "offset": vaxis.offset,
     }
@@ -194,7 +206,7 @@ def _check_vertical_axis_agrees(ds: xr.Dataset, axis: VerticalAxis) -> None:
     Raise if *axis* disagrees with the physical coordinate the Dataset carries.
 
     ``open_dataset`` gives the ``level`` dimension a physical coordinate
-    (``pressure``, ``sigma``, ``height`` or ``eta``, with the surface value in
+    (``pressure``, ``sigma``, ``height``, ``hybrid`` or ``eta``, with the surface value in
     ``attrs["surface"]``). The axis written to the file must be the one that
     coordinate describes: otherwise the data is labeled with other levels. A
     Dataset with no such coordinate has nothing to disagree with.

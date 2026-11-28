@@ -392,8 +392,8 @@ def write_dataset(
         Vertical axis to write. By default it is rebuilt from the Dataset's
         ``level`` coordinates. Required for surface-only Datasets; otherwise it
         must have one level per ``level`` coordinate value plus the surface,
-        and agree with the Dataset's ``pressure``, ``sigma``, ``height`` or
-        ``eta`` coordinate when it has one.
+        and agree with the Dataset's ``pressure``, ``sigma``, ``height``,
+        ``hybrid`` or ``eta`` coordinate when it has one.
 
     Returns
     -------
