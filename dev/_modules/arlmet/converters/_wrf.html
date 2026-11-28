@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=69f17f97"></script>
+    <script src="../../../_static/documentation_options.js?v=a5e89da6"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev6+g218345464" />
+  <meta name="docsearch:version" content="0.1.0b16.dev7+gc06fa2c6c" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -592,10 +592,12 @@
         <span class="n">xtime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">"XTIME"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">xtime</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">xtime</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">start</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"START_DATE"</span><span class="p">)</span>
+    <span class="c1"># A restart segment's START_DATE is its own start; XTIME counts from the run's.</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"SIMULATION_START_DATE"</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"START_DATE"</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">"The WRF Dataset has neither a numeric 'XTIME' nor 'START_DATE'."</span>
+            <span class="s2">"The WRF Dataset has neither a numeric 'XTIME' nor 'SIMULATION_START_DATE' "</span>
+            <span class="s2">"or 'START_DATE'."</span>
         <span class="p">)</span>
     <span class="n">offset</span> <span class="o">=</span> <span class="n">times</span> <span class="o">-</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">start</span><span class="p">),</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">_%H:%M:%S"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">offset</span> <span class="o">/</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
@@ -648,7 +650,9 @@
 <span class="sd">    (flag 5). The precipitation of a time step is what fell since the one</span>
 <span class="sd">    before, scaled to one hour. The first time step has none: it is 0 where</span>
 <span class="sd">    the run starts (``XTIME`` 0) and missing otherwise, so join every file of a</span>
-<span class="sd">    run before converting.</span>
+<span class="sd">    run before converting. Where xarray has decoded ``XTIME`` to dates, the</span>
+<span class="sd">    hours count from ``SIMULATION_START_DATE`` (the run's start, which a</span>
+<span class="sd">    restart segment keeps) and else from ``START_DATE``.</span>
 
 <span class="sd">    With ``winds="averaged"`` (a run with ``do_avgflx_em = 1``), ``UWND``,</span>
 <span class="sd">    ``VWND`` and ``WWND`` are WRF's ``AVGFLX_RUM``, ``AVGFLX_RVM`` and</span>
