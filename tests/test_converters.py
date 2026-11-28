@@ -390,6 +390,13 @@ class TestFromEra5ModelLevels:
             axis.levels[1:], _hybrid_levels([137, 130, 120, 100]), atol=5e-3
         )
         assert axis.levels[0] == 1.0
+        # The values are offset plus sigma, so no sigma name, units or CF name (#311).
+        hybrid = ds["hybrid"]
+        assert "sigma" not in ds.coords
+        assert hybrid.values.tolist() == axis.levels[1:].tolist()
+        assert "units" not in hybrid.attrs
+        assert "standard_name" not in hybrid.attrs
+        assert "offset in hPa" in hybrid.attrs["description"]
         assert set(ds.data_vars) == {
             "TEMP", "UWND", "VWND", "WWND", "SPHU",
             "PRSS", "SHGT", "T02M", "DP2M", "U10M", "V10M", "PBLH",

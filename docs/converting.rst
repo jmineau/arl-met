@@ -215,7 +215,8 @@ A made-up Dataset on five model levels stands in for the download here:
 
 Each ARL hybrid level is one number, as HYSPLIT's ``api2arl`` writes it: a
 pressure offset in whole hPa plus a sigma, so that the level's pressure is
-``offset + sigma * surface pressure`` (model level 120 is ``29.881``). Three
+``offset + sigma * surface pressure`` (model level 120 is ``29.881``). The
+Dataset's ``hybrid`` coordinate holds those numbers. Three
 limits of that format decide which levels can be written:
 
 - The offsets of the levels above about model level 24 (near 5 hPa) round to
