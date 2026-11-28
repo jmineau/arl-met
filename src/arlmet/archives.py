@@ -579,7 +579,7 @@ class Archive(ABC):
         HYSPLIT interpolates between the time steps around each time, so the
         window is widened to whole :attr:`step` multiples: down to the time step
         at or before *start* and up to the one at or after *end*, as
-        :meth:`Catalog.covering <arlmet.Catalog.covering>` does. A window that
+        :meth:`~arlmet.Catalog.covering` does. A window that
         ends after a file's last time step therefore includes the next file
         (NAM 12 km, 3-hourly, to ``22:00`` needs the next day's ``00:00``).
 
@@ -646,10 +646,6 @@ class Archive(ABC):
     ) -> list[Path]:
         """
         Download ARL files covering ``[start, end]`` to *dest_dir*.
-
-        The files are those of :meth:`paths_for_range`: the window is widened
-        to the time step at or before *start* and the one at or after *end*, so
-        a window ending after a file's last time step includes the next file.
 
         Parameters
         ----------
