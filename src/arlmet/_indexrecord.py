@@ -33,6 +33,31 @@ def _derive_index_forecast(
     return nonnegative_forecasts[0] if nonnegative_forecasts else -1
 
 
+def _index_bytes(entries_per_level: Iterable[int]) -> int:
+    """Bytes of an index record, its header included, with this many entries at each level."""
+    # Each level is a 6-byte height and a 2-byte count; each entry is 8 bytes
+    # (see IndexRecord._serialize_extended).
+    return (
+        Header.N_BYTES
+        + IndexRecord.N_BYTES_FIXED
+        + sum(8 + 8 * n for n in entries_per_level)
+    )
+
+
+def _check_index_fits(
+    index_bytes: int, record_length: int, *, nx: int, ny: int
+) -> None:
+    """Raise if an index record of *index_bytes* does not fit a record of *record_length* bytes (an *nx* by *ny* grid's)."""
+    if index_bytes > record_length:
+        raise ValueError(
+            "The grid is too small to encode an ARL index record: it needs "
+            f"{index_bytes} bytes, but each record is only {record_length} bytes "
+            f"for grid {nx}x{ny}. The grid must have at least "
+            f"{index_bytes - Header.N_BYTES} cells (nx*ny). Use a larger bbox, "
+            "or fewer levels or variables."
+        )
+
+
 @dataclass
 class VarInfo:
     """Checksum and reserved-byte metadata for one variable within an index record."""
@@ -162,7 +187,9 @@ class IndexRecord:
     Raises
     ------
     ValueError
-        If ``header.grid`` does not carry the thousands of ``nx``/``ny``.
+        If ``header.grid`` does not carry the thousands of ``nx``/``ny``, or
+        :meth:`to_record_bytes` is given a record too short for the index
+        record (a grid too small for its levels and variables).
 
     Examples
     --------
@@ -341,10 +368,7 @@ class IndexRecord:
     def to_record_bytes(self, record_length: int) -> bytes:
         """Serialize the index record padded to one full ARL record."""
         raw = self.tobytes()
-        if len(raw) > record_length:
-            raise ValueError(
-                f"Index record uses {len(raw)} bytes, which exceeds record length {record_length}."
-            )
+        _check_index_fits(len(raw), record_length, nx=self.nx, ny=self.ny)
         return raw.ljust(record_length, b" ")
 
     @staticmethod

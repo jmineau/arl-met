@@ -15,7 +15,8 @@ import xarray as xr
 from xarray.core import indexing
 
 from arlmet._grid import Grid
-from arlmet._header import check_level_count, check_year
+from arlmet._header import check_level_count, check_year, record_length_from_grid
+from arlmet._indexrecord import _check_index_fits, _index_bytes
 from arlmet._io import atomic_output, reject_same_file
 from arlmet._ops.sample.fields import mass_coupled
 from arlmet._ops.subset import normalize_levels, resolve_window, select_records
@@ -424,8 +425,10 @@ def write_dataset(
         99 levels above the surface (a record's header numbers its level in
         two characters), a slice is partly NaN
         or non-finite, an ``attrs["diff"]`` name
-        is not one the name table pairs with its variable, or
-        ``filename_or_obj`` is the file ``ds`` was opened from.
+        is not one the name table pairs with its variable, the grid is too
+        small for the file's index record (a larger bbox, or fewer levels or
+        variables, fits it), or ``filename_or_obj`` is the file ``ds`` was
+        opened from.
 
     Notes
     -----
@@ -585,6 +588,19 @@ def write_dataset(
         occupied[var_name] = [
             slot for slot, keep in zip(slots, has_data, strict=True) if keep
         ]
+
+    # Every time step has the same records, so one index record size fits all.
+    # Checked before the file is opened and the first time step is packed.
+    entries = [0] * len(resolved_vertical_axis.levels)
+    for var_name, slots in occupied.items():
+        for _, level_index in slots:
+            entries[level_index] += 2 if var_name in diff_names else 1
+    _check_index_fits(
+        _index_bytes(entries),
+        record_length_from_grid(grid),
+        nx=grid.nx,
+        ny=grid.ny,
+    )
 
     with (
         atomic_output(filename_or_obj) as tmp_path,

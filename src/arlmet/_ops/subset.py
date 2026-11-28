@@ -222,16 +222,7 @@ def validate_subset_record_length(
             selected_records=selected_records,
             entries=_source_index_entries(selected_records, level_map),
         )
-        index_len = len(index.tobytes())
-        if index_len > record_len:
-            min_cells = index_len - Header.N_BYTES
-            raise ValueError(
-                "Subset grid is too small to encode an ARL index record: "
-                f"time {recordset.time} needs {index_len} bytes, but each record is "
-                f"only {record_len} bytes for grid {subset_grid.nx}x{subset_grid.ny}. "
-                f"The bbox must yield at least {min_cells} grid cells (nx*ny). "
-                "Expand the bbox or reduce levels/variables."
-            )
+        index.to_record_bytes(record_len)
 
 
 # Byte offsets of the level field in a record header (see Header.FIELDS).

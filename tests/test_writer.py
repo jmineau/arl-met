@@ -9,6 +9,7 @@ from xarray.core import indexing
 import arlmet
 from arlmet import File, open_dataset, write_dataset
 from arlmet._grid import Grid, Projection
+from arlmet._indexrecord import _index_bytes
 from arlmet._xarray._coords import _extract_dataset_vertical_axis
 from arlmet.packing import pack, unpack
 from arlmet.record import IndexRecord
@@ -281,6 +282,15 @@ class TestWriter:
         )
         np.testing.assert_allclose(reopened["PRSS"].values, ds["PRSS"].values)
         np.testing.assert_allclose(reopened["TEMP"].values, ds["TEMP"].values)
+
+    def test_the_index_record_size_is_known_before_writing(self, tmp_path):
+        path = tmp_path / "source.arl"
+        self.write_sample_file(path)
+        with File(path) as arl:
+            index = IndexRecord.from_position(arl.handle, 0)
+        entries = [len(level.variables) for level in index.levels]
+
+        assert _index_bytes(entries) == len(index.tobytes())
 
     def test_write_dataset_keeps_an_existing_file_unless_overwrite(self, tmp_path):
         source_path = tmp_path / "source.arl"
