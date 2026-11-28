@@ -320,7 +320,8 @@ def open_dataset(
     from arlmet._file import File
 
     with File(filename_or_obj) as met:
-        ds = met.to_dataset(
+        ds = _build_dataset_from_file(
+            met,
             drop_variables=drop_variables,
             bbox=bbox,
             bbox_crs=bbox_crs,

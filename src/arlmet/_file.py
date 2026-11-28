@@ -5,11 +5,11 @@ from __future__ import annotations
 import os
 import warnings
 from collections import OrderedDict
-from collections.abc import Iterable, Iterator, Mapping, Sequence
+from collections.abc import Iterator, Sequence
 from itertools import pairwise
 from pathlib import Path
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, BinaryIO, Literal, Self, cast
+from typing import Any, BinaryIO, Literal, Self, cast
 
 import numpy.typing as npt
 import pandas as pd
@@ -18,16 +18,13 @@ from xarray.backends import CachingFileManager
 from xarray.backends.locks import SerializableLock
 
 from arlmet._exceptions import ARLFormatError, ARLFormatWarning
-from arlmet._grid import Grid, Projection
+from arlmet._grid import Grid
 from arlmet._header import check_level_count, check_year, record_length_from_grid
 from arlmet._indexrecord import IndexRecord
 from arlmet._recordset import RecordSet
 from arlmet._time import ensure_timestamp
 from arlmet.record import DataRecord, _corrects, _is_missing, _require_mode
-from arlmet.vertical import _DEFAULT_MODEL_TOP, VerticalAxis
-
-if TYPE_CHECKING:
-    import xarray as xr
+from arlmet.vertical import VerticalAxis
 
 __all__ = ["File"]
 
@@ -100,20 +97,12 @@ class File:
         in ``times`` (int).
     __iter__()
         Iterate over valid times in ``times`` order (sorted).
-    create_grid(...)
-        Build and attach a Grid when writing a new file.
     create_recordset(time, *, forecast=None)
         Create a writable RecordSet for one valid time.
     add_record(time, variable, level, *, forecast, data=None, diff=None)
         Add one writable DataRecord, creating its RecordSet if needed.
     flush()
         Write pending record sets to disk and release their in-memory data.
-    sample_points(points, variables, ...)
-        Interpolate fields at arbitrary lon/lat/z sample points.
-    extract_subset(dest, ...)
-        Write a spatial/vertical subset to a new ARL file and return its path.
-    to_dataset(...)
-        Project the file into the simplified analysis xarray Dataset.
     close()
         Flush pending writes and release the file handle.
 
@@ -257,78 +246,6 @@ class File:
     def record_length(self) -> int:
         """Length in bytes of each record in the file, from the grid."""
         return record_length_from_grid(self.grid)
-
-    def create_grid(
-        self,
-        nx: int,
-        ny: int,
-        *,
-        pole_lat: float,
-        pole_lon: float,
-        tangent_lat: float,
-        tangent_lon: float,
-        grid_size: float,
-        orientation: float,
-        cone_angle: float,
-        sync_x: float,
-        sync_y: float,
-        sync_lat: float,
-        sync_lon: float,
-    ) -> Grid:
-        """
-        Create and attach the horizontal grid metadata for a writable file.
-
-        Parameters
-        ----------
-        nx : int
-            Number of grid points in the x direction.
-        ny : int
-            Number of grid points in the y direction.
-        pole_lat, pole_lon : float
-            Projection pole definition from the ARL index record.
-        tangent_lat, tangent_lon : float
-            Reference latitude and longitude that define the projection.
-        grid_size : float
-            Grid spacing in kilometers at the projection reference point.
-        orientation : float
-            Rotation of the grid y-axis relative to true north.
-        cone_angle : float
-            Projection cone angle used for stereographic, Lambert, or
-            Mercator grids.
-        sync_x, sync_y : float
-            One-based grid coordinates of the synchronization point.
-        sync_lat, sync_lon : float
-            Geographic coordinates of the synchronization point.
-
-        Returns
-        -------
-        Grid
-            The created grid instance, also stored on the file.
-        """
-        _require_mode(self, "w")
-        if self._grid is not None:
-            raise ValueError("Grid has already been set for this File.")
-
-        # Build projection
-        proj = Projection(
-            pole_lat=pole_lat,
-            pole_lon=pole_lon,
-            tangent_lat=tangent_lat,
-            tangent_lon=tangent_lon,
-            grid_size=grid_size,
-            orientation=orientation,
-            cone_angle=cone_angle,
-            sync_x=sync_x,
-            sync_y=sync_y,
-            sync_lat=sync_lat,
-            sync_lon=sync_lon,
-        )
-
-        # Create grid
-        grid = Grid(projection=proj, nx=nx, ny=ny)
-
-        self._grid = grid
-        return grid
 
     def _create_recordset(
         self,
@@ -836,260 +753,6 @@ class File:
             # Any mmap objects created from it become invalid and are GC'd automatically.
             self._manager.close()
             self._handle = None
-
-    def sample_points(
-        self,
-        points: pd.DataFrame | Mapping[str, Any],
-        variables: str | Iterable[str],
-        *,
-        time: pd.Timestamp | str | None = None,
-        z_kind: Literal["native", "pressure", "agl", "msl"] = "pressure",
-        method: Literal["linear", "nearest"] = "linear",
-        earth_relative: bool = False,
-        model_top: float | None = _DEFAULT_MODEL_TOP,
-        internal_grid: tuple[int, float, float, float] | None = None,
-    ) -> pd.DataFrame:
-        """
-        Sample fields from this file at arbitrary lon/lat/z points.
-
-        Equivalent to :func:`arlmet.sample_points` with this file as the only
-        input.
-
-        Parameters
-        ----------
-        points : pandas.DataFrame or mapping
-            Table-like object with ``lon``, ``lat`` (degrees), and ``z``
-            columns, and optionally a ``time`` column. Any other columns are
-            carried through to the result unchanged.
-        variables : str or iterable of str
-            One or more ARL field names (e.g. ``"TEMP"``, ``"UWND"``), or
-            ``"pressure"`` for the virtual pressure variable. A name must not
-            collide with an existing column of ``points``. On a WRF file with
-            mass-coupled winds (``MUU0``, ``MUV0``) ``UWND``, ``VWND`` and ``WWND``
-            are decoupled as HYSPLIT does (``UWND * MSFU / MUU0``, ...), and on a
-            file with ``THET`` but no ``TEMP``, ``TEMP`` is ``THET * (PRES / 1000)
-            ** 0.286``.
-        time : pandas.Timestamp or str, optional
-            One valid time for every point, used when ``points`` has no
-            ``time`` column. Passing both raises ``ValueError``. When neither
-            is given, the file must contain exactly one time, which is used.
-            A time must be one of the file's valid times (no interpolation
-            in time).
-        z_kind : {"pressure", "native", "agl", "msl"}, default "pressure"
-            Vertical coordinate system of the ``z`` values:
-
-            - ``"native"``: fractional ARL level index.
-            - ``"pressure"``: hPa, interpolated as ``ln p`` from the ground
-              (``PRSS``, required) up; a point below the ground is NaN, and
-              levels at or below the ground are left out. Sigma files use the
-              ``PRES`` field when they have it, else the levels' pressure from
-              ``PRSS``, as hybrid files (flag 4) do; pressure files (flag 2)
-              use the stored levels; terrain-following files (flag 3) raise
-              ``ValueError``; WRF files (flag 5) use the ``PRES`` field.
-            - ``"agl"``: meters above ground level. Sigma/hybrid/WRF files
-              integrate hypsometrically from the ground (``PRSS``, ``T02M``)
-              through each level's pressure (``PRES`` on WRF files) with the
-              virtual temperature (``TEMP`` with ``SPHU`` or ``RELH``), as
-              HYSPLIT's ``prfsig`` and ``prfecm`` do; pressure files use
-              ``HGTS - SHGT`` from the ground up; terrain-following files
-              scale the stored levels as HYSPLIT's ``prfter`` does (with
-              ``model_top=None``, the stored levels as they are).
-            - ``"msl"``: meters above mean sea level, taken as the height
-              above the ground at the point (less ``SHGT`` there), then as
-              ``"agl"``. Every file needs ``SHGT``.
-
-            Each vertical coordinate system has exactly one method, as in
-            HYSPLIT; there is no fallback between them. At heights and
-            pressures level 0 is the ground (at native levels too, on sigma,
-            hybrid and WRF files): a point between it and the first level is
-            interpolated from the ground values (``PRSS`` for ``PRES``,
-            ``T02M`` for ``TEMP``, ``U10M``/``V10M`` for winds), and pressure
-            is interpolated as ``ln p``, as HYSPLIT does. Where the first level
-            is below the ground (its ``PRES`` above ``PRSS``) the ground values
-            are passed over at heights, as in HYSPLIT, and that level is left
-            out at pressures. On a pressure-level file the virtual
-            ``"pressure"`` at native levels is ``PRSS`` at level 0 (which the
-            file stores as 0 hPa), and ``PRSS`` is required. The *Vertical
-            Coordinates* guide has the details.
-        method : {"linear", "nearest"}, default "linear"
-            Horizontal interpolation: bilinear or nearest grid point. At
-            heights (``"agl"``, ``"msl"``), as in HYSPLIT, the column at each
-            of the four grid points around a point is interpolated to the
-            point's ``z`` first, with that grid point's own ground and level
-            heights, and the four values are then blended; a grid point whose
-            column ends below ``z`` does not count, and the others are
-            reweighted. At pressures and native levels each level is blended
-            first, as before. On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are
-            read where WRF's staggered grid holds them, half a cell east and
-            north of each point, as HYSPLIT reads them; "nearest" gives the
-            winds at the nearest cell's center. The *Sampling* guide has the
-            details.
-        earth_relative : bool, default False
-            Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``)
-            from the grid axes to east/north. Winds in ARL files on projected
-            grids are stored grid-relative, as HYSPLIT expects. Both components
-            of a pair must be requested. No effect on lat/lon grids.
-        model_top : float or None, default 25000
-            The HYSPLIT run's top of model domain [m] (the ``CONTROL`` file's,
-            PYSTILT's ``z_top``). At heights the values are the ones a HYSPLIT
-            run with that top uses, on its internal levels; the default is
-            PYSTILT's default top. ``None`` reads each grid point's column at
-            the point's own height instead, which is not HYSPLIT's value. See
-            :func:`arlmet.sample_points`.
-        internal_grid : tuple of (int, float, float, float), optional
-            The run's own internal grid ``(nlvl, aa, bb, cc)``, as its
-            ``MESSAGE`` file prints it, used as it is instead of the grid
-            arl-met would pick. See :func:`arlmet.sample_points`.
-
-        Returns
-        -------
-        pandas.DataFrame
-            Copy of ``points`` (all columns and the index preserved) with one
-            added column per requested variable. Points outside the grid or
-            the vertical range are NaN.
-
-        Raises
-        ------
-        ValueError
-            If a required column is missing, ``time`` is given alongside a
-            ``time`` column, no time is given for a multi-time file, a point
-            time is not in the file, a variable name collides with a column
-            of ``points``, ``z_kind`` or ``method`` is invalid, a field
-            that ``z_kind`` requires is missing, or ``model_top`` is passed
-            with ``z_kind`` ``"pressure"`` or ``"native"`` or is not a
-            positive number.
-
-        Examples
-        --------
-        >>> import pandas as pd
-        >>> import arlmet
-        >>> pts = pd.DataFrame({"lon": [-111.9], "lat": [40.7], "z": [850.0]})
-        >>> with arlmet.File("met.arl") as met:
-        ...     out = met.sample_points(pts, ["UWND", "VWND"], time="2024-07-18 00:00")
-        >>> out.round(1)
-             lon   lat      z  UWND  VWND
-        0 -111.9  40.7  850.0   6.2  -3.8
-        """
-        # Delayed import: ops sit on top of file, so file's use of the sampling
-        # op is lazy to avoid a file <-> ops import cycle (see File.extract_subset).
-        from arlmet._ops.sample import sample_points
-
-        return sample_points(
-            self,
-            points,
-            variables,
-            time=time,
-            z_kind=z_kind,
-            method=method,
-            earth_relative=earth_relative,
-            model_top=model_top,
-            internal_grid=internal_grid,
-        )
-
-    def to_dataset(
-        self,
-        *,
-        drop_variables: str | Iterable[str] | None = None,
-        bbox: tuple[float, float, float, float] | None = None,
-        bbox_crs: Any = None,
-        levels: Iterable[int] | None = None,
-    ) -> xr.Dataset:
-        """
-        Project this file into the simplified analysis Dataset representation.
-
-        Parameters
-        ----------
-        drop_variables : str or iterable of str, optional
-            Variable name(s) to omit.
-        bbox : tuple[float, float, float, float], optional
-            Geographic bounding box ``(west, south, east, north)`` in degrees.
-            On a projected grid the crop is the smallest rectangle of cells
-            that holds the box's part on the grid (:meth:`arlmet.Grid.window_from_bbox`).
-        bbox_crs : pyproj.CRS or str, optional
-            The coordinate reference system ``bbox`` is in (``"EPSG:32612"``,
-            anything :meth:`pyproj.CRS.from_user_input` takes), making the box
-            ``(xmin, ymin, xmax, ymax)`` in its units; the default is degrees
-            (:meth:`arlmet.Grid.window_from_bbox`).
-        levels : iterable of int, optional
-            ARL level indices to keep.
-
-        Returns
-        -------
-        xarray.Dataset
-            See :func:`arlmet.open_dataset` for the layout.
-        """
-        from arlmet._xarray.dataset import _build_dataset_from_file
-
-        return _build_dataset_from_file(
-            self,
-            drop_variables=drop_variables,
-            bbox=bbox,
-            bbox_crs=bbox_crs,
-            levels=levels,
-        )
-
-    def extract_subset(
-        self,
-        dest: str | os.PathLike[str],
-        *,
-        bbox: tuple[float, float, float, float] | None = None,
-        bbox_crs: Any = None,
-        levels: Iterable[int] | None = None,
-        variables: str | Iterable[str] | None = None,
-        overwrite: bool = True,
-    ) -> Path:
-        """
-        Write a spatial/vertical subset of this file to a new ARL file.
-
-        Equivalent to :func:`arlmet.extract_subset` with this file's path as
-        the input.
-
-        Parameters
-        ----------
-        dest : path-like
-            Output ARL file. Must not be this file.
-        bbox : tuple[float, float, float, float], optional
-            Geographic bounding box ``(west, south, east, north)`` in degrees.
-            On a projected grid the crop is the smallest rectangle of cells
-            that holds the box's part on the grid (:meth:`arlmet.Grid.window_from_bbox`).
-        bbox_crs : pyproj.CRS or str, optional
-            The coordinate reference system ``bbox`` is in (``"EPSG:32612"``,
-            anything :meth:`pyproj.CRS.from_user_input` takes), making the box
-            ``(xmin, ymin, xmax, ymax)`` in its units; the default is degrees
-            (:meth:`arlmet.Grid.window_from_bbox`).
-        levels : iterable of int, optional
-            ARL level indices to keep. Output levels are compacted and
-            renumbered from zero while preserving the selected level heights.
-        variables : str or iterable of str, optional
-            Variable names to keep, as the file spells them; a single string
-            is one name. All variables are included by default.
-        overwrite : bool, default True
-            Replace an existing ``dest``; with False an existing ``dest`` is
-            returned as it is, without reading this file.
-
-        Returns
-        -------
-        pathlib.Path
-            The output path, ``Path(dest)``.
-
-        Examples
-        --------
-        >>> import arlmet
-        >>> with arlmet.File("met.arl") as met:
-        ...     out = met.extract_subset("subset.arl", bbox=(-114, 39, -110, 42))
-        >>> ds = arlmet.open_dataset(out)
-        """
-        from arlmet._ops.subset import extract_subset
-
-        return extract_subset(
-            self.path,
-            dest,
-            bbox=bbox,
-            bbox_crs=bbox_crs,
-            levels=levels,
-            variables=variables,
-            overwrite=overwrite,
-        )
 
     def __getitem__(self, key: str | int | pd.Timestamp) -> RecordSet:
         if isinstance(key, str):

@@ -382,9 +382,41 @@ def sample_points(
         input file(s) must contain exactly one valid time, which is used. A
         time must be a valid time of a file (no interpolation in time).
     z_kind : {"pressure", "native", "agl", "msl"}, default "pressure"
-        Vertical coordinate system of the ``z`` values. See
-        :meth:`arlmet.File.sample_points` for the method each vertical
-        coordinate system uses and the fields it requires.
+        Vertical coordinate system of the ``z`` values:
+
+        - ``"native"``: fractional ARL level index.
+        - ``"pressure"``: hPa, interpolated as ``ln p`` from the ground
+          (``PRSS``, required) up; a point below the ground is NaN, and
+          levels at or below the ground are left out. Sigma files use the
+          ``PRES`` field when they have it, else the levels' pressure from
+          ``PRSS``, as hybrid files (flag 4) do; pressure files (flag 2)
+          use the stored levels; terrain-following files (flag 3) raise
+          ``ValueError``; WRF files (flag 5) use the ``PRES`` field.
+        - ``"agl"``: meters above ground level. Sigma/hybrid/WRF files
+          integrate hypsometrically from the ground (``PRSS``, ``T02M``)
+          through each level's pressure (``PRES`` on WRF files) with the
+          virtual temperature (``TEMP`` with ``SPHU`` or ``RELH``), as
+          HYSPLIT's ``prfsig`` and ``prfecm`` do; pressure files use
+          ``HGTS - SHGT`` from the ground up; terrain-following files
+          scale the stored levels as HYSPLIT's ``prfter`` does (with
+          ``model_top=None``, the stored levels as they are).
+        - ``"msl"``: meters above mean sea level, taken as the height
+          above the ground at the point (less ``SHGT`` there), then as
+          ``"agl"``. Every file needs ``SHGT``.
+
+        Each vertical coordinate system has exactly one method, as in
+        HYSPLIT; there is no fallback between them. At heights and
+        pressures level 0 is the ground (at native levels too, on sigma,
+        hybrid and WRF files): a point between it and the first level is
+        interpolated from the ground values (``PRSS`` for ``PRES``,
+        ``T02M`` for ``TEMP``, ``U10M``/``V10M`` for winds), and pressure
+        is interpolated as ``ln p``, as HYSPLIT does. Where the first level
+        is below the ground (its ``PRES`` above ``PRSS``) the ground values
+        are passed over at heights, as in HYSPLIT, and that level is left
+        out at pressures. On a pressure-level file the virtual
+        ``"pressure"`` at native levels is ``PRSS`` at level 0 (which the
+        file stores as 0 hPa), and ``PRSS`` is required. The *Vertical
+        Coordinates* guide has the details.
     method : {"linear", "nearest"}, default "linear"
         Horizontal interpolation: bilinear or nearest grid point. At heights
         (``"agl"``, ``"msl"``), as in HYSPLIT, the column at each of the four
@@ -392,7 +424,7 @@ def sample_points(
         with that grid point's own ground and level heights, and the four
         values are then blended; a grid point whose column ends below ``z``
         does not count, and the others are reweighted. At pressures and native
-        levels each level is blended first, as before.
+        levels each level is blended first.
         On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's
         staggered grid holds them, half a cell east and north of each point,
         as HYSPLIT reads them; "nearest" gives the winds at the nearest

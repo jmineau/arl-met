@@ -741,42 +741,10 @@ class TestFileLowLevelBehavior:
             with pytest.raises(io.UnsupportedOperation):
                 arl.source = "NEW"
 
-    def test_create_grid_and_recordset_internal_validations(self, tmp_path):
-        arl = File(tmp_path / "create_grid.arl", mode="w", source="TEST")
+    def test_recordset_internal_validations(self, tmp_path):
+        arl = File(tmp_path / "recordset.arl", mode="w", source="TEST")
         try:
-            grid = arl.create_grid(
-                20,
-                20,
-                pole_lat=90.0,
-                pole_lon=0.0,
-                tangent_lat=1.0,
-                tangent_lon=1.0,
-                grid_size=0.0,
-                orientation=0.0,
-                cone_angle=0.0,
-                sync_x=1.0,
-                sync_y=1.0,
-                sync_lat=-10.0,
-                sync_lon=20.0,
-            )
-            assert grid == arl.grid
-
-            with pytest.raises(ValueError, match="Grid has already been set"):
-                arl.create_grid(
-                    20,
-                    20,
-                    pole_lat=90.0,
-                    pole_lon=0.0,
-                    tangent_lat=1.0,
-                    tangent_lon=1.0,
-                    grid_size=0.0,
-                    orientation=0.0,
-                    cone_angle=0.0,
-                    sync_x=1.0,
-                    sync_y=1.0,
-                    sync_lat=-10.0,
-                    sync_lon=20.0,
-                )
+            arl.grid = make_test_grid(nx=20, ny=20)
 
             time = pd.Timestamp("2024-07-18 00:00")
             arl.vertical_axis = PressureAxis(levels=[1000.0])

@@ -107,27 +107,6 @@ def test_extract_subset_returns_output_path(tmp_path):
         assert subset.grid.ny == 12
 
 
-def test_file_extract_subset_method_matches_module_function(tmp_path):
-    source = tmp_path / "source.arl"
-    destination = tmp_path / "subset.arl"
-    write_subset_source(source)
-
-    with File(source) as met:
-        result = met.extract_subset(
-            dest=destination,
-            bbox=(22.0, -8.0, 33.0, 3.0),
-            levels=[0, 2],
-            variables=["PRSS", "UWND"],
-        )
-        assert result == destination
-    with File(source) as met, File(result) as subset:
-        assert subset.grid.nx == 12
-        assert subset.vertical_axis.levels.tolist() == [0.0, 2000.0]
-        assert subset.times == met.times
-        ds = subset.to_dataset()
-        assert set(ds.data_vars) >= {"PRSS", "UWND"}
-
-
 def test_extract_subset_without_overwrite_returns_an_existing_dest(tmp_path):
     source = tmp_path / "source.arl"
     destination = tmp_path / "subset.arl"
@@ -136,9 +115,6 @@ def test_extract_subset_without_overwrite_returns_an_existing_dest(tmp_path):
 
     out = extract_subset(source, destination, levels=[0, 1], overwrite=False)
     assert out == destination
-    assert destination.read_bytes() == b"kept"
-    with File(source) as src:
-        assert src.extract_subset(destination, overwrite=False) == destination
     assert destination.read_bytes() == b"kept"
 
     extract_subset(source, destination, levels=[0, 1])  # the default replaces it
@@ -715,15 +691,6 @@ def test_extract_subset_rejects_some_unknown_variables(tmp_path, bbox):
         )
 
     assert not destination.exists()
-
-
-def test_file_extract_subset_rejects_unknown_variable(tmp_path):
-    source = tmp_path / "source.arl"
-    destination = tmp_path / "subset.arl"
-    write_subset_source(source)
-
-    with File(source) as met, pytest.raises(ValueError, match="not in the file: FOO"):
-        met.extract_subset(destination, variables=["FOO"])
 
 
 def test_extract_subset_rejects_empty_variables(tmp_path):
