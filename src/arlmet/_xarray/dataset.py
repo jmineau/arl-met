@@ -6,6 +6,7 @@ import os
 import warnings
 from collections import defaultdict
 from collections.abc import Iterable
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -338,7 +339,8 @@ def write_dataset(
     filename_or_obj: str | os.PathLike[str],
     *,
     vertical_axis: VerticalAxis | None = None,
-) -> None:
+    overwrite: bool = False,
+) -> Path:
     """
     Write a simple flat Dataset representation to an ARL file.
 
@@ -389,18 +391,23 @@ def write_dataset(
     ds : xarray.Dataset
         Dataset in the layout returned by :func:`open_dataset`.
     filename_or_obj : path-like
-        Output ARL file path. Overwrites any existing file, but must not be the
-        file ``ds`` was opened from.
+        Output ARL file path. An existing file is kept (see ``overwrite``), and
+        the path must not be the file ``ds`` was opened from.
     vertical_axis : VerticalAxis, optional
         Vertical axis to write. By default it is rebuilt from the Dataset's
         ``level`` coordinates. Required for surface-only Datasets; otherwise it
         must have one level per ``level`` coordinate value plus the surface,
         and agree with the Dataset's ``pressure``, ``sigma``, ``height``,
         ``hybrid`` or ``eta`` coordinate when it has one.
+    overwrite : bool, default False
+        Replace an existing file. By default an existing file is returned as
+        it is, without checking the Dataset, so a rerun skips finished work;
+        nothing checks that it came from this Dataset.
 
     Returns
     -------
-    None
+    pathlib.Path
+        The output path, ``Path(filename_or_obj)``.
 
     Raises
     ------
@@ -430,6 +437,8 @@ def write_dataset(
         raise TypeError("write_dataset() requires an xarray.Dataset.")
     if "source" in ds.encoding:
         reject_same_file(ds.encoding["source"], filename_or_obj)
+    if not overwrite and Path(filename_or_obj).is_file():
+        return Path(filename_or_obj)
 
     if "time" not in ds.coords:
         raise ValueError("Dataset must define a 'time' coordinate.")
@@ -606,3 +615,5 @@ def write_dataset(
             # Write each time step as soon as it is filled so peak memory is
             # one time step, not the whole file.
             arl.flush()
+
+    return Path(filename_or_obj)

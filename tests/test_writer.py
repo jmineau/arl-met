@@ -282,6 +282,19 @@ class TestWriter:
         np.testing.assert_allclose(reopened["PRSS"].values, ds["PRSS"].values)
         np.testing.assert_allclose(reopened["TEMP"].values, ds["TEMP"].values)
 
+    def test_write_dataset_keeps_an_existing_file_unless_overwrite(self, tmp_path):
+        source_path = tmp_path / "source.arl"
+        written_path = tmp_path / "written.arl"
+        self.write_sample_file(source_path)
+        ds = open_dataset(source_path)
+        written_path.write_bytes(b"kept")
+
+        assert write_dataset(ds, written_path) == written_path
+        assert written_path.read_bytes() == b"kept"
+
+        assert write_dataset(ds, written_path, overwrite=True) == written_path
+        assert open_dataset(written_path).sizes == ds.sizes
+
     def test_write_dataset_converts_aware_times_to_utc_without_warning(self, tmp_path):
         source_path = tmp_path / "source.arl"
         written_path = tmp_path / "written.arl"
