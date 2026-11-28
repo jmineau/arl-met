@@ -1054,8 +1054,6 @@ def test_fetch_raises_import_error_without_fsspec(monkeypatch):
 # Run with: uv run pytest -m network
 # ---------------------------------------------------------------------------
 
-s3fs = pytest.importorskip("s3fs", reason="s3fs not installed")
-
 # A known-small file for existence checks: GDAS week 1 of a past month.
 # Chosen because GDAS weekly files are the smallest in the archive (~571 MB).
 _GDAS_TEST_TIME = "2024-07-01"
@@ -1067,8 +1065,7 @@ class TestS3Existence:
     """Verify that S3 keys resolve to real objects without downloading."""
 
     def _exists(self, key: str) -> bool:
-        import s3fs
-
+        s3fs = pytest.importorskip("s3fs")
         fs = s3fs.S3FileSystem(anon=True)
         return fs.exists(f"noaa-oar-arl-hysplit-pds/{key}")
 
@@ -1129,7 +1126,7 @@ class TestS3Existence:
 @pytest.mark.network
 def test_gdas_header_is_valid_arl(tmp_path):
     """Download the first 50 bytes of a GDAS file and check the ARL header."""
-    import s3fs
+    s3fs = pytest.importorskip("s3fs")
 
     from arlmet.record import Header
 
@@ -1178,6 +1175,7 @@ _ARCHIVE_OPEN_CASES = [
 @pytest.mark.parametrize("archive,time,bbox", _ARCHIVE_OPEN_CASES)
 def test_archive_fetch_and_open(tmp_path, archive, time, bbox):
     """Fetch one file from each archive and verify it opens as an xarray Dataset."""
+    pytest.importorskip("s3fs")
     from arlmet import open_dataset
 
     files = archive.fetch(time, time, dest_dir=tmp_path, bbox=bbox)
@@ -1391,7 +1389,7 @@ _SOURCE_CHECK_DATES = {
 @pytest.mark.parametrize("name", sorted(_SOURCE_CHECK_DATES))
 def test_an_archives_source_is_the_one_its_files_carry(name):
     """Read the index record of one real file, without downloading the rest."""
-    import s3fs
+    s3fs = pytest.importorskip("s3fs")
 
     from arlmet.archives import ARCHIVES
     from arlmet.record import IndexRecord
@@ -1408,7 +1406,7 @@ def test_an_archives_source_is_the_one_its_files_carry(name):
 @pytest.mark.parametrize("name", sorted(_SOURCE_CHECK_DATES))
 def test_an_archives_step_is_the_one_its_files_hold(name):
     """Read the first two index records of one real file."""
-    import s3fs
+    s3fs = pytest.importorskip("s3fs")
 
     from arlmet.archives import ARCHIVES
     from arlmet.record import Header, IndexRecord
