@@ -1,5 +1,0 @@
-arlmet.File.create\_grid
-========================
-
-.. currentmodule:: arlmet
-.. automethod:: File.create_grid

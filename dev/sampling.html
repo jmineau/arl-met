@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=3160bad2"></script>
+    <script src="_static/documentation_options.js?v=150f9161"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev15+g041e0cd96" />
+  <meta name="docsearch:version" content="0.1.0b16.dev16+ga3b8ef929" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -510,10 +510,9 @@ requested variable. Every column of <code class="docutils literal notranslate"><
 else) and its index are preserved, so you can compare samples with
 observations row by row. A requested variable whose name matches an existing
 column raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> rather than overwriting it.</p>
-<p>If you already have an open file, pass it instead of a path. The
-<a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a> object also exposes the same operation as a method:</p>
+<p>If you already have an open file, pass it instead of a path:</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
-<span class="gp">   ...: </span>    <span class="n">result</span> <span class="o">=</span> <span class="n">met</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">,</span> <span class="s2">"TEMP"</span><span class="p">])</span>
+<span class="gp">   ...: </span>    <span class="n">result</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">met</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="p">[</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">,</span> <span class="s2">"TEMP"</span><span class="p">])</span>
 <span class="gp">   ...: </span>
 
 <span class="gp">In [7]: </span><span class="n">result</span>
@@ -530,7 +529,10 @@ open it once and pass the <a class="reference internal" href="_autosummary/arlme
 records read, on every call: on a 124-step file that is about 116 ms a call,
 against 8 ms with an open file.</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [8]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
-<span class="gp">   ...: </span>    <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="n">met</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">points</span><span class="o">.</span><span class="n">iloc</span><span class="p">[[</span><span class="n">i</span><span class="p">]],</span> <span class="p">[</span><span class="s2">"TEMP"</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">))]</span>
+<span class="gp">   ...: </span>    <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+<span class="gp">   ...: </span>        <span class="n">arlmet</span><span class="o">.</span><span class="n">sample_points</span><span class="p">(</span><span class="n">met</span><span class="p">,</span> <span class="n">points</span><span class="o">.</span><span class="n">iloc</span><span class="p">[[</span><span class="n">i</span><span class="p">]],</span> <span class="p">[</span><span class="s2">"TEMP"</span><span class="p">])</span>
+<span class="gp">   ...: </span>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">))</span>
+<span class="gp">   ...: </span>    <span class="p">]</span>
 <span class="gp">   ...: </span>
 
 <span class="gp">In [9]: </span><span class="n">rows</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>

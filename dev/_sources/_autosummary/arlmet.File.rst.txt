@@ -36,12 +36,8 @@
    ~File.add_record
    ~File.check
    ~File.close
-   ~File.create_grid
    ~File.create_recordset
-   ~File.extract_subset
    ~File.flush
-   ~File.sample_points
-   ~File.to_dataset
 
 
 

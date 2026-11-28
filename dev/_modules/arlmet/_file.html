@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=3160bad2"></script>
+    <script src="../../_static/documentation_options.js?v=150f9161"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev15+g041e0cd96" />
+  <meta name="docsearch:version" content="0.1.0b16.dev16+ga3b8ef929" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -438,11 +438,11 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">pairwise</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">TracebackType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">BinaryIO</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Self</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">BinaryIO</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Self</span><span class="p">,</span> <span class="n">cast</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">npt</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
@@ -451,16 +451,13 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">xarray.backends.locks</span><span class="w"> </span><span class="kn">import</span> <span class="n">SerializableLock</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARLFormatError</span><span class="p">,</span> <span class="n">ARLFormatWarning</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span><span class="p">,</span> <span class="n">Projection</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._header</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_level_count</span><span class="p">,</span> <span class="n">check_year</span><span class="p">,</span> <span class="n">record_length_from_grid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._indexrecord</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._recordset</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordSet</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._time</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_timestamp</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.record</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataRecord</span><span class="p">,</span> <span class="n">_corrects</span><span class="p">,</span> <span class="n">_is_missing</span><span class="p">,</span> <span class="n">_require_mode</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">_DEFAULT_MODEL_TOP</span><span class="p">,</span> <span class="n">VerticalAxis</span>
-
-<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="n">VerticalAxis</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"File"</span><span class="p">]</span>
 
@@ -535,20 +532,12 @@
 <span class="sd">        in ``times`` (int).</span>
 <span class="sd">    __iter__()</span>
 <span class="sd">        Iterate over valid times in ``times`` order (sorted).</span>
-<span class="sd">    create_grid(...)</span>
-<span class="sd">        Build and attach a Grid when writing a new file.</span>
 <span class="sd">    create_recordset(time, *, forecast=None)</span>
 <span class="sd">        Create a writable RecordSet for one valid time.</span>
 <span class="sd">    add_record(time, variable, level, *, forecast, data=None, diff=None)</span>
 <span class="sd">        Add one writable DataRecord, creating its RecordSet if needed.</span>
 <span class="sd">    flush()</span>
 <span class="sd">        Write pending record sets to disk and release their in-memory data.</span>
-<span class="sd">    sample_points(points, variables, ...)</span>
-<span class="sd">        Interpolate fields at arbitrary lon/lat/z sample points.</span>
-<span class="sd">    extract_subset(dest, ...)</span>
-<span class="sd">        Write a spatial/vertical subset to a new ARL file and return its path.</span>
-<span class="sd">    to_dataset(...)</span>
-<span class="sd">        Project the file into the simplified analysis xarray Dataset.</span>
 <span class="sd">    close()</span>
 <span class="sd">        Flush pending writes and release the file handle.</span>
 
@@ -692,81 +681,6 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">record_length</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Length in bytes of each record in the file, from the grid."""</span>
         <span class="k">return</span> <span class="n">record_length_from_grid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
-
-<div class="viewcode-block" id="File.create_grid">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.create_grid.html#arlmet.File.create_grid">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">create_grid</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">nx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">ny</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">pole_lat</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">pole_lon</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">tangent_lat</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">tangent_lon</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">grid_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">orientation</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">cone_angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">sync_x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">sync_y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">sync_lat</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">sync_lon</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Grid</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""</span>
-<span class="sd">        Create and attach the horizontal grid metadata for a writable file.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        nx : int</span>
-<span class="sd">            Number of grid points in the x direction.</span>
-<span class="sd">        ny : int</span>
-<span class="sd">            Number of grid points in the y direction.</span>
-<span class="sd">        pole_lat, pole_lon : float</span>
-<span class="sd">            Projection pole definition from the ARL index record.</span>
-<span class="sd">        tangent_lat, tangent_lon : float</span>
-<span class="sd">            Reference latitude and longitude that define the projection.</span>
-<span class="sd">        grid_size : float</span>
-<span class="sd">            Grid spacing in kilometers at the projection reference point.</span>
-<span class="sd">        orientation : float</span>
-<span class="sd">            Rotation of the grid y-axis relative to true north.</span>
-<span class="sd">        cone_angle : float</span>
-<span class="sd">            Projection cone angle used for stereographic, Lambert, or</span>
-<span class="sd">            Mercator grids.</span>
-<span class="sd">        sync_x, sync_y : float</span>
-<span class="sd">            One-based grid coordinates of the synchronization point.</span>
-<span class="sd">        sync_lat, sync_lon : float</span>
-<span class="sd">            Geographic coordinates of the synchronization point.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        Grid</span>
-<span class="sd">            The created grid instance, also stored on the file.</span>
-<span class="sd">        """</span>
-        <span class="n">_require_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Grid has already been set for this File."</span><span class="p">)</span>
-
-        <span class="c1"># Build projection</span>
-        <span class="n">proj</span> <span class="o">=</span> <span class="n">Projection</span><span class="p">(</span>
-            <span class="n">pole_lat</span><span class="o">=</span><span class="n">pole_lat</span><span class="p">,</span>
-            <span class="n">pole_lon</span><span class="o">=</span><span class="n">pole_lon</span><span class="p">,</span>
-            <span class="n">tangent_lat</span><span class="o">=</span><span class="n">tangent_lat</span><span class="p">,</span>
-            <span class="n">tangent_lon</span><span class="o">=</span><span class="n">tangent_lon</span><span class="p">,</span>
-            <span class="n">grid_size</span><span class="o">=</span><span class="n">grid_size</span><span class="p">,</span>
-            <span class="n">orientation</span><span class="o">=</span><span class="n">orientation</span><span class="p">,</span>
-            <span class="n">cone_angle</span><span class="o">=</span><span class="n">cone_angle</span><span class="p">,</span>
-            <span class="n">sync_x</span><span class="o">=</span><span class="n">sync_x</span><span class="p">,</span>
-            <span class="n">sync_y</span><span class="o">=</span><span class="n">sync_y</span><span class="p">,</span>
-            <span class="n">sync_lat</span><span class="o">=</span><span class="n">sync_lat</span><span class="p">,</span>
-            <span class="n">sync_lon</span><span class="o">=</span><span class="n">sync_lon</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Create grid</span>
-        <span class="n">grid</span> <span class="o">=</span> <span class="n">Grid</span><span class="p">(</span><span class="n">projection</span><span class="o">=</span><span class="n">proj</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="o">=</span><span class="n">ny</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">_grid</span> <span class="o">=</span> <span class="n">grid</span>
-        <span class="k">return</span> <span class="n">grid</span></div>
-
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_create_recordset</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1288,269 +1202,6 @@
             <span class="c1"># Any mmap objects created from it become invalid and are GC'd automatically.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_manager</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_handle</span> <span class="o">=</span> <span class="kc">None</span></div>
-
-
-<div class="viewcode-block" id="File.sample_points">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.sample_points.html#arlmet.File.sample_points">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">sample_points</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">points</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-        <span class="n">variables</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">time</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">z_kind</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"native"</span><span class="p">,</span> <span class="s2">"pressure"</span><span class="p">,</span> <span class="s2">"agl"</span><span class="p">,</span> <span class="s2">"msl"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"pressure"</span><span class="p">,</span>
-        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"linear"</span><span class="p">,</span> <span class="s2">"nearest"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"linear"</span><span class="p">,</span>
-        <span class="n">earth_relative</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">model_top</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_DEFAULT_MODEL_TOP</span><span class="p">,</span>
-        <span class="n">internal_grid</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""</span>
-<span class="sd">        Sample fields from this file at arbitrary lon/lat/z points.</span>
-
-<span class="sd">        Equivalent to :func:`arlmet.sample_points` with this file as the only</span>
-<span class="sd">        input.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        points : pandas.DataFrame or mapping</span>
-<span class="sd">            Table-like object with ``lon``, ``lat`` (degrees), and ``z``</span>
-<span class="sd">            columns, and optionally a ``time`` column. Any other columns are</span>
-<span class="sd">            carried through to the result unchanged.</span>
-<span class="sd">        variables : str or iterable of str</span>
-<span class="sd">            One or more ARL field names (e.g. ``"TEMP"``, ``"UWND"``), or</span>
-<span class="sd">            ``"pressure"`` for the virtual pressure variable. A name must not</span>
-<span class="sd">            collide with an existing column of ``points``. On a WRF file with</span>
-<span class="sd">            mass-coupled winds (``MUU0``, ``MUV0``) ``UWND``, ``VWND`` and ``WWND``</span>
-<span class="sd">            are decoupled as HYSPLIT does (``UWND * MSFU / MUU0``, ...), and on a</span>
-<span class="sd">            file with ``THET`` but no ``TEMP``, ``TEMP`` is ``THET * (PRES / 1000)</span>
-<span class="sd">            ** 0.286``.</span>
-<span class="sd">        time : pandas.Timestamp or str, optional</span>
-<span class="sd">            One valid time for every point, used when ``points`` has no</span>
-<span class="sd">            ``time`` column. Passing both raises ``ValueError``. When neither</span>
-<span class="sd">            is given, the file must contain exactly one time, which is used.</span>
-<span class="sd">            A time must be one of the file's valid times (no interpolation</span>
-<span class="sd">            in time).</span>
-<span class="sd">        z_kind : {"pressure", "native", "agl", "msl"}, default "pressure"</span>
-<span class="sd">            Vertical coordinate system of the ``z`` values:</span>
-
-<span class="sd">            - ``"native"``: fractional ARL level index.</span>
-<span class="sd">            - ``"pressure"``: hPa, interpolated as ``ln p`` from the ground</span>
-<span class="sd">              (``PRSS``, required) up; a point below the ground is NaN, and</span>
-<span class="sd">              levels at or below the ground are left out. Sigma files use the</span>
-<span class="sd">              ``PRES`` field when they have it, else the levels' pressure from</span>
-<span class="sd">              ``PRSS``, as hybrid files (flag 4) do; pressure files (flag 2)</span>
-<span class="sd">              use the stored levels; terrain-following files (flag 3) raise</span>
-<span class="sd">              ``ValueError``; WRF files (flag 5) use the ``PRES`` field.</span>
-<span class="sd">            - ``"agl"``: meters above ground level. Sigma/hybrid/WRF files</span>
-<span class="sd">              integrate hypsometrically from the ground (``PRSS``, ``T02M``)</span>
-<span class="sd">              through each level's pressure (``PRES`` on WRF files) with the</span>
-<span class="sd">              virtual temperature (``TEMP`` with ``SPHU`` or ``RELH``), as</span>
-<span class="sd">              HYSPLIT's ``prfsig`` and ``prfecm`` do; pressure files use</span>
-<span class="sd">              ``HGTS - SHGT`` from the ground up; terrain-following files</span>
-<span class="sd">              scale the stored levels as HYSPLIT's ``prfter`` does (with</span>
-<span class="sd">              ``model_top=None``, the stored levels as they are).</span>
-<span class="sd">            - ``"msl"``: meters above mean sea level, taken as the height</span>
-<span class="sd">              above the ground at the point (less ``SHGT`` there), then as</span>
-<span class="sd">              ``"agl"``. Every file needs ``SHGT``.</span>
-
-<span class="sd">            Each vertical coordinate system has exactly one method, as in</span>
-<span class="sd">            HYSPLIT; there is no fallback between them. At heights and</span>
-<span class="sd">            pressures level 0 is the ground (at native levels too, on sigma,</span>
-<span class="sd">            hybrid and WRF files): a point between it and the first level is</span>
-<span class="sd">            interpolated from the ground values (``PRSS`` for ``PRES``,</span>
-<span class="sd">            ``T02M`` for ``TEMP``, ``U10M``/``V10M`` for winds), and pressure</span>
-<span class="sd">            is interpolated as ``ln p``, as HYSPLIT does. Where the first level</span>
-<span class="sd">            is below the ground (its ``PRES`` above ``PRSS``) the ground values</span>
-<span class="sd">            are passed over at heights, as in HYSPLIT, and that level is left</span>
-<span class="sd">            out at pressures. On a pressure-level file the virtual</span>
-<span class="sd">            ``"pressure"`` at native levels is ``PRSS`` at level 0 (which the</span>
-<span class="sd">            file stores as 0 hPa), and ``PRSS`` is required. The *Vertical</span>
-<span class="sd">            Coordinates* guide has the details.</span>
-<span class="sd">        method : {"linear", "nearest"}, default "linear"</span>
-<span class="sd">            Horizontal interpolation: bilinear or nearest grid point. At</span>
-<span class="sd">            heights (``"agl"``, ``"msl"``), as in HYSPLIT, the column at each</span>
-<span class="sd">            of the four grid points around a point is interpolated to the</span>
-<span class="sd">            point's ``z`` first, with that grid point's own ground and level</span>
-<span class="sd">            heights, and the four values are then blended; a grid point whose</span>
-<span class="sd">            column ends below ``z`` does not count, and the others are</span>
-<span class="sd">            reweighted. At pressures and native levels each level is blended</span>
-<span class="sd">            first, as before. On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are</span>
-<span class="sd">            read where WRF's staggered grid holds them, half a cell east and</span>
-<span class="sd">            north of each point, as HYSPLIT reads them; "nearest" gives the</span>
-<span class="sd">            winds at the nearest cell's center. The *Sampling* guide has the</span>
-<span class="sd">            details.</span>
-<span class="sd">        earth_relative : bool, default False</span>
-<span class="sd">            Rotate sampled wind pairs (``UWND``/``VWND``, ``U10M``/``V10M``)</span>
-<span class="sd">            from the grid axes to east/north. Winds in ARL files on projected</span>
-<span class="sd">            grids are stored grid-relative, as HYSPLIT expects. Both components</span>
-<span class="sd">            of a pair must be requested. No effect on lat/lon grids.</span>
-<span class="sd">        model_top : float or None, default 25000</span>
-<span class="sd">            The HYSPLIT run's top of model domain [m] (the ``CONTROL`` file's,</span>
-<span class="sd">            PYSTILT's ``z_top``). At heights the values are the ones a HYSPLIT</span>
-<span class="sd">            run with that top uses, on its internal levels; the default is</span>
-<span class="sd">            PYSTILT's default top. ``None`` reads each grid point's column at</span>
-<span class="sd">            the point's own height instead, which is not HYSPLIT's value. See</span>
-<span class="sd">            :func:`arlmet.sample_points`.</span>
-<span class="sd">        internal_grid : tuple of (int, float, float, float), optional</span>
-<span class="sd">            The run's own internal grid ``(nlvl, aa, bb, cc)``, as its</span>
-<span class="sd">            ``MESSAGE`` file prints it, used as it is instead of the grid</span>
-<span class="sd">            arl-met would pick. See :func:`arlmet.sample_points`.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        pandas.DataFrame</span>
-<span class="sd">            Copy of ``points`` (all columns and the index preserved) with one</span>
-<span class="sd">            added column per requested variable. Points outside the grid or</span>
-<span class="sd">            the vertical range are NaN.</span>
-
-<span class="sd">        Raises</span>
-<span class="sd">        ------</span>
-<span class="sd">        ValueError</span>
-<span class="sd">            If a required column is missing, ``time`` is given alongside a</span>
-<span class="sd">            ``time`` column, no time is given for a multi-time file, a point</span>
-<span class="sd">            time is not in the file, a variable name collides with a column</span>
-<span class="sd">            of ``points``, ``z_kind`` or ``method`` is invalid, a field</span>
-<span class="sd">            that ``z_kind`` requires is missing, or ``model_top`` is passed</span>
-<span class="sd">            with ``z_kind`` ``"pressure"`` or ``"native"`` or is not a</span>
-<span class="sd">            positive number.</span>
-
-<span class="sd">        Examples</span>
-<span class="sd">        --------</span>
-<span class="sd">        &gt;&gt;&gt; import pandas as pd</span>
-<span class="sd">        &gt;&gt;&gt; import arlmet</span>
-<span class="sd">        &gt;&gt;&gt; pts = pd.DataFrame({"lon": [-111.9], "lat": [40.7], "z": [850.0]})</span>
-<span class="sd">        &gt;&gt;&gt; with arlmet.File("met.arl") as met:</span>
-<span class="sd">        ...     out = met.sample_points(pts, ["UWND", "VWND"], time="2024-07-18 00:00")</span>
-<span class="sd">        &gt;&gt;&gt; out.round(1)</span>
-<span class="sd">             lon   lat      z  UWND  VWND</span>
-<span class="sd">        0 -111.9  40.7  850.0   6.2  -3.8</span>
-<span class="sd">        """</span>
-        <span class="c1"># Delayed import: ops sit on top of file, so file's use of the sampling</span>
-        <span class="c1"># op is lazy to avoid a file &lt;-&gt; ops import cycle (see File.extract_subset).</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._ops.sample</span><span class="w"> </span><span class="kn">import</span> <span class="n">sample_points</span>
-
-        <span class="k">return</span> <span class="n">sample_points</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">points</span><span class="p">,</span>
-            <span class="n">variables</span><span class="p">,</span>
-            <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">,</span>
-            <span class="n">z_kind</span><span class="o">=</span><span class="n">z_kind</span><span class="p">,</span>
-            <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
-            <span class="n">earth_relative</span><span class="o">=</span><span class="n">earth_relative</span><span class="p">,</span>
-            <span class="n">model_top</span><span class="o">=</span><span class="n">model_top</span><span class="p">,</span>
-            <span class="n">internal_grid</span><span class="o">=</span><span class="n">internal_grid</span><span class="p">,</span>
-        <span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="File.to_dataset">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.to_dataset.html#arlmet.File.to_dataset">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">to_dataset</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">drop_variables</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">bbox_crs</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">levels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""</span>
-<span class="sd">        Project this file into the simplified analysis Dataset representation.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        drop_variables : str or iterable of str, optional</span>
-<span class="sd">            Variable name(s) to omit.</span>
-<span class="sd">        bbox : tuple[float, float, float, float], optional</span>
-<span class="sd">            Geographic bounding box ``(west, south, east, north)`` in degrees.</span>
-<span class="sd">            On a projected grid the crop is the smallest rectangle of cells</span>
-<span class="sd">            that holds the box's part on the grid (:meth:`arlmet.Grid.window_from_bbox`).</span>
-<span class="sd">        bbox_crs : pyproj.CRS or str, optional</span>
-<span class="sd">            The coordinate reference system ``bbox`` is in (``"EPSG:32612"``,</span>
-<span class="sd">            anything :meth:`pyproj.CRS.from_user_input` takes), making the box</span>
-<span class="sd">            ``(xmin, ymin, xmax, ymax)`` in its units; the default is degrees</span>
-<span class="sd">            (:meth:`arlmet.Grid.window_from_bbox`).</span>
-<span class="sd">        levels : iterable of int, optional</span>
-<span class="sd">            ARL level indices to keep.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        xarray.Dataset</span>
-<span class="sd">            See :func:`arlmet.open_dataset` for the layout.</span>
-<span class="sd">        """</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._xarray.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_dataset_from_file</span>
-
-        <span class="k">return</span> <span class="n">_build_dataset_from_file</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">drop_variables</span><span class="o">=</span><span class="n">drop_variables</span><span class="p">,</span>
-            <span class="n">bbox</span><span class="o">=</span><span class="n">bbox</span><span class="p">,</span>
-            <span class="n">bbox_crs</span><span class="o">=</span><span class="n">bbox_crs</span><span class="p">,</span>
-            <span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">,</span>
-        <span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="File.extract_subset">
-<a class="viewcode-back" href="../../_autosummary/arlmet.File.extract_subset.html#arlmet.File.extract_subset">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">extract_subset</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">dest</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">bbox_crs</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">levels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">variables</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""</span>
-<span class="sd">        Write a spatial/vertical subset of this file to a new ARL file.</span>
-
-<span class="sd">        Equivalent to :func:`arlmet.extract_subset` with this file's path as</span>
-<span class="sd">        the input.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        dest : path-like</span>
-<span class="sd">            Output ARL file. Must not be this file.</span>
-<span class="sd">        bbox : tuple[float, float, float, float], optional</span>
-<span class="sd">            Geographic bounding box ``(west, south, east, north)`` in degrees.</span>
-<span class="sd">            On a projected grid the crop is the smallest rectangle of cells</span>
-<span class="sd">            that holds the box's part on the grid (:meth:`arlmet.Grid.window_from_bbox`).</span>
-<span class="sd">        bbox_crs : pyproj.CRS or str, optional</span>
-<span class="sd">            The coordinate reference system ``bbox`` is in (``"EPSG:32612"``,</span>
-<span class="sd">            anything :meth:`pyproj.CRS.from_user_input` takes), making the box</span>
-<span class="sd">            ``(xmin, ymin, xmax, ymax)`` in its units; the default is degrees</span>
-<span class="sd">            (:meth:`arlmet.Grid.window_from_bbox`).</span>
-<span class="sd">        levels : iterable of int, optional</span>
-<span class="sd">            ARL level indices to keep. Output levels are compacted and</span>
-<span class="sd">            renumbered from zero while preserving the selected level heights.</span>
-<span class="sd">        variables : str or iterable of str, optional</span>
-<span class="sd">            Variable names to keep, as the file spells them; a single string</span>
-<span class="sd">            is one name. All variables are included by default.</span>
-<span class="sd">        overwrite : bool, default True</span>
-<span class="sd">            Replace an existing ``dest``; with False an existing ``dest`` is</span>
-<span class="sd">            returned as it is, without reading this file.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        pathlib.Path</span>
-<span class="sd">            The output path, ``Path(dest)``.</span>
-
-<span class="sd">        Examples</span>
-<span class="sd">        --------</span>
-<span class="sd">        &gt;&gt;&gt; import arlmet</span>
-<span class="sd">        &gt;&gt;&gt; with arlmet.File("met.arl") as met:</span>
-<span class="sd">        ...     out = met.extract_subset("subset.arl", bbox=(-114, 39, -110, 42))</span>
-<span class="sd">        &gt;&gt;&gt; ds = arlmet.open_dataset(out)</span>
-<span class="sd">        """</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._ops.subset</span><span class="w"> </span><span class="kn">import</span> <span class="n">extract_subset</span>
-
-        <span class="k">return</span> <span class="n">extract_subset</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
-            <span class="n">dest</span><span class="p">,</span>
-            <span class="n">bbox</span><span class="o">=</span><span class="n">bbox</span><span class="p">,</span>
-            <span class="n">bbox_crs</span><span class="o">=</span><span class="n">bbox_crs</span><span class="p">,</span>
-            <span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">,</span>
-            <span class="n">variables</span><span class="o">=</span><span class="n">variables</span><span class="p">,</span>
-            <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">,</span>
-        <span class="p">)</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RecordSet</span><span class="p">:</span>
