@@ -122,6 +122,47 @@ def test_extract_subset_keeps_an_existing_dest_by_default(tmp_path):
         assert len(cropped.vertical_axis.levels) == 2
 
 
+@pytest.fixture
+def closed_files(monkeypatch):
+    """Paths of the Files closed so far."""
+    closed = []
+    real_close = File.close
+    monkeypatch.setattr(
+        File, "close", lambda self: (closed.append(self.path), real_close(self))
+    )
+    return closed
+
+
+def test_open_dataset_and_extract_subset_take_an_open_file(tmp_path, closed_files):
+    source = tmp_path / "source.arl"
+    write_subset_source(source)
+    kwargs = {"bbox": (22.0, -8.0, 33.0, 3.0), "levels": [0, 1]}
+    from_path = open_dataset(source, **kwargs)
+    subset_from_path = extract_subset(source, tmp_path / "from-path.arl", **kwargs)
+    closed_files.clear()
+
+    with File(source) as met:
+        from_file = open_dataset(met, **kwargs)
+        subset_from_file = extract_subset(met, tmp_path / "from-file.arl", **kwargs)
+        with pytest.raises(ValueError, match="same file as the input"):
+            extract_subset(met, source)
+        assert source not in closed_files  # the caller owns an open File
+
+    assert from_file.encoding["source"] == str(source)
+    assert from_file.equals(from_path)
+    assert open_dataset(subset_from_file).equals(open_dataset(subset_from_path))
+
+
+def test_a_path_is_opened_and_closed_by_the_call(tmp_path, closed_files):
+    source = tmp_path / "source.arl"
+    write_subset_source(source)
+    closed_files.clear()
+
+    open_dataset(source)
+    extract_subset(source, tmp_path / "subset.arl")
+    assert closed_files.count(source) == 2
+
+
 def test_extract_subset_still_refuses_a_directory_dest(tmp_path):
     source = tmp_path / "source.arl"
     write_subset_source(source)
