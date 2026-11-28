@@ -261,6 +261,17 @@ def _require(name: str, value: npt.ArrayLike | None, axis: "VerticalAxis") -> No
         )
 
 
+def _terrain_following_z_agl(z_star: Any, terrain: Any, zmdlt: float = 20000.0) -> Any:
+    """
+    Height AGL [m] of a terrain-following level ``Z*`` over *terrain*: ``Z* (1 - terrain / ZMDLT)``.
+
+    HYSPLIT's ``prfter`` (``ZTOP=PSG(KZ)*(1.0-ZSFC/ZMDLT)``); ``ZMDLT`` is
+    20000 m, or ``ZMDL`` on a file whose source is ``RAMS``. Works elementwise,
+    on arrays or DataArrays.
+    """
+    return z_star * (1.0 - terrain / zmdlt)
+
+
 class VerticalAxis(ABC):
     """
     Abstract base class for ARL vertical coordinate axes.
@@ -398,8 +409,9 @@ class VerticalAxis(ABC):
             Geopotential height [m MSL] at each level (``HGTS``). Required
             for pressure axes.
         terrain : array-like, optional
-            Terrain height [m] (``SHGT``), broadcastable to ``hgts``.
-            Required for pressure axes.
+            Terrain height [m] (``SHGT``). Required for pressure axes
+            (broadcastable to ``hgts``) and terrain-following axes (one
+            value per column).
 
         Returns
         -------
@@ -535,7 +547,13 @@ class PressureAxis(VerticalAxis):
 
 
 class TerrainAxis(VerticalAxis):
-    """Flag=3. Terrain-following — stored levels are heights AGL."""
+    """
+    Flag=3. Terrain-following: the stored levels are ``Z*``, heights over flat ground.
+
+    Over terrain ``zsfc`` HYSPLIT's ``prfter`` puts a level at ``Z* (1 - zsfc /
+    20000)`` above the ground, and so do :meth:`to_height_agl`,
+    :func:`arlmet.z_agl` and :func:`arlmet.sample_points`.
+    """
 
     flag = 3
     coord_system = "terrain"
@@ -559,8 +577,16 @@ class TerrainAxis(VerticalAxis):
         hgts: npt.ArrayLike | None = None,
         terrain: npt.ArrayLike | None = None,
     ) -> npt.NDArray[np.float64]:
-        """Height AGL [m]: a writable copy of the stored levels. No inputs needed."""
-        return self.levels.copy()
+        """
+        Height AGL [m] ``Z* (1 - terrain / 20000)``, as HYSPLIT's ``prfter`` puts the levels.
+
+        Requires ``terrain`` (``SHGT`` [m]); the result is ``terrain.shape +
+        (nlev,)``. On a file whose source is ``RAMS`` HYSPLIT scales by ``ZMDL``
+        in place of 20000 m, as :func:`arlmet.z_agl` does.
+        """
+        _require("terrain", terrain, self)
+        zsfc = np.asarray(terrain, dtype=float)[..., None]
+        return _terrain_following_z_agl(self.levels, zsfc)
 
 
 class HybridAxis(VerticalAxis):

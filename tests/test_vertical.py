@@ -208,10 +208,12 @@ class TestToHeightAgl:
         result = ax.to_height_agl(hgts=hgts, terrain=terrain)
         np.testing.assert_allclose(result, [[0.0, 1000.0], [0.0, 1000.0]])
 
-    def test_terrain_returns_stored_levels(self):
+    def test_terrain_scales_levels_with_terrain(self):
         ax = TerrainAxis(levels=[0.0, 100.0, 500.0])
-        result = ax.to_height_agl()
-        np.testing.assert_allclose(result, [0.0, 100.0, 500.0])
+        result = ax.to_height_agl(terrain=[0.0, 2000.0])
+        np.testing.assert_allclose(result, [[0.0, 100.0, 500.0], [0.0, 90.0, 450.0]])
+        with pytest.raises(ValueError, match="terrain="):
+            ax.to_height_agl()
 
     def test_wrf_hypsometric_from_pres_by_hand(self):
         # As HYSPLIT's prfsig, which HYSPLIT uses for a flag-5 file without WRF's
@@ -357,9 +359,14 @@ def _write_sigma_file(path, *, prss_val, temp_val, shgt_val, sigma_levels, offse
 
 
 def _write_terrain_file(
-    path, *, height_levels, with_pres: bool = False, with_hgts: bool = False
+    path,
+    *,
+    height_levels,
+    with_pres: bool = False,
+    with_hgts: bool = False,
+    shgt: float | None = None,
 ):
-    """Write a minimal terrain-following (flag=3) ARL file."""
+    """Write a minimal terrain-following (flag=3) ARL file, with ``SHGT`` if given."""
     grid = _make_latlon_grid()
     vaxis = TerrainAxis(levels=[0.0] + list(height_levels))
     ny, nx = grid.ny, grid.nx
@@ -368,6 +375,9 @@ def _write_terrain_file(
     with File(path, mode="w", source="TEST", grid=grid, vertical_axis=vaxis) as f:
         rs = f.create_recordset(pd.Timestamp("2024-01-01"))
         rs.create_datarecord("PRSS", level=0, forecast=0, data=prss)
+        if shgt is not None:
+            terrain = np.full((ny, nx), shgt, dtype=np.float32)
+            rs.create_datarecord("SHGT", level=0, forecast=0, data=terrain)
         for k, h in enumerate(height_levels, start=1):
             data = np.full((ny, nx), float(k) * 10.0, dtype=np.float32)
             rs.create_datarecord("UWND", level=k, forecast=0, data=data)
@@ -539,22 +549,51 @@ class TestPressureHelper:
 
 
 class TestZAglHelper:
-    def test_flag3_returns_height_coord(self, tmp_path):
+    def test_flag3_scales_height_coord_with_terrain(self, tmp_path):
+        path = tmp_path / "test.arl"
+        _write_terrain_file(path, height_levels=[100.0, 500.0], shgt=2000.0)
+        ds = arlmet.open_dataset(path)
+        z = arlmet.z_agl(ds)
+        assert z.dims == ("time", "level", "lat", "lon")
+        np.testing.assert_allclose(z.isel(lat=0, lon=0).values, [[90.0, 450.0]])
+
+    def test_flag3_hgts_field_not_used(self, tmp_path):
+        """flag=3 with HGTS still scales the height coord (not HGTS)."""
+        path = tmp_path / "test.arl"
+        _write_terrain_file(
+            path, height_levels=[100.0, 500.0], with_hgts=True, shgt=0.0
+        )
+        ds = arlmet.open_dataset(path)
+        z = arlmet.z_agl(ds)
+        np.testing.assert_allclose(z.isel(lat=0, lon=0).values, [[100.0, 500.0]])
+
+    def test_flag3_requires_shgt(self, tmp_path):
         path = tmp_path / "test.arl"
         _write_terrain_file(path, height_levels=[100.0, 500.0])
-        ds = arlmet.open_dataset(path)
-        z = arlmet.z_agl(ds)
-        assert "level" in z.dims
-        np.testing.assert_allclose(z.values, [100.0, 500.0])
+        with pytest.raises(ValueError, match="SHGT"):
+            arlmet.z_agl(arlmet.open_dataset(path))
 
-    def test_flag3_hgts_field_used_when_present(self, tmp_path):
-        """flag=3 with HGTS still returns the height coord (not HGTS)."""
+    def test_flag3_heights_are_those_sample_points_uses(self, tmp_path):
+        """sample_points finds a level at the height z_agl() gives it (#305)."""
         path = tmp_path / "test.arl"
-        _write_terrain_file(path, height_levels=[100.0, 500.0], with_hgts=True)
-        ds = arlmet.open_dataset(path)
-        z = arlmet.z_agl(ds)
-        # Terrain-following uses stored height coord, not HGTS
-        np.testing.assert_allclose(z.values, [100.0, 500.0])
+        zs = [0.0, 500.0, 1000.0, 2000.0, 4000.0]
+        fields = {(0, "SHGT"): 2000.0, (0, "PRSS"): 800.0, (0, "T02M"): 300.0}
+        for k, z in enumerate(zs[1:], 1):
+            fields[(k, "TEMP")] = 300.0 - 0.01 * z  # 290 K at Z* = 1000 m
+            fields[(k, "PRES")] = 800.0 - 0.08 * z
+        grid = _make_latlon_grid()
+        with File(
+            path, "w", source="TEST", grid=grid, vertical_axis=TerrainAxis(zs)
+        ) as f:
+            rs = f.create_recordset("2024-07-18", forecast=0)
+            for (lev, name), val in fields.items():
+                data = np.full((grid.ny, grid.nx), val, np.float32)
+                rs.create_datarecord(name, lev, forecast=0, data=data)
+        z = arlmet.z_agl(arlmet.open_dataset(path)).sel(level=2).values.ravel()[0]
+        pts = pd.DataFrame({"lon": [-105.0], "lat": [45.0], "z": [z]})
+        temp = arlmet.sample_points(path, pts, ["TEMP"], z_kind="agl")["TEMP"]
+        np.testing.assert_allclose(z, 900.0, rtol=1e-6)
+        np.testing.assert_allclose(temp, [290.0], rtol=1e-6)
 
     def test_flag2_uses_hgts(self, tmp_path):
         """flag=2 requires HGTS for z_agl."""
