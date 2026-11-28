@@ -960,6 +960,58 @@ class TestFromGfs:
         )
         assert back["forecast_hour"].values.tolist() == [0, 3]
 
+    def test_written_file_reads_back_and_samples_as_the_dataset(self, tmp_path):
+        ds = from_gfs(
+            [
+                *gfs_file("2025-09-01 00:00", 0),
+                *gfs_file("2025-09-01 03:00", 3, seed=1),
+            ]
+        )
+        dest = tmp_path / "gfs.arl"
+        arlmet.write_dataset(ds, dest)
+
+        with arlmet.File(dest) as met:
+            assert met.source == "GFS"
+            assert met.grid == ds.arl.grid
+            assert met.vertical_axis == ds.arl.vertical_axis
+        back = arlmet.open_dataset(dest)
+        assert back.attrs["vertical_flag"] == 2
+        pd.testing.assert_index_equal(back.indexes["time"], ds.indexes["time"])
+        assert set(back.data_vars) == set(ds.data_vars)
+        for name in ds.data_vars:
+            if name == "TPP6":  # missing at the analysis time; checked below
+                continue
+            # Packing keeps about 1/1000 of a field's range.
+            span = float(ds[name].max() - ds[name].min())
+            np.testing.assert_allclose(
+                back[name].values, ds[name].values, rtol=0, atol=1e-3 * span
+            )
+        np.testing.assert_allclose(
+            back["TPP6"].isel(time=1).values,
+            ds["TPP6"].isel(time=1).values,
+            atol=1e-3 * float(ds["TPP6"].max()),
+        )
+
+        # One cell, every time: the file's value is the Dataset's there.
+        j, i = 5, 7
+        points = pd.DataFrame(
+            {
+                "lon": ds["lon"].values[i],
+                "lat": ds["lat"].values[j],
+                "z": 850.0,
+                "time": ds["time"].values,
+            }
+        )
+        got = arlmet.sample_points(dest, points, ["TEMP", "UWND"], z_kind="pressure")
+        level = ds["pressure"].values.tolist().index(850.0)
+        for name in ("TEMP", "UWND"):
+            span = float(ds[name].max() - ds[name].min())
+            np.testing.assert_allclose(
+                got[name].values,
+                ds[name].isel(level=level, lat=j, lon=i).values,
+                atol=1e-3 * span,
+            )
+
     def test_older_eccodes_names(self):
         ds = from_gfs(gfs_file("2025-09-01 06:00", 6, old_names=True))
         assert {"SHTF", "DSWF"} <= set(ds.data_vars)
