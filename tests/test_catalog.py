@@ -801,7 +801,6 @@ class TestNames:
         }
         assert public == {
             "archives",
-            "collection",
             "converters",
             "packing",
             "record",

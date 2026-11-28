@@ -11,7 +11,6 @@ import xarray as xr
 from arlmet import ARLFormatError, ARLFormatWarning, File
 from arlmet._grid import Grid, GridWindow, Projection
 from arlmet._xarray._backend import ArlVariableArray, _normalize_backend_indexer
-from arlmet.collection import VariableAccessor
 from arlmet.packing import unpack
 from arlmet.record import DataRecord, Header, LvlInfo, VarInfo
 from arlmet.vertical import PressureAxis
@@ -670,57 +669,22 @@ class TestRecordCollectionForecasts:
             assert arl[time0].forecast == 9
 
 
-class TestVariableViewsAndAccessors:
-    def test_variable_accessor_reports_names_iter_len_and_repr(self, tmp_path):
+class TestRecordSetMapping:
+    def test_file_and_recordset_have_no_variables_accessor(self, tmp_path):
+        # Issue #309: ``"NOPE" in f.variables`` was True for any name.
         path = tmp_path / "variables.arl"
-        write_variable_view_file(path)
+        times = write_variable_view_file(path)
 
         with File(path) as arl:
-            names = set(iter(arl.variables))
-            assert names == {"TEMP", "UWND"}
-            assert len(arl.variables) == 2
-            assert repr(arl.variables) in {
-                "VariableAccessor(['TEMP', 'UWND'])",
-                "VariableAccessor(['UWND', 'TEMP'])",
-            }
+            assert not hasattr(arl, "variables")
+            assert not hasattr(arl[times[0]], "variables")
 
-    def test_variable_accessor_requires_source_records_attribute(self):
-        accessor = VariableAccessor(source=object())
-
-        with pytest.raises(TypeError, match="records"):
-            _ = accessor._names
-
-    def test_variable_view_exposes_shape_dtype_array_and_slice(self, tmp_path):
-        path = tmp_path / "variables.arl"
-        write_variable_view_file(path)
-
-        with File(path) as arl:
-            view = arl.variables["TEMP"]
-
-            assert view.dtype == np.float32
-            assert view.ndim == 4
-            assert view.shape == (2, 2, 20, 20)
-
-            array = np.asarray(view)
-            assert array.shape == (2, 2, 20, 20)
-            np.testing.assert_allclose(
-                array[0, 0], 1.0
-            )  # time=0, level idx 0 → 1000 hPa
-            np.testing.assert_allclose(
-                array[0, 1], 11.0
-            )  # time=0, level idx 1 → 900 hPa
-            np.testing.assert_allclose(view[1, 1, 0, :3], [111.0, 111.0, 111.0])
-
-    def test_recordset_variable_view_mapping_helpers(self, tmp_path):
+    def test_recordset_len_iter_and_bad_key(self, tmp_path):
         path = tmp_path / "variables.arl"
         times = write_variable_view_file(path)
 
         with File(path) as arl:
             rs = arl[times[0]]
-            view = rs.variables["TEMP"]
-
-            assert view.ndim == 4
-            assert view.shape == (1, 2, 20, 20)
 
             assert len(rs) == 4
             assert all(record.recordset is rs for record in rs)
@@ -1169,13 +1133,6 @@ class TestReprs:
             assert ts in arl
             assert pd.Timestamp("2000-01-01") not in arl
             assert "not-a-timestamp" not in arl
-
-    def test_variable_view_repr(self, tmp_path):
-        path = tmp_path / "vv.arl"
-        write_single_record_file(path)
-        with File(path) as arl:
-            r = repr(arl.variables["TEMP"])
-        assert r == "VariableView('TEMP', shape=(1, 1, 20, 20))"
 
 
 class TestXarrayBackendHelpers:
