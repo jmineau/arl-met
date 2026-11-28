@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=694ab845"></script>
+    <script src="_static/documentation_options.js?v=281ff6ce"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev18+g141076200" />
+  <meta name="docsearch:version" content="0.1.0b16.dev19+g2a713f7b1" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -1066,10 +1066,14 @@ the <a class="reference internal" href="vertical.html"><span class="doc">Vertica
 counts as on it, so the edge nodes of a projected grid, sampled at the
 longitude and latitude arl-met reports for them, have values even though
 mapping them back to the grid lands about 1e-12 cells outside.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">z_kind=&quot;pressure&quot;</span></code> on a terrain-following file (flag=3) reads each
+column’s pressures from <code class="docutils literal notranslate"><span class="pre">PRES</span></code>, with <code class="docutils literal notranslate"><span class="pre">PRSS</span></code> (or HYSPLIT’s estimate from
+<code class="docutils literal notranslate"><span class="pre">SHGT</span></code>) at the ground, and <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> without <code class="docutils literal notranslate"><span class="pre">PRES</span></code>: sample at
+heights instead.</p></li>
 <li><p>Sigma, hybrid and WRF files take the ground as a level, pressure-level files
-at heights and pressures, and terrain-following files on HYSPLIT’s internal
-levels; on a terrain-following file with <code class="docutils literal notranslate"><span class="pre">model_top=None</span></code> a point below the
-lowest level with data is NaN.</p></li>
+at heights and pressures, and terrain-following files at pressures and on
+HYSPLIT’s internal levels; on a terrain-following file with
+<code class="docutils literal notranslate"><span class="pre">model_top=None</span></code> a point below the lowest level with data is NaN.</p></li>
 </ul>
 </section>
 </section>

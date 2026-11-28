@@ -337,5 +337,6 @@ Limitations
 - Only sigma, hybrid, WRF and pressure-level files take the ground as a level
   in :func:`arlmet.sample_points` (pressure-level files at heights and
   pressures, not at native levels, where only ``"pressure"`` takes the ground at
-  level 0); on terrain-following (flag=3) files a point
+  level 0; terrain-following files at pressures); on terrain-following (flag=3)
+  files at heights a point
   below the lowest level with data is NaN.
