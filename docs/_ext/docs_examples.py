@@ -229,7 +229,7 @@ def era5_model_level_sample() -> xr.Dataset:
         "u": 5 + (850 - hpa) / 50 + 0 * lat,
         "v": -2 + 0 * hpa + 0 * lat,
         "w": 0.5 * np.cos(np.deg2rad(6 * lat)) + 0 * hpa,  # Pa s-1
-        "q": 0.008 * hpa / 1000 + 0 * lat,  # kg kg-1
+        "q": 0.008 * hpa / 1000 * (1 + 0.02 * (40 - lat)),  # kg kg-1
     }
     dims = ("valid_time", "model_level", "latitude", "longitude")
     return xr.Dataset(
@@ -408,7 +408,7 @@ def wrf_sample() -> xr.Dataset:
         "P": (mass, 50 * wave + 0 * base),
         "PB": (mass, base),
         "T": (mass, 10 * (1 - eta)[None, :, None, None] + wave + 0 * hours),
-        "QVAPOR": (mass, 0.005 * eta[None, :, None, None] + 0 * winds),
+        "QVAPOR": (mass, 0.005 * eta[None, :, None, None] * (1 + 0.1 * wave) + 0 * winds),
         "U": (("Time", "bottom_top", "south_north", "west_east_stag"), stag(winds, 3)),
         "V": (("Time", "bottom_top", "south_north_stag", "west_east"), stag(-0.5 * winds, 2)),
         "W": (("Time", "bottom_top_stag", "south_north", "west_east"), stag(0.1 * wave + 0 * base, 1)),

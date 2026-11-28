@@ -295,6 +295,39 @@ class TestWriter:
         assert write_dataset(ds, written_path, overwrite=True) == written_path
         assert open_dataset(written_path).sizes == ds.sizes
 
+    @pytest.mark.parametrize(
+        ("fill", "warns"),
+        [(0.005, True), (-0.005, True), (0.0123, False), (0.0, False)],
+    )
+    def test_write_dataset_warns_for_a_uniform_field_below_the_precision(
+        self, tmp_path, fill, warns
+    ):
+        self.write_sample_file(tmp_path / "source.arl")
+        ds = open_dataset(tmp_path / "source.arl")
+        ds["TEMP"] = ds["TEMP"] * 0 + fill
+        out = tmp_path / "written.arl"
+        if warns:
+            with pytest.warns(
+                arlmet.ARLFormatWarning, match="TEMP at level 1, 2024-07-18"
+            ):
+                write_dataset(ds, out)
+        else:
+            write_dataset(ds, out)  # warnings are errors in this suite
+        read = open_dataset(out)["TEMP"].values
+        if warns:
+            assert (read[..., 1:] == 0).all()
+        else:
+            np.testing.assert_allclose(read, fill, atol=0.01)
+
+    def test_write_dataset_is_silent_for_a_nonuniform_field_below_the_precision(
+        self, tmp_path
+    ):
+        self.write_sample_file(tmp_path / "source.arl")
+        ds = open_dataset(tmp_path / "source.arl")
+        ds["TEMP"] = ds["TEMP"] * 0 + 0.005
+        ds["TEMP"][..., 3, 3] = 0.5
+        write_dataset(ds, tmp_path / "written.arl")
+
     def test_write_dataset_converts_aware_times_to_utc_without_warning(self, tmp_path):
         source_path = tmp_path / "source.arl"
         written_path = tmp_path / "written.arl"

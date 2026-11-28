@@ -294,6 +294,8 @@ from arlmet import File  # noqa: E402
 from arlmet._grid import Grid, Projection  # noqa: E402
 from arlmet.vertical import R_D, G  # noqa: E402
 
+from ._helpers import writes_small_uniform_fields  # noqa: E402
+
 
 def _make_latlon_grid(nx: int = 20, ny: int = 20) -> Grid:
     proj = Projection(
@@ -404,6 +406,7 @@ def test_hypsometric_z_agl_surface_temperature_by_hand():
     np.testing.assert_allclose(z_dry[0], 84.7260, atol=1e-3)
 
 
+@writes_small_uniform_fields
 def _write_column_file(path, *, axis, pres=True):
     """A sigma or hybrid file shaped like HRRR's: T02M, PRES, TEMP, SPHU (levels 1-3)."""
     grid = _make_latlon_grid()

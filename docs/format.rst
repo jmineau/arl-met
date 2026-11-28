@@ -160,8 +160,12 @@ Reading a record reverses this: the first column is rebuilt down the rows from
 the header's initial value, then each row across from its first cell, adding
 one difference at a time in single precision. A value smaller in magnitude than
 the record's precision (``2**exponent / 254``) is read as zero, except in the
-first column, which HYSPLIT's ``pakinp`` leaves as it is. :func:`arlmet.packing.unpack`
-follows ``pakinp`` step for step and gives the same ``float32`` values.
+first column, which HYSPLIT's ``pakinp`` leaves as it is. A uniform field has
+no differences, so its exponent is 1 and its precision 2/254 (about 0.00787):
+a constant smaller than that (a ``UMOF`` or ``TPP1`` of 0.005) is read back as
+zero past the first column, by arl-met and by HYSPLIT, and writing it warns.
+:func:`arlmet.packing.unpack` follows ``pakinp`` step for step and gives the
+same ``float32`` values.
 
 Writing is HYSPLIT's ``pakout``: the exponent is the smallest that holds the
 largest difference between neighbors, each byte is the difference from the
