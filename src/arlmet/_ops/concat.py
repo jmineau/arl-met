@@ -41,7 +41,7 @@ def concat(
     paths: Iterable[str | os.PathLike[str]],
     dest: str | os.PathLike[str],
     *,
-    overwrite: bool = True,
+    overwrite: bool = False,
 ) -> Path:
     """
     Concatenate multiple ARL files into a single ARL file.
@@ -68,8 +68,8 @@ def concat(
         Output ARL file. It is written to a hidden ``.partial`` file beside
         it and renamed once complete, so it replaces an existing file only on
         success. Must not be one of ``paths``.
-    overwrite : bool, default True
-        Replace an existing ``dest``. With False an existing ``dest`` is
+    overwrite : bool, default False
+        Replace an existing ``dest``. By default an existing ``dest`` is
         returned as it is, without reading the inputs, so a rerun skips
         finished work; nothing checks that it came from the same inputs and
         arguments.
@@ -267,7 +267,7 @@ def concat_by_time(
     start: str | pd.Timestamp | None = None,
     end: str | pd.Timestamp | None = None,
     template: str = "{time:%Y%m%d}_arl",
-    overwrite: bool = True,
+    overwrite: bool = False,
 ) -> list[Path]:
     """
     Group every ARL file in a directory by valid time and concatenate each group.
@@ -306,8 +306,8 @@ def concat_by_time(
         as ``time`` (a ``pandas.Timestamp``), e.g. ``"{time:%Y%m%d}_hrrr"``. It
         must encode enough resolution to keep bins distinct at ``freq``; two
         bins that format to the same filename raise ``ValueError``.
-    overwrite : bool, default True
-        Replace existing output files. With False a bin whose output file
+    overwrite : bool, default False
+        Replace existing output files. By default a bin whose output file
         exists is left as it is (and still listed), so rerunning after a
         failure writes only the missing bins; nothing checks that an existing
         file holds the bin's current inputs.

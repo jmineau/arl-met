@@ -156,13 +156,13 @@ def _repeat_step(path, dest, k):
     return dest
 
 
-def test_concat_without_overwrite_still_refuses_a_directory_dest(tmp_path):
+def test_concat_still_refuses_a_directory_dest(tmp_path):
     early = write_arl(tmp_path / "early.arl", ["2024-01-01 00:00"])
     late = write_arl(tmp_path / "late.arl", ["2024-01-01 06:00"])
     (tmp_path / "out").mkdir()
 
     with pytest.raises(IsADirectoryError, match="dest .*out.* is a directory"):
-        concat([early, late], tmp_path / "out", overwrite=False)
+        concat([early, late], tmp_path / "out")
 
 
 def test_concat_writes_a_repeated_time_step_once(tmp_path):
@@ -215,6 +215,19 @@ def test_concat_returns_output_path(tmp_path):
         assert len(merged.times) == 2
 
 
+def test_concat_keeps_an_existing_dest_unless_overwrite(tmp_path):
+    a = write_arl(tmp_path / "a.arl", ["2024-01-01 00:00"])
+    out = tmp_path / "out.arl"
+    out.write_bytes(b"kept")
+
+    assert concat([a], out) == out
+    assert out.read_bytes() == b"kept"
+
+    concat([a], out, overwrite=True)
+    with File(out) as merged:
+        assert len(merged.times) == 1
+
+
 def test_concat_failure_keeps_old_dest_and_leaves_no_partial(tmp_path, monkeypatch):
     a = write_arl(tmp_path / "a.arl", ["2024-01-01 00:00"])
     b = write_arl(tmp_path / "b.arl", ["2024-01-01 06:00"])
@@ -232,7 +245,7 @@ def test_concat_failure_keeps_old_dest_and_leaves_no_partial(tmp_path, monkeypat
 
     monkeypatch.setattr(concat_module, "_copy_step", interrupted)
     with pytest.raises(RuntimeError, match="interrupted"):
-        concat([a, b], out)
+        concat([a, b], out, overwrite=True)
 
     assert out.read_bytes() == b"an earlier output"
     assert sorted(p.name for p in tmp_path.iterdir()) == ["a.arl", "ab.arl", "b.arl"]
@@ -395,7 +408,7 @@ def test_concat_by_time_skips_hidden_files(tmp_path):
     assert [p.name for p in written] == ["20240101_arl"]
 
 
-def test_concat_by_time_without_overwrite_writes_only_missing_bins(tmp_path):
+def test_concat_by_time_writes_only_missing_bins(tmp_path):
     src = tmp_path / "hrrr"
     out = tmp_path / "daily"
     populate_hrrr_dir(src)
@@ -404,13 +417,13 @@ def test_concat_by_time_without_overwrite_writes_only_missing_bins(tmp_path):
     first.write_bytes(b"kept")  # stands for a finished bin
     second.unlink()  # a bin the failed run did not reach
 
-    written = concat_by_time(src, out, overwrite=False, **kwargs)
+    written = concat_by_time(src, out, **kwargs)
 
     assert written == [first, second]
     assert first.read_bytes() == b"kept"
     with File(second) as day2:
         assert len(day2.times) == 2
-    concat_by_time(src, out, **kwargs)  # the default replaces it
+    concat_by_time(src, out, overwrite=True, **kwargs)
     assert first.read_bytes() != b"kept"
 
 

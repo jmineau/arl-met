@@ -45,7 +45,7 @@ def write_met(path, times, *, source="TEST", nx=20):
         coords={"time": times, "arl_grid": grid},
         attrs={"source": source},
     )
-    arlmet.write_dataset(ds, path, vertical_axis=AXIS)
+    arlmet.write_dataset(ds, path, vertical_axis=AXIS, overwrite=True)
     return path
 
 

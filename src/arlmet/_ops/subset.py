@@ -362,7 +362,7 @@ def extract_subset(
     bbox_crs: Any = None,
     levels: Iterable[int] | None = None,
     variables: str | Iterable[str] | None = None,
-    overwrite: bool = True,
+    overwrite: bool = False,
 ) -> Path:
     """
     Extract a spatial/vertical subset from an ARL file into a new ARL file.
@@ -392,8 +392,8 @@ def extract_subset(
         holds is accepted, but naming it selects nothing: a ``DIF*`` record is
         written with its parent record, when the parent is selected. All
         variables are included by default.
-    overwrite : bool, default True
-        Replace an existing ``dest``. With False an existing ``dest`` is
+    overwrite : bool, default False
+        Replace an existing ``dest``. By default an existing ``dest`` is
         returned as it is, without reading the input, so a rerun skips
         finished work; nothing checks that it came from the same inputs and
         arguments.
