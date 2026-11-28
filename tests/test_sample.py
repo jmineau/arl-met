@@ -1054,7 +1054,7 @@ class TestTerrainRequired:
                 rs.create_datarecord("TEMP", level=i, forecast=0, data=field)
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [1500.0]})
-        with File(path) as arl, pytest.raises(ValueError, match="SHGT"):
+        with File(path) as arl, pytest.raises(ValueError, match="SHGT.*z_kind='agl'"):
             sample_points(
                 arl, points, ["TEMP"], time=time, z_kind="msl", file_levels=True
             )

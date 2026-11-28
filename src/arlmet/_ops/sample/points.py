@@ -281,6 +281,11 @@ def _sample_time(
         # A height above sea level is the height above the ground at the point
         # itself, as HYSPLIT places a particle above the terrain there; each
         # grid point's column is then read at that height above its own ground.
+        if not levels_of(recordset, "SHGT"):
+            raise ValueError(
+                f"z_kind='msl' needs the terrain field SHGT, which the time step "
+                f"at {recordset.time} does not hold; sample at z_kind='agl' instead."
+            )
         targets = targets - terrain_at(recordset, plan)
         column_z = "agl"
     else:
@@ -525,7 +530,7 @@ def sample_points(
         file, a variable name collides with a column of ``points``, ``z_kind``
         or ``method`` is invalid, a variable is not in a time step the points
         use (the message lists the variables it holds), a field that
-        ``z_kind`` requires is missing, ``z_kind`` is ``"pressure"`` on a terrain-following file
+        ``z_kind`` requires is missing (``SHGT`` at ``"msl"``), ``z_kind`` is ``"pressure"`` on a terrain-following file
         without ``PRES``,
         ``model_top`` is not a positive number at heights, ``file_levels`` is
         combined with ``model_top`` or ``internal_grid`` at heights, or
