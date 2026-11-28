@@ -271,15 +271,13 @@ def variable_profile(
             # Terrain-following files have no pressure coordinate of their own.
             return Profile(fixed=np.full(n_points, np.nan, dtype=np.float32))
         levels: tuple[int, ...] = tuple(range(len(axis.levels)))
-        pressure_column = column
         if column is None and isinstance(axis, PressureAxis):
             # A pressure-level file stores level 0 as 0 hPa, but level 0 is the
-            # ground: its pressure is PRSS, as on a sigma file (#299).
-            pressure_column = column_for(
-                recordset, plan, z_kind="pressure", levels=None
-            )
+            # ground: its pressure is PRSS, as on a sigma file (#299). With the
+            # column, pressure is interpolated in ln p, as prfprs does (#338).
+            column = column_for(recordset, plan, z_kind="pressure", levels=None)
         values = _vertical_coords(
-            axis, levels, z_kind="pressure", column=pressure_column, n_points=n_points
+            axis, levels, z_kind="pressure", column=column, n_points=n_points
         )
     else:
         samples = (

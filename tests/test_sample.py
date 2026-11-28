@@ -1958,7 +1958,7 @@ def test_pressure_at_native_levels_off_the_grid_is_nan(tmp_path):
     result = sample_points(
         path, points, ["TEMP", "pressure"], time=time, z_kind="native"
     )
-    np.testing.assert_allclose(result["pressure"], [900.0, np.nan])
+    np.testing.assert_allclose(result["pressure"], [900.0, np.nan], rtol=1e-6)
     assert np.isnan(result["TEMP"].iloc[1])
 
 
@@ -2004,8 +2004,13 @@ def test_pressure_at_native_level_0_of_a_pressure_file_is_the_surface_pressure(
     result = sample_points(path, points, ["pressure", "PRSS"], z_kind="native")
     np.testing.assert_allclose(result["PRSS"], 980.0)
     # Level 0 is the ground; level 1 is the stored 1000 hPa (below it, as NCEP
-    # extrapolates), then 900 hPa; between levels the stored pressure is read linearly.
-    np.testing.assert_allclose(result["pressure"], [980.0, 990.0, 1000.0, 950.0])
+    # extrapolates), then 900 hPa; between levels pressure is read in ln p, as
+    # HYSPLIT's prfprs does: exp(frac * (ln p1 - ln p0) + ln p0) (#338).
+    np.testing.assert_allclose(
+        result["pressure"],
+        [980.0, np.sqrt(980.0 * 1000.0), 1000.0, np.sqrt(1000.0 * 900.0)],
+        rtol=1e-6,
+    )
 
 
 def test_pressure_at_native_levels_of_a_pressure_file_without_prss_raises(tmp_path):
