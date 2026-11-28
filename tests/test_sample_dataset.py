@@ -94,7 +94,7 @@ def _variables(path):
 #: (z_kind, model_top, z values) to sample at; z for heights in m, pressures in hPa.
 CASES = [
     ("agl", "default", [0.0, 5.0, 40.0, 300.0, 1500.0, 9000.0, 30000.0]),
-    ("agl", None, [0.0, 40.0, 300.0, 1500.0]),
+    ("agl", "file", [0.0, 40.0, 300.0, 1500.0]),
     ("agl", 15000.0, [10.0, 700.0, 5000.0]),
     ("msl", "default", [200.0, 1200.0, 4000.0]),
     ("pressure", "default", [1005.0, 950.0, 850.0, 500.0, 120.0]),
@@ -104,7 +104,10 @@ CASES = [
 
 def _sample(met, points, variables, z_kind, model_top, earth_relative=False):
     """Return the sampled frame, or the exception raised, for comparison."""
-    kwargs = {} if model_top == "default" else {"model_top": model_top}
+    kwargs = {
+        "default": {},
+        "file": {"file_levels": True},
+    }.get(model_top, {"model_top": model_top})
     try:
         out = sample_points(
             met,
@@ -377,8 +380,8 @@ class TestOneUpperLevel:
 
         # Below level 1 the column is the same, from the ground (T02M) up.
         heights = [50.0, 5000.0, 20000.0]
-        got = sample(one, heights, "agl", model_top=None)["TEMP"].to_numpy()
-        want = sample(full, heights, "agl", model_top=None)["TEMP"].to_numpy()
+        got = sample(one, heights, "agl", file_levels=True)["TEMP"].to_numpy()
+        want = sample(full, heights, "agl", file_levels=True)["TEMP"].to_numpy()
         np.testing.assert_allclose(got[0], want[0], rtol=1e-6)
         assert got[0] != 283.0  # not level 1's value
         assert np.isnan(got[1:]).all()  # above the Dataset's top
@@ -454,7 +457,7 @@ def test_dataset_of_some_levels_reads_each_level_where_it_is(
         points = pd.DataFrame(
             {**point, "z": z, "time": pd.Timestamp(where["time"].values)}
         )
-        kwargs = {"model_top": None} if z_kind == "agl" else {}
+        kwargs = {"file_levels": True} if z_kind == "agl" else {}
         out = sample_points(some, points, ["TEMP"], z_kind=z_kind, **kwargs)
         return out["TEMP"].to_numpy()
 

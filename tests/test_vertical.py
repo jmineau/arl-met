@@ -845,7 +845,7 @@ class TestWrfFile:
         np.testing.assert_allclose(z, _WRF_Z, atol=1e-1)
         point = pd.DataFrame({"lon": [-105.0], "lat": [45.0], "z": [_WRF_Z[0]]})
         sampled = arlmet.sample_points(
-            path, point, ["TEMP"], z_kind="agl", model_top=None
+            path, point, ["TEMP"], z_kind="agl", file_levels=True
         )
         np.testing.assert_allclose(sampled["TEMP"], _WRF_TEMP[0], atol=1e-2)
 
@@ -875,14 +875,14 @@ class TestWrfFile:
                 {**point, "z": [z_quarter]},
                 ["TEMP", "pressure"],
                 z_kind="agl",
-                model_top=None,
+                file_levels=True,
             )
             msl = arlmet.sample_points(
                 f,
                 {**point, "z": [z_quarter + 1300.0]},
                 ["TEMP", "pressure"],
                 z_kind="msl",
-                model_top=None,
+                file_levels=True,
             )
         np.testing.assert_allclose(by_p["TEMP"].iloc[0], 278.75, atol=1e-4)
         for result in (agl, msl):
@@ -897,7 +897,7 @@ class TestWrfFile:
         point = {"lon": [-105.0], "lat": [45.0], "z": [0.5 * _WRF_Z[0]]}
         with File(path) as f:
             agl = arlmet.sample_points(
-                f, point, ["pressure"], z_kind="agl", model_top=None
+                f, point, ["pressure"], z_kind="agl", file_levels=True
             )
         np.testing.assert_allclose(
             agl["pressure"].iloc[0], np.sqrt(850.0 * 820.0), rtol=1e-5
@@ -911,7 +911,7 @@ class TestWrfFile:
             for z_kind in ("pressure", "agl"):
                 with pytest.raises(ValueError, match="PRES"):
                     arlmet.sample_points(
-                        f, point, ["TEMP"], z_kind=z_kind, model_top=None
+                        f, point, ["TEMP"], z_kind=z_kind, file_levels=True
                     )
 
 

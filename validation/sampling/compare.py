@@ -16,9 +16,9 @@ References, all on HYSPLIT's library:
   data), then ZINDEX + ADV3NT ("zindex": the advection path) and hymodelc's PARTICLE_STILT.DAT
   interpolation ("lin").
 - hyorder: mode 0, output levels at the point's height above each node's ground
-  (what arlmet does without model_top); mode 1, the same with the sigma scaling only.
+  (what arlmet does with file_levels=True); mode 1, the same with the sigma scaling only.
 
-arlmet runs with model_top=None ("none": each grid point's column at the point's own height) and with model_top=Z ("top": HYSPLIT's internal levels).
+arlmet runs with file_levels=True ("none": each grid point's column at the point's own height) and with model_top=Z ("top": HYSPLIT's internal levels).
 """
 
 import inspect
@@ -174,7 +174,7 @@ def main():
         except Exception as e:  # noqa: BLE001
             out["levels_arlmet"] = f"{type(e).__name__}: {e}"
     res = {}
-    for label, kw in (("none", {"model_top": None}), ("top", {"model_top": zdata})):
+    for label, kw in (("none", {"file_levels": True}), ("top", {"model_top": zdata})):
         if label == "top" and not has_top:
             continue
         t0 = time.perf_counter()
