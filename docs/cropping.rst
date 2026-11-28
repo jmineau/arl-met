@@ -102,15 +102,6 @@ what went into it.
        "met.arl", "cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0), overwrite=False
    )
 
-When you already hold an open :class:`arlmet.File`, the same operation is
-available as a method:
-
-.. ipython:: python
-
-   with arlmet.File("met.arl") as met:
-       out = met.extract_subset("cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0))
-   ds = arlmet.open_dataset(out)
-
 A ``bbox`` with ``west > east`` crosses the dateline, on any grid:
 ``(170.0, 50.0, -170.0, 60.0)`` is the box ``(170.0, 50.0, 190.0, 60.0)``. On a
 global grid a box may also cross the grid's seam, the column where its longitudes
@@ -157,8 +148,7 @@ a box of 80 by 160 km in UTM zone 12N, around Salt Lake City:
    )
    dict(utm.sizes)
 
-``extract_subset()``, ``File.extract_subset()``, ``File.to_dataset()`` and
-``xr.open_dataset(..., engine="arl")`` take ``bbox_crs=`` too. The box is a
+``extract_subset()`` and ``xr.open_dataset(..., engine="arl")`` take ``bbox_crs=`` too. The box is a
 rectangle in its own system, which on the grid is a curved shape, so the crop is
 found as a projected grid's is (next section), on either kind of grid: the smallest
 rectangle of cells that holds every point of the box on the grid. A global lat-lon

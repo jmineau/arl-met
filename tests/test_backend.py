@@ -94,8 +94,6 @@ def test_a_string_drop_variables_is_one_name(tmp_path):
 
     assert "TEMP" not in arlmet.open_dataset(path, drop_variables="TEMP")
     assert "TEMP" not in xr.open_dataset(path, engine="arl", drop_variables="TEMP")
-    with File(path) as met:
-        assert "TEMP" not in met.to_dataset(drop_variables="TEMP")
 
 
 def test_engine_passes_bbox_crs(tmp_path):

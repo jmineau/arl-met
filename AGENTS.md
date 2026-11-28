@@ -45,9 +45,8 @@ src/arlmet/
 so the release's promise (names in a public `__all__`) is not made twice for each top-level name.
 A new module is private unless it holds such a name.
 
-`_ops/` and `_xarray/` sit on top of `_file.py`; `File` imports them inside its
-methods, keeping the import graph one-way, as `sample_points` imports `_xarray._sampling`
-(samplers read a `RecordSet` or a Dataset's time step through `fields.TimeStep`); `converters/` sits on `_xarray/`.
+`_ops/` and `_xarray/` sit on top of `_file.py`, which imports neither, keeping the import graph
+one-way, as `sample_points` imports `_xarray._sampling` (samplers read a `RecordSet` or a Dataset's time step through `fields.TimeStep`); `converters/` sits on `_xarray/`.
 `archives.py` imports `fsspec` only when it downloads (no `archives` extra needed).
 
 ## ARL format rules

@@ -864,16 +864,18 @@ class TestWrfFile:
         point = {"lon": [-105.0], "lat": [45.0], "time": [pd.Timestamp("2024-01-01")]}
         with File(path) as f:
             # At pressures too, ln p (#214): the pressure the heights give, the same TEMP.
-            by_p = f.sample_points(
-                {**point, "z": [p_quarter]}, ["TEMP"], z_kind="pressure"
+            by_p = arlmet.sample_points(
+                f, {**point, "z": [p_quarter]}, ["TEMP"], z_kind="pressure"
             )
-            agl = f.sample_points(
+            agl = arlmet.sample_points(
+                f,
                 {**point, "z": [z_quarter]},
                 ["TEMP", "pressure"],
                 z_kind="agl",
                 model_top=None,
             )
-            msl = f.sample_points(
+            msl = arlmet.sample_points(
+                f,
                 {**point, "z": [z_quarter + 1300.0]},
                 ["TEMP", "pressure"],
                 z_kind="msl",
@@ -891,7 +893,9 @@ class TestWrfFile:
         # halfway to level 1 it is the geometric mean of 850 and 820 hPa.
         point = {"lon": [-105.0], "lat": [45.0], "z": [0.5 * _WRF_Z[0]]}
         with File(path) as f:
-            agl = f.sample_points(point, ["pressure"], z_kind="agl", model_top=None)
+            agl = arlmet.sample_points(
+                f, point, ["pressure"], z_kind="agl", model_top=None
+            )
         np.testing.assert_allclose(
             agl["pressure"].iloc[0], np.sqrt(850.0 * 820.0), rtol=1e-5
         )
@@ -903,7 +907,9 @@ class TestWrfFile:
         with File(path) as f:
             for z_kind in ("pressure", "agl"):
                 with pytest.raises(ValueError, match="PRES"):
-                    f.sample_points(point, ["TEMP"], z_kind=z_kind, model_top=None)
+                    arlmet.sample_points(
+                        f, point, ["TEMP"], z_kind=z_kind, model_top=None
+                    )
 
 
 class TestHelpersOnSomeLevels:

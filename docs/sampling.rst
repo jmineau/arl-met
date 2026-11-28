@@ -54,13 +54,12 @@ else) and its index are preserved, so you can compare samples with
 observations row by row. A requested variable whose name matches an existing
 column raises ``ValueError`` rather than overwriting it.
 
-If you already have an open file, pass it instead of a path. The
-:class:`arlmet.File` object also exposes the same operation as a method:
+If you already have an open file, pass it instead of a path:
 
 .. ipython:: python
 
    with arlmet.File("met.arl") as met:
-       result = met.sample_points(points, ["UWND", "VWND", "TEMP"])
+       result = arlmet.sample_points(met, points, ["UWND", "VWND", "TEMP"])
    result
 
 A file you open yourself is left open for you to manage; only paths that
@@ -74,7 +73,10 @@ against 8 ms with an open file.
 .. ipython:: python
 
    with arlmet.File("met.arl") as met:
-       rows = [met.sample_points(points.iloc[[i]], ["TEMP"]) for i in range(len(points))]
+       rows = [
+           arlmet.sample_points(met, points.iloc[[i]], ["TEMP"])
+           for i in range(len(points))
+       ]
    rows[0]
 
 Choosing the vertical coordinate
