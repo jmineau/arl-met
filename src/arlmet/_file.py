@@ -989,7 +989,7 @@ class File:
     def to_dataset(
         self,
         *,
-        drop_variables: Sequence[str] | None = None,
+        drop_variables: str | Iterable[str] | None = None,
         bbox: tuple[float, float, float, float] | None = None,
         bbox_crs: Any = None,
         levels: Iterable[int] | None = None,
@@ -999,8 +999,8 @@ class File:
 
         Parameters
         ----------
-        drop_variables : sequence of str, optional
-            Variable names to omit.
+        drop_variables : str or iterable of str, optional
+            Variable name(s) to omit.
         bbox : tuple[float, float, float, float], optional
             Geographic bounding box ``(west, south, east, north)`` in degrees.
             On a projected grid the crop is the smallest rectangle of cells
