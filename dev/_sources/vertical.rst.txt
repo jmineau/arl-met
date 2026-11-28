@@ -112,11 +112,12 @@ dispatcher — each coordinate system has exactly one correct method:
   ``PRES``, as :func:`arlmet.sample_points` reads a file without ``TEMP``), and
   ``PRES`` on WRF files; uses ``T02M`` (or ``TMPS``), ``SPHU`` (or ``RELH``) and, on sigma
   files, ``PRES`` when present. These files do not store ``HGTS``.
-- **flag=3 (terrain-following):** returns the stored 1D ``height`` coordinate,
-  the levels' heights over flat ground. HYSPLIT's ``prfter`` lowers them over
-  terrain, to ``Z* (1 - zsfc / ZMDLT)`` with ``ZMDLT`` 20000 m, and
-  :func:`arlmet.sample_points` does too (the :doc:`sampling` guide); this
-  helper does not.
+- **flag=3 (terrain-following):** the stored ``height`` coordinate ``Z*``
+  (the levels' heights over flat ground) lowered over the terrain to
+  ``Z* (1 - SHGT / ZMDLT)``, as HYSPLIT's ``prfter`` and
+  :func:`arlmet.sample_points` put them (the :doc:`sampling` guide).
+  ``ZMDLT`` is 20000 m, and on a file whose source is ``RAMS`` 25000 m, the
+  ``ZMDL`` of ``sample_points``' default ``model_top``. Requires ``SHGT``.
 
 Each layer of the hypsometric integration is ``(R_d / g) * T * ln(p_below /
 p_above)`` thick, with ``T`` the mean of its two bounding levels, the first
@@ -290,8 +291,9 @@ at level 0, and ``PRES`` as ``pressure`` (sigma only) for HYSPLIT's heights:
    pres = np.array([1000.0, 979.0, 948.0])  # the PRES field, hPa
    vaxis.to_height_agl(surface_pressure=prss, temperature=tv, pressure=pres)
 
-A pressure axis takes the geopotential height and the terrain, a WRF axis the
-temperature and pressure of each level above the ground:
+A pressure axis takes the geopotential height and the terrain, a
+terrain-following axis the terrain, a WRF axis the temperature and pressure of
+each level above the ground:
 
 .. ipython:: python
 
@@ -299,6 +301,9 @@ temperature and pressure of each level above the ground:
    hgts = np.array([[110.0, 770.0, 1480.0]])  # m, one column
    shgt = np.array([100.0])  # m
    paxis.to_height_agl(hgts=hgts, terrain=shgt[..., None])
+
+   taxis = arlmet.TerrainAxis(levels=[0.0, 500.0, 1000.0])
+   taxis.to_height_agl(terrain=2000.0)  # Z* (1 - 2000 / 20000)
 
    waxis = arlmet.WrfAxis(levels=[1.0, 0.995, 0.98], offset=50.0)
    waxis.to_height_agl(

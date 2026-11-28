@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../_static/documentation_options.js?v=10cc31c0"></script>
+    <script src="../../_static/documentation_options.js?v=b7e85b82"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev10+g5f5ec5190" />
+  <meta name="docsearch:version" content="0.1.0b16.dev11+g874dad3c4" />
   
     
     <script src="../../_static/searchtools.js"></script>
@@ -694,6 +694,17 @@
         <span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_terrain_following_z_agl</span><span class="p">(</span><span class="n">z_star</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">terrain</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">zmdlt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20000.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Height AGL [m] of a terrain-following level ``Z*`` over *terrain*: ``Z* (1 - terrain / ZMDLT)``.</span>
+
+<span class="sd">    HYSPLIT's ``prfter`` (``ZTOP=PSG(KZ)*(1.0-ZSFC/ZMDLT)``); ``ZMDLT`` is</span>
+<span class="sd">    20000 m, or ``ZMDL`` on a file whose source is ``RAMS``. Works elementwise,</span>
+<span class="sd">    on arrays or DataArrays.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">z_star</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">terrain</span> <span class="o">/</span> <span class="n">zmdlt</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="VerticalAxis">
 <a class="viewcode-back" href="../../_autosummary/arlmet.VerticalAxis.html#arlmet.VerticalAxis">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">VerticalAxis</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
@@ -841,8 +852,9 @@
 <span class="sd">            Geopotential height [m MSL] at each level (``HGTS``). Required</span>
 <span class="sd">            for pressure axes.</span>
 <span class="sd">        terrain : array-like, optional</span>
-<span class="sd">            Terrain height [m] (``SHGT``), broadcastable to ``hgts``.</span>
-<span class="sd">            Required for pressure axes.</span>
+<span class="sd">            Terrain height [m] (``SHGT``). Required for pressure axes</span>
+<span class="sd">            (broadcastable to ``hgts``) and terrain-following axes (one</span>
+<span class="sd">            value per column).</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1000,7 +1012,13 @@
 <div class="viewcode-block" id="TerrainAxis">
 <a class="viewcode-back" href="../../_autosummary/arlmet.TerrainAxis.html#arlmet.TerrainAxis">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TerrainAxis</span><span class="p">(</span><span class="n">VerticalAxis</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Flag=3. Terrain-following — stored levels are heights AGL."""</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Flag=3. Terrain-following: the stored levels are ``Z*``, heights over flat ground.</span>
+
+<span class="sd">    Over terrain ``zsfc`` HYSPLIT's ``prfter`` puts a level at ``Z* (1 - zsfc /</span>
+<span class="sd">    20000)`` above the ground, and so do :meth:`to_height_agl`,</span>
+<span class="sd">    :func:`arlmet.z_agl` and :func:`arlmet.sample_points`.</span>
+<span class="sd">    """</span>
 
     <span class="n">flag</span> <span class="o">=</span> <span class="mi">3</span>
     <span class="n">coord_system</span> <span class="o">=</span> <span class="s2">"terrain"</span>
@@ -1029,8 +1047,16 @@
         <span class="n">hgts</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">terrain</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Height AGL [m]: a writable copy of the stored levels. No inputs needed."""</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Height AGL [m] ``Z* (1 - terrain / 20000)``, as HYSPLIT's ``prfter`` puts the levels.</span>
+
+<span class="sd">        Requires ``terrain`` (``SHGT`` [m]); the result is ``terrain.shape +</span>
+<span class="sd">        (nlev,)``. On a file whose source is ``RAMS`` HYSPLIT scales by ``ZMDL``</span>
+<span class="sd">        in place of 20000 m, as :func:`arlmet.z_agl` does.</span>
+<span class="sd">        """</span>
+        <span class="n">_require</span><span class="p">(</span><span class="s2">"terrain"</span><span class="p">,</span> <span class="n">terrain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="n">zsfc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">terrain</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">_terrain_following_z_agl</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="p">,</span> <span class="n">zsfc</span><span class="p">)</span></div>
 </div>
 
 

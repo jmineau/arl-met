@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=10cc31c0"></script>
+    <script src="_static/documentation_options.js?v=b7e85b82"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev10+g5f5ec5190" />
+  <meta name="docsearch:version" content="0.1.0b16.dev11+g874dad3c4" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -591,11 +591,12 @@ and hybrid heights</a>). Requires <code class="docutils literal notranslate"><sp
 <code class="docutils literal notranslate"><span class="pre">PRES</span></code>, as <a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> reads a file without <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>), and
 <code class="docutils literal notranslate"><span class="pre">PRES</span></code> on WRF files; uses <code class="docutils literal notranslate"><span class="pre">T02M</span></code> (or <code class="docutils literal notranslate"><span class="pre">TMPS</span></code>), <code class="docutils literal notranslate"><span class="pre">SPHU</span></code> (or <code class="docutils literal notranslate"><span class="pre">RELH</span></code>) and, on sigma
 files, <code class="docutils literal notranslate"><span class="pre">PRES</span></code> when present. These files do not store <code class="docutils literal notranslate"><span class="pre">HGTS</span></code>.</p></li>
-<li><p><strong>flag=3 (terrain-following):</strong> returns the stored 1D <code class="docutils literal notranslate"><span class="pre">height</span></code> coordinate,
-the levels’ heights over flat ground. HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfter</span></code> lowers them over
-terrain, to <code class="docutils literal notranslate"><span class="pre">Z*</span> <span class="pre">(1</span> <span class="pre">-</span> <span class="pre">zsfc</span> <span class="pre">/</span> <span class="pre">ZMDLT)</span></code> with <code class="docutils literal notranslate"><span class="pre">ZMDLT</span></code> 20000 m, and
-<a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> does too (the <a class="reference internal" href="sampling.html"><span class="doc">Sampling Points</span></a> guide); this
-helper does not.</p></li>
+<li><p><strong>flag=3 (terrain-following):</strong> the stored <code class="docutils literal notranslate"><span class="pre">height</span></code> coordinate <code class="docutils literal notranslate"><span class="pre">Z*</span></code>
+(the levels’ heights over flat ground) lowered over the terrain to
+<code class="docutils literal notranslate"><span class="pre">Z*</span> <span class="pre">(1</span> <span class="pre">-</span> <span class="pre">SHGT</span> <span class="pre">/</span> <span class="pre">ZMDLT)</span></code>, as HYSPLIT’s <code class="docutils literal notranslate"><span class="pre">prfter</span></code> and
+<a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> put them (the <a class="reference internal" href="sampling.html"><span class="doc">Sampling Points</span></a> guide).
+<code class="docutils literal notranslate"><span class="pre">ZMDLT</span></code> is 20000 m, and on a file whose source is <code class="docutils literal notranslate"><span class="pre">RAMS</span></code> 25000 m, the
+<code class="docutils literal notranslate"><span class="pre">ZMDL</span></code> of <code class="docutils literal notranslate"><span class="pre">sample_points</span></code>’ default <code class="docutils literal notranslate"><span class="pre">model_top</span></code>. Requires <code class="docutils literal notranslate"><span class="pre">SHGT</span></code>.</p></li>
 </ul>
 <p>Each layer of the hypsometric integration is <code class="docutils literal notranslate"><span class="pre">(R_d</span> <span class="pre">/</span> <span class="pre">g)</span> <span class="pre">*</span> <span class="pre">T</span> <span class="pre">*</span> <span class="pre">ln(p_below</span> <span class="pre">/</span>
 <span class="pre">p_above)</span></code> thick, with <code class="docutils literal notranslate"><span class="pre">T</span></code> the mean of its two bounding levels, the first
@@ -761,8 +762,9 @@ at level 0, and <code class="docutils literal notranslate"><span class="pre">PRE
 <span class="gh">Out[21]: </span><span class="go">array([  0.        , 179.66419373, 450.40467907])</span>
 </pre></div>
 </div>
-<p>A pressure axis takes the geopotential height and the terrain, a WRF axis the
-temperature and pressure of each level above the ground:</p>
+<p>A pressure axis takes the geopotential height and the terrain, a
+terrain-following axis the terrain, a WRF axis the temperature and pressure of
+each level above the ground:</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [22]: </span><span class="n">paxis</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">PressureAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">1000.0</span><span class="p">,</span> <span class="mf">925.0</span><span class="p">,</span> <span class="mf">850.0</span><span class="p">])</span>
 
 <span class="gp">In [23]: </span><span class="n">hgts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">770.0</span><span class="p">,</span> <span class="mf">1480.0</span><span class="p">]])</span>  <span class="c1"># m, one column</span>
@@ -772,15 +774,20 @@ temperature and pressure of each level above the ground:</p>
 <span class="gp">In [25]: </span><span class="n">paxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span><span class="n">hgts</span><span class="o">=</span><span class="n">hgts</span><span class="p">,</span> <span class="n">terrain</span><span class="o">=</span><span class="n">shgt</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
 <span class="gh">Out[25]: </span><span class="go">array([[  10.,  670., 1380.]])</span>
 
-<span class="gp">In [26]: </span><span class="n">waxis</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">WrfAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.995</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">],</span> <span class="n">offset</span><span class="o">=</span><span class="mf">50.0</span><span class="p">)</span>
+<span class="gp">In [26]: </span><span class="n">taxis</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">TerrainAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">500.0</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">])</span>
 
-<span class="gp">In [27]: </span><span class="n">waxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span>
+<span class="gp">In [27]: </span><span class="n">taxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span><span class="n">terrain</span><span class="o">=</span><span class="mf">2000.0</span><span class="p">)</span>  <span class="c1"># Z* (1 - 2000 / 20000)</span>
+<span class="gh">Out[27]: </span><span class="go">array([  0., 450., 900.])</span>
+
+<span class="gp">In [28]: </span><span class="n">waxis</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">WrfAxis</span><span class="p">(</span><span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.995</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">],</span> <span class="n">offset</span><span class="o">=</span><span class="mf">50.0</span><span class="p">)</span>
+
+<span class="gp">In [29]: </span><span class="n">waxis</span><span class="o">.</span><span class="n">to_height_agl</span><span class="p">(</span>
 <span class="gp">   ....: </span>    <span class="n">surface_pressure</span><span class="o">=</span><span class="mf">850.0</span><span class="p">,</span>
 <span class="gp">   ....: </span>    <span class="n">temperature</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">285.0</span><span class="p">,</span> <span class="mf">284.0</span><span class="p">]),</span>  <span class="c1"># K, the two levels above the ground</span>
 <span class="gp">   ....: </span>    <span class="n">pressure</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">845.0</span><span class="p">,</span> <span class="mf">832.0</span><span class="p">]),</span>  <span class="c1"># PRES there, hPa</span>
 <span class="gp">   ....: </span><span class="p">)</span>
 <span class="gp">   ....: </span>
-<span class="gh">Out[27]: </span><span class="go">array([ 49.25283964, 178.36724575])</span>
+<span class="gh">Out[29]: </span><span class="go">array([ 49.25283964, 178.36724575])</span>
 </pre></div>
 </div>
 <p>For a WRF axis <code class="docutils literal notranslate"><span class="pre">temperature</span></code> and <code class="docutils literal notranslate"><span class="pre">pressure</span></code> hold the levels above the

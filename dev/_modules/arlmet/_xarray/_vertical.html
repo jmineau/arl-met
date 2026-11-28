@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=10cc31c0"></script>
+    <script src="../../../_static/documentation_options.js?v=b7e85b82"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev10+g5f5ec5190" />
+  <meta name="docsearch:version" content="0.1.0b16.dev11+g874dad3c4" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -449,6 +449,7 @@
     <span class="n">TerrainAxis</span><span class="p">,</span>
     <span class="n">WrfAxis</span><span class="p">,</span>
     <span class="n">_hysplit_z_agl</span><span class="p">,</span>
+    <span class="n">_terrain_following_z_agl</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"pressure"</span><span class="p">,</span> <span class="s2">"z_agl"</span><span class="p">,</span> <span class="s2">"z_msl"</span><span class="p">]</span>
@@ -650,8 +651,11 @@
 <span class="sd">          adiabatically), and the virtual temperature is ``TEMP (1 + 0.61 q)``</span>
 <span class="sd">          with ``q`` from ``SPHU``, else ``RELH``, else 0. Requires ``PRSS``</span>
 <span class="sd">          and ``TEMP`` (or ``THET`` and ``PRES``).</span>
-<span class="sd">        - **flag=3**: the stored 1D ``height`` non-dim coord ``(level,)`` —</span>
-<span class="sd">          terrain-following levels are heights AGL.</span>
+<span class="sd">        - **flag=3**: ``Z* (1 - SHGT / 20000)`` from the stored ``height``</span>
+<span class="sd">          coordinate ``Z*``, as HYSPLIT's ``prfter`` and</span>
+<span class="sd">          :func:`arlmet.sample_points` put the levels (``ZMDL``, 25000 m at</span>
+<span class="sd">          ``sample_points``' default ``model_top``, in place of 20000 on a</span>
+<span class="sd">          file whose source is ``RAMS``). Requires ``SHGT``.</span>
 <span class="sd">        - **flag=5** (WRF): as flag 1 with ``PRES``, as HYSPLIT's ``prfsig``</span>
 <span class="sd">          does for a WRF file without WRF's hybrid coefficients; the ground</span>
 <span class="sd">          temperature without ``T02M`` is the first level's brought down</span>
@@ -673,11 +677,22 @@
         <span class="k">return</span> <span class="n">_hysplit_z_agl_da</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">vaxis</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vaxis</span><span class="p">,</span> <span class="n">TerrainAxis</span><span class="p">):</span>
-        <span class="k">if</span> <span class="s2">"height"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">"height"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span> <span class="ow">or</span> <span class="s2">"SHGT"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"Dataset has no 'height' coordinate and no 'HGTS' variable."</span>
+                <span class="s2">"z_agl() for terrain-following (flag=3) files requires the 'height' "</span>
+                <span class="s2">"coordinate and 'SHGT' in dataset."</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s2">"height"</span><span class="p">]</span>
+        <span class="c1"># A RAMS file's ZMDLT is ZMDL: 25000 m at sample_points' default model_top.</span>
+        <span class="n">zmdlt</span> <span class="o">=</span> <span class="mf">25000.0</span> <span class="k">if</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"source"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"RAMS"</span> <span class="k">else</span> <span class="mf">20000.0</span>
+        <span class="n">shgt</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"SHGT"</span><span class="p">]</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">_terrain_following_z_agl</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s2">"height"</span><span class="p">],</span> <span class="n">shgt</span><span class="p">,</span> <span class="n">zmdlt</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">*</span><span class="n">shgt</span><span class="o">.</span><span class="n">dims</span><span class="p">[:</span> <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">dims</span><span class="p">)],</span> <span class="s2">"level"</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+        <span class="n">z</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"units"</span><span class="p">:</span> <span class="s2">"m"</span><span class="p">,</span>
+            <span class="s2">"long_name"</span><span class="p">:</span> <span class="s2">"height above ground level"</span><span class="p">,</span>
+            <span class="s2">"standard_name"</span><span class="p">:</span> <span class="s2">"height"</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">z</span>
 
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"z_agl() is not supported for </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">vaxis</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span></div>
 
