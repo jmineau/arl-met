@@ -348,8 +348,8 @@ class _TerrainColumn(Column):
     @property
     def _zmdlt(self) -> float:
         """``ZMDLT``, which scales the stored levels with the terrain."""
-        assert self.levels is not None  # column_for builds this only on internal levels
-        return self.levels.zmdlt
+        # shortcut: 20000 m without internal levels (at pressures), not a RAMS file's ZMDL; only the ground temperature uses it
+        return 20000.0 if self.levels is None else self.levels.zmdlt
 
     @override
     @cached_property
@@ -429,11 +429,12 @@ def column_for(
 
     Sigma, hybrid and WRF files always start their column at the ground;
     pressure-level files do at heights and at pressures (not at native
-    levels), and terrain-following files on the internal *levels* only.
+    levels), and terrain-following files on the internal *levels* and at
+    pressures.
     """
     axis = recordset.vertical_axis
     if isinstance(axis, PressureAxis) and z_kind == "native":
         return None
-    if isinstance(axis, TerrainAxis) and levels is None:
+    if isinstance(axis, TerrainAxis) and levels is None and z_kind != "pressure":
         return None
     return _COLUMNS[type(axis)](recordset, plan, levels=levels)

@@ -569,7 +569,11 @@ Limitations
   counts as on it, so the edge nodes of a projected grid, sampled at the
   longitude and latitude arl-met reports for them, have values even though
   mapping them back to the grid lands about 1e-12 cells outside.
+- ``z_kind="pressure"`` on a terrain-following file (flag=3) reads each
+  column's pressures from ``PRES``, with ``PRSS`` (or HYSPLIT's estimate from
+  ``SHGT``) at the ground, and ``ValueError`` without ``PRES``: sample at
+  heights instead.
 - Sigma, hybrid and WRF files take the ground as a level, pressure-level files
-  at heights and pressures, and terrain-following files on HYSPLIT's internal
-  levels; on a terrain-following file with ``model_top=None`` a point below the
-  lowest level with data is NaN.
+  at heights and pressures, and terrain-following files at pressures and on
+  HYSPLIT's internal levels; on a terrain-following file with
+  ``model_top=None`` a point below the lowest level with data is NaN.

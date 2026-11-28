@@ -230,10 +230,6 @@ def _vertical_coords(
     elif z_kind == "agl":
         # Only a terrain-following file off the internal levels: Z* unscaled.
         per_level = np.asarray(axis.levels, dtype=float)[levels]
-    elif isinstance(axis, TerrainAxis):
-        raise ValueError(
-            "z_kind='pressure' is not supported for terrain-following (flag=3) vertical axes."
-        )
     else:
         per_level = axis.to_pressure()[levels]
     return np.broadcast_to(per_level, (n_points, len(levels)))
@@ -344,8 +340,7 @@ def sample_variable(
     """Interpolate *variable* to each target along the column of row *rows* of *plan*: float32."""
     if variable == "pressure" and z_kind == "pressure":
         # Pressure at a pressure is the target itself, NaN below the ground.
-        if column is None:
-            return targets.astype(np.float32, copy=False)
+        assert column is not None  # terrain-following files are refused at pressures
         above_ground = targets <= column.surface_pressure[rows]
         return np.where(above_ground, targets, np.nan).astype(np.float32)
     profile = variable_profile(

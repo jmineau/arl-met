@@ -25,10 +25,10 @@ import xarray as xr
 
 from arlmet._time import ensure_timestamp
 from arlmet._version import __version__
-from arlmet.vertical import _DEFAULT_MODEL_TOP
+from arlmet.vertical import _DEFAULT_MODEL_TOP, TerrainAxis
 
 from .column import Column, column_for, terrain_at
-from .fields import TimeStep
+from .fields import TimeStep, levels_of
 from .horizontal import (
     WIND_PAIRS,
     WRF_STAGGER,
@@ -240,6 +240,15 @@ def _sample_time(
     Returns one array per variable, aligned with the rows of *coords*.
     """
     recordset = file[time]
+    if (
+        z_kind == "pressure"
+        and isinstance(recordset.vertical_axis, TerrainAxis)
+        and not levels_of(recordset, "PRES")
+    ):
+        raise ValueError(
+            "z_kind='pressure' on a terrain-following (flag=3) file needs PRES "
+            "records; without them sample at heights (z_kind='agl' or 'msl')."
+        )
     lon = coords["lon"].to_numpy(dtype=float)
     lat = coords["lat"].to_numpy(dtype=float)
     plan = build_plan(recordset.grid, lon, lat, method=method)
@@ -390,8 +399,9 @@ def sample_points(
           levels at or below the ground are left out. Sigma files use the
           ``PRES`` field when they have it, else the levels' pressure from
           ``PRSS``, as hybrid files (flag 4) do; pressure files (flag 2)
-          use the stored levels; terrain-following files (flag 3) raise
-          ``ValueError``; WRF files (flag 5) use the ``PRES`` field.
+          use the stored levels; terrain-following files (flag 3) and WRF
+          files (flag 5) use the ``PRES`` field (a flag 3 file without it
+          raises ``ValueError``).
         - ``"agl"``: meters above ground level. Sigma/hybrid/WRF files
           integrate hypsometrically from the ground (``PRSS``, ``T02M``)
           through each level's pressure (``PRES`` on WRF files) with the
@@ -489,7 +499,9 @@ def sample_points(
         time, a point time is in none of the files, a time is in more than one
         file, a variable name collides with a column of ``points``, ``z_kind``
         or ``method`` is invalid, a field that ``z_kind`` requires is
-        missing, ``model_top`` is passed with ``z_kind`` ``"pressure"`` or
+        missing, ``z_kind`` is ``"pressure"`` on a terrain-following file
+        without ``PRES``,
+        ``model_top`` is passed with ``z_kind`` ``"pressure"`` or
         ``"native"`` or is not a positive number, or ``internal_grid`` is passed
         without heights and a ``model_top`` or is not a valid grid.
 
