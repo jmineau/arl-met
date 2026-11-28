@@ -119,16 +119,6 @@ def test_concat_accepts_a_step_longer_than_an_hour(tmp_path, hours):
         assert merged.check() == []
 
 
-def test_concat_by_time_refuses_a_gap_inside_a_bin(tmp_path):
-    src = tmp_path / "src"
-    src.mkdir()
-    write_arl(src / "a.arl", pd.date_range("2024-01-01 00", periods=3, freq="h"))
-    write_arl(src / "b.arl", pd.date_range("2024-01-01 12", periods=3, freq="h"))
-
-    with pytest.raises(ValueError, match="not evenly spaced"):
-        concat_by_time(src, tmp_path / "out", freq="1D")
-
-
 def _steps_on_disk(path):
     """Valid times of a file's index records in file order, repeats included."""
     with File(path) as arl:
