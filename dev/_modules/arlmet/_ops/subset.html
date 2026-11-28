@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=281ff6ce"></script>
+    <script src="../../../_static/documentation_options.js?v=acd0aa04"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev19+g2a713f7b1" />
+  <meta name="docsearch:version" content="0.1.0b16.dev20+g9e5ed12e6" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -442,7 +442,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">BinaryIO</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARLFormatError</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">open_file</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Grid</span><span class="p">,</span> <span class="n">GridWindow</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._header</span><span class="w"> </span><span class="kn">import</span> <span class="n">Header</span><span class="p">,</span> <span class="n">record_length_from_grid</span><span class="p">,</span> <span class="n">split_grid_component</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._indexrecord</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndexRecord</span><span class="p">,</span> <span class="n">LvlInfo</span><span class="p">,</span> <span class="n">VarInfo</span><span class="p">,</span> <span class="n">_derive_index_forecast</span>
@@ -790,7 +790,7 @@
 <div class="viewcode-block" id="extract_subset">
 <a class="viewcode-back" href="../../../_autosummary/arlmet.extract_subset.html#arlmet.extract_subset">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">extract_subset</span><span class="p">(</span>
-    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">File</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">dest</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">bbox</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -804,10 +804,11 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    path : path-like</span>
-<span class="sd">        Input ARL file.</span>
+<span class="sd">    path : path-like or File</span>
+<span class="sd">        Input ARL file: a path, which is opened and closed here, or an open</span>
+<span class="sd">        :class:`~arlmet.File`, which is left open for the caller.</span>
 <span class="sd">    dest : path-like</span>
-<span class="sd">        Output ARL file. Must not be ``path``.</span>
+<span class="sd">        Output ARL file. Must not be the input file.</span>
 <span class="sd">    bbox : tuple[float, float, float, float], optional</span>
 <span class="sd">        Geographic bounding box ``(west, south, east, north)`` in degrees.</span>
 <span class="sd">        On a projected grid the crop is the smallest rectangle of cells</span>
@@ -844,7 +845,7 @@
 <span class="sd">    TypeError</span>
 <span class="sd">        If ``levels`` holds anything but integers (a string, or 1.5).</span>
 <span class="sd">    ValueError</span>
-<span class="sd">        If ``dest`` is the same file as ``path``, the cropped grid is too</span>
+<span class="sd">        If ``dest`` is the same file as the input, the cropped grid is too</span>
 <span class="sd">        small to hold the ARL index record, ``levels`` leaves out level 0 (the</span>
 <span class="sd">        surface: the output is renumbered from zero, so the lowest kept level</span>
 <span class="sd">        would become the surface), ``variables`` is</span>
@@ -877,14 +878,14 @@
 <span class="sd">    ... )</span>
 <span class="sd">    &gt;&gt;&gt; ds = arlmet.open_dataset(out)</span>
 <span class="sd">    """</span>
-    <span class="n">reject_same_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+    <span class="n">reject_same_file</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">path</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">File</span><span class="p">)</span> <span class="k">else</span> <span class="n">path</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
         <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="n">variables</span><span class="p">]</span>  <span class="c1"># one name, not its letters</span>
     <span class="n">variable_names</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">variables</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">set</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">open_file</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
         <span class="n">window</span> <span class="o">=</span> <span class="n">resolve_window</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">bbox</span><span class="p">,</span> <span class="n">bbox_crs</span><span class="p">)</span>
         <span class="n">selected_levels</span> <span class="o">=</span> <span class="n">normalize_levels</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">vertical_axis</span><span class="p">,</span> <span class="n">levels</span><span class="p">)</span>
         <span class="k">if</span> <span class="mi">0</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">selected_levels</span><span class="p">:</span>

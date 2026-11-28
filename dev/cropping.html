@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=281ff6ce"></script>
+    <script src="_static/documentation_options.js?v=acd0aa04"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev19+g2a713f7b1" />
+  <meta name="docsearch:version" content="0.1.0b16.dev20+g9e5ed12e6" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -557,6 +557,20 @@ arguments, so change the output name with the arguments, or pass
 <span class="gh">Out[10]: </span><span class="go">PosixPath('cropped.arl')</span>
 </pre></div>
 </div>
+<p>Both <a class="reference internal" href="_autosummary/arlmet.open_dataset.html#arlmet.open_dataset" title="arlmet.open_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.open_dataset()</span></code></a> and <a class="reference internal" href="_autosummary/arlmet.extract_subset.html#arlmet.extract_subset" title="arlmet.extract_subset"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.extract_subset()</span></code></a> take an open
+<a class="reference internal" href="_autosummary/arlmet.File.html#arlmet.File" title="arlmet.File"><code class="xref py py-class docutils literal notranslate"><span class="pre">arlmet.File</span></code></a> in place of a path, as <a class="reference internal" href="_autosummary/arlmet.sample_points.html#arlmet.sample_points" title="arlmet.sample_points"><code class="xref py py-func docutils literal notranslate"><span class="pre">arlmet.sample_points()</span></code></a> does.
+Use one when you already hold the file, to read its <code class="docutils literal notranslate"><span class="pre">times</span></code> first, say. A file
+you open yourself is left open for you to close; a path is opened and closed
+for you.</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="k">with</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"met.arl"</span><span class="p">)</span> <span class="k">as</span> <span class="n">met</span><span class="p">:</span>
+<span class="gp">   ....: </span>    <span class="n">met</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">   ....: </span>    <span class="n">first</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">met</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">))</span>
+<span class="gp">   ....: </span>    <span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
+<span class="gp">   ....: </span>        <span class="n">met</span><span class="p">,</span> <span class="s2">"from-file.arl"</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span>
+<span class="gp">   ....: </span>    <span class="p">)</span>
+<span class="gp">   ....: </span>
+</pre></div>
+</div>
 <p>A <code class="docutils literal notranslate"><span class="pre">bbox</span></code> with <code class="docutils literal notranslate"><span class="pre">west</span> <span class="pre">&gt;</span> <span class="pre">east</span></code> crosses the dateline, on any grid:
 <code class="docutils literal notranslate"><span class="pre">(170.0,</span> <span class="pre">50.0,</span> <span class="pre">-170.0,</span> <span class="pre">60.0)</span></code> is the box <code class="docutils literal notranslate"><span class="pre">(170.0,</span> <span class="pre">50.0,</span> <span class="pre">190.0,</span> <span class="pre">60.0)</span></code>. On a
 global grid a box may also cross the grid’s seam, the column where its longitudes
@@ -591,15 +605,15 @@ the coordinate reference system it is in: an EPSG code (<code class="docutils li
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">pyproj.CRS.from_user_input()</span></code> takes. The box is then
 <code class="docutils literal notranslate"><span class="pre">(xmin,</span> <span class="pre">ymin,</span> <span class="pre">xmax,</span> <span class="pre">ymax)</span></code> in that system’s units, easting before northing. Here
 a box of 80 by 160 km in UTM zone 12N, around Salt Lake City:</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="n">utm</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">utm</span> <span class="o">=</span> <span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
 <span class="gp">   ....: </span>    <span class="s2">"met.arl"</span><span class="p">,</span>
 <span class="gp">   ....: </span>    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="mf">380_000.0</span><span class="p">,</span> <span class="mf">4_400_000.0</span><span class="p">,</span> <span class="mf">460_000.0</span><span class="p">,</span> <span class="mf">4_560_000.0</span><span class="p">),</span>
 <span class="gp">   ....: </span>    <span class="n">bbox_crs</span><span class="o">=</span><span class="s2">"EPSG:32612"</span><span class="p">,</span>
 <span class="gp">   ....: </span><span class="p">)</span>
 <span class="gp">   ....: </span>
 
-<span class="gp">In [12]: </span><span class="nb">dict</span><span class="p">(</span><span class="n">utm</span><span class="o">.</span><span class="n">sizes</span><span class="p">)</span>
-<span class="gh">Out[12]: </span><span class="go">{'lon': 10, 'lat': 16, 'level': 4, 'time': 4}</span>
+<span class="gp">In [13]: </span><span class="nb">dict</span><span class="p">(</span><span class="n">utm</span><span class="o">.</span><span class="n">sizes</span><span class="p">)</span>
+<span class="gh">Out[13]: </span><span class="go">{'lon': 10, 'lat': 16, 'level': 4, 'time': 4}</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">extract_subset()</span></code> and <code class="docutils literal notranslate"><span class="pre">xr.open_dataset(...,</span> <span class="pre">engine=&quot;arl&quot;)</span></code> take <code class="docutils literal notranslate"><span class="pre">bbox_crs=</span></code> too. The box is a
@@ -615,7 +629,7 @@ cells times the grid spacing.</p>
 <section id="keep-only-the-levels-and-variables-you-need">
 <h2>Keep only the levels and variables you need<a class="headerlink" href="#keep-only-the-levels-and-variables-you-need" title="Link to this heading">#</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">extract_subset()</span></code> can keep only the levels and variables you need.</p>
-<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [14]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
 <span class="gp">   ....: </span>    <span class="s2">"met.arl"</span><span class="p">,</span>
 <span class="gp">   ....: </span>    <span class="s2">"subset.arl"</span><span class="p">,</span>
 <span class="gp">   ....: </span>    <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span>
@@ -623,10 +637,10 @@ cells times the grid spacing.</p>
 <span class="gp">   ....: </span>    <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">"UWND"</span><span class="p">,</span> <span class="s2">"VWND"</span><span class="p">,</span> <span class="s2">"TEMP"</span><span class="p">],</span>
 <span class="gp">   ....: </span><span class="p">)</span>
 <span class="gp">   ....: </span>
-<span class="gh">Out[13]: </span><span class="go">PosixPath('subset.arl')</span>
+<span class="gh">Out[14]: </span><span class="go">PosixPath('subset.arl')</span>
 
-<span class="gp">In [14]: </span><span class="nb">list</span><span class="p">(</span><span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">"subset.arl"</span><span class="p">)</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
-<span class="gh">Out[14]: </span><span class="go">['TEMP', 'UWND', 'VWND']</span>
+<span class="gp">In [15]: </span><span class="nb">list</span><span class="p">(</span><span class="n">arlmet</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">"subset.arl"</span><span class="p">)</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
+<span class="gh">Out[15]: </span><span class="go">['TEMP', 'UWND', 'VWND']</span>
 </pre></div>
 </div>
 <p>Without a <code class="docutils literal notranslate"><span class="pre">bbox</span></code>, selecting levels or variables does not unpack anything:
