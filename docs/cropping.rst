@@ -102,6 +102,21 @@ arguments, so change the output name with the arguments, or pass
        "met.arl", "cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0), overwrite=True
    )
 
+Both :func:`arlmet.open_dataset` and :func:`arlmet.extract_subset` take an open
+:class:`arlmet.File` in place of a path, as :func:`arlmet.sample_points` does.
+Use one when you already hold the file, to read its ``times`` first, say. A file
+you open yourself is left open for you to close; a path is opened and closed
+for you.
+
+.. ipython:: python
+
+   with arlmet.File("met.arl") as met:
+       met.times[0]
+       first = arlmet.open_dataset(met, bbox=(-114.0, 39.0, -110.0, 42.0))
+       arlmet.extract_subset(
+           met, "from-file.arl", bbox=(-114.0, 39.0, -110.0, 42.0), overwrite=True
+       )
+
 A ``bbox`` with ``west > east`` crosses the dateline, on any grid:
 ``(170.0, 50.0, -170.0, 60.0)`` is the box ``(170.0, 50.0, 190.0, 60.0)``. On a
 global grid a box may also cross the grid's seam, the column where its longitudes

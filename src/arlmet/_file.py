@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import warnings
 from collections import OrderedDict
@@ -800,3 +801,13 @@ class File:
         exc_tb: TracebackType | None,
     ) -> None:
         self.close()
+
+
+@contextlib.contextmanager
+def open_file(file: File | str | os.PathLike[str]) -> Iterator[File]:
+    """Yield *file* as given if it is an open File (the caller owns it), else open the path and close it on exit."""
+    if isinstance(file, File):
+        yield file
+    else:
+        with File(file) as opened:
+            yield opened

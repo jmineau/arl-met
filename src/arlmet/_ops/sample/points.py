@@ -322,14 +322,12 @@ def _sample_time(
 
 def _as_met(item: FileLike, opened: ExitStack) -> Met:
     """Return a sampling input as :class:`Met`: a Dataset read as its ARL file, a path opened in *opened*."""
-    from arlmet._file import File  # lazy: _file imports this module
+    from arlmet._file import open_file  # lazy: _file imports this module
     from arlmet._xarray._sampling import DatasetMet  # lazy: _xarray imports _ops
 
     if isinstance(item, xr.Dataset):
         return DatasetMet(item)
-    if isinstance(item, File):
-        return item
-    return opened.enter_context(File(item))
+    return opened.enter_context(open_file(item))
 
 
 def sample_points(

@@ -248,7 +248,7 @@ def _check_grid_coords(ds: xr.Dataset, grid: Grid) -> None:
 
 
 def open_dataset(
-    filename_or_obj: str | os.PathLike[str],
+    filename_or_obj: File | str | os.PathLike[str],
     *,
     drop_variables: str | Iterable[str] | None = None,
     bbox: tuple[float, float, float, float] | None = None,
@@ -293,8 +293,10 @@ def open_dataset(
 
     Parameters
     ----------
-    filename_or_obj : path-like
-        Path to the ARL file.
+    filename_or_obj : path-like or File
+        The ARL file: a path, or an open :class:`~arlmet.File`, which is left
+        open for the caller (the Dataset reads its values lazily, reopening the
+        file if it is closed).
     drop_variables : str or iterable of str, optional
         Variable name(s) to omit from the resulting dataset.
     bbox : tuple[float, float, float, float], optional
@@ -318,9 +320,9 @@ def open_dataset(
         ``attrs["diff"]`` names it, so :func:`arlmet.write_dataset` writes it
         again.
     """
-    from arlmet._file import File
+    from arlmet._file import open_file
 
-    with File(filename_or_obj) as met:
+    with open_file(filename_or_obj) as met:
         ds = _build_dataset_from_file(
             met,
             drop_variables=drop_variables,
@@ -330,7 +332,7 @@ def open_dataset(
         )
     # xarray convention: remember where the data came from (write_dataset uses
     # it to refuse overwriting the file a lazy Dataset still reads from).
-    ds.encoding["source"] = os.fspath(filename_or_obj)
+    ds.encoding["source"] = os.fspath(met.path)
     return ds
 
 

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, BinaryIO
 
 from arlmet._exceptions import ARLFormatError
-from arlmet._file import File
+from arlmet._file import File, open_file
 from arlmet._grid import Grid, GridWindow
 from arlmet._header import Header, record_length_from_grid, split_grid_component
 from arlmet._indexrecord import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
@@ -355,7 +355,7 @@ def _is_full_window(grid: Grid, window: GridWindow) -> bool:
 
 
 def extract_subset(
-    path: str | os.PathLike[str],
+    path: File | str | os.PathLike[str],
     dest: str | os.PathLike[str],
     *,
     bbox: tuple[float, float, float, float] | None = None,
@@ -369,10 +369,11 @@ def extract_subset(
 
     Parameters
     ----------
-    path : path-like
-        Input ARL file.
+    path : path-like or File
+        Input ARL file: a path, which is opened and closed here, or an open
+        :class:`~arlmet.File`, which is left open for the caller.
     dest : path-like
-        Output ARL file. Must not be ``path``.
+        Output ARL file. Must not be the input file.
     bbox : tuple[float, float, float, float], optional
         Geographic bounding box ``(west, south, east, north)`` in degrees.
         On a projected grid the crop is the smallest rectangle of cells
@@ -409,7 +410,7 @@ def extract_subset(
     TypeError
         If ``levels`` holds anything but integers (a string, or 1.5).
     ValueError
-        If ``dest`` is the same file as ``path``, the cropped grid is too
+        If ``dest`` is the same file as the input, the cropped grid is too
         small to hold the ARL index record, ``levels`` leaves out level 0 (the
         surface: the output is renumbered from zero, so the lowest kept level
         would become the surface), ``variables`` is
@@ -442,14 +443,14 @@ def extract_subset(
     ... )
     >>> ds = arlmet.open_dataset(out)
     """
-    reject_same_file(path, dest)
+    reject_same_file(path.path if isinstance(path, File) else path, dest)
     if not overwrite and Path(dest).is_file():
         return Path(dest)
     if isinstance(variables, str):
         variables = [variables]  # one name, not its letters
     variable_names = None if variables is None else set(variables)
 
-    with File(path) as src:
+    with open_file(path) as src:
         window = resolve_window(src, bbox, bbox_crs)
         selected_levels = normalize_levels(src.vertical_axis, levels)
         if 0 not in selected_levels:
