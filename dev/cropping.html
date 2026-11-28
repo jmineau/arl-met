@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=e05bd085"></script>
+    <script src="_static/documentation_options.js?v=694ab845"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev17+g7033e2dc3" />
+  <meta name="docsearch:version" content="0.1.0b16.dev18+g141076200" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -545,13 +545,13 @@ changes.</p>
 <span class="gh">Out[9]: </span><span class="go">Frozen({'lon': 41, 'lat': 31, 'level': 4, 'time': 4})</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">extract_subset()</span></code> replaces an existing output. In a batch you may rerun after a
-failure, pass <code class="docutils literal notranslate"><span class="pre">overwrite=False</span></code> to keep the crops already written: an existing
-<code class="docutils literal notranslate"><span class="pre">dest</span></code> is returned as it is, without reading the input. Nothing checks that it
-was cropped with the same arguments, so use it only when the output name says
-what went into it.</p>
+<p><code class="docutils literal notranslate"><span class="pre">extract_subset()</span></code> keeps an existing output: an existing <code class="docutils literal notranslate"><span class="pre">dest</span></code> is returned
+as it is, without reading the input, so a batch you rerun after a failure skips
+the crops already written. Nothing checks that it was cropped with the same
+arguments, so change the output name with the arguments, or pass
+<code class="docutils literal notranslate"><span class="pre">overwrite=True</span></code> to replace it.</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">arlmet</span><span class="o">.</span><span class="n">extract_subset</span><span class="p">(</span>
-<span class="gp">   ....: </span>    <span class="s2">"met.arl"</span><span class="p">,</span> <span class="s2">"cropped.arl"</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span>
+<span class="gp">   ....: </span>    <span class="s2">"met.arl"</span><span class="p">,</span> <span class="s2">"cropped.arl"</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">114.0</span><span class="p">,</span> <span class="mf">39.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">110.0</span><span class="p">,</span> <span class="mf">42.0</span><span class="p">),</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span>
 <span class="gp">   ....: </span><span class="p">)</span>
 <span class="gp">   ....: </span>
 <span class="gh">Out[10]: </span><span class="go">PosixPath('cropped.arl')</span>

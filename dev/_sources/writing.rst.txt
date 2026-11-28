@@ -42,6 +42,9 @@ Round-trip with Dataset
    arlmet.write_dataset(ds, "edited.arl")
    arlmet.open_dataset("edited.arl")["TEMP"].max().item()  # degrees C now
 
+``write_dataset()`` returns the output path and keeps an existing file; pass
+``overwrite=True`` to replace it.
+
 To request a trailing DIF record when writing a parent variable, set the
 parent DataArray's ``diff`` attr to the DIF record name:
 

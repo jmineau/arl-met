@@ -126,11 +126,10 @@ at ``freq`` — ``"{time:%Y%m%d}_hrrr"`` with ``freq="6h"`` would name four bins
 the same, which raises ``ValueError``. ``concat_by_time()`` returns the list of
 output paths, in time order.
 
-It rewrites every bin's file. To rerun after a failure without redoing finished
-bins, pass ``overwrite=False``: a bin whose output file exists is left as it is
-(and still listed), so only the missing ones are written. :func:`arlmet.concat`
-takes the same keyword. Nothing checks that an existing file holds the bin's
-current inputs, so remove the files of bins whose inputs changed.
+A bin whose output file exists is left as it is (and still listed), so a rerun
+after a failure writes only the missing ones. :func:`arlmet.concat` keeps an
+existing output the same way. Nothing checks that an existing file holds the
+bin's current inputs: pass ``overwrite=True`` to rewrite every bin's file.
 
 Limit the range with ``start=`` and ``end=`` to skip files whose first valid
 time falls outside those inclusive bounds (either may be left open):

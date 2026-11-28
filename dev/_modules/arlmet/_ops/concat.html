@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=e05bd085"></script>
+    <script src="../../../_static/documentation_options.js?v=694ab845"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev17+g7033e2dc3" />
+  <meta name="docsearch:version" content="0.1.0b16.dev18+g141076200" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -476,7 +476,7 @@
     <span class="n">paths</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
     <span class="n">dest</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Concatenate multiple ARL files into a single ARL file.</span>
@@ -503,8 +503,8 @@
 <span class="sd">        Output ARL file. It is written to a hidden ``.partial`` file beside</span>
 <span class="sd">        it and renamed once complete, so it replaces an existing file only on</span>
 <span class="sd">        success. Must not be one of ``paths``.</span>
-<span class="sd">    overwrite : bool, default True</span>
-<span class="sd">        Replace an existing ``dest``. With False an existing ``dest`` is</span>
+<span class="sd">    overwrite : bool, default False</span>
+<span class="sd">        Replace an existing ``dest``. By default an existing ``dest`` is</span>
 <span class="sd">        returned as it is, without reading the inputs, so a rerun skips</span>
 <span class="sd">        finished work; nothing checks that it came from the same inputs and</span>
 <span class="sd">        arguments.</span>
@@ -705,7 +705,7 @@
     <span class="n">start</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">end</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"{time:%Y%m</span><span class="si">%d</span><span class="s2">}_arl"</span><span class="p">,</span>
-    <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Group every ARL file in a directory by valid time and concatenate each group.</span>
@@ -744,8 +744,8 @@
 <span class="sd">        as ``time`` (a ``pandas.Timestamp``), e.g. ``"{time:%Y%m%d}_hrrr"``. It</span>
 <span class="sd">        must encode enough resolution to keep bins distinct at ``freq``; two</span>
 <span class="sd">        bins that format to the same filename raise ``ValueError``.</span>
-<span class="sd">    overwrite : bool, default True</span>
-<span class="sd">        Replace existing output files. With False a bin whose output file</span>
+<span class="sd">    overwrite : bool, default False</span>
+<span class="sd">        Replace existing output files. By default a bin whose output file</span>
 <span class="sd">        exists is left as it is (and still listed), so rerunning after a</span>
 <span class="sd">        failure writes only the missing bins; nothing checks that an existing</span>
 <span class="sd">        file holds the bin's current inputs.</span>

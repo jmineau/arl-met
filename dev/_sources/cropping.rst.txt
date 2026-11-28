@@ -90,16 +90,16 @@ changes.
    ds = arlmet.open_dataset(out)
    ds.sizes
 
-``extract_subset()`` replaces an existing output. In a batch you may rerun after a
-failure, pass ``overwrite=False`` to keep the crops already written: an existing
-``dest`` is returned as it is, without reading the input. Nothing checks that it
-was cropped with the same arguments, so use it only when the output name says
-what went into it.
+``extract_subset()`` keeps an existing output: an existing ``dest`` is returned
+as it is, without reading the input, so a batch you rerun after a failure skips
+the crops already written. Nothing checks that it was cropped with the same
+arguments, so change the output name with the arguments, or pass
+``overwrite=True`` to replace it.
 
 .. ipython:: python
 
    arlmet.extract_subset(
-       "met.arl", "cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0), overwrite=False
+       "met.arl", "cropped.arl", bbox=(-114.0, 39.0, -110.0, 42.0), overwrite=True
    )
 
 A ``bbox`` with ``west > east`` crosses the dateline, on any grid:
