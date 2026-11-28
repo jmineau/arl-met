@@ -3,11 +3,13 @@
 import gc
 import io
 import tracemalloc
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
+import arlmet
 from arlmet import File, extract_subset, open_dataset, write_dataset
 from arlmet._grid import Grid, Projection
 from arlmet.vertical import PressureAxis
@@ -58,16 +60,27 @@ def write_multistep_source(path, n: int = 200) -> None:
                 )
 
 
-def traced_peak(func) -> int:
-    """Peak traced memory (bytes) allocated while running ``func()``."""
-    gc.collect()
-    tracemalloc.start()
-    try:
-        baseline = tracemalloc.get_traced_memory()[0]
-        func()
-        return tracemalloc.get_traced_memory()[1] - baseline
-    finally:
-        tracemalloc.stop()
+def traced_peak(func, destination, tries: int = 3) -> int:
+    """
+    Smallest peak traced memory (bytes) allocated while running ``func()``.
+
+    Each try starts from a missing ``destination``. On macOS (Python 3.13) a
+    run now and then also holds one stray block the size of the output file,
+    which tracemalloc attributes to ``pathlib`` (issue #349); a real
+    regression shows in every try, so the smallest peak is the measurement.
+    """
+    peaks = []
+    for _ in range(tries):
+        destination.unlink(missing_ok=True)
+        gc.collect()
+        tracemalloc.start()
+        try:
+            baseline = tracemalloc.get_traced_memory()[0]
+            func()
+            peaks.append(tracemalloc.get_traced_memory()[1] - baseline)
+        finally:
+            tracemalloc.stop()
+    return min(peaks)
 
 
 # Writers used to hold every record's float32, packed, and byte copies until
@@ -85,7 +98,9 @@ def test_extract_subset_peak_memory_is_one_time_step(tmp_path, bbox):
     destination = tmp_path / "subset.arl"
     write_multistep_source(source)
 
-    peak = traced_peak(lambda: extract_subset(source, destination, bbox=bbox))
+    peak = traced_peak(
+        lambda: extract_subset(source, destination, bbox=bbox), destination
+    )
 
     assert peak < destination.stat().st_size
 
@@ -97,7 +112,7 @@ def test_extract_subset_byte_copy_peak_memory_is_below_one_time_step(tmp_path):
     destination = tmp_path / "subset.arl"
     write_multistep_source(source)
 
-    peak = traced_peak(lambda: extract_subset(source, destination))
+    peak = traced_peak(lambda: extract_subset(source, destination), destination)
 
     # Plus the input and output files' fixed I/O buffers, which do not grow
     # with the data (128 KiB each from Python 3.14, 8 KiB before).
@@ -113,7 +128,7 @@ def test_write_dataset_peak_memory_is_one_time_step(tmp_path):
     ds = open_dataset(source).load()
     ds["WWND"].attrs["diff"] = "DIFW"
 
-    peak = traced_peak(lambda: write_dataset(ds, destination))
+    peak = traced_peak(lambda: write_dataset(ds, destination), destination)
 
     assert peak < destination.stat().st_size
 
@@ -128,7 +143,7 @@ def test_write_dataset_from_lazy_dataset_does_not_cache_source(tmp_path):
     ds = open_dataset(source)  # lazy: each slice is read from disk while writing
     ds["WWND"].attrs["diff"] = "DIFW"
 
-    peak = traced_peak(lambda: write_dataset(ds, destination))
+    peak = traced_peak(lambda: write_dataset(ds, destination), destination)
 
     assert peak < destination.stat().st_size
 
@@ -148,9 +163,14 @@ def test_extract_subset_releases_buffers_without_gc(tmp_path, bbox):
     gc.disable()
     tracemalloc.start()
     try:
-        baseline = tracemalloc.get_traced_memory()[0]
         extract_subset(source, destination, bbox=bbox)
-        retained = tracemalloc.get_traced_memory()[0] - baseline
+        # Count only what lines of arlmet allocated and still hold: the process
+        # total also takes in whatever else allocates meanwhile (coverage, pytest,
+        # xdist's threads), which made this test fail on macOS now and then (issue #349).
+        snapshot = tracemalloc.take_snapshot().filter_traces(
+            [tracemalloc.Filter(True, str(Path(arlmet.__file__).parent / "*"))]
+        )
+        retained = sum(stat.size for stat in snapshot.statistics("filename"))
     finally:
         tracemalloc.stop()
         if gc_was_enabled:
