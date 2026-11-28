@@ -14,7 +14,6 @@ from typing_extensions import override
 from arlmet._grid import Grid
 from arlmet._header import Header, split_grid_component
 from arlmet._indexrecord import IndexRecord, LvlInfo, VarInfo, _derive_index_forecast
-from arlmet.collection import VariableAccessor
 from arlmet.record import (
     DataRecord,
     _check_dif_parent,
@@ -58,8 +57,6 @@ class RecordSet:
         Forecast hour associated with the index record.
     records : list[DataRecord]
         Data records stored at this time.
-    variables : VariableAccessor
-        Lazy variable accessor inherited from RecordCollection.
 
     Methods
     -------
@@ -91,7 +88,6 @@ class RecordSet:
         self._datarecords: OrderedDict[tuple[pd.Timestamp, int, str], DataRecord] = (
             OrderedDict()
         )
-        self.variables = VariableAccessor(self)
 
     @property
     def mode(self) -> Literal["r", "w"]:

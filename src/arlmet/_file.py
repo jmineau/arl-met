@@ -23,7 +23,6 @@ from arlmet._header import check_level_count, check_year, record_length_from_gri
 from arlmet._indexrecord import IndexRecord
 from arlmet._recordset import RecordSet
 from arlmet._time import ensure_timestamp
-from arlmet.collection import VariableAccessor
 from arlmet.record import DataRecord, _corrects, _is_missing, _require_mode
 from arlmet.vertical import _DEFAULT_MODEL_TOP, VerticalAxis
 
@@ -93,8 +92,6 @@ class File:
         Active file mode.
     times : list[pandas.Timestamp]
         Sorted valid times discovered in the file.
-    variables : VariableAccessor
-        Lazy accessor for variable-wise views inherited from RecordCollection.
 
     Methods
     -------
@@ -166,7 +163,6 @@ class File:
         # byte position, bytes in the time step). HYSPLIT finds a time step by
         # its position, so check() and concat need this order, not ``times``.
         self._steps: list[tuple[pd.Timestamp, int, int]] = []
-        self.variables = VariableAccessor(self)
 
         # Scan the file to populate recordsets in read mode
         if self.mode != "w":

@@ -202,7 +202,6 @@ Module layout
      _recordset.py  RecordSet: the records of one valid time
      record.py      DataRecord (one packed 2D field); public home of Header,
                     IndexRecord, LvlInfo, VarInfo
-     collection.py  RecordCollection protocol, VariableView, VariableAccessor
      _header.py     Header: the 50-byte record header codec, grid letter helpers
      _indexrecord.py IndexRecord, VarInfo, LvlInfo: the index record codec
      _grid.py       Projection, Grid, GridWindow: horizontal geometry only
@@ -250,9 +249,8 @@ means inside a function body):
    _header      → _time, _exceptions, _grid
    _indexrecord → _time, _exceptions, _grid, _header, vertical
    record       → _exceptions, _grid, _header, _indexrecord, packing, vertical
-   collection   → _grid, record, vertical
-   _recordset   → collection, _grid, _header, _indexrecord, record, vertical
-   _file        → _time, collection, _exceptions, _grid, _header, _indexrecord,
+   _recordset   → _grid, _header, _indexrecord, record, vertical
+   _file        → _time, _exceptions, _grid, _header, _indexrecord,
                   record, _recordset, vertical;
                   lazy: _ops.sample, _ops.subset, _xarray.dataset
    _probe       → _exceptions, _grid, _header, _indexrecord

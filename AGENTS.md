@@ -33,7 +33,6 @@ src/arlmet/
   _header.py, _indexrecord.py          codecs of the 50-byte record header and the index record (public in `record`)
   _grid.py, vertical.py                horizontal geometry; VerticalAxis and its five subclasses
   packing.py, _pack.c                  pack, unpack, checksum; the C extension for both codecs
-  collection.py                        RecordCollection protocol, VariableView, VariableAccessor
   _exceptions.py, _io.py, _time.py     ARLFormatError/Warning; atomic outputs; timestamps
   archives.py; _catalog.py, _probe.py  NOAA archive downloads and sync; catalog, Catalog; probe, Probe
   _ops/                                extract_subset, sample_points and internal_levels (in `sample/`), concat, concat_by_time
@@ -42,7 +41,7 @@ src/arlmet/
 ```
 
 **A module is public only if it gives something `arlmet` itself does not**: `record`, `packing`,
-`vertical`, `archives`, `collection`, `converters`. Every other module has a leading underscore,
+`vertical`, `archives`, `converters`. Every other module has a leading underscore,
 so the release's promise (names in a public `__all__`) is not made twice for each top-level name.
 A new module is private unless it holds such a name.
 
