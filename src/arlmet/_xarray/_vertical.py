@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
+from arlmet._ops.sample.fields import temperature_from_theta
 from arlmet.vertical import (
     HybridAxis,
     PressureAxis,
@@ -77,15 +78,23 @@ def _hysplit_z_agl_da(
     HYSPLIT's ``prfsig`` (flag 1, and flag 5 without WRF's hybrid
     coefficients) and ``prfecm`` (flag 4): from the ground
     (``PRSS``, ``T02M`` or ``TMPS``) through :func:`pressure` with the virtual
-    temperature from ``TEMP`` and ``SPHU`` (or ``RELH``), each when present.
+    temperature from ``TEMP`` (``THET * (PRES / 1000) ** 0.286`` where the
+    dataset has no ``TEMP``) and ``SPHU`` (or ``RELH``), each when present.
     """
-    for name in ("PRSS", "TEMP"):
-        if name not in ds:
-            raise ValueError(
-                f"z_agl() for {axis.coord_system} (flag={axis.flag}) files "
-                f"requires '{name}' in dataset."
-            )
-    temp = ds["TEMP"]
+    if "PRSS" not in ds:
+        raise ValueError(
+            f"z_agl() for {axis.coord_system} (flag={axis.flag}) files "
+            "requires 'PRSS' in dataset."
+        )
+    if "TEMP" in ds:
+        temp = ds["TEMP"]
+    elif "THET" in ds and "PRES" in ds:  # as sample_points reads such a file
+        temp = temperature_from_theta(ds["THET"], ds["PRES"])
+    else:
+        raise ValueError(
+            f"z_agl() for {axis.coord_system} (flag={axis.flag}) files "
+            "requires 'TEMP' (or 'THET' and 'PRES') in dataset."
+        )
     if "level" not in temp.dims:
         raise ValueError("'TEMP' must have a 'level' dimension.")
     level_ax = list(temp.dims).index("level")
@@ -202,14 +211,15 @@ def z_agl(ds: xr.Dataset) -> xr.DataArray:
           (else ``TMPS``, else the first level's ``TEMP`` brought down
           adiabatically), and the virtual temperature is ``TEMP (1 + 0.61 q)``
           with ``q`` from ``SPHU``, else ``RELH``, else 0. Requires ``PRSS``
-          and ``TEMP``.
+          and ``TEMP`` (or ``THET`` and ``PRES``).
         - **flag=3**: the stored 1D ``height`` non-dim coord ``(level,)`` —
           terrain-following levels are heights AGL.
         - **flag=5** (WRF): as flag 1 with ``PRES``, as HYSPLIT's ``prfsig``
           does for a WRF file without WRF's hybrid coefficients; the ground
           temperature without ``T02M`` is the first level's brought down
-          adiabatically from its eta. Requires ``PRSS``, ``TEMP`` and
-          ``PRES``.
+          adiabatically from its eta. Requires ``PRSS``, ``PRES`` and ``TEMP``
+          (or ``THET``, from which ``TEMP`` is ``THET * (PRES / 1000) ** 0.286``,
+          as :func:`arlmet.sample_points` reads a file without ``TEMP``).
     """
     vaxis = ds.arl.vertical_axis
 

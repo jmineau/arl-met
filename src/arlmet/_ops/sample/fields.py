@@ -22,7 +22,14 @@ if TYPE_CHECKING:
     from arlmet._grid import Grid, GridWindow
     from arlmet.vertical import VerticalAxis
 
-__all__ = ["Field", "TimeStep", "levels_of", "mass_coupled", "sample_levels"]
+__all__ = [
+    "Field",
+    "TimeStep",
+    "levels_of",
+    "mass_coupled",
+    "sample_levels",
+    "temperature_from_theta",
+]
 
 
 class Field(Protocol):
@@ -95,6 +102,11 @@ def mass_coupled(recordset: TimeStep) -> bool:
     )
 
 
+def temperature_from_theta(thet: Any, pres: Any) -> Any:
+    """``TEMP`` of a file that stores ``THET``, as HYSPLIT's ``metinp.f`` finds it: ``THET * (PRES / 1000) ** 0.286``."""
+    return thet * (pres / np.float32(1000.0)) ** np.float32(0.286)
+
+
 def levels_of(recordset: TimeStep, variable: str) -> tuple[int, ...]:
     """
     Levels at which the time step holds *variable* as HYSPLIT reads it, in order.
@@ -132,8 +144,7 @@ def _read_field(
         return np.asarray(recordset[(at, name)].read(window=window), dtype=np.float32)
 
     if variable == "TEMP" and (level, "TEMP") not in recordset:
-        pres = read("PRES", level)
-        return read("THET", level) * (pres / np.float32(1000.0)) ** np.float32(0.286)
+        return temperature_from_theta(read("THET", level), read("PRES", level))
     field = read(variable, level)
     if level > 0 and variable in _DECOUPLE and mass_coupled(recordset):
         missing = [n for n in ("MSFU", "MSFV", "MSFT") if (0, n) not in recordset]

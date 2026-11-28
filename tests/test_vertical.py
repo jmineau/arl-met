@@ -700,8 +700,8 @@ _WRF_TEMP = [279.0, 278.0, 277.0]
 _WRF_Z = [293.8690, 597.7085, 912.1793]
 
 
-def _write_wrf_file(path, *, with_pres: bool = True):
-    """Write a minimal WRF (flag=5) ARL file: PRSS 850 hPa, SHGT 1300 m."""
+def _write_wrf_file(path, *, with_pres: bool = True, theta: bool = False):
+    """Write a minimal WRF (flag=5) ARL file: PRSS 850 hPa, SHGT 1300 m; ``theta``: THET in place of TEMP."""
     grid = _make_latlon_grid()
     vaxis = WrfAxis(levels=_WRF_LEVELS, offset=_WRF_PTOP)
     ny, nx = grid.ny, grid.nx
@@ -716,7 +716,12 @@ def _write_wrf_file(path, *, with_pres: bool = True):
         for k, (p, t) in enumerate(zip(_WRF_PRES, _WRF_TEMP, strict=True), start=1):
             if with_pres:
                 rs.create_datarecord("PRES", level=k, forecast=0, data=full(p))
-            rs.create_datarecord("TEMP", level=k, forecast=0, data=full(t))
+            if theta:
+                rs.create_datarecord(
+                    "THET", level=k, forecast=0, data=full(t * (1000.0 / p) ** 0.286)
+                )
+            else:
+                rs.create_datarecord("TEMP", level=k, forecast=0, data=full(t))
 
 
 class TestWrfFile:
@@ -787,6 +792,27 @@ class TestWrfFile:
         np.testing.assert_allclose(z, _WRF_Z, atol=1e-2)
         z_msl = arlmet.z_msl(ds).isel(time=0, lat=0, lon=0).values
         np.testing.assert_allclose(z_msl, np.add(_WRF_Z, 1300.0), atol=1e-2)
+
+    def test_z_agl_of_a_file_with_thet_and_no_temp(self, tmp_path):
+        """A mass-coupled WRF file stores THET; z_agl reads it as sample_points does (#306)."""
+        path = tmp_path / "wrf.arl"
+        _write_wrf_file(path, theta=True)
+        ds = arlmet.open_dataset(path)
+        assert "TEMP" not in ds
+        z = arlmet.z_agl(ds).isel(time=0, lat=0, lon=0).values
+        np.testing.assert_allclose(z, _WRF_Z, atol=1e-1)
+        point = pd.DataFrame({"lon": [-105.0], "lat": [45.0], "z": [_WRF_Z[0]]})
+        sampled = arlmet.sample_points(
+            path, point, ["TEMP"], z_kind="agl", model_top=None
+        )
+        np.testing.assert_allclose(sampled["TEMP"], _WRF_TEMP[0], atol=1e-2)
+
+    def test_z_agl_without_temp_or_thet_raises(self, tmp_path):
+        path = tmp_path / "wrf.arl"
+        _write_wrf_file(path)
+        ds = arlmet.open_dataset(path).drop_vars("TEMP")
+        with pytest.raises(ValueError, match="THET"):
+            arlmet.z_agl(ds)
 
     def test_sample_points_in_pressure_agl_and_msl(self, tmp_path):
         path = tmp_path / "wrf.arl"
