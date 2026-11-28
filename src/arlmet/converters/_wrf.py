@@ -159,10 +159,12 @@ def _minutes(ds: xr.Dataset, times: pd.DatetimeIndex) -> np.ndarray:
         xtime = np.atleast_1d(ds["XTIME"].values)
         if not np.issubdtype(xtime.dtype, np.datetime64):
             return xtime.astype(float)
-    start = ds.attrs.get("START_DATE")
+    # A restart segment's START_DATE is its own start; XTIME counts from the run's.
+    start = ds.attrs.get("SIMULATION_START_DATE", ds.attrs.get("START_DATE"))
     if start is None:
         raise ValueError(
-            "The WRF Dataset has neither a numeric 'XTIME' nor 'START_DATE'."
+            "The WRF Dataset has neither a numeric 'XTIME' nor 'SIMULATION_START_DATE' "
+            "or 'START_DATE'."
         )
     offset = times - pd.to_datetime(str(start), format="%Y-%m-%d_%H:%M:%S")
     return np.asarray(offset / pd.Timedelta(minutes=1), dtype=float)
@@ -213,7 +215,9 @@ def from_wrf(
     (flag 5). The precipitation of a time step is what fell since the one
     before, scaled to one hour. The first time step has none: it is 0 where
     the run starts (``XTIME`` 0) and missing otherwise, so join every file of a
-    run before converting.
+    run before converting. Where xarray has decoded ``XTIME`` to dates, the
+    hours count from ``SIMULATION_START_DATE`` (the run's start, which a
+    restart segment keeps) and else from ``START_DATE``.
 
     With ``winds="averaged"`` (a run with ``do_avgflx_em = 1``), ``UWND``,
     ``VWND`` and ``WWND`` are WRF's ``AVGFLX_RUM``, ``AVGFLX_RVM`` and

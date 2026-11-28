@@ -1180,6 +1180,22 @@ class TestFromWrf:
         assert ds.sizes["time"] == 1
         assert ds["forecast_hour"].values.tolist() == [7]
 
+    def test_restart_segment_counts_from_the_simulation_start(self):
+        # The segment starts 6 h into the run: START_DATE is the segment's own
+        # start, SIMULATION_START_DATE the run's, and the decoded XTIME has no
+        # numbers left, so the hours come from the attribute.
+        raw = wrf_output(
+            attrs={
+                "START_DATE": "2013-06-30_00:00:00",
+                "SIMULATION_START_DATE": "2013-06-29_18:00:00",
+            }
+        )
+        raw["XTIME"].attrs["units"] = "minutes since 2013-06-29 18:00:00"
+        ds = from_wrf(xr.decode_cf(raw))
+        assert ds["forecast_hour"].values.tolist() == [6, 7, 8]
+        assert ds["TPP1"].isel(time=0).isnull().all()
+        assert ds["TPP1"].isel(time=slice(1, None)).notnull().all()
+
     def test_polar_stereographic_and_mercator(self):
         polar = from_wrf(wrf_output(attrs={"MAP_PROJ": 2, "TRUELAT2": 30.0}))
         assert polar.arl.grid.projection.cone_angle == 90.0
