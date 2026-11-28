@@ -613,6 +613,28 @@ class TestHybridSampling:
 
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
 
+    def test_native_levels_above_level_one_need_no_prss(self, tmp_path):
+        # #308: the ground row, which needs PRSS, matters only below level 1.
+        path = tmp_path / "hybrid.arl"
+        grid = make_test_grid()
+        with File(
+            path,
+            mode="w",
+            source="TEST",
+            grid=grid,
+            vertical_axis=HybridAxis(levels=[1.0, 0.99, 0.95, 0.9]),
+        ) as arl:
+            rs = arl.create_recordset("2024-07-18")
+            for level, temp in [(1, 290.0), (2, 285.0), (3, 280.0)]:
+                data = np.full((grid.ny, grid.nx), temp, dtype=np.float32)
+                rs.create_datarecord("TEMP", level=level, forecast=0, data=data)
+        above = pd.DataFrame({"lon": [25.0], "lat": [-5.0], "z": [1.5]})
+        result = sample_points(path, above, ["TEMP"], z_kind="native")
+        np.testing.assert_allclose(result["TEMP"], [287.5])
+        below = above.assign(z=0.5)
+        with pytest.raises(ValueError, match="PRSS"):
+            sample_points(path, below, ["TEMP"], z_kind="native")
+
     def test_pressure_z_kind(self, tmp_path):
         path = tmp_path / "hybrid.arl"
         time = pd.Timestamp("2024-07-18 00:00")

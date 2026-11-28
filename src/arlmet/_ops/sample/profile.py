@@ -242,6 +242,7 @@ def variable_profile(
     z_kind: ColumnZKind,
     plan: Plan,
     column: Column | None,
+    ground: bool = True,
 ) -> Profile:
     """
     Build *variable*'s profile along the column of each row of *plan*.
@@ -256,6 +257,8 @@ def variable_profile(
     (:meth:`~.column.Column.ground_values`). At pressures a level at or below
     the ground (its pressure at or above ``PRSS``) is left out, as
     pressure-level files' are at heights, so a target below the ground is NaN.
+    *ground* False leaves the ground row out of a variable's profile at native
+    levels, when no target is below level 1 (a hybrid file's needs ``PRSS``, #308).
     """
     axis = recordset.vertical_axis
     n_points = plan.n_points
@@ -295,10 +298,14 @@ def variable_profile(
             or (len(levels) == 1 and no_column)
         ):
             return Profile(fixed=samples[:, 0])
-        if column is not None and levels[0] != 0:
+        if (
+            column is not None
+            and levels[0] != 0
+            and (ground or levels[0] != 1 or len(levels) < 2)
+        ):
             # Level 0 is the ground: start the profile there, as HYSPLIT does.
-            ground = column.ground_values(variable, samples[:, 0])
-            samples = np.column_stack([ground, samples])
+            at_ground = column.ground_values(variable, samples[:, 0])
+            samples = np.column_stack([at_ground, samples])
             levels = (0, *levels)
         values = samples
 
@@ -343,7 +350,9 @@ def sample_variable(
         assert column is not None  # terrain-following files are refused at pressures
         above_ground = targets <= column.surface_pressure[rows]
         return np.where(above_ground, targets, np.nan).astype(np.float32)
+    # The ground row matters only to a native target below level 1 (#308).
+    ground = z_kind != "native" or bool((targets < 1).any())
     profile = variable_profile(
-        recordset, variable, z_kind=z_kind, plan=plan, column=column
+        recordset, variable, z_kind=z_kind, plan=plan, column=column, ground=ground
     )
     return profile.at(targets, rows)

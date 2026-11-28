@@ -93,7 +93,8 @@ The ``z`` column is interpreted according to ``z_kind`` (default
      - Requirements
    * - ``"native"``
      - fractional level index
-     - none
+     - none; on a hybrid file (flag=4) a ``z`` below level 1 and the virtual
+       ``"pressure"`` variable need ``PRSS``
    * - ``"pressure"``
      - hPa
      - ``PRSS`` (sigma files use ``PRES`` too when they have it); ``PRES`` for
