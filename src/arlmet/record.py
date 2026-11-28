@@ -11,6 +11,7 @@ constants), and :class:`IndexRecord` the record that opens each time step
 from __future__ import annotations
 
 import io
+import warnings
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
@@ -18,7 +19,7 @@ import numpy.typing as npt
 import pandas as pd
 from typing_extensions import override
 
-from arlmet._exceptions import ARLFormatError
+from arlmet._exceptions import ARLFormatError, ARLFormatWarning
 from arlmet._grid import Grid, GridWindow, _split_at_seam
 from arlmet._header import Header, record_length_from_grid, split_grid_component
 from arlmet._indexrecord import IndexRecord, LvlInfo, VarInfo
@@ -716,6 +717,17 @@ class DataRecord:
                         "only."
                     ) from None
                 raise
+            # Cheap test first: only a field starting below the precision can be
+            # a uniform one that reads back as zero.
+            if 0 < abs(initial_value) < precision and field.min() == field.max():
+                warnings.warn(
+                    f"{self.variable} at level {self.level}, {self.time}, is uniform "
+                    f"({initial_value:g}), below ARL's packing precision "
+                    f"({precision:g}); it will read back as zero past the first "
+                    "column, in arl-met and in HYSPLIT.",
+                    ARLFormatWarning,
+                    stacklevel=2,
+                )
             self._packed = packed
             self._header["precision"] = precision
             self._header["exponent"] = exponent

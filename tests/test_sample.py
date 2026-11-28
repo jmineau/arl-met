@@ -16,6 +16,8 @@ from arlmet.vertical import (
     WrfAxis,
 )
 
+from ._helpers import writes_small_uniform_fields
+
 
 def make_test_grid(nx: int = 20, ny: int = 20) -> Grid:
     projection = Projection(
@@ -1100,6 +1102,7 @@ _UWND = [5.0, 6.0, 7.0]
 _WWND = [0.1, 0.2, 0.3]
 
 
+@writes_small_uniform_fields
 def write_column_file(
     path,
     *,
@@ -1458,6 +1461,7 @@ class TestWrfColumnAsHysplit:
 # --- WRF files: UWND and VWND on WRF's staggered grid, as HYSPLIT reads them (#109) ---
 
 
+@writes_small_uniform_fields
 def write_varying_wrf_file(path, *, source="AWRF", axis=None):
     """
     A WRF-shaped sigma file whose fields vary across the grid.
@@ -1645,6 +1649,7 @@ class TestWrfStaggeredWinds:
 # --- mass-coupled WRF files: winds decoupled and THET as temperature, as HYSPLIT's metinp (#108) ---
 
 
+@writes_small_uniform_fields
 def write_coupled_wrf_file(
     path, *, source="AWRF", coupled=True, map_factors=("MSFU", "MSFV", "MSFT")
 ):
@@ -2163,6 +2168,7 @@ class TestHorizontalInterpolation:
 # --- between grid points: each grid point's column first, then the blend (#116) ---
 
 
+@writes_small_uniform_fields
 def write_hilly_file(path, *, flag=1, source="TEST", grid=None):
     """
     A sigma (flag 1) or pressure-level (flag 2) file whose columns differ from cell to cell.

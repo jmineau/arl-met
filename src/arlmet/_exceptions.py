@@ -23,4 +23,6 @@ class ARLFormatWarning(UserWarning):
 
     For example, some NOAA archive files repeat a whole time step with
     byte-identical content; the repeated copy is ignored with this warning.
+    Writing warns with it too, for a uniform field smaller than ARL's packing
+    precision, which reads back as zero past its first column.
     """
