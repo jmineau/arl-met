@@ -816,19 +816,18 @@ class TestTerrainFollowingSampling:
         np.testing.assert_allclose(result["TEMP"].iloc[0], 285.0, atol=1e-4)
 
     @pytest.mark.parametrize("variable", ["TEMP", "pressure"])
-    def test_pressure_z_kind_raises(self, tmp_path, variable):
-        # "pressure" raised the same as TEMP, not echoing z as a pressure (#307).
+    def test_pressure_z_kind_without_pres_raises(self, tmp_path, variable):
+        # Both variables are refused alike; "pressure" used to echo z (#307).
         path = tmp_path / "terrain.arl"
         time = pd.Timestamp("2024-07-18 00:00")
         write_terrain_sampling_file(path, time=time)
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [500.0]})
-        with File(path) as arl, pytest.raises(ValueError, match="terrain-following"):
+        with File(path) as arl, pytest.raises(ValueError, match="needs PRES"):
             sample_points(arl, points, [variable], time=time, z_kind="pressure")
 
-    def test_pressure_z_kind_raises_with_pres(self, tmp_path):
-        # A file that holds PRSS and PRES is refused too: "pressure" must not
-        # return the 2000 hPa target as a pressure over ground at 800 hPa (#307).
+    def test_pressure_z_kind_reads_pres(self, tmp_path):
+        # The issue's file: ground at 800 hPa (PRSS), PRES and TEMP at three levels.
         path = tmp_path / "terrain_pres.arl"
         time = pd.Timestamp("2024-07-18 00:00")
         grid = make_test_grid()
@@ -846,12 +845,24 @@ class TestTerrainFollowingSampling:
                     "PRES", level=level, forecast=0, data=full * (800.0 - 0.08 * z)
                 )
 
+        # PRES is 760, 720, 640 hPa and TEMP 295, 290, 280 K; 2000 hPa is below the ground.
         points = pd.DataFrame(
-            {"lon": [20.0] * 2, "lat": [-10.0] * 2, "z": [700.0, 2000.0]}
+            {"lon": [20.0] * 3, "lat": [-10.0] * 3, "z": [740.0, 700.0, 2000.0]}
         )
-        for variable in ("pressure", "TEMP"):
-            with pytest.raises(ValueError, match="terrain-following"):
-                sample_points(path, points, [variable], time=time, z_kind="pressure")
+        with File(path) as arl:
+            result = sample_points(
+                arl, points, ["TEMP", "pressure"], time=time, z_kind="pressure"
+            )
+
+        frac = [
+            np.log(760 / 740) / np.log(760 / 720),
+            np.log(720 / 700) / np.log(720 / 640),
+        ]
+        expected = [295.0 - 5.0 * frac[0], 290.0 - 10.0 * frac[1]]
+        np.testing.assert_allclose(result["TEMP"].iloc[:2], expected, atol=1e-3)
+        assert np.isnan(result["TEMP"].iloc[2])
+        np.testing.assert_allclose(result["pressure"].iloc[:2], [740.0, 700.0])
+        assert np.isnan(result["pressure"].iloc[2])
 
 
 class TestFlag2RequiresHgts:
