@@ -569,6 +569,9 @@ Limitations
   counts as on it, so the edge nodes of a projected grid, sampled at the
   longitude and latitude arl-met reports for them, have values even though
   mapping them back to the grid lands about 1e-12 cells outside.
+- ``z_kind="pressure"`` is refused on a terrain-following file (flag=3), for
+  every variable, ``"pressure"`` included: its levels are heights, and HYSPLIT
+  has no pressure targets. Sample it at heights.
 - Sigma, hybrid and WRF files take the ground as a level, pressure-level files
   at heights and pressures, and terrain-following files on HYSPLIT's internal
   levels; on a terrain-following file with ``model_top=None`` a point below the

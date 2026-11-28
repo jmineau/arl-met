@@ -25,7 +25,7 @@ import xarray as xr
 
 from arlmet._time import ensure_timestamp
 from arlmet._version import __version__
-from arlmet.vertical import _DEFAULT_MODEL_TOP
+from arlmet.vertical import _DEFAULT_MODEL_TOP, TerrainAxis
 
 from .column import Column, column_for, terrain_at
 from .fields import TimeStep
@@ -240,6 +240,12 @@ def _sample_time(
     Returns one array per variable, aligned with the rows of *coords*.
     """
     recordset = file[time]
+    if z_kind == "pressure" and isinstance(recordset.vertical_axis, TerrainAxis):
+        raise ValueError(
+            "z_kind='pressure' is not supported for terrain-following (flag=3) "
+            "vertical axes: they have no pressure coordinate. Sample at heights "
+            "(z_kind='agl' or 'msl')."
+        )
     lon = coords["lon"].to_numpy(dtype=float)
     lat = coords["lat"].to_numpy(dtype=float)
     plan = build_plan(recordset.grid, lon, lat, method=method)
@@ -489,7 +495,8 @@ def sample_points(
         time, a point time is in none of the files, a time is in more than one
         file, a variable name collides with a column of ``points``, ``z_kind``
         or ``method`` is invalid, a field that ``z_kind`` requires is
-        missing, ``model_top`` is passed with ``z_kind`` ``"pressure"`` or
+        missing, ``z_kind`` is ``"pressure"`` on a terrain-following file,
+        ``model_top`` is passed with ``z_kind`` ``"pressure"`` or
         ``"native"`` or is not a positive number, or ``internal_grid`` is passed
         without heights and a ``model_top`` or is not a valid grid.
 
