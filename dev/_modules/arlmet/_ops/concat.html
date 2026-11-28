@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=b6dc473e"></script>
+    <script src="../../../_static/documentation_options.js?v=69f17f97"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev4+g6aafcd054" />
+  <meta name="docsearch:version" content="0.1.0b16.dev6+g218345464" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -456,13 +456,14 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExitStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">pairwise</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinaryIO</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ARLFormatError</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">_at</span><span class="p">,</span> <span class="n">_span</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_output</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._time</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_timestamp</span>
 
@@ -487,8 +488,11 @@
 <span class="sd">    interleave are merged hour by hour, and a time step an input repeats byte</span>
 <span class="sd">    for byte (as some NOAA HRRR archive files do) is written once. The inputs</span>
 <span class="sd">    are first scanned to ensure they share one grid, vertical axis and source</span>
-<span class="sd">    ID and do not repeat valid times, since a concatenated ARL file must be a single</span>
-<span class="sd">    coherent record stream.</span>
+<span class="sd">    ID, do not repeat valid times, and leave no gap, since a concatenated ARL</span>
+<span class="sd">    file must be a single coherent record stream. A gap is a spacing between</span>
+<span class="sd">    two time steps that differs from the first two's, as HYSPLIT stops reading</span>
+<span class="sd">    where the spacing changes, so files of 3-hourly or 6-hourly time steps are</span>
+<span class="sd">    fine.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -516,8 +520,10 @@
 <span class="sd">        If ``paths`` is a single path rather than an iterable of paths.</span>
 <span class="sd">    ValueError</span>
 <span class="sd">        If ``paths`` is empty, if ``dest`` is also an input, if any input is</span>
-<span class="sd">        empty, if the inputs disagree on grid, vertical axis or source ID, or if the same</span>
-<span class="sd">        valid time appears in more than one input.</span>
+<span class="sd">        empty, if the inputs disagree on grid, vertical axis or source ID, if the same</span>
+<span class="sd">        valid time appears in more than one input, or if the time steps of the</span>
+<span class="sd">        inputs together are not evenly spaced (an input is missing). Nothing is</span>
+<span class="sd">        written then.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -644,10 +650,33 @@
     <span class="n">_reject_duplicate_times</span><span class="p">([(</span><span class="n">path</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="ow">in</span> <span class="n">scanned</span><span class="p">])</span>
 
     <span class="c1"># Valid times are unique across the inputs now, so this is a total order.</span>
-    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
+    <span class="n">ordered</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
         <span class="p">(</span><span class="n">step</span> <span class="k">for</span> <span class="o">*</span><span class="n">_</span><span class="p">,</span> <span class="n">steps</span> <span class="ow">in</span> <span class="n">scanned</span> <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">steps</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
         <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">step</span><span class="p">:</span> <span class="n">step</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
     <span class="p">)</span>
+    <span class="n">_reject_gaps</span><span class="p">([</span><span class="n">time</span> <span class="k">for</span> <span class="n">time</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="ow">in</span> <span class="n">ordered</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">ordered</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_reject_gaps</span><span class="p">(</span><span class="n">times</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Raise if the sorted valid times are not evenly spaced.</span>
+
+<span class="sd">    The spacing is that of the first two time steps, as HYSPLIT takes it</span>
+<span class="sd">    (``metset.f``); fewer than three time steps have nothing to compare.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">times</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">before</span><span class="p">,</span> <span class="n">after</span> <span class="ow">in</span> <span class="n">pairwise</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">after</span> <span class="o">-</span> <span class="n">before</span> <span class="o">!=</span> <span class="n">step</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"The time steps are not evenly spaced: </span><span class="si">{</span><span class="n">_at</span><span class="p">(</span><span class="n">before</span><span class="p">)</span><span class="si">}</span><span class="s2"> to "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_at</span><span class="p">(</span><span class="n">after</span><span class="p">)</span><span class="si">}</span><span class="s2"> is </span><span class="si">{</span><span class="n">_span</span><span class="p">(</span><span class="n">after</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">before</span><span class="p">)</span><span class="si">}</span><span class="s2">, but the first two are "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_span</span><span class="p">(</span><span class="n">step</span><span class="p">)</span><span class="si">}</span><span class="s2"> apart. HYSPLIT finds a time step by its position "</span>
+                <span class="s2">"and stops reading where the spacing changes. Add the missing "</span>
+                <span class="s2">"input files, or concatenate the evenly spaced runs separately."</span>
+            <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_reject_duplicate_times</span><span class="p">(</span><span class="n">scanned</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">]]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -732,7 +761,7 @@
 <span class="sd">        If ``pattern`` matches no files, a matched file cannot be read as ARL,</span>
 <span class="sd">        a file's valid times straddle a ``freq`` bin boundary, or ``template``</span>
 <span class="sd">        formats two bins to the same filename; these are checked before any</span>
-<span class="sd">        output is written. :func:`concat`'s grid/axis and duplicate-time checks</span>
+<span class="sd">        output is written. :func:`concat`'s grid/axis, duplicate-time and gap checks</span>
 <span class="sd">        also apply within each group, as that group's file is written, so an</span>
 <span class="sd">        error in a later bin leaves the files of the earlier bins in place.</span>
 

@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=b6dc473e"></script>
+    <script src="_static/documentation_options.js?v=69f17f97"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev4+g6aafcd054" />
+  <meta name="docsearch:version" content="0.1.0b16.dev6+g218345464" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -538,6 +538,9 @@ record lengths, which would corrupt the stream), or on source ID (the output
 could not be opened)</p></li>
 <li><p>the same valid time appears in more than one input (HYSPLIT behavior on
 repeated times is undefined)</p></li>
+<li><p>the time steps are not evenly spaced because an input is missing (hours 00-05
+and 12-17 leave a 7-hour gap): HYSPLIT stops reading where the spacing changes.
+The spacing is that of the first two time steps, so 3-hourly files are fine</p></li>
 <li><p>an input file is empty, or the output path is also one of the inputs</p></li>
 </ul>
 </section>
