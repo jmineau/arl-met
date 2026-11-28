@@ -83,6 +83,52 @@ def test_concat_is_byte_level_append(tmp_path):
     assert out.read_bytes() == a.read_bytes() + b.read_bytes()
 
 
+def test_concat_refuses_a_missing_hour(tmp_path):
+    # Hours 00-05 and 12-17 leave 05:00 to 12:00, where HYSPLIT stops reading (#301).
+    early = write_arl(
+        tmp_path / "a.arl", pd.date_range("2024-01-01 00", periods=6, freq="h")
+    )
+    late = write_arl(
+        tmp_path / "c.arl", pd.date_range("2024-01-01 12", periods=6, freq="h")
+    )
+    out = tmp_path / "day.arl"
+
+    with pytest.raises(
+        ValueError,
+        match=r"2024-01-01 05:00 to 2024-01-01 12:00 is 7 h.*first two are 1 h apart"
+        r".*Add the missing input files",
+    ):
+        concat([early, late], out)
+
+    assert not out.exists()
+    assert list(tmp_path.glob("*.partial")) == []
+
+
+@pytest.mark.parametrize("hours", [3, 6])
+def test_concat_accepts_a_step_longer_than_an_hour(tmp_path, hours):
+    # The spacing is that of the first two time steps, not an hour.
+    times = pd.date_range("2024-01-01 00", periods=8, freq=f"{hours}h")
+    first = write_arl(tmp_path / "a.arl", times[:4])
+    second = write_arl(tmp_path / "b.arl", times[4:])
+    out = tmp_path / "out.arl"
+
+    concat([second, first], out)
+
+    with File(out) as merged:
+        assert merged.times == list(times)
+        assert merged.check() == []
+
+
+def test_concat_by_time_refuses_a_gap_inside_a_bin(tmp_path):
+    src = tmp_path / "src"
+    src.mkdir()
+    write_arl(src / "a.arl", pd.date_range("2024-01-01 00", periods=3, freq="h"))
+    write_arl(src / "b.arl", pd.date_range("2024-01-01 12", periods=3, freq="h"))
+
+    with pytest.raises(ValueError, match="not evenly spaced"):
+        concat_by_time(src, tmp_path / "out", freq="1D")
+
+
 def _steps_on_disk(path):
     """Valid times of a file's index records in file order, repeats included."""
     with File(path) as arl:
