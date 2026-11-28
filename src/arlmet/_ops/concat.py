@@ -23,13 +23,14 @@ import os
 from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import ExitStack
+from itertools import pairwise
 from pathlib import Path
 from typing import BinaryIO
 
 import pandas as pd
 
 from arlmet._exceptions import ARLFormatError
-from arlmet._file import File
+from arlmet._file import File, _at, _span
 from arlmet._io import atomic_output
 from arlmet._time import ensure_timestamp
 
@@ -52,8 +53,11 @@ def concat(
     interleave are merged hour by hour, and a time step an input repeats byte
     for byte (as some NOAA HRRR archive files do) is written once. The inputs
     are first scanned to ensure they share one grid, vertical axis and source
-    ID and do not repeat valid times, since a concatenated ARL file must be a single
-    coherent record stream.
+    ID, do not repeat valid times, and leave no gap, since a concatenated ARL
+    file must be a single coherent record stream. A gap is a spacing between
+    two time steps that differs from the first two's, as HYSPLIT stops reading
+    where the spacing changes, so files of 3-hourly or 6-hourly time steps are
+    fine.
 
     Parameters
     ----------
@@ -81,8 +85,10 @@ def concat(
         If ``paths`` is a single path rather than an iterable of paths.
     ValueError
         If ``paths`` is empty, if ``dest`` is also an input, if any input is
-        empty, if the inputs disagree on grid, vertical axis or source ID, or if the same
-        valid time appears in more than one input.
+        empty, if the inputs disagree on grid, vertical axis or source ID, if the same
+        valid time appears in more than one input, or if the time steps of the
+        inputs together are not evenly spaced (an input is missing). Nothing is
+        written then.
 
     Examples
     --------
@@ -208,10 +214,33 @@ def _scan_inputs(paths: list[Path]) -> list[tuple[pd.Timestamp, Path, int, int]]
     _reject_duplicate_times([(path, times) for path, times, *_ in scanned])
 
     # Valid times are unique across the inputs now, so this is a total order.
-    return sorted(
+    ordered = sorted(
         (step for *_, steps in scanned for step in steps.values()),
         key=lambda step: step[0],
     )
+    _reject_gaps([time for time, *_ in ordered])
+    return ordered
+
+
+def _reject_gaps(times: list[pd.Timestamp]) -> None:
+    """
+    Raise if the sorted valid times are not evenly spaced.
+
+    The spacing is that of the first two time steps, as HYSPLIT takes it
+    (``metset.f``); fewer than three time steps have nothing to compare.
+    """
+    if len(times) < 3:
+        return
+    step = times[1] - times[0]
+    for before, after in pairwise(times):
+        if after - before != step:
+            raise ValueError(
+                f"The time steps are not evenly spaced: {_at(before)} to "
+                f"{_at(after)} is {_span(after - before)}, but the first two are "
+                f"{_span(step)} apart. HYSPLIT finds a time step by its position "
+                "and stops reading where the spacing changes. Add the missing "
+                "input files, or concatenate the evenly spaced runs separately."
+            )
 
 
 def _reject_duplicate_times(scanned: list[tuple[Path, list[pd.Timestamp]]]) -> None:
@@ -294,7 +323,7 @@ def concat_by_time(
         If ``pattern`` matches no files, a matched file cannot be read as ARL,
         a file's valid times straddle a ``freq`` bin boundary, or ``template``
         formats two bins to the same filename; these are checked before any
-        output is written. :func:`concat`'s grid/axis and duplicate-time checks
+        output is written. :func:`concat`'s grid/axis, duplicate-time and gap checks
         also apply within each group, as that group's file is written, so an
         error in a later bin leaves the files of the earlier bins in place.
 

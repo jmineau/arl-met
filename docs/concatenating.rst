@@ -92,6 +92,12 @@ record stream. ``concat()`` raises ``ValueError`` when:
   could not be opened)
 - the same valid time appears in more than one input (HYSPLIT behavior on
   repeated times is undefined)
+- the time steps of the inputs together are not evenly spaced, because an input
+  is missing (hours 00-05 and 12-17 leave a 7-hour gap). HYSPLIT stops reading
+  where the spacing changes, so the error names the two times on either side of
+  the gap. The spacing is that of the first two time steps, as HYSPLIT takes it,
+  so 3-hourly and 6-hourly files are not gaps. Add the missing files, or join
+  each evenly spaced run on its own
 - an input file is empty, or the output path is also one of the inputs
 
 Batch concatenation by time
