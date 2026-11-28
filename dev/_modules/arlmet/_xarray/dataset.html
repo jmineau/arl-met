@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=28985848"></script>
+    <script src="../../../_static/documentation_options.js?v=21c3ee86"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev1+g1f052dfc0" />
+  <meta name="docsearch:version" content="0.1.0b16.dev2+ga31da4a50" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -586,6 +586,12 @@
             <span class="n">window</span><span class="o">=</span><span class="n">read_window</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">indexing</span><span class="o">.</span><span class="n">LazilyIndexedArray</span><span class="p">(</span><span class="n">backend</span><span class="p">))</span>
+        <span class="c1"># The values already include the DIF records; naming the first one</span>
+        <span class="c1"># lets write_dataset write that DIF record again.</span>
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">records_by_variable</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">diffs</span><span class="p">:</span>
+                <span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"diff"</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">diffs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">variable</span>
+                <span class="k">break</span>
     <span class="k">if</span> <span class="n">met</span><span class="o">.</span><span class="n">times</span> <span class="ow">and</span> <span class="n">mass_coupled</span><span class="p">(</span><span class="n">met</span><span class="p">[</span><span class="n">met</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">]]):</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">description</span> <span class="ow">in</span> <span class="n">_MASS_COUPLED_WINDS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
@@ -739,7 +745,10 @@
 <span class="sd">    -------</span>
 <span class="sd">    xarray.Dataset</span>
 <span class="sd">        ``attrs`` holds ``source``, ``vertical_flag`` and ``arlmet_version``,</span>
-<span class="sd">        the arlmet version that built the Dataset.</span>
+<span class="sd">        the arlmet version that built the Dataset. Each ``DIF*`` record is</span>
+<span class="sd">        added into its parent's values, and the parent variable's</span>
+<span class="sd">        ``attrs["diff"]`` names it, so :func:`arlmet.write_dataset` writes it</span>
+<span class="sd">        again.</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._file</span><span class="w"> </span><span class="kn">import</span> <span class="n">File</span>
 
@@ -806,6 +815,9 @@
 <span class="sd">    HYSPLIT's name table pairs with the variable: ``DIFW`` for ``WWND`` or</span>
 <span class="sd">    ``DZDT`` and ``DIFT`` for ``TKEN`` or ``TKEU`` above the surface, any</span>
 <span class="sd">    ``DIF*`` name for ``TPP*`` or ``PRT*`` at the surface.</span>
+<span class="sd">    :func:`arlmet.open_dataset` sets ``attrs["diff"]`` on each variable whose</span>
+<span class="sd">    records have a ``DIF*`` record, so an opened Dataset keeps its DIF records</span>
+<span class="sd">    when written back.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
