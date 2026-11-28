@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=cafeaa6f"></script>
+    <script src="../../../_static/documentation_options.js?v=95ef7de6"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev8+ga896c3b00" />
+  <meta name="docsearch:version" content="0.1.0b16.dev9+g03731e3e9" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -441,6 +441,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">arlmet._ops.sample.fields</span><span class="w"> </span><span class="kn">import</span> <span class="n">temperature_from_theta</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">arlmet.vertical</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">HybridAxis</span><span class="p">,</span>
     <span class="n">PressureAxis</span><span class="p">,</span>
@@ -510,15 +511,23 @@
 <span class="sd">    HYSPLIT's ``prfsig`` (flag 1, and flag 5 without WRF's hybrid</span>
 <span class="sd">    coefficients) and ``prfecm`` (flag 4): from the ground</span>
 <span class="sd">    (``PRSS``, ``T02M`` or ``TMPS``) through :func:`pressure` with the virtual</span>
-<span class="sd">    temperature from ``TEMP`` and ``SPHU`` (or ``RELH``), each when present.</span>
+<span class="sd">    temperature from ``TEMP`` (``THET * (PRES / 1000) ** 0.286`` where the</span>
+<span class="sd">    dataset has no ``TEMP``) and ``SPHU`` (or ``RELH``), each when present.</span>
 <span class="sd">    """</span>
-    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"PRSS"</span><span class="p">,</span> <span class="s2">"TEMP"</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"z_agl() for </span><span class="si">{</span><span class="n">axis</span><span class="o">.</span><span class="n">coord_system</span><span class="si">}</span><span class="s2"> (flag=</span><span class="si">{</span><span class="n">axis</span><span class="o">.</span><span class="n">flag</span><span class="si">}</span><span class="s2">) files "</span>
-                <span class="sa">f</span><span class="s2">"requires '</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">' in dataset."</span>
-            <span class="p">)</span>
-    <span class="n">temp</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"TEMP"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s2">"PRSS"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"z_agl() for </span><span class="si">{</span><span class="n">axis</span><span class="o">.</span><span class="n">coord_system</span><span class="si">}</span><span class="s2"> (flag=</span><span class="si">{</span><span class="n">axis</span><span class="o">.</span><span class="n">flag</span><span class="si">}</span><span class="s2">) files "</span>
+            <span class="s2">"requires 'PRSS' in dataset."</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"TEMP"</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"TEMP"</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="s2">"THET"</span> <span class="ow">in</span> <span class="n">ds</span> <span class="ow">and</span> <span class="s2">"PRES"</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>  <span class="c1"># as sample_points reads such a file</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="n">temperature_from_theta</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">"THET"</span><span class="p">],</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"PRES"</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"z_agl() for </span><span class="si">{</span><span class="n">axis</span><span class="o">.</span><span class="n">coord_system</span><span class="si">}</span><span class="s2"> (flag=</span><span class="si">{</span><span class="n">axis</span><span class="o">.</span><span class="n">flag</span><span class="si">}</span><span class="s2">) files "</span>
+            <span class="s2">"requires 'TEMP' (or 'THET' and 'PRES') in dataset."</span>
+        <span class="p">)</span>
     <span class="k">if</span> <span class="s2">"level"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">temp</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"'TEMP' must have a 'level' dimension."</span><span class="p">)</span>
     <span class="n">level_ax</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">temp</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"level"</span><span class="p">)</span>
@@ -640,14 +649,15 @@
 <span class="sd">          (else ``TMPS``, else the first level's ``TEMP`` brought down</span>
 <span class="sd">          adiabatically), and the virtual temperature is ``TEMP (1 + 0.61 q)``</span>
 <span class="sd">          with ``q`` from ``SPHU``, else ``RELH``, else 0. Requires ``PRSS``</span>
-<span class="sd">          and ``TEMP``.</span>
+<span class="sd">          and ``TEMP`` (or ``THET`` and ``PRES``).</span>
 <span class="sd">        - **flag=3**: the stored 1D ``height`` non-dim coord ``(level,)`` —</span>
 <span class="sd">          terrain-following levels are heights AGL.</span>
 <span class="sd">        - **flag=5** (WRF): as flag 1 with ``PRES``, as HYSPLIT's ``prfsig``</span>
 <span class="sd">          does for a WRF file without WRF's hybrid coefficients; the ground</span>
 <span class="sd">          temperature without ``T02M`` is the first level's brought down</span>
-<span class="sd">          adiabatically from its eta. Requires ``PRSS``, ``TEMP`` and</span>
-<span class="sd">          ``PRES``.</span>
+<span class="sd">          adiabatically from its eta. Requires ``PRSS``, ``PRES`` and ``TEMP``</span>
+<span class="sd">          (or ``THET``, from which ``TEMP`` is ``THET * (PRES / 1000) ** 0.286``,</span>
+<span class="sd">          as :func:`arlmet.sample_points` reads a file without ``TEMP``).</span>
 <span class="sd">    """</span>
     <span class="n">vaxis</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">arl</span><span class="o">.</span><span class="n">vertical_axis</span>
 

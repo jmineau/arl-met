@@ -103,8 +103,9 @@ dispatcher — each coordinate system has exactly one correct method:
 - **flag=1 / flag=4 / flag=5 (sigma / hybrid / WRF):** hypsometric
   integration from the ground up through :func:`arlmet.pressure` with the
   virtual temperature, as HYSPLIT's ``prfsig`` and ``prfecm`` do (see `Sigma
-  and hybrid heights`_). Requires ``PRSS`` and ``TEMP``, and ``PRES`` on WRF
-  files; uses ``T02M`` (or ``TMPS``), ``SPHU`` (or ``RELH``) and, on sigma
+  and hybrid heights`_). Requires ``PRSS`` and ``TEMP`` (or ``THET`` and
+  ``PRES``, as :func:`arlmet.sample_points` reads a file without ``TEMP``), and
+  ``PRES`` on WRF files; uses ``T02M`` (or ``TMPS``), ``SPHU`` (or ``RELH``) and, on sigma
   files, ``PRES`` when present. These files do not store ``HGTS``.
 - **flag=3 (terrain-following):** returns the stored 1D ``height`` coordinate,
   the levels' heights over flat ground. HYSPLIT's ``prfter`` lowers them over
