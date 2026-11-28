@@ -183,7 +183,8 @@ def from_wrf(
     combine="nested", concat_dim="Time")``). The result has source ``AWRF``
     (which HYSPLIT and :func:`arlmet.sample_points` read as WRF), WRF's own
     grid and model levels, and the index records' forecast hour WRF's
-    ``XTIME`` (minutes since the start of the simulation) in hours.
+    ``XTIME`` (minutes since the start of the simulation) in hours, at most
+    999 (the most an index record holds; a run longer than 41 days keeps 999).
 
     ======================  ======  ==========================================
     WRF                     ARL     conversion
