@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=3cb2f109"></script>
+    <script src="_static/documentation_options.js?v=8eb1283b"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev22+gf89e3e074" />
+  <meta name="docsearch:version" content="0.1.0b16.dev23+g6ee52a95b" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -646,9 +646,8 @@ by up to 2 K and 1 m/s in the lowest 50 m on a 27 km WRF grid, and less on
 finer grids and higher up. At a grid point the two are the same.</p>
 <p>A grid point whose column ends below the height does not count: the other
 grid points’ weights are rescaled to sum to 1, and the point is NaN only where
-none of them has a value. At pressures, which HYSPLIT does not sample, and at
-native levels, each level is blended first and the blended column
-interpolated, so a pressure just above the ground at the point is read near
+none of them has a value. At pressures, which HYSPLIT does not sample, each
+level is blended first and the blended column interpolated, so a pressure just above the ground at the point is read near
 the ground of the point’s own column. An <code class="docutils literal notranslate"><span class="pre">msl</span></code> height is a height above the ground at the point itself
 (<code class="docutils literal notranslate"><span class="pre">z</span></code> less the <code class="docutils literal notranslate"><span class="pre">SHGT</span></code> there), and each grid point’s column is read at that
 height above its own ground.</p>

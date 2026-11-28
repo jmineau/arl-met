@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../../_static/documentation_options.js?v=3cb2f109"></script>
+    <script src="../../../../_static/documentation_options.js?v=8eb1283b"></script>
     <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -61,7 +61,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev22+gf89e3e074" />
+  <meta name="docsearch:version" content="0.1.0b16.dev23+g6ee52a95b" />
   
     
     <script src="../../../../_static/searchtools.js"></script>
@@ -668,8 +668,9 @@
 <span class="sd">    grid points around a point, with its own ground, heights and pressures, is</span>
 <span class="sd">    interpolated to the point's ``z``, then the four values are blended over</span>
 <span class="sd">    those that have one (:func:`~.horizontal.blend`). HYSPLIT has no pressure</span>
-<span class="sd">    targets: at pressures and native levels each level is blended first, so a</span>
-<span class="sd">    target near the ground is near the ground of the point's own column.</span>
+<span class="sd">    targets: at pressures each level is blended first, so a target near the</span>
+<span class="sd">    ground is near the ground of the point's own column. At native levels the</span>
+<span class="sd">    four columns are built first, as at heights.</span>
 
 <span class="sd">    Returns one array per variable, aligned with the rows of *coords*.</span>
 <span class="sd">    """</span>
@@ -868,8 +869,9 @@
 <span class="sd">        grid points around a point is interpolated to the point's ``z`` first,</span>
 <span class="sd">        with that grid point's own ground and level heights, and the four</span>
 <span class="sd">        values are then blended; a grid point whose column ends below ``z``</span>
-<span class="sd">        does not count, and the others are reweighted. At pressures and native</span>
-<span class="sd">        levels each level is blended first.</span>
+<span class="sd">        does not count, and the others are reweighted. At pressures each level is</span>
+<span class="sd">        blended first; at native levels the four columns come first, as at</span>
+<span class="sd">        heights.</span>
 <span class="sd">        On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's</span>
 <span class="sd">        staggered grid holds them, half a cell east and north of each point,</span>
 <span class="sd">        as HYSPLIT reads them; "nearest" gives the winds at the nearest</span>

@@ -263,7 +263,7 @@ is its own converter:
   valid time, but keeps their GRIB names and ``accum`` labels. They are read as
   the rates they are.
 - Some fields are on longitudes from 0 to 360 and others from -180 to 180, on
-  the same grid. All are put on the model levels' longitudes.
+  the same grid. All are put on 0 to 360, or on -180 to 180 when the grid crosses 0.
 - The friction velocity ``USTR`` is made from the surface stress, as FLEXPART
   makes it, and the precipitation ``TPP1`` from the large-scale and convective
   rates.

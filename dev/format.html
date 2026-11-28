@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=3cb2f109"></script>
+    <script src="_static/documentation_options.js?v=8eb1283b"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev22+gf89e3e074" />
+  <meta name="docsearch:version" content="0.1.0b16.dev23+g6ee52a95b" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -504,7 +504,7 @@
 │   ├── Index Record
 │   ├── Data Record(s)
 │
-└── ... (additional record sets for other grids or time periods)
+└── ... (one record set per further time)
 </pre></div>
 </div>
 </section>
@@ -754,23 +754,8 @@ guide).</p>
 <p>The presence of a <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> record is stream-dependent. Do not assume every
 variable has one or that every <code class="docutils literal notranslate"><span class="pre">DIF*</span></code> name is universally valid outside the
 source workflow that produced it.</p>
-</section>
-</section>
-<section id="key-features">
-<h2>Key Features<a class="headerlink" href="#key-features" title="Link to this heading">#</a></h2>
-<p>This hierarchical structure provides:</p>
-<ul class="simple">
-<li><p><strong>Efficient Storage</strong>: 1 byte per grid point, each value kept to the record’s precision</p></li>
-<li><p><strong>Fast Access</strong>: Direct access to any variable at any level/time</p></li>
-<li><p><strong>Flexibility</strong>: Support for multiple grids and coordinate systems</p></li>
-<li><p><strong>Portability</strong>: Platform-independent binary format</p></li>
-<li><p><strong>Extensibility</strong>: New variables can be added via configuration files</p></li>
-</ul>
-</section>
-<section id="summary">
-<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading">#</a></h2>
-<p>The key insight is that this is essentially a database structure optimized for meteorological data, where the index records serve as the catalog and the data records are stored in a highly compressed but quickly accessible format.</p>
 <p>For more details on how arl-met reads and processes these files, see the <a class="reference internal" href="api.html"><span class="doc">API Reference</span></a> documentation.</p>
+</section>
 </section>
 </section>
 
@@ -842,8 +827,6 @@ source workflow that produced it.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#upper-air-variables-levels-1-nz">Upper-Air Variables (Levels 1-nz)</a></li>
 </ul>
 </li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#key-features">Key Features</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#summary">Summary</a></li>
 </ul>
   </nav></div>
 

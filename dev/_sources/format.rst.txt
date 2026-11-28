@@ -41,7 +41,7 @@ The ARL file format consists of sequential record sets, each representing one fo
    │   ├── Index Record
    │   ├── Data Record(s)
    │
-   └── ... (additional record sets for other grids or time periods)
+   └── ... (one record set per further time)
 
 Key Components
 --------------
@@ -301,21 +301,5 @@ guide).
 The presence of a ``DIF*`` record is stream-dependent. Do not assume every
 variable has one or that every ``DIF*`` name is universally valid outside the
 source workflow that produced it.
-
-Key Features
-------------
-
-This hierarchical structure provides:
-
-- **Efficient Storage**: 1 byte per grid point, each value kept to the record's precision
-- **Fast Access**: Direct access to any variable at any level/time
-- **Flexibility**: Support for multiple grids and coordinate systems
-- **Portability**: Platform-independent binary format
-- **Extensibility**: New variables can be added via configuration files
-
-Summary
--------
-
-The key insight is that this is essentially a database structure optimized for meteorological data, where the index records serve as the catalog and the data records are stored in a highly compressed but quickly accessible format.
 
 For more details on how arl-met reads and processes these files, see the :doc:`api` documentation.

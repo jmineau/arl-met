@@ -172,9 +172,8 @@ finer grids and higher up. At a grid point the two are the same.
 
 A grid point whose column ends below the height does not count: the other
 grid points' weights are rescaled to sum to 1, and the point is NaN only where
-none of them has a value. At pressures, which HYSPLIT does not sample, and at
-native levels, each level is blended first and the blended column
-interpolated, so a pressure just above the ground at the point is read near
+none of them has a value. At pressures, which HYSPLIT does not sample, each
+level is blended first and the blended column interpolated, so a pressure just above the ground at the point is read near
 the ground of the point's own column. An ``msl`` height is a height above the ground at the point itself
 (``z`` less the ``SHGT`` there), and each grid point's column is read at that
 height above its own ground.

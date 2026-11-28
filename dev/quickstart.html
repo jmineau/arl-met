@@ -41,7 +41,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=3cb2f109"></script>
+    <script src="_static/documentation_options.js?v=8eb1283b"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -64,7 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.0b16.dev22+gf89e3e074" />
+  <meta name="docsearch:version" content="0.1.0b16.dev23+g6ee52a95b" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -476,7 +476,8 @@ when you actually access them.</p>
 <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>) have dimensions <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">level,</span> <span class="pre">lat,</span> <span class="pre">lon)</span></code>. On a projected grid,
 such as HRRR’s or NAM’s, <code class="docutils literal notranslate"><span class="pre">lat</span></code> and <code class="docutils literal notranslate"><span class="pre">lon</span></code> are <code class="docutils literal notranslate"><span class="pre">y</span></code> and <code class="docutils literal notranslate"><span class="pre">x</span></code> (the
 <code class="docutils literal notranslate"><span class="pre">lat</span></code> and <code class="docutils literal notranslate"><span class="pre">lon</span></code> coordinates are then 2D). The <code class="docutils literal notranslate"><span class="pre">level</span></code>
-coordinate contains only the upper-air pressure levels. <code class="docutils literal notranslate"><span class="pre">ds.isel(level=0)</span></code>
+coordinate holds the level numbers 1 to N on every vertical type; on
+pressure-level files the pressures are in the <code class="docutils literal notranslate"><span class="pre">pressure</span></code> coordinate. <code class="docutils literal notranslate"><span class="pre">ds.isel(level=0)</span></code>
 selects the first upper-air level for upper-air variables and leaves surface
 variables unchanged.</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span><span class="w"> </span><span class="nn">arlmet</span>
@@ -506,7 +507,7 @@ variables unchanged.</p>
 <span class="go">Attributes:</span>
 <span class="go">    source:          DOCS</span>
 <span class="go">    vertical_flag:   2</span>
-<span class="go">    arlmet_version:  0.1.0b16.dev22+gf89e3e074</span>
+<span class="go">    arlmet_version:  0.1.0b16.dev23+g6ee52a95b</span>
 
 <span class="gp">In [4]: </span><span class="nb">print</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">"PRSS"</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span>
 <span class="go">('time', 'lat', 'lon')</span>
@@ -538,7 +539,7 @@ variables unchanged.</p>
 <span class="go">Attributes:</span>
 <span class="go">    source:          DOCS</span>
 <span class="go">    vertical_flag:   2</span>
-<span class="go">    arlmet_version:  0.1.0b16.dev22+gf89e3e074</span>
+<span class="go">    arlmet_version:  0.1.0b16.dev23+g6ee52a95b</span>
 </pre></div>
 </div>
 <p>arlmet also registers itself as an xarray backend, so the same Dataset is
