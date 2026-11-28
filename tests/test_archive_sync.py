@@ -1,7 +1,8 @@
 """
-Tests for ``Archive.sync`` against a fake NOAA mirror.
+Tests for ``Archive.sync`` and ``Archive.fetch`` against a fake NOAA mirror.
 
 The mirror is a local folder read through fsspec's ``file://``; no network access.
+Two tests put a real, small ARL file on it and read the result back.
 """
 
 import hashlib
@@ -9,10 +10,11 @@ import os
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
-from arlmet import archives
+from arlmet import File, archives, open_dataset
 from arlmet.archives import (
     Archive,
     GDASArchive,
@@ -23,6 +25,8 @@ from arlmet.archives import (
     SyncResult,
     WRF27kmArchive,
 )
+
+from .test_subset import write_subset_source
 
 DAY = {"start": "2024-07-18 00:00", "end": "2024-07-18 23:00"}
 HRRR_DAY = [
@@ -783,3 +787,82 @@ def test_read_manifest_skips_a_half_written_line_and_allows_spaces_in_paths(tmp_
     assert archives._read_manifest(tmp_path) == {
         "folder with space/file": archives._Checked("a" * 32, 10, 20, "b" * 32)
     }
+
+
+# ---------------------------------------------------------------------------
+# A real ARL file on the mirror, read back
+# ---------------------------------------------------------------------------
+
+BLOCK = "20240718_00-05_hrrr"
+GRID_BASE = np.arange(20 * 20, dtype=np.float32).reshape(20, 20)  # the source's cells
+
+
+@pytest.fixture
+def arl_mirror(tmp_path, monkeypatch):
+    """A fake mirror holding one real ARL file, written by ``File``, as the 00-05 block."""
+    source = tmp_path / "source.arl"
+    write_subset_source(source)
+    mirror = FakeMirror(
+        tmp_path / "noaa", HRRRArchive(), monkeypatch, DAY["start"], DAY["start"]
+    )
+    mirror.put(BLOCK, source.read_bytes())
+    return mirror
+
+
+def test_fetch_with_a_bbox_crops_real_arl_bytes_from_the_mirror(arl_mirror, tmp_path):
+    """The real download and the real ``extract_subset``, with only the URL faked."""
+    bbox = (22.0, -8.0, 33.0, 3.0)
+    [path] = arl_mirror.archive.fetch(
+        DAY["start"], DAY["start"], dest_dir=tmp_path / "met", bbox=bbox, levels=[0, 2]
+    )
+
+    assert hidden_files(tmp_path / "met") == []  # the staged download is gone
+    with File(tmp_path / "source.arl") as source:
+        window = source.grid.window_from_bbox(bbox)
+    rows, cols = (
+        slice(window.y_start, window.y_stop),
+        slice(window.x_start, window.x_stop),
+    )
+    with File(path) as met:
+        assert (met.grid.nx, met.grid.ny) == (12, 12)
+        assert met.vertical_axis.levels.tolist() == [0.0, 2000.0]
+        assert met.times == [
+            pd.Timestamp("2024-07-18 00:00"),
+            pd.Timestamp("2024-07-18 03:00"),
+        ]
+        for time, (surface, wind) in zip(
+            met.times, [(1000.0, -5.0), (1001.0, -4.0)], strict=True
+        ):
+            for key, base in [((0, "PRSS"), surface), ((1, "UWND"), wind)]:
+                precision = met[time][key].header.precision
+                np.testing.assert_allclose(
+                    met[time][key].read(), base + GRID_BASE[rows, cols], atol=precision
+                )
+    ds = open_dataset(path)
+    assert set(ds.data_vars) == {"PRSS", "UWND"}
+    assert ds.sizes["lon"] == ds.sizes["lat"] == 12
+
+
+def test_sync_downloads_an_arl_file_that_reads_back(arl_mirror, tmp_path):
+    dest = tmp_path / "local"
+    result = arl_mirror.archive.sync(
+        dest_dir=dest, start=DAY["start"], end=DAY["start"]
+    )
+
+    [path] = result.downloaded
+    assert path == dest / "2024" / "07" / BLOCK
+    with File(path) as met:
+        assert (met.grid.nx, met.grid.ny) == (20, 20)
+        assert met.vertical_axis.levels.tolist() == [0.0, 1000.0, 2000.0]
+        for time, (surface, temp, wind) in zip(
+            met.times, [(1000.0, 280.0, -5.0), (1001.0, 281.0, -4.0)], strict=True
+        ):
+            for key, base in [
+                ((0, "PRSS"), surface),
+                ((1, "TEMP"), temp),
+                ((2, "UWND"), wind),
+            ]:
+                precision = met[time][key].header.precision
+                np.testing.assert_allclose(
+                    met[time][key].read(), base + GRID_BASE, atol=precision
+                )
