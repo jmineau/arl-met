@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import warnings
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -62,12 +62,14 @@ _MASS_COUPLED_WINDS = {
 def _build_dataset_from_file(
     met: File,
     *,
-    drop_variables: Sequence[str] | None = None,
+    drop_variables: str | Iterable[str] | None = None,
     bbox: tuple[float, float, float, float] | None = None,
     bbox_crs: Any = None,
     levels: Iterable[int] | None = None,
 ) -> xr.Dataset:
     """Build an xarray Dataset from an open ARL File handle."""
+    if isinstance(drop_variables, str):
+        drop_variables = [drop_variables]
     drop_variables_set: set[str] = set(drop_variables or [])
     window = resolve_window(met, bbox, bbox_crs)
     read_window = None if bbox is None else window
@@ -247,7 +249,7 @@ def _check_grid_coords(ds: xr.Dataset, grid: Grid) -> None:
 def open_dataset(
     filename_or_obj: str | os.PathLike[str],
     *,
-    drop_variables: Sequence[str] | None = None,
+    drop_variables: str | Iterable[str] | None = None,
     bbox: tuple[float, float, float, float] | None = None,
     bbox_crs: Any = None,
     levels: Iterable[int] | None = None,
@@ -292,8 +294,8 @@ def open_dataset(
     ----------
     filename_or_obj : path-like
         Path to the ARL file.
-    drop_variables : sequence of str, optional
-        Variable names to omit from the resulting dataset.
+    drop_variables : str or iterable of str, optional
+        Variable name(s) to omit from the resulting dataset.
     bbox : tuple[float, float, float, float], optional
         Geographic bounding box ``(west, south, east, north)`` in degrees.
         On a projected grid the crop is the smallest rectangle of cells

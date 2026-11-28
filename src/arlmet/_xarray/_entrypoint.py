@@ -60,11 +60,9 @@ class ARLBackendEntrypoint(BackendEntrypoint):
                 "The arl engine can only open files by path, "
                 f"not {type(filename_or_obj).__name__}."
             )
-        if isinstance(drop_variables, str):
-            drop_variables = [drop_variables]
         return open_dataset(
             filename_or_obj,
-            drop_variables=None if drop_variables is None else list(drop_variables),
+            drop_variables=drop_variables,
             bbox=bbox,
             bbox_crs=bbox_crs,
             levels=levels,

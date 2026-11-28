@@ -89,6 +89,15 @@ def test_engine_passes_bbox_levels_and_drop_variables(tmp_path):
     assert "PRSS" not in via_xarray
 
 
+def test_a_string_drop_variables_is_one_name(tmp_path):
+    path = write_arl(tmp_path / "met.arl")
+
+    assert "TEMP" not in arlmet.open_dataset(path, drop_variables="TEMP")
+    assert "TEMP" not in xr.open_dataset(path, engine="arl", drop_variables="TEMP")
+    with File(path) as met:
+        assert "TEMP" not in met.to_dataset(drop_variables="TEMP")
+
+
 def test_engine_passes_bbox_crs(tmp_path):
     path = write_arl(tmp_path / "met.arl")
     kwargs = {"bbox": (300_000, 9_220_000, 700_000, 9_900_000), "bbox_crs": 32735}
