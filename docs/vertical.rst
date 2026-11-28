@@ -188,9 +188,10 @@ geometric mean, not 950. Sampling at pressures (``z_kind="pressure"``) starts
 at the ground too and leaves out the levels at or below it, interpolating in
 ``ln p``: a point below the ground is NaN. Sampling at native levels uses the
 stored levels as they are, below the ground included, and interpolates
-linearly. The one exception is the virtual ``"pressure"`` at level 0: a
-pressure-level file stores that level as 0 hPa, but it is the ground, so it
-reads ``PRSS`` (an error without a ``PRSS`` field), as on a sigma file.
+linearly, except for the virtual ``"pressure"``, which is interpolated in
+``ln p`` as at heights. Its level 0 is also special: a pressure-level file
+stores that level as 0 hPa, but it is the ground, so it reads ``PRSS`` (an
+error without a ``PRSS`` field), as on a sigma file.
 
 On NOAA's NAM 12 km and GDAS 1-degree files, at five western-US points from
 1 m to 3 km above ground, ``TEMP``, ``UWND`` and ``VWND`` agree with the
