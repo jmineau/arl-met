@@ -33,7 +33,8 @@ Surface variables (e.g. ``PRSS``, ``SHGT``) have dimensions
 ``TEMP``) have dimensions ``(time, level, lat, lon)``. On a projected grid,
 such as HRRR's or NAM's, ``lat`` and ``lon`` are ``y`` and ``x`` (the
 ``lat`` and ``lon`` coordinates are then 2D). The ``level``
-coordinate contains only the upper-air pressure levels. ``ds.isel(level=0)``
+coordinate holds the level numbers 1 to N on every vertical type; on
+pressure-level files the pressures are in the ``pressure`` coordinate. ``ds.isel(level=0)``
 selects the first upper-air level for upper-air variables and leaves surface
 variables unchanged.
 

@@ -235,37 +235,6 @@ Module layout
        _accessor.py   ds.arl.grid, .vertical_axis, .source
        _vertical.py   pressure(), z_agl(), z_msl()
 
-Module imports
---------------
-
-Runtime imports between modules (``TYPE_CHECKING`` imports left out; *lazy*
-means inside a function body):
-
-.. code-block:: text
-
-   vertical, _exceptions, _io, _time      no arlmet imports
-   _grid          (pyproj)
-   packing      → _pack (C extension), _grid
-   _header      → _time, _exceptions, _grid
-   _indexrecord → _time, _exceptions, _grid, _header, vertical
-   record       → _exceptions, _grid, _header, _indexrecord, packing, vertical
-   _recordset   → _grid, _header, _indexrecord, record, vertical
-   _file        → _time, _exceptions, _grid, _header, _indexrecord,
-                  record, _recordset, vertical;
-                  lazy: _ops.sample, _ops.subset, _xarray.dataset
-   _probe       → _exceptions, _grid, _header, _indexrecord
-   _catalog     → _exceptions, _file, _io, _time
-   _ops.subset  → _io, _exceptions, _file, _grid, _header, _indexrecord, packing, record, vertical
-   _ops.sample  → _time, _grid, vertical; lazy: _file
-   _ops.concat  → _exceptions, _file, _io
-   _xarray.*    → _io, _time, _grid, _header, record, _ops.sample, _ops.subset, vertical; lazy: _file
-   converters.* → _grid, _header, _indexrecord, _xarray._coords, vertical
-   archives     → _time; lazy: fsspec, _ops.subset
-
-``_file`` imports the operations and the Dataset builder lazily because they
-import ``_file``. ``archives`` is not imported by ``import arlmet``, and imports
-``fsspec`` only when it downloads.
-
 Memory tests
 ------------
 

@@ -235,8 +235,9 @@ def _sample_time(
     grid points around a point, with its own ground, heights and pressures, is
     interpolated to the point's ``z``, then the four values are blended over
     those that have one (:func:`~.horizontal.blend`). HYSPLIT has no pressure
-    targets: at pressures and native levels each level is blended first, so a
-    target near the ground is near the ground of the point's own column.
+    targets: at pressures each level is blended first, so a target near the
+    ground is near the ground of the point's own column. At native levels the
+    four columns are built first, as at heights.
 
     Returns one array per variable, aligned with the rows of *coords*.
     """
@@ -433,8 +434,9 @@ def sample_points(
         grid points around a point is interpolated to the point's ``z`` first,
         with that grid point's own ground and level heights, and the four
         values are then blended; a grid point whose column ends below ``z``
-        does not count, and the others are reweighted. At pressures and native
-        levels each level is blended first.
+        does not count, and the others are reweighted. At pressures each level is
+        blended first; at native levels the four columns come first, as at
+        heights.
         On a WRF file (source ``AWRF``) ``UWND`` and ``VWND`` are read where WRF's
         staggered grid holds them, half a cell east and north of each point,
         as HYSPLIT reads them; "nearest" gives the winds at the nearest
