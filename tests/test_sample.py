@@ -1006,6 +1006,16 @@ class TestPressureTargets:
         np.testing.assert_allclose(result["TEMP"], [301.0])
 
 
+def test_a_misspelled_variable_lists_the_variables_the_file_holds(tmp_path):
+    path = tmp_path / "met.arl"
+    time = pd.Timestamp("2024-07-18")
+    write_sampling_file(path, time=time)
+    points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [850.0]})
+
+    with pytest.raises(ValueError, match=r"'TMEP' is not in the met.*holds: .*TEMP"):
+        sample_points(path, points, ["TEMP", "TMEP"], time=time)
+
+
 class TestTerrainRequired:
     """A file without SHGT raises the documented ValueError where terrain is needed (#107)."""
 
@@ -1044,7 +1054,7 @@ class TestTerrainRequired:
                 rs.create_datarecord("TEMP", level=i, forecast=0, data=field)
 
         points = pd.DataFrame({"lon": [20.0], "lat": [-10.0], "z": [1500.0]})
-        with File(path) as arl, pytest.raises(ValueError, match="SHGT"):
+        with File(path) as arl, pytest.raises(ValueError, match="SHGT.*z_kind='agl'"):
             sample_points(
                 arl, points, ["TEMP"], time=time, z_kind="msl", file_levels=True
             )

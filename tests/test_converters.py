@@ -898,6 +898,14 @@ class TestFromGfs:
             np.testing.assert_array_equal(ds[name].values, expected[name].values)
         assert ds.arl.grid == expected.arl.grid
 
+    def test_a_bbox_too_small_for_the_index_record_says_what_to_do(self, tmp_path):
+        ds = from_gfs(gfs_file("2025-09-01 00:00", 0), bbox=(252.0, 40.0, 255.0, 43.0))
+
+        dest = tmp_path / "small.arl"
+        with pytest.raises(ValueError, match="Use a larger bbox, or fewer levels"):
+            arlmet.write_dataset(ds, dest)
+        assert not dest.exists()
+
     def test_bbox_outside_the_grid_is_refused(self):
         with pytest.raises(ValueError, match="no cell"):
             from_gfs(gfs_file("2025-09-01 00:00", 0), bbox=(0.0, 0.0, 10.0, 10.0))
