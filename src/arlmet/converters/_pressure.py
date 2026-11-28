@@ -269,14 +269,17 @@ def arl_dataset(
     Return an empty Dataset in :func:`arlmet.open_dataset`'s layout, to add fields to.
 
     It has the grid's coordinates and ``arl_grid``, ``time``, the index records'
-    ``forecast_hour`` (0 unless given), ``level`` numbered 1 to N with the
+    ``forecast_hour`` (0 unless given, at most 999, the most an index record
+    holds, as HYSPLIT's ``pakrec`` caps it), ``level`` numbered 1 to N with the
     physical coordinate of ``vertical_axis`` (whose first level is the
     surface), and the ``source``, ``vertical_flag`` and ``arlmet_version`` attrs.
     """
     times = np.asarray(times)
     level_numbers = list(range(1, len(vertical_axis.levels)))
     hours = (
-        np.zeros(len(times), dtype=int) if forecast_hours is None else forecast_hours
+        np.zeros(len(times), dtype=int)
+        if forecast_hours is None
+        else np.minimum(forecast_hours, 999)
     )
     ds = add_cf_spatial_attrs(xr.Dataset(coords=grid.calculate_coords()))
     phys_name, phys_coord = physical_coord_for_vaxis(vertical_axis, level_numbers)

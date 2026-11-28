@@ -1196,6 +1196,12 @@ class TestFromWrf:
         assert ds["TPP1"].isel(time=0).isnull().all()
         assert ds["TPP1"].isel(time=slice(1, None)).notnull().all()
 
+    def test_forecast_hour_of_a_long_run_is_capped_at_999(self, tmp_path):
+        # Day 42 of a continuous run is hour 1000; the index record holds 999.
+        ds = from_wrf(wrf_output(minutes=(60000.0, 60060.0)))
+        assert ds["forecast_hour"].values.tolist() == [999, 999]
+        arlmet.write_dataset(ds, tmp_path / "long.arl")
+
     def test_polar_stereographic_and_mercator(self):
         polar = from_wrf(wrf_output(attrs={"MAP_PROJ": 2, "TRUELAT2": 30.0}))
         assert polar.arl.grid.projection.cone_angle == 90.0
