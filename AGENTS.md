@@ -2,7 +2,7 @@
 
 Orientation for contributors and coding agents working on arl-met.
 Contribution mechanics are in [CONTRIBUTING.md](CONTRIBUTING.md); reference
-material (the full module layout and import graph, the HYSPLIT routines arl-met
+material (the full module layout, the HYSPLIT routines arl-met
 mirrors, the vertical-axis conversions, benchmarks) is in the
 [developer notes](docs/development.rst).
 
